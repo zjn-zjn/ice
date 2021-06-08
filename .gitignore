@@ -1,0 +1,13 @@
+target
+.settings
+.project
+.classpath
+.DS_Store
+*.class
+*.jar
+*.iml
+.idea/
+ignore/
+*.war
+*.versionsBackup
+*.log*
