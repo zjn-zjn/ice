@@ -9,89 +9,75 @@ import com.ice.server.model.WebResult;
  */
 public interface IceEditService {
 
-  /**
+/*
    * get base
    *
-   * @param app
-   * @param pageIndex
-   * @param pageSize
-   * @return
+   * @param app app
+   * @param pageIndex 页码
+   * @param pageSize 页大小
    */
   WebResult getBase(Integer app, Integer pageIndex, Integer pageSize);
 
-  /**
+/*
    * 编辑base
    *
-   * @param baseVo
-   * @return
+   * @param baseVo 编辑vo
    */
   WebResult editBase(IceBaseVo baseVo);
 
-  /**
+/*
    * 编辑Conf
    *
-   * @param app
-   * @param type
-   * @param iceId
-   * @param confVo
-   * @return
+   * @param app app
+   * @param type 编辑类型
+   * @param iceId iceId
+   * @param confVo 配置Vo
    */
   WebResult editConf(Integer app, Integer type, Long iceId, IceConfVo confVo);
 
-  /**
+/*
    * 获取leafClass
    *
-   * @param app
-   * @param type
-   * @return
+   * @param app app
+   * @param type 叶子类型
    */
   WebResult getLeafClass(int app, byte type);
 
-  /**
+/*
    * 发布
    *
-   * @param app
-   * @param iceId
-   * @param reason
-   * @return
+   * @param app app
+   * @param iceId iceId
+   * @param reason 发布原因
    */
   WebResult push(Integer app, Long iceId, String reason);
 
-  /**
+/*
    * 发布历史
    *
-   * @param app
-   * @param iceId
-   * @return
+   * @param app app
+   * @param iceId iceId
    */
   WebResult history(Integer app, Long iceId);
 
-  /**
+/*
    * 导出数据
-   *
-   * @param iceId
-   * @param pushId
-   * @return
    */
   WebResult exportData(Long iceId, Long pushId);
 
-  /**
+/*
    * 回滚
-   *
-   * @param pushId
-   * @return
    */
   WebResult rollback(Long pushId);
 
-  /**
+/*
    * 导入数据
    *
-   * @param data
-   * @return
+   * @param data 导入json
    */
   WebResult importData(String data);
 
-//  /**
+///*
 //   * ice复制
 //   * @param data
 //   * @return

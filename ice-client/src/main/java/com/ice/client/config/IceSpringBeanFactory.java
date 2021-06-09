@@ -16,7 +16,7 @@ public class IceSpringBeanFactory implements IceBeanUtils.IceBeanFactory, Applic
 
   private AutowireCapableBeanFactory beanFactory;
 
-  /**
+/*
    * 注入Bean
    *
    * @param existingBean
@@ -26,7 +26,7 @@ public class IceSpringBeanFactory implements IceBeanUtils.IceBeanFactory, Applic
     this.beanFactory.autowireBean(existingBean);
   }
 
-  /**
+/*
    * 检查是否有此Bean
    *
    * @param name
@@ -36,18 +36,17 @@ public class IceSpringBeanFactory implements IceBeanUtils.IceBeanFactory, Applic
     return this.beanFactory.containsBean(name);
   }
 
-  /**
+/*
    * 根据名称获取bean
    *
    * @param name beanName
-   * @return
    */
   @Override
   public Object getBean(String name) {
     return beanFactory.getBean(name);
   }
 
-  /**
+/*
    * @param applicationContext
    * @throws BeansException
    */

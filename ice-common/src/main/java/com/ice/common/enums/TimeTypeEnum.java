@@ -12,31 +12,31 @@ import java.util.Map;
  * 3.即使是测试版,时间配置有误的节点依旧不会上线
  */
 public enum TimeTypeEnum {
-  /**
+/*
    * 无时间限制
    */
   NONE((byte) 1),
-  /**
+/*
    * 大于开始时间
    */
   AFTER_START((byte) 2),
-  /**
+/*
    * 小于结束时间
    */
   BEFORE_END((byte) 3),
-  /**
+/*
    * 在开始时间与结束时间之内
    */
   BETWEEN((byte) 4),
-  /**
+/*
    * 测试版大于开始时间
    */
   TEST_AFTER_START((byte) 5),
-  /**
+/*
    * 测试版小于结束时间
    */
   TEST_BEFORE_END((byte) 6),
-  /**
+/*
    * 测试版在开始时间与结束时间之内
    */
   TEST_BETWEEN((byte) 7);

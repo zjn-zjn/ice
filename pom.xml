@@ -4,9 +4,11 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.waitmoon.ice</groupId>
-  <artifactId>ice</artifactId>
+  <artifactId>ice-parent</artifactId>
   <version>0.0.1</version>
   <packaging>pom</packaging>
+  <description>致力于解决灵活繁复的硬编码问题</description>
+  <url>http://waitmoon.com/</url>
 
   <name>ice</name>
 
@@ -21,26 +23,9 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <java.version>1.8</java.version>
+    <maven.compiler.source>${java.version}</maven.compiler.source>
+    <maven.compiler.target>${java.version}</maven.compiler.target>
   </properties>
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-source-plugin</artifactId>
-        <version>2.1</version>
-        <configuration>
-          <attach>true</attach>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>compile</phase>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 
   <dependencies>
   </dependencies>
@@ -53,5 +38,97 @@
     <module>ice-core</module>
     <module>ice-node-common</module>
   </modules>
+
+  <!--许可证信息，根据自己的情况修改-->
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version2.0</name>
+      <url>http://www.apache.org/licenses/</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <!--托管仓库信息，根据自己的应用情况修改-->
+  <scm>
+    <connection>https://github.com/zjn-zjn/ice.git</connection>
+    <developerConnection>https://github.com/zjn-zjn/ice.git</developerConnection>
+    <url>https://github.com/zjn-zjn/ice</url>
+  </scm>
+
+  <!--开发者信息-->
+  <developers>
+    <developer>
+      <name>zjn</name>
+      <email>995517265@qq.com</email>
+      <url>http://waitmoon.com/</url>
+      <roles>
+        <role>Developer</role>
+      </roles>
+      <timezone>+8</timezone>
+    </developer>
+  </developers>
+
+  <!--仓库地址配置信息-->
+  <distributionManagement>
+    <snapshotRepository>
+      <id>sonatype-snapshot</id>
+      <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>sonatype-release</id>
+      <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
+
+  <build>
+    <plugins>
+      <!--java source生成插件-->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>2.2.1</version>
+
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!--java doc生成插件-->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.9.1</version>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!--gpg签名插件-->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>1.6</version>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

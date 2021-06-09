@@ -17,11 +17,10 @@ public class ScoreFlow extends BaseLeafRoamFlow {
 
   private String key;
 
-  /**
+/*
    * 叶子节点流程处理
    *
-   * @param roam
-   * @return
+   * @param roam 传递roam
    */
   @Override
   protected boolean doRoamFlow(IceRoam roam) {

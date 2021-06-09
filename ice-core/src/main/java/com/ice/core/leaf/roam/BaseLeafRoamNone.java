@@ -20,11 +20,10 @@ public abstract class BaseLeafRoamNone extends BaseLeafPackNone {
     doRoamNone(pack.getRoam());
   }
 
-  /**
+/*
    * process leaf none with roam
    *
-   * @param roam
-   * @return
+   * @param roam 传递roam
    */
   protected abstract void doRoamNone(IceRoam roam) throws InvocationTargetException, IllegalAccessException;
 }

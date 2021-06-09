@@ -9,14 +9,14 @@ package com.ice.core.utils;
  */
 public final class IceLinkedList<E> {
 
-  /**
+/*
    * Pointer to first node.
    * Invariant: (first == null && last == null) ||
    * (first.prev == null && first.item != null)
    */
   private Node<E> first;
 
-  /**
+/*
    * Pointer to last node.
    * Invariant: (first == null && last == null) ||
    * (last.next == null && last.item != null)
@@ -78,14 +78,14 @@ public final class IceLinkedList<E> {
     }
   }
 
-  /**
+/*
    * Tells if the argument is the index of an existing element.
    */
   private boolean isElementIndex(int index) {
     return index >= 0 && index < size;
   }
 
-  /**
+/*
    * Links e as last element.
    */
   void linkLast(E e) {
@@ -119,7 +119,7 @@ public final class IceLinkedList<E> {
     return false;
   }
 
-  /**
+/*
    * Unlinks non-null node x.
    */
   E unlink(Node<E> x) {

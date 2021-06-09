@@ -5,19 +5,19 @@ package com.ice.common.enums;
  * 控制着入参,出参与执行过程的打印
  */
 public enum DebugEnum {
-  /**
+/*
    * 入参PACK 1
    */
   IN_PACK,
-  /**
+/*
    * 执行过程(和节点debug一并使用) 2
    */
   PROCESS,
-  /**
+/*
    * 结局ROAM 4
    */
   OUT_ROAM,
-  /**
+/*
    * 结局PACK 8
    */
   OUT_PACK;

@@ -10,16 +10,16 @@ import java.lang.reflect.InvocationTargetException;
 
 /**
  * @author zjn
- * 结果->TRUE关系
+ * 结果--TRUE关系
  * 子节点全部执行
- * 无子节点->TRUE
- * 有子节点->TRUE
+ * 无子节点--TRUE
+ * 有子节点--TRUE
  */
 public final class True extends BaseRelation {
-  /**
+/*
    * process relation true
    *
-   * @param cxt
+   *
    */
   @Override
   protected NodeRunStateEnum processNode(IceContext cxt) throws InvocationTargetException, IllegalAccessException {

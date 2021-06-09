@@ -22,11 +22,10 @@ public final class TimeChangeNone extends BaseLeafPackNone {
   @Value("${environment}")
   private String environment;
 
-  /**
+/*
    * 叶子节点处理
    *
-   * @param pack
-   * @return
+   * @param pack 包裹
    */
   @Override
   protected void doPackNone(IcePack pack) {

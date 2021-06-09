@@ -19,37 +19,37 @@ import java.util.Set;
 @Data
 public final class IceHandler {
 
-  /**
+/*
    * iceId
    */
   private long iceId;
 
-  /**
+/*
    * 场景
    */
   private Set<String> scenes;
-  /**
+/*
    * 时间类型
    *
    * @see TimeTypeEnum
    */
   private TimeTypeEnum timeTypeEnum;
-  /**
+/*
    * 开始时间
    */
   private long start;
-  /**
+/*
    * 结束时间
    */
   private long end;
 
-  /**
+/*
    * handler的debug
    * 控制着入参,出参与执行过程的打印
    */
   private byte debug;
 
-  /**
+/*
    * 执行根节点
    */
   private BaseNode root;
@@ -92,24 +92,24 @@ public final class IceHandler {
     return this.iceId;
   }
 
-  /**
+/*
    * handler的debug枚举
    * 控制着入参,出参与执行过程的打印
    */
   private enum DebugEnum {
-    /**
+  /*
      * 入参PACK 1
      */
     IN_PACK,
-    /**
+  /*
      * 执行过程(和节点debug一并使用) 2
      */
     PROCESS,
-    /**
+  /*
      * 结局ROAM 4
      */
     OUT_ROAM,
-    /**
+  /*
      * 结局PACK 8
      */
     OUT_PACK;

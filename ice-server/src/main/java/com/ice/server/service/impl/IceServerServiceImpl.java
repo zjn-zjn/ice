@@ -47,29 +47,29 @@ import java.util.stream.Collectors;
 public class IceServerServiceImpl implements IceServerService, InitializingBean {
 
   private static final Set<Integer> appSet = new HashSet<>();
-  /**
+/*
    * 提前一天上线(提前上线避免延迟与方便检查)
    */
   private static final long PRE_MILLS = 86400000L;
   private static final Object LOCK = new Object();
-  /**
+/*
    * key:app value baseList
    */
   private final Map<Integer, Map<Long, IceBase>> baseWaitMap = new HashMap<>();
-  /**
+/*
    * key:app value conf
    */
   private final Map<Integer, Map<Long, IceConf>> confWaitMap = new HashMap<>();
-  /**
+/*
    * key:app value baseList
    */
   private final Map<Integer, Map<Long, IceBase>> baseActiveMap = new HashMap<>();
-  /**
+/*
    * key:app value conf
    */
   private final Map<Integer, Map<Long, IceConf>> confActiveMap = new HashMap<>();
   private final Map<Integer, Map<Byte, Map<String, Integer>>> leafClassMap = new HashMap<>();
-  /**
+/*
    * 上次更新时间
    */
   private Date lastUpdateTime;
@@ -114,11 +114,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     return new ArrayList<>(baseMap.values());
   }
 
-  /**
+/*
    * 获取所有的activeBase-从库里
-   *
-   * @param app
-   * @return
    */
   @Override
   public List<IceBase> getBaseFromDb(Integer app) {
@@ -129,12 +126,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     return null;
   }
 
-  /**
+/*
    * 根据confId获取配置信息
-   *
-   * @param app
-   * @param confId
-   * @return
    */
   @Override
   public IceConf getActiveConfById(Integer app, Long confId) {
@@ -159,7 +152,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     update();
   }
 
-  /**
+/*
    * 定时任务,距上次执行完成10s后执行
    */
   @Scheduled(fixedDelay = 20000)
@@ -260,7 +253,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
   }
 
-  /**
+/*
    * 原先的wait check 找active的
    *
    * @param activeChangeConfMap
@@ -283,7 +276,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
   }
 
-  /**
+/*
    * 原先的wait check 找active的
    *
    * @param activeChnageBaseMap
@@ -314,7 +307,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     return deleteIdSet.contains(id);
   }
 
-  /**
+/*
    * 原先active的check
    *
    * @param deleteConfMap
@@ -333,7 +326,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
   }
 
-  /**
+/*
    * 原先active的check
    *
    * @param deleteBaseMap
@@ -394,16 +387,9 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
   }
 
-  /**
+/*
    * 更新本地cache
    * 先处理删除,再处理插入与更新
-   *
-   * @param deleteBaseMap
-   * @param deleteConfMap
-   * @param activeChangeBaseMap
-   * @param waitBaseMap
-   * @param activeChangeConfMap
-   * @param waitConfMap
    * @return 当前更新版本
    */
   private long updateLocal(Map<Integer, Set<Long>> deleteBaseMap,
@@ -532,11 +518,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     return type == NodeTypeEnum.LEAF_FLOW.getType() || type == NodeTypeEnum.LEAF_NONE.getType() || type == NodeTypeEnum.LEAF_RESULT.getType();
   }
 
-  /**
+/*
    * 时间戳过期校验
-   *
-   * @param start
-   * @return
    */
   private boolean passInvalidCheck(Long id, byte timeType, Date start, Date end, Date now) {
     TimeTypeEnum timeTypeEnum = TimeTypeEnum.getEnum(timeType);
@@ -586,11 +569,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     return true;
   }
 
-  /**
+/*
    * 时间戳生效中校验(在时间戳检验通过后再校验)
-   *
-   * @param start
-   * @return
    */
   private boolean passActiveCheck(byte timeType, Date start, Date end, Date now) {
     TimeTypeEnum timeTypeEnum = TimeTypeEnum.getEnum(timeType);
@@ -615,11 +595,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     return false;
   }
 
-  /**
+/*
    * 根据app获取生效中的ConfList
-   *
-   * @param app
-   * @return
    */
   @Override
   public Collection<IceConfDto> getActiveConfsByApp(Integer app) {
@@ -632,11 +609,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
   }
 
-  /**
+/*
    * 根据app获取生效中的baseList
-   *
-   * @param app
-   * @return
    */
   @Override
   public Collection<IceBaseDto> getActiveBasesByApp(Integer app) {
@@ -649,11 +623,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
   }
 
-  /**
+/*
    * 根据app获取初始化json
-   *
-   * @param app
-   * @return
    */
   @Override
   public String getInitJson(Integer app) {

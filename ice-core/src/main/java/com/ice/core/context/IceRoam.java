@@ -27,12 +27,11 @@ public final class IceRoam extends HashMap<String, Object> {
     super(map);
   }
 
-  /**
+  /*
    * 以'.'为介质Key存储层次化的自定义结构
    *
-   * @param multiKey
-   * @param value
-   * @return
+   * @param multiKey multiKey
+   * @param value value
    */
   @SuppressWarnings("unchecked")
   public <T> T putMulti(String multiKey, T value) {
@@ -65,11 +64,11 @@ public final class IceRoam extends HashMap<String, Object> {
     return (T) endMap.put(keys[i], value);
   }
 
-  /**
+/*
    * 通过以'.'为介质的Key查找
    *
-   * @param multiKey
-   * @return
+   * @param multiKey multiKey
+   * @return value
    */
   @SuppressWarnings("unchecked")
   public <T> T getMulti(String multiKey) {
@@ -97,12 +96,12 @@ public final class IceRoam extends HashMap<String, Object> {
     return (T) get(key);
   }
 
-  /**
+/*
    * 多源联合获取值
    * 前缀是@的字符串指向roam内部获取数据
    *
-   * @param union
-   * @return
+   * @param union unionObj
+   * @return value
    */
   @SuppressWarnings("unchecked")
   public <T> T getUnion(Object union) {
@@ -124,22 +123,22 @@ public final class IceRoam extends HashMap<String, Object> {
     return (T) put(key, value);
   }
 
-  /**
+/*
    * 放入业务生成的值
    *
-   * @param key
-   * @param value
-   * @return
+   * @param key roam-key
+   * @param value value
+   * @return value
    */
   public <T> T putGen(String key, T value) {
     return putMulti("G-" + key, value);
   }
 
-  /**
+/*
    * 获取业务生成的字段值
    *
-   * @param key
-   * @return
+   * @param key roam-key
+   * @return value
    */
   public <T> T getGen(String key) {
     return getMulti("G-" + key);

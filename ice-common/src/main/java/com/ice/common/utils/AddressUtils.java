@@ -16,11 +16,8 @@ public final class AddressUtils {
   private AddressUtils() {
   }
 
-  /**
-   * @return
-   * @throws MalformedObjectNameException
-   * @throws NullPointerException
-   * @throws UnknownHostException
+/*
+   * address with port
    */
   public static String getAddressPort() {
 
@@ -50,19 +47,15 @@ public final class AddressUtils {
     return host + ":" + port;
   }
 
-  /**
-   * @return
-   * @throws NullPointerException
-   * @throws UnknownHostException
+/*
+   * adress
    */
   public static String getAddressHost() throws UnknownHostException {
     return InetAddress.getLocalHost().getHostAddress();
   }
 
-  /**
-   * @return
-   * @throws MalformedObjectNameException
-   * @throws NullPointerException
+/*
+   * port
    */
   public static int getTomcatPort() throws MalformedObjectNameException {
     MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();

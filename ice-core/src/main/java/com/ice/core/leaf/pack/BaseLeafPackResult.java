@@ -20,11 +20,10 @@ public abstract class BaseLeafPackResult extends BaseLeafResult {
     return doPackResult(cxt.getPack());
   }
 
-  /**
+/*
    * process leaf result with pack
    *
-   * @param pack
-   * @return
+   * @param pack 包裹
    */
   protected abstract boolean doPackResult(IcePack pack) throws InvocationTargetException, IllegalAccessException;
 }

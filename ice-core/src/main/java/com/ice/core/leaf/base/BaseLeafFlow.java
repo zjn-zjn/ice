@@ -16,7 +16,7 @@ import java.lang.reflect.InvocationTargetException;
 @EqualsAndHashCode(callSuper = true)
 public abstract class BaseLeafFlow extends BaseLeaf {
 
-  /**
+/*
    * process leaf flow
    */
   @Override
@@ -27,11 +27,10 @@ public abstract class BaseLeafFlow extends BaseLeaf {
     return NodeRunStateEnum.FALSE;
   }
 
-  /**
+/*
    * process leaf flow
    *
-   * @param cxt
-   * @return
+   *
    */
   protected abstract boolean doFlow(IceContext cxt) throws InvocationTargetException, IllegalAccessException;
 }

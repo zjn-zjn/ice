@@ -24,15 +24,15 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public final class IceHandlerCache {
 
-  /**
+/*
    * key iceId value handler
    */
   private static final Map<Long, IceHandler> idHandlerMap = new ConcurrentHashMap<>();
-  /**
+/*
    * key1 scene key2 iceId
    */
   private static final Map<String, Map<Long, IceHandler>> sceneHandlersMap = new ConcurrentHashMap<>();
-  /**
+/*
    * key1 confId key2 iceId
    */
   private static final Map<Long, Map<Long, IceHandler>> confIdHandlersMap = new ConcurrentHashMap<>();
@@ -172,7 +172,7 @@ public final class IceHandlerCache {
     }
   }
 
-  /**
+/*
    * 下线一个scene下的所有handler
    *
    * @param scene

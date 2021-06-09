@@ -8,11 +8,11 @@ import java.util.Map;
  * 请求类型
  */
 public enum RequestTypeEnum {
-  /**
+/*
    * 正式请求 默认
    */
   FORMAL((byte) 1),
-  /**
+/*
    * 预演/模拟/测试
    */
   PREVIEW((byte) 2);

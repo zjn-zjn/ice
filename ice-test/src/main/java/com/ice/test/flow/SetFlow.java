@@ -24,10 +24,8 @@ public final class SetFlow {
     return one > two;
   }
 
-  /**
+/*
    * 叶子节点流程处理
-   *
-   * @return
    */
   public boolean contains(@IceParam("uid") Integer uid) {
     if (CollectionUtils.isEmpty(set)) {

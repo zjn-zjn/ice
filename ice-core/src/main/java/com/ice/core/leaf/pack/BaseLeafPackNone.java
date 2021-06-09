@@ -20,11 +20,10 @@ public abstract class BaseLeafPackNone extends BaseLeafNone {
     doPackNone(cxt.getPack());
   }
 
-  /**
+/*
    * process leaf none with pack
    *
-   * @param pack
-   * @return
+   * @param pack 包裹
    */
   protected abstract void doPackNone(IcePack pack) throws InvocationTargetException, IllegalAccessException;
 }

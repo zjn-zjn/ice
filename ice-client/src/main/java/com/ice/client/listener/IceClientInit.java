@@ -32,7 +32,7 @@ public final class IceClientInit implements InitializingBean {
   @Resource(name = "iceRabbitTemplate")
   private RabbitTemplate iceRabbitTemplate;
 
-  /**
+/*
    * 避免初始化与更新之间存在遗漏更新消息,此处先保证mq初始化完毕
    * 初始化ice通过restTemplate远程调用server链接完成
    */

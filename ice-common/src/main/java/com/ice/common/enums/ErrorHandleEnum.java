@@ -10,27 +10,27 @@ import java.util.Map;
  * 是否打印日志取决于节点debug配置
  */
 public enum ErrorHandleEnum {
-  /**
+/*
    * 继续执行做NONE处理
    */
   CONTINUE_NONE((byte) 0),
 
-  /**
+/*
    * 继续执行做FALSE处理
    */
   CONTINUE_FALSE((byte) 1),
 
-  /**
+/*
    * 继续执行做TRUE处理
    */
   CONTINUE_TRUE((byte) 2),
 
-  /**
+/*
    * 终止执行不落盘
    */
   SHUT_DOWN((byte) 3),
 
-  /**
+/*
    * 终止执行并落盘
    */
   SHUT_DOWN_STORE((byte) 4);

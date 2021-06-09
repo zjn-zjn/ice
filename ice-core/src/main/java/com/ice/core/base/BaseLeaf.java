@@ -17,15 +17,15 @@ import java.lang.reflect.InvocationTargetException;
 @EqualsAndHashCode(callSuper = true)
 public abstract class BaseLeaf extends BaseNode {
 
-  /**
+/*
    * 默认仅中止执行SHUT_DOWN
    */
   private ErrorHandleEnum iceErrorHandleEnum = ErrorHandleEnum.SHUT_DOWN;
 
-  /**
+/*
    * processNode
    *
-   * @param cxt 入参
+   *
    * @return 节点执行结果
    */
   @Override
@@ -66,11 +66,10 @@ public abstract class BaseLeaf extends BaseNode {
     }
   }
 
-  /**
+/*
    * process leaf
    *
-   * @param cxt
-   * @return
+   *
    */
   protected abstract NodeRunStateEnum doLeaf(IceContext cxt) throws InvocationTargetException, IllegalAccessException;
 }

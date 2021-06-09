@@ -56,11 +56,10 @@ public final class IceConfCache {
 
   private static final Map<Long, Set<Long>> forwardUseIdsMap = new ConcurrentHashMap<>();
 
-  /**
+/*
    * 根据ID获取Conf配置
    *
-   * @param id
-   * @return
+   * @param id iceId
    */
   public static BaseNode getConfById(Long id) {
     if (id == null) {
@@ -73,11 +72,10 @@ public final class IceConfCache {
     return confMap;
   }
 
-  /**
+/*
    * 缓存更新
    *
    * @param iceConfDtos dto
-   * @return
    */
   public static List<String> insertOrUpdate(List<IceConfDto> iceConfDtos) {
     List<String> errors = new ArrayList<>(iceConfDtos.size());

@@ -20,11 +20,10 @@ public abstract class BaseLeafRoamResult extends BaseLeafPackResult {
     return doRoamResult(pack.getRoam());
   }
 
-  /**
+/*
    * process leaf result with roam
    *
-   * @param roam
-   * @return
+   * @param roam 传递roam
    */
   protected abstract boolean doRoamResult(IceRoam roam) throws InvocationTargetException, IllegalAccessException;
 }

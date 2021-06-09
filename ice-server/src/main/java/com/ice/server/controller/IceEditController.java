@@ -36,7 +36,7 @@ public class IceEditController {
   @Value("${environment.id}")
   private String environmentId;
 
-  /**
+/*
    * 编辑ice
    */
   @RequestMapping(value = "/ice/edit", method = RequestMethod.POST)
@@ -46,7 +46,7 @@ public class IceEditController {
     return result;
   }
 
-  /**
+/*
    * 编辑节点
    */
   @RequestMapping(value = "/ice/conf/edit", method = RequestMethod.POST)
@@ -56,7 +56,7 @@ public class IceEditController {
     return result;
   }
 
-  /**
+/*
    * 获取叶子节点类
    */
   @RequestMapping(value = "/ice/conf/edit/getClass", method = RequestMethod.GET)
@@ -64,7 +64,7 @@ public class IceEditController {
     return editService.getLeafClass(app, type);
   }
 
-  /**
+/*
    * 发布
    */
   @RequestMapping(value = "/ice/conf/push", method = RequestMethod.POST)
@@ -72,7 +72,7 @@ public class IceEditController {
     return editService.push((Integer) map.get("app"), Long.parseLong(map.get("iceId").toString()), (String) map.get("reason"));
   }
 
-  /**
+/*
    * 发布到线上
    */
   @RequestMapping(value = "/ice/topro", method = RequestMethod.POST)
@@ -90,7 +90,7 @@ public class IceEditController {
     return result;
   }
 
-  /**
+/*
    * 发布历史
    */
   @RequestMapping(value = "/ice/conf/push/history", method = RequestMethod.GET)
@@ -99,7 +99,7 @@ public class IceEditController {
     return editService.history(app, iceId);
   }
 
-  /**
+/*
    * 导出
    */
   @RequestMapping(value = "/ice/conf/export", method = RequestMethod.GET)
@@ -108,7 +108,7 @@ public class IceEditController {
     return editService.exportData(iceId, pushId);
   }
 
-  /**
+/*
    * 回滚
    */
   @RequestMapping(value = "/ice/conf/rollback", method = RequestMethod.GET)
@@ -118,7 +118,7 @@ public class IceEditController {
     return result;
   }
 
-  /**
+/*
    * 导入
    */
   @RequestMapping(value = "/ice/conf/import", method = RequestMethod.POST)
@@ -128,7 +128,7 @@ public class IceEditController {
     return result;
   }
 
-//  /**
+///*
 //   * 复制
 //   */
 //  @RequestMapping(value = "/ice/conf/copy", method = RequestMethod.POST)

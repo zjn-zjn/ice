@@ -8,36 +8,36 @@ import java.util.Map;
  * 后缀时间类型
  */
 public enum TimeSuffixEnum {
-  /**
+/*
    * 无后缀
    */
   NONE((byte) 1),
-  /**
+/*
    * 秒
    */
   SECONDS((byte) 2),
-  /**
+/*
    * 分钟
    */
   MINUTES((byte) 3),
-  /**
+/*
    * 小时
    */
   HOURS((byte) 4),
-  /**
+/*
    * 天
    */
   DAYS((byte) 5),
-  /**
+/*
    * 周
    */
   WEEKS((byte) 6),
-  /**
+/*
    * 月
    */
   MONTH((byte) 7),
 
-  /**
+/*
    * 年
    */
   YEAR((byte) 8);

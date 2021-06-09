@@ -38,7 +38,7 @@ public class IceClientConfig {
 
   @Value("${ice.app:}")
   private Integer app;
-  /**
+/*
    * 等待初始化返回时间 默认10s
    */
   @Value("${ice.init.reply.timeout:10000}")

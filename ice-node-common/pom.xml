@@ -5,7 +5,7 @@
 
   <parent>
     <groupId>com.waitmoon.ice</groupId>
-    <artifactId>ice</artifactId>
+    <artifactId>ice-parent</artifactId>
     <version>0.0.1</version>
   </parent>
 

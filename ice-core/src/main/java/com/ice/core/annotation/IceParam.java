@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.PARAMETER})
 public @interface IceParam {
-  /**
+/*
    * 除以下value字段外指定从IceRoam拿value字段作为方法入参
    * "time":requestTime
    * "roam":IceRoam

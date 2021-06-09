@@ -8,35 +8,35 @@ import java.util.Map;
  * 过滤节点类型
  */
 public enum NodeTypeEnum {
-  /**
+/*
    * 关系节点-none
    */
   NONE((byte) 0),
-  /**
+/*
    * 关系节点-and
    */
   AND((byte) 1),
-  /**
+/*
    * 关系节点-true
    */
   TRUE((byte) 2),
-  /**
+/*
    * 关系节点-all
    */
   ALL((byte) 3),
-  /**
+/*
    * 关系节点-any
    */
   ANY((byte) 4),
-  /**
+/*
    * 叶子节点-flow
    */
   LEAF_FLOW((byte) 5),
-  /**
+/*
    * 叶子节点-result
    */
   LEAF_RESULT((byte) 6),
-  /**
+/*
    * 叶子节点-none
    */
   LEAF_NONE((byte) 7);

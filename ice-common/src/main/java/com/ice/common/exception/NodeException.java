@@ -6,7 +6,7 @@ package com.ice.common.exception;
 public class NodeException extends RuntimeException {
   private static final long serialVersionUID = 6944501264551776451L;
 
-  /**
+/*
    * Constructs a new runtime exception with {@code null} as its
    * detail message.  The cause is not initialized, and may subsequently be
    * initialized by a call to {@link #initCause}.
@@ -14,7 +14,7 @@ public class NodeException extends RuntimeException {
   public NodeException() {
   }
 
-  /**
+/*
    * Constructs a new runtime exception with the specified detail message.
    * The cause is not initialized, and may subsequently be initialized by a
    * call to {@link #initCause}.
@@ -26,7 +26,7 @@ public class NodeException extends RuntimeException {
     super(message);
   }
 
-  /**
+/*
    * Constructs a new runtime exception with the specified detail message and
    * cause.  <p>Note that the detail message associated with
    * {@code cause} is <i>not</i> automatically incorporated in
@@ -44,7 +44,7 @@ public class NodeException extends RuntimeException {
     super(message, cause);
   }
 
-  /**
+/*
    * Constructs a new runtime exception with the specified cause and a
    * detail message of <tt>(cause==null ? null : cause.toString())</tt>
    * (which typically contains the class and detail message of
@@ -61,7 +61,7 @@ public class NodeException extends RuntimeException {
     super(cause);
   }
 
-  /**
+/*
    * Constructs a new runtime exception with the specified detail
    * message, cause, suppression enabled or disabled, and writable
    * stack trace enabled or disabled.

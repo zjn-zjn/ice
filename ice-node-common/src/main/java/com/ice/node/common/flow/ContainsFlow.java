@@ -16,17 +16,16 @@ import java.util.Collection;
 public class ContainsFlow extends BaseLeafRoamFlow {
 
   private Object key;
-  /***
+/**
    * Collection
    * eg:Set[1,2]
    */
   private Object collection;
 
-  /**
+/*
    * 叶子节点流程处理
    *
-   * @param roam
-   * @return
+   * @param roam 传递roam
    */
   @Override
   protected boolean doRoamFlow(IceRoam roam) {

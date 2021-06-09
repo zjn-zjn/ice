@@ -7,7 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class UUIDUtils {
 
-  /**
+/*
    * 采用64进制
    */
   private static final char[] DIGITS64 = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
@@ -18,7 +18,7 @@ public final class UUIDUtils {
   private UUIDUtils() {
   }
 
-  /**
+/*
    * 21-22位UUID
    */
   public static String generateMost22UUID() {
@@ -57,7 +57,7 @@ public final class UUIDUtils {
     return new String(buf, charPos, 22 - charPos);
   }
 
-  /**
+/*
    * 无 - UUID
    */
   public static String generateUUID() {
@@ -84,7 +84,7 @@ public final class UUIDUtils {
     return Long.toHexString(hi | (val & (hi - 1)));
   }
 
-  /**
+/*
    * 22位UUID
    */
   public static String generateUUID22() {

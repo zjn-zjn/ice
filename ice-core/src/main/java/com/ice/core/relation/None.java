@@ -15,10 +15,10 @@ import java.lang.reflect.InvocationTargetException;
  * 返回NONE
  */
 public final class None extends BaseRelation {
-  /**
+/*
    * process relation none
    *
-   * @param cxt
+   *
    */
   @Override
   protected NodeRunStateEnum processNode(IceContext cxt) throws InvocationTargetException, IllegalAccessException {

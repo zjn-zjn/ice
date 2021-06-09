@@ -13,43 +13,43 @@ import lombok.ToString;
 @ToString
 public final class IcePack {
 
-  /**
+/*
    * 请求的 iceId
    */
   private long iceId;
-  /**
+/*
    * 请求的场景 iceId为空时必填
    */
   private String scene;
-  /**
+/*
    * 直接将confId作为root发起调用
    */
   private long confId;
-  /**
+/*
    * 游荡字段
    * 一般执行过程中从这里取/放值
    */
   private volatile IceRoam roam = new IceRoam();
-  /**
+/*
    * 请求类型 默认正式
    *
    * @see RequestTypeEnum
    */
   private int type = RequestTypeEnum.FORMAL.getType();
-  /**
+/*
    * 请求时间
    */
   private long requestTime;
-  /**
+/*
    * 追踪ID
    */
   private String traceId;
-  /**
+/*
    * 优先级 如果为0则以执行的handler的优先级为准
    */
   private long priority;
 
-  /**
+/*
    * 1.handler 最终以debug|handler.debug展示
    * 2.confRoot 最终以this.debug展示
    */

@@ -8,11 +8,11 @@ import java.util.Map;
  * 上下架类型
  */
 public enum StatusEnum {
-  /**
+/*
    * 上架
    */
   ONLINE((byte) 1),
-  /**
+/*
    * 下架
    */
   OFFLINE((byte) 0);

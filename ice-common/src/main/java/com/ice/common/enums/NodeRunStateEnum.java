@@ -10,15 +10,15 @@ import java.util.Map;
  */
 public enum NodeRunStateEnum {
 
-  /**
+/*
    * false
    */
   FALSE((byte) 0),
-  /**
+/*
    * true
    */
   TRUE((byte) 1),
-  /**
+/*
    * 不参与节点运行结果
    */
   NONE((byte) 2);

@@ -61,10 +61,8 @@ public class IceEditServiceImpl implements IceEditService {
         || type == NodeTypeEnum.ANY.getType();
   }
 
-  /**
+/*
    * get Base
-   *
-   * @param app
    */
   @Override
   public WebResult getBase(Integer app, Integer pageIndex, Integer pageSize) {
@@ -75,10 +73,8 @@ public class IceEditServiceImpl implements IceEditService {
     return new WebResult<>(baseMapper.selectByExample(example));
   }
 
-  /**
+/*
    * 编辑base
-   *
-   * @param baseVo
    */
   @Override
   @Transactional
@@ -111,14 +107,8 @@ public class IceEditServiceImpl implements IceEditService {
     return result;
   }
 
-  /**
+/*
    * 编辑Conf
-   *
-   * @param app
-   * @param type
-   * @param iceId
-   * @param confVo
-   * @return
    */
   @Override
   @Transactional
@@ -454,12 +444,8 @@ public class IceEditServiceImpl implements IceEditService {
     return result;
   }
 
-  /**
+/*
    * 获取leafClass
-   *
-   * @param app
-   * @param type
-   * @return
    */
   @Override
   public WebResult getLeafClass(int app, byte type) {
@@ -480,12 +466,8 @@ public class IceEditServiceImpl implements IceEditService {
     return result;
   }
 
-  /**
+/*
    * 发布
-   *
-   * @param app
-   * @param iceId
-   * @return
    */
   @Override
   public WebResult push(Integer app, Long iceId, String reason) {
@@ -548,12 +530,8 @@ public class IceEditServiceImpl implements IceEditService {
     return result;
   }
 
-  /**
+/*
    * 发布历史
-   *
-   * @param app
-   * @param iceId
-   * @return
    */
   @Override
   public WebResult history(Integer app, Long iceId) {
@@ -567,12 +545,8 @@ public class IceEditServiceImpl implements IceEditService {
     return result;
   }
 
-  /**
+/*
    * 导出数据
-   *
-   * @param iceId
-   * @param pushId
-   * @return
    */
   @Override
   public WebResult exportData(Long iceId, Long pushId) {
@@ -641,11 +615,8 @@ public class IceEditServiceImpl implements IceEditService {
     return result;
   }
 
-  /**
+/*
    * 回滚
-   *
-   * @param pushId
-   * @return
    */
   @Override
   @Transactional
@@ -688,11 +659,8 @@ public class IceEditServiceImpl implements IceEditService {
     return (List) map.get("children");
   }
 
-  /**
+/*
    * 导入数据
-   *
-   * @param data
-   * @return
    */
   @Override
   @Transactional

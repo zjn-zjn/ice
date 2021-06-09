@@ -10,19 +10,19 @@ import java.lang.reflect.InvocationTargetException;
 
 /**
  * @author zjn
- * 流程->AND关系
+ * 流程--AND关系
  * 有一个子节点返回FALSE将中断执行
- * 有FALSE->FALSE
- * 无FALSE有TRUE->TRUE
- * 无子节点->NONE
- * 全NONE->NONE
+ * 有FALSE--FALSE
+ * 无FALSE有TRUE--TRUE
+ * 无子节点--NONE
+ * 全NONE--NONE
  */
 public final class And extends BaseRelation {
 
-  /**
+/*
    * process relation and
    *
-   * @param cxt
+   *
    */
   @Override
   protected NodeRunStateEnum processNode(IceContext cxt) throws InvocationTargetException, IllegalAccessException {

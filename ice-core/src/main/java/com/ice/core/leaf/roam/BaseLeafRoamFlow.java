@@ -20,11 +20,10 @@ public abstract class BaseLeafRoamFlow extends BaseLeafPackFlow {
     return doRoamFlow(pack.getRoam());
   }
 
-  /**
+/*
    * process leaf flow with roam
    *
-   * @param roam
-   * @return
+   * @param roam 传递roam
    */
   protected abstract boolean doRoamFlow(IceRoam roam) throws InvocationTargetException, IllegalAccessException;
 }

@@ -16,7 +16,7 @@ import java.lang.reflect.InvocationTargetException;
 @EqualsAndHashCode(callSuper = true)
 public abstract class BaseLeafNone extends BaseLeaf {
 
-  /**
+/*
    * process leaf none
    */
   @Override
@@ -25,11 +25,10 @@ public abstract class BaseLeafNone extends BaseLeaf {
     return NodeRunStateEnum.NONE;
   }
 
-  /**
+/*
    * process leaf none
    *
-   * @param cxt
-   * @return
+   *
    */
   protected abstract void doNone(IceContext cxt) throws InvocationTargetException, IllegalAccessException;
 }

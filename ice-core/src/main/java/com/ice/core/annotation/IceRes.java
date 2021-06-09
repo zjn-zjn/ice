@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
 public @interface IceRes {
-  /**
+/*
    * 方法执行结果以value命名放入IceRoam
    *
    * @return resName

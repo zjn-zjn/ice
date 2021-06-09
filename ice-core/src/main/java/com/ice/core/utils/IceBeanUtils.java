@@ -35,26 +35,24 @@ public final class IceBeanUtils {
   }
 
   public interface IceBeanFactory {
-    /**
+  /*
      * 注入Bean
      *
      * @param existingBean 待填充对象
      */
     void autowireBean(Object existingBean);
 
-    /**
+  /*
      * 检查是否有此Bean
      *
      * @param name beanName
-     * @return
      */
     boolean containsBean(String name);
 
-    /**
+  /*
      * 根据名称获取bean
      *
      * @param name beanName
-     * @return
      */
     Object getBean(String name);
   }

@@ -16,18 +16,17 @@ public class CompareFlow extends BaseLeafRoamFlow {
   private Object key;
 
   private Object another;
-  /**
+/*
    * 1判大(默认)
    * 0判等
    * -1判小
    */
   private int code = 1;
 
-  /**
+/*
    * 叶子节点流程处理
    *
-   * @param roam 包裹
-   * @return 返回
+   * @param roam 传递roam
    */
   @Override
   protected boolean doRoamFlow(IceRoam roam) {

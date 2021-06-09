@@ -20,10 +20,10 @@ public abstract class BaseLeafPackFlow extends BaseLeafFlow {
     return doPackFlow(cxt.getPack());
   }
 
-  /**
+/*
    * process leaf flow with pack
    *
-   * @param pack
+   * @param pack 包裹
    * @return
    */
   protected abstract boolean doPackFlow(IcePack pack) throws InvocationTargetException, IllegalAccessException;
