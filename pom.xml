@@ -4,8 +4,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.waitmoon.ice</groupId>
-  <artifactId>ice-parent</artifactId>
-  <version>0.0.1</version>
+  <artifactId>ice</artifactId>
+  <version>0.0.2</version>
   <packaging>pom</packaging>
   <description>致力于解决灵活繁复的硬编码问题</description>
   <url>http://waitmoon.com/</url>
