@@ -25,7 +25,8 @@ public class AmountResult extends BaseLeafRoamResult {
     if (uid == null || value <= 0) {
       return false;
     }
-
-    return sendService.sendAmount(uid, value);
+    boolean res = sendService.sendAmount(uid, value);
+    roam.put("SEND_AMOUNT", res);
+    return res;
   }
 }

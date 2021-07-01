@@ -61,7 +61,7 @@ public class IceEditServiceImpl implements IceEditService {
         || type == NodeTypeEnum.ANY.getType();
   }
 
-/*
+  /*
    * get Base
    */
   @Override
@@ -73,7 +73,7 @@ public class IceEditServiceImpl implements IceEditService {
     return new WebResult<>(baseMapper.selectByExample(example));
   }
 
-/*
+  /*
    * 编辑base
    */
   @Override
@@ -86,28 +86,30 @@ public class IceEditServiceImpl implements IceEditService {
       return result;
     }
     if (baseVo.getId() == null) {
-      /*新增*/
-      /*新增的需要在conf里新建一个root root默认是none的status=0*/
-      IceConf createConf = new IceConf();
-      createConf.setApp(baseVo.getApp());
-      createConf.setType(NodeTypeEnum.NONE.getType());
-      createConf.setUpdateAt(new Date());
-      confMapper.insertSelective(createConf);
+      /*新增的需要在conf里新建一个root root默认是none*/
+      if (baseVo.getConfId() == null) {
+        IceConf createConf = new IceConf();
+        createConf.setApp(baseVo.getApp());
+        createConf.setType(NodeTypeEnum.NONE.getType());
+        createConf.setUpdateAt(new Date());
+        confMapper.insertSelective(createConf);
+        baseVo.setConfId(createConf.getId());
+      }
       IceBase createBase = convert(baseVo);
-      /*存入负值表示新建*/
-      createBase.setConfId(-createConf.getId());
+      createBase.setConfId(baseVo.getConfId());
       createBase.setUpdateAt(new Date());
       baseMapper.insertSelective(createBase);
       return result;
+    } else {
+      /*编辑*/
+      IceBaseExample example = new IceBaseExample();
+      example.createCriteria().andIdEqualTo(baseVo.getId()).andAppEqualTo(baseVo.getApp());
+      baseMapper.updateByExampleSelective(convert(baseVo), example);
     }
-    /*编辑*/
-    IceBaseExample example = new IceBaseExample();
-    example.createCriteria().andIdEqualTo(baseVo.getId()).andAppEqualTo(baseVo.getApp());
-    baseMapper.updateByExample(convert(baseVo), example);
     return result;
   }
 
-/*
+  /*
    * 编辑Conf
    */
   @Override
@@ -293,6 +295,7 @@ public class IceEditServiceImpl implements IceEditService {
             confMapper.updateByExampleSelective(operateConf, confExample);
           }
         }
+        break;
       case 5:
         /*转换节点*/
         if (confVo.getOperateNodeId() != null) {
@@ -358,6 +361,7 @@ public class IceEditServiceImpl implements IceEditService {
             }
           }
         }
+        break;
       case 6:
         /*上移节点*/
         if (confVo.getOperateNodeId() != null) {
@@ -437,6 +441,7 @@ public class IceEditServiceImpl implements IceEditService {
             }
           }
         }
+        break;
       default:
         result.setRet(-1);
         return result;
@@ -444,7 +449,7 @@ public class IceEditServiceImpl implements IceEditService {
     return result;
   }
 
-/*
+  /*
    * 获取leafClass
    */
   @Override
@@ -466,7 +471,7 @@ public class IceEditServiceImpl implements IceEditService {
     return result;
   }
 
-/*
+  /*
    * 发布
    */
   @Override
@@ -530,7 +535,7 @@ public class IceEditServiceImpl implements IceEditService {
     return result;
   }
 
-/*
+  /*
    * 发布历史
    */
   @Override
@@ -545,7 +550,7 @@ public class IceEditServiceImpl implements IceEditService {
     return result;
   }
 
-/*
+  /*
    * 导出数据
    */
   @Override
@@ -615,7 +620,7 @@ public class IceEditServiceImpl implements IceEditService {
     return result;
   }
 
-/*
+  /*
    * 回滚
    */
   @Override
@@ -659,7 +664,7 @@ public class IceEditServiceImpl implements IceEditService {
     return (List) map.get("children");
   }
 
-/*
+  /*
    * 导入数据
    */
   @Override
@@ -713,6 +718,7 @@ public class IceEditServiceImpl implements IceEditService {
     base.setStart(vo.getStart());
     base.setEnd(vo.getEnd());
     base.setStatus(vo.getStatus());
+    base.setConfId(vo.getConfId());
     base.setPriority(1L);
     base.setUpdateAt(new Date());
     return base;

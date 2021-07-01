@@ -9,34 +9,23 @@
     <version>0.0.4</version>
   </parent>
   <packaging>jar</packaging>
-  <artifactId>ice-client</artifactId>
-  <name>ice-client</name>
+  <artifactId>ice-client-spring-boot-starter</artifactId>
+  <name>ice-client-spring-boot-starter</name>
 
   <dependencies>
     <dependency>
       <groupId>com.waitmoon.ice</groupId>
-      <artifactId>ice-core</artifactId>
+      <artifactId>ice-client-spring-boot-autoconfigure</artifactId>
       <version>0.0.4</version>
     </dependency>
-    <!--rabbitmq-->
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-amqp</artifactId>
+      <artifactId>spring-boot-configuration-processor</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.7.25</version>
-    </dependency>
-    <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-      <version>1.18.6</version>
-    </dependency>
-    <dependency>
-      <groupId>com.alibaba</groupId>
-      <artifactId>fastjson</artifactId>
-      <version>1.2.76</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-autoconfigure</artifactId>
     </dependency>
   </dependencies>
 </project>

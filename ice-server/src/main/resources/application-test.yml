@@ -8,6 +8,6 @@ spring:
     password: guest
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/ice?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
-    username: zjn
-    password: zjnzjn
-environment: dev
+    username: root
+    password: rootroot
+environment: test

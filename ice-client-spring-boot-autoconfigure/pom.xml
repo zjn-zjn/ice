@@ -8,21 +8,15 @@
     <artifactId>ice</artifactId>
     <version>0.0.4</version>
   </parent>
-
-  <artifactId>ice-test</artifactId>
   <packaging>jar</packaging>
-
-  <name>ice-test</name>
+  <artifactId>ice-client-spring-boot-autoconfigure</artifactId>
+  <name>ice-client-spring-boot-autoconfigure</name>
 
   <dependencies>
     <dependency>
       <groupId>com.waitmoon.ice</groupId>
-      <artifactId>ice-client-spring-boot-starter</artifactId>
+      <artifactId>ice-client</artifactId>
       <version>0.0.4</version>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
   </dependencies>
 
@@ -31,10 +25,10 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
       </plugin>
     </plugins>
-    <finalName>ice-test</finalName>
   </build>
-
-
 </project>

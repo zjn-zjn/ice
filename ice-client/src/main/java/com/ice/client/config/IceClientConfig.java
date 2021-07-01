@@ -17,40 +17,29 @@ import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import javax.annotation.Resource;
 
 /**
  * @author zjn
  */
 @Configuration
+@EnableConfigurationProperties(IceClientProperties.class)
 public class IceClientConfig {
 
-  @Value("${ice.rabbit.host:}")
-  private String host;
-  @Value("${ice.rabbit.username:}")
-  private String username;
-  @Value("${ice.rabbit.password:}")
-  private String password;
-  @Value("${ice.rabbit.port:}")
-  private Integer port;
-
-  @Value("${ice.app:}")
-  private Integer app;
-/*
-   * 等待初始化返回时间 默认10s
-   */
-  @Value("${ice.init.reply.timeout:10000}")
-  private int timeout;
+  @Resource
+  private IceClientProperties properties;
 
   @Bean(name = "iceConnectionFactory")
   public ConnectionFactory iceConnectionFactory() {
     CachingConnectionFactory iceConnectionFactory = new CachingConnectionFactory();
-    iceConnectionFactory.setUsername(username);
-    iceConnectionFactory.setPassword(password);
-    iceConnectionFactory.setHost(host);
-    iceConnectionFactory.setPort(port);
+    iceConnectionFactory.setUsername(properties.getRabbit().getUsername());
+    iceConnectionFactory.setPassword(properties.getRabbit().getPassword());
+    iceConnectionFactory.setHost(properties.getRabbit().getHost());
+    iceConnectionFactory.setPort(properties.getRabbit().getPort());
     return iceConnectionFactory;
   }
 
@@ -68,7 +57,7 @@ public class IceClientConfig {
   public Binding iceUpdateBinding(
       @Qualifier("iceUpdateQueue") Queue iceUpdateQueue,
       @Qualifier("iceUpdateExchange") DirectExchange iceUpdateExchange) {
-    return BindingBuilder.bind(iceUpdateQueue).to(iceUpdateExchange).with(Constant.getUpdateRoutetKey(app));
+    return BindingBuilder.bind(iceUpdateQueue).to(iceUpdateExchange).with(Constant.getUpdateRoutetKey(properties.getApp()));
   }
 
   @Bean("iceUpdateMessageContainer")
@@ -88,7 +77,7 @@ public class IceClientConfig {
 
   @Bean(name = "iceShowConfQueue")
   public Queue iceShowConfQueue() {
-    return QueueBuilder.nonDurable(Constant.getShowConfQueue(app)).autoDelete().build();
+    return QueueBuilder.nonDurable(Constant.getShowConfQueue(properties.getApp())).autoDelete().build();
   }
 
   @Bean(name = "iceShowConfExchange")
@@ -100,7 +89,7 @@ public class IceClientConfig {
   public Binding iceShowConfBinding(
       @Qualifier("iceShowConfQueue") Queue iceShowConfQueue,
       @Qualifier("iceShowConfExchange") DirectExchange iceShowConfExchange) {
-    return BindingBuilder.bind(iceShowConfQueue).to(iceShowConfExchange).with(String.valueOf(app));
+    return BindingBuilder.bind(iceShowConfQueue).to(iceShowConfExchange).with(String.valueOf(properties.getApp()));
   }
 
   @Bean("iceShowConfMessageContainer")
@@ -114,13 +103,13 @@ public class IceClientConfig {
     container.setPrefetchCount(1);
     container.setConcurrentConsumers(1);
     container.setAcknowledgeMode(AcknowledgeMode.NONE);
-    container.setMessageListener(new IceShowConfListener(app, iceRabbitTemplate));
+    container.setMessageListener(new IceShowConfListener(properties.getApp(), iceRabbitTemplate));
     return container;
   }
 
   @Bean(name = "iceMockQueue")
   public Queue iceMockQueue() {
-    return QueueBuilder.nonDurable(Constant.getMockQueue(app)).autoDelete().build();
+    return QueueBuilder.nonDurable(Constant.getMockQueue(properties.getApp())).autoDelete().build();
   }
 
   @Bean(name = "iceMockExchange")
@@ -132,7 +121,7 @@ public class IceClientConfig {
   public Binding iceMockBinding(
       @Qualifier("iceMockQueue") Queue iceMockQueue,
       @Qualifier("iceMockExchange") DirectExchange iceMockExchange) {
-    return BindingBuilder.bind(iceMockQueue).to(iceMockExchange).with(String.valueOf(app));
+    return BindingBuilder.bind(iceMockQueue).to(iceMockExchange).with(String.valueOf(properties.getApp()));
   }
 
   @Bean
@@ -157,7 +146,7 @@ public class IceClientConfig {
   @Bean(name = "iceRabbitTemplate")
   public RabbitTemplate iceRabbitTemplate(@Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory) {
     RabbitTemplate iceRabbitTemplate = new RabbitTemplate(iceConnectionFactory);
-    iceRabbitTemplate.setReplyTimeout(timeout);
+    iceRabbitTemplate.setReplyTimeout(properties.getRabbit().getReplyTimeout());
     return iceRabbitTemplate;
   }
 

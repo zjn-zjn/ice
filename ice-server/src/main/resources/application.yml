@@ -1,3 +1,24 @@
 spring:
   profiles:
     active: dev
+  thymeleaf:
+    prefix: classpath:/
+    suffix: .html
+  resources:
+    static-locations: classpath:/
+  rabbitmq:
+    cache:
+      channel:
+        size: 10
+    direct-reply-to-container: false
+    #mybatis
+    datasource:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      type: com.alibaba.druid.pool.DruidDataSource
+mybatis:
+  config-location: classpath:mybatis/mybatis-config.xml
+pagehelper:
+  helperDialect: mysql
+  reasonable: true
+  supportMethodsArguments: true
+  params: count=countSql

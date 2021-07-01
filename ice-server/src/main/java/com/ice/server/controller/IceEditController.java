@@ -33,8 +33,11 @@ public class IceEditController {
   @Resource
   private IceServerService serverService;
 
-  @Value("${environment.id}")
-  private String environmentId;
+  @Value("${environment:dev}")
+  private String environment;
+
+  @Value("${product.import.url:}")
+  private String productImportUrl;
 
 /*
    * 编辑ice
@@ -78,8 +81,8 @@ public class IceEditController {
   @RequestMapping(value = "/ice/topro", method = RequestMethod.POST)
   public WebResult toPro(@RequestBody Map map) {
     WebResult result = new WebResult();
-    if (!"1".equals(environmentId)) {
-      int code = HttpRequest.post("http://127.0.0.1/ice-server/ice/conf/import")
+    if (!"product".equals(environment)) {
+      int code = HttpRequest.post(productImportUrl)
           .connectTimeout(5000)
           .readTimeout(5000)
           .header("Content-Type", "application/json; charset=utf-8")
@@ -127,17 +130,4 @@ public class IceEditController {
     serverService.updateByEdit();
     return result;
   }
-
-///*
-//   * 复制
-//   */
-//  @RequestMapping(value = "/ice/conf/copy", method = RequestMethod.POST)
-//  public WebResult copyData(@RequestBody String data) {
-//    WebResult result = null;
-//    if (!environmentId.equals("1")) {
-//      result = editService.copyData(data);
-//      serverService.updateByEdit();
-//    }
-//    return result;
-//  }
 }

@@ -21,4 +21,5 @@ public class IceBaseVo {
   private Date end;
   private Byte status = 1;
   private Byte debug;
+  private Long confId;
 }
