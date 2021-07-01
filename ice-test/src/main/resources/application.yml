@@ -6,9 +6,7 @@ spring:
     active: dev
 
 ice:
-  init:
-    reply:
-      timeout: 10000
+  init-timeout: 10000
   app: 1
   rabbit:
     port: 5672

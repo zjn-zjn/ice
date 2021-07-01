@@ -1,3 +1,15 @@
 spring:
   profiles:
     active: dev
+  thymeleaf:
+    prefix: classpath:/
+    suffix: .html
+  resources:
+    static-locations: classpath:/
+mybatis:
+  config-location: classpath:mybatis/mybatis-config.xml
+pagehelper:
+  helperDialect: mysql
+  reasonable: true
+  supportMethodsArguments: true
+  params: count=countSql

@@ -6,7 +6,7 @@
   <parent>
     <groupId>com.waitmoon.ice</groupId>
     <artifactId>ice</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
   </parent>
 
   <artifactId>ice-server</artifactId>
@@ -37,7 +37,7 @@
     <dependency>
       <groupId>com.waitmoon.ice</groupId>
       <artifactId>ice-core</artifactId>
-      <version>0.0.2</version>
+      <version>0.0.3</version>
     </dependency>
     <!--rabbitmq-->
     <dependency>
@@ -90,7 +90,6 @@
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <version>1.18.6</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.mybatis</groupId>

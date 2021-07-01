@@ -25,7 +25,8 @@ public class PointResult extends BaseLeafRoamResult {
     if (uid == null || value <= 0) {
       return false;
     }
-
-    return sendService.sendPoint(uid, value);
+    boolean res = sendService.sendPoint(uid, value);
+    roam.put("SEND_POINT", res);
+    return res;
   }
 }

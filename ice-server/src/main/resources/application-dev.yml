@@ -1,13 +1,6 @@
 server:
   port: 8000
-#  servlet:
-#    context-path: /ice-server
 spring:
-  thymeleaf:
-    prefix: classpath:/
-    suffix: .html
-  resources:
-    static-locations: classpath:/
   #rabbit
   rabbitmq:
     port: 5672
@@ -25,13 +18,4 @@ spring:
     username: root
     password: rootroot
     type: com.alibaba.druid.pool.DruidDataSource
-mybatis:
-  config-location: classpath:mybatis/mybatis-config.xml
-pagehelper:
-  helperDialect: mysql
-  reasonable: true
-  supportMethodsArguments: true
-  params: count=countSql
-
-environment:
-  id: 4
+environment: dev

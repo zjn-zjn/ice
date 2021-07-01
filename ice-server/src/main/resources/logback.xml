@@ -23,13 +23,13 @@
 
   <springProfile name="test">
     <appender name="fileInfoLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
-      <File>./logs/ice/ice-server.log</File>
+      <File>./logs/ice-server.log</File>
       <!--滚动策略，按照时间滚动 TimeBasedRollingPolicy-->
       <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
         <!--文件路径,定义了日志的切分方式——把每一天的日志归档到一个文件中,以防止日志填满整个磁盘空间-->
-        <FileNamePattern>./logs/ice/ice-server.%d{yyyy-MM-dd}.log</FileNamePattern>
-        <!--只保留最近90天的日志-->
-        <maxHistory>90</maxHistory>
+        <FileNamePattern>./logs/ice-server.%d{yyyy-MM-dd}.log</FileNamePattern>
+        <!--只保留最近15天的日志-->
+        <maxHistory>15</maxHistory>
         <!--用来指定日志文件的上限大小，那么到了这个值，就会删除旧的日志-->
         <!--<totalSizeCap>1GB</totalSizeCap>-->
       </rollingPolicy>
@@ -49,13 +49,13 @@
 
   <springProfile name="product">
     <appender name="fileInfoLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
-      <File>./log/ice-server/ice-server.log</File>
+      <File>./log/ice-server.log</File>
       <!--滚动策略，按照时间滚动 TimeBasedRollingPolicy-->
       <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
         <!--文件路径,定义了日志的切分方式——把每一天的日志归档到一个文件中,以防止日志填满整个磁盘空间-->
-        <FileNamePattern>./log/ice-server/ice-server.%d{yyyy-MM-dd}.log</FileNamePattern>
-        <!--只保留最近90天的日志-->
-        <maxHistory>90</maxHistory>
+        <FileNamePattern>./log/ice-server.%d{yyyy-MM-dd}.log</FileNamePattern>
+        <!--只保留最近30天的日志-->
+        <maxHistory>30</maxHistory>
         <!--用来指定日志文件的上限大小，那么到了这个值，就会删除旧的日志-->
         <!--<totalSizeCap>1GB</totalSizeCap>-->
       </rollingPolicy>
