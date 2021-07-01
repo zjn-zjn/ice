@@ -77,11 +77,4 @@ public interface IceEditService {
    */
   WebResult importData(String data);
 
-///*
-//   * ice复制
-//   * @param data
-//   * @return
-//   */
-//  WebResult copyData(String data);
-
 }

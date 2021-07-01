@@ -33,7 +33,7 @@ public class IceEditController {
   @Resource
   private IceServerService serverService;
 
-  @Value("${environment}")
+  @Value("${environment:dev}")
   private String environment;
 
   @Value("${product.import.url:}")
@@ -130,17 +130,4 @@ public class IceEditController {
     serverService.updateByEdit();
     return result;
   }
-
-///*
-//   * 复制
-//   */
-//  @RequestMapping(value = "/ice/conf/copy", method = RequestMethod.POST)
-//  public WebResult copyData(@RequestBody String data) {
-//    WebResult result = null;
-//    if (!environmentId.equals("1")) {
-//      result = editService.copyData(data);
-//      serverService.updateByEdit();
-//    }
-//    return result;
-//  }
 }
