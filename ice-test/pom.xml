@@ -6,7 +6,7 @@
   <parent>
     <groupId>com.waitmoon.ice</groupId>
     <artifactId>ice</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
   </parent>
 
   <artifactId>ice-test</artifactId>
@@ -18,7 +18,7 @@
     <dependency>
       <groupId>com.waitmoon.ice</groupId>
       <artifactId>ice-client-spring-boot-starter</artifactId>
-      <version>0.0.3</version>
+      <version>0.0.4</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

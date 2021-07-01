@@ -5,7 +5,7 @@
 
   <groupId>com.waitmoon.ice</groupId>
   <artifactId>ice</artifactId>
-  <version>0.0.3</version>
+  <version>0.0.4</version>
   <packaging>pom</packaging>
   <description>致力于解决灵活繁复的硬编码问题</description>
   <url>http://waitmoon.com/</url>
