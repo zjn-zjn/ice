@@ -6,13 +6,13 @@ spring:
     active: dev
 
 ice:
-  init-timeout: 10000
   app: 1
   rabbit:
     port: 5672
     host: localhost
     username: guest
     password: guest
+    reply-timeout: 10000
 test:
   value: 123
 environment: dev

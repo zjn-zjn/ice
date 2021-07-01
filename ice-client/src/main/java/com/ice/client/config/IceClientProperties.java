@@ -13,10 +13,6 @@ public class IceClientProperties {
      */
     private Integer app;
     /*
-     * 等待初始化返回时间 默认10s
-     */
-    private int initTimeOut = 10000;
-    /*
      * rabbitMq配置
      */
     private IceClientRabbitProperties rabbit = new IceClientRabbitProperties();
@@ -29,5 +25,6 @@ public class IceClientProperties {
         private String host;
         private String username;
         private String password;
+        private int replyTimeout = 10000;
     }
 }

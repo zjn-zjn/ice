@@ -146,7 +146,7 @@ public class IceClientConfig {
   @Bean(name = "iceRabbitTemplate")
   public RabbitTemplate iceRabbitTemplate(@Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory) {
     RabbitTemplate iceRabbitTemplate = new RabbitTemplate(iceConnectionFactory);
-    iceRabbitTemplate.setReplyTimeout(properties.getInitTimeOut());
+    iceRabbitTemplate.setReplyTimeout(properties.getRabbit().getReplyTimeout());
     return iceRabbitTemplate;
   }
 
