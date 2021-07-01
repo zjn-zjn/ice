@@ -8,7 +8,7 @@
   </appender>
   <appender name="FILE"
             class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <File>./logs/ice/ice-test.log</File>
+    <File>./logs/ice-test.log</File>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
       <fileNamePattern>ice-test.log.%d.%i</fileNamePattern>
       <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
