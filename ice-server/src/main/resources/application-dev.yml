@@ -7,15 +7,9 @@ spring:
     host: localhost
     username: guest
     password: guest
-    cache:
-      channel:
-        size: 10
-    direct-reply-to-container: false
   #mybatis
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3306/ice?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
-    username: root
-    password: rootroot
-    type: com.alibaba.druid.pool.DruidDataSource
+    username: zjn
+    password: zjnzjn
 environment: dev
