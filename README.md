@@ -1,6 +1,10 @@
-## ice介绍
+## 文档地址
 
-https://xie.infoq.cn/article/91fa1b493237ed3470c9936b0
+http://waitmoon.com/docs/
+
+## 配置体验地址
+
+http://waitmoon.com/  白屏较久(不会写前端，js比较大，优化中..)
 
 ## sql
 
