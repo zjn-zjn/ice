@@ -1,5 +1,5 @@
 server:
-  port: 8000
+  port: 8121
 spring:
   rabbitmq:
     port: 5672
