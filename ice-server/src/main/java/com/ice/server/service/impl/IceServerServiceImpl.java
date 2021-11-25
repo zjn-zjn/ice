@@ -381,7 +381,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
       if (updateMap != null) {
         updateMap.put("version", updateVersion);
         String message = JSON.toJSONString(updateMap);
-        amqpTemplate.convertAndSend(Constant.getUpdateExchange(), Constant.getUpdateRoutetKey(app), message);
+        amqpTemplate.convertAndSend(Constant.getUpdateExchange(), Constant.getUpdateRouteKey(app), message);
         log.info("ice update app:{}, content:{}", app, message);
       }
     }

@@ -14,9 +14,13 @@ public final class Constant {
   public static String getUpdateExchange() {
     return "ice.update.exchange";
   }
-
+  @Deprecated
   public static String getShowConfExchange() {
     return "ice.show.conf.exchange";
+  }
+
+  public static String getConfExchange() {
+    return "ice.conf.exchange";
   }
 
   public static String getMockExchange() {
@@ -27,12 +31,16 @@ public final class Constant {
     return "ice.init.exchange";
   }
 
-  public static String getUpdateRoutetKey(Integer app) {
+  public static String getUpdateRouteKey(Integer app) {
     return "ice.update." + app;
   }
-
+  @Deprecated
   public static String getShowConfQueue(Integer app) {
     return "ice.show.conf." + app;
+  }
+
+  public static String getConfQueue(Integer app) {
+    return "ice.conf." + app;
   }
 
   public static String getMockQueue(Integer app) {

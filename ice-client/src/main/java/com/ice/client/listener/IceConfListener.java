@@ -33,8 +33,7 @@ import java.util.Map;
  * @author zjn
  */
 @Slf4j
-@Deprecated
-public class IceShowConfListener implements MessageListener {
+public class IceConfListener implements MessageListener {
 
   private static final SerializeConfig FAST_JSON_CONFIG;
   private static final SpringBeanAndForwardFilter SPRING_BEAN_FILTER = new SpringBeanAndForwardFilter();
@@ -49,16 +48,16 @@ public class IceShowConfListener implements MessageListener {
   private String address;
   private MessageConverter messageConverter = new SimpleMessageConverter();
 
-  public IceShowConfListener(RabbitTemplate iceRabbitTemplate, MessageConverter messageConverter) {
+  public IceConfListener(RabbitTemplate iceRabbitTemplate, MessageConverter messageConverter) {
     this.iceRabbitTemplate = iceRabbitTemplate;
     this.messageConverter = messageConverter;
   }
 
-  public IceShowConfListener(RabbitTemplate iceRabbitTemplate) {
+  public IceConfListener(RabbitTemplate iceRabbitTemplate) {
     this.iceRabbitTemplate = iceRabbitTemplate;
   }
 
-  public IceShowConfListener(Integer app, RabbitTemplate iceRabbitTemplate) {
+  public IceConfListener(Integer app, RabbitTemplate iceRabbitTemplate) {
     this.app = app;
     this.iceRabbitTemplate = iceRabbitTemplate;
   }

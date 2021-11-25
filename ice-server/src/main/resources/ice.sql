@@ -2,6 +2,7 @@ CREATE TABLE `ice_app` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '服务名',
   `info` varchar(500) COLLATE utf8mb4_bin DEFAULT NULL,
+  `status` tinyint(11) NOT NULL DEFAULT '1' COMMENT '1正常0删除',
   `create_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
@@ -12,7 +13,7 @@ CREATE TABLE `ice_base` (
   `name` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '名称',
   `app` int(11) NOT NULL COMMENT 'app',
   `scenes` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '场景(多场景以逗号分隔)',
-  `status` tinyint(11) NOT NULL DEFAULT '1' COMMENT '1上架0下架',
+  `status` tinyint(11) NOT NULL DEFAULT '1' COMMENT '1正常0删除',
   `conf_id` bigint(20) DEFAULT NULL,
   `time_type` tinyint(11) DEFAULT '1' COMMENT '1无限制2大于开始时间3小于结束时间4在开始结束之内',
   `start` datetime(3) DEFAULT NULL COMMENT '开始时间',

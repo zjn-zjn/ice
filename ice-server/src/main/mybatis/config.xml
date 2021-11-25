@@ -1,55 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE generatorConfiguration
-    PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
-    "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
 
 <generatorConfiguration>
-  <context id="ice" targetRuntime="MyBatis3">
-    <plugin type="org.mybatis.generator.plugins.CaseInsensitiveLikePlugin"/>
-    <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin"/>
-    <plugin type="org.mybatis.generator.plugins.FluentBuilderMethodsPlugin"/>
-    <plugin type="org.mybatis.generator.plugins.MapperConfigPlugin">
-      <property name="targetPackage" value="mybatis"/>
-      <property name="targetProject" value="src/main/resources"/>
-      <property name="fileName" value="mybatis-config.xml"/>
-    </plugin>
-    <plugin type="org.mybatis.generator.plugins.ToStringPlugin"/>
+    <context id="ice" targetRuntime="MyBatis3">
+        <plugin type="org.mybatis.generator.plugins.CaseInsensitiveLikePlugin"/>
+        <plugin type="org.mybatis.generator.plugins.FluentBuilderMethodsPlugin"/>
+        <plugin type="org.mybatis.generator.plugins.MapperConfigPlugin">
+            <property name="targetPackage" value="mybatis"/>
+            <property name="targetProject" value="src/main/resources"/>
+            <property name="fileName" value="mybatis-config.xml"/>
+        </plugin>
+        <commentGenerator>
+            <property name="suppressAllComments" value="true"/>
+        </commentGenerator>
 
-    <commentGenerator>
-      <property name="suppressDate" value="true"/>
-    </commentGenerator>
+        <jdbcConnection connectionURL="jdbc:mysql://127.0.0.1:3306/ice"
+                        driverClass="com.mysql.cj.jdbc.Driver" password="zjn" userId="zjn">
+            <property name="useInformationSchema" value="true"/>
+        </jdbcConnection>
 
-    <jdbcConnection connectionURL="jdbc:mysql://127.0.0.1:3306/ice"
-                    driverClass="com.mysql.cj.jdbc.Driver" password="rootroot" userId="root"/>
+        <javaModelGenerator targetPackage="com.ice.server.dao.model" targetProject="src/main/java">
+            <property name="enableSubPackages" value="true"/>
+            <property name="trimStrings" value="true"/>
+        </javaModelGenerator>
 
-    <javaModelGenerator targetPackage="com.ice.server.dao.model" targetProject="src/main/java">
-      <property name="enableSubPackages" value="true"/>
-      <property name="trimStrings" value="true"/>
-    </javaModelGenerator>
+        <sqlMapGenerator targetPackage="mybatis" targetProject="src/main/resources">
+        </sqlMapGenerator>
 
-    <sqlMapGenerator targetPackage="mybatis" targetProject="src/main/resources">
-    </sqlMapGenerator>
+        <javaClientGenerator type="XMLMAPPER" targetPackage="com.ice.server.dao.mapper"
+                             targetProject="src/main/java">
+            <property name="enableSubPackages" value="true"/>
+        </javaClientGenerator>
 
-    <javaClientGenerator type="XMLMAPPER" targetPackage="com.ice.server.dao.mapper"
-                         targetProject="src/main/java">
-      <property name="enableSubPackages" value="true"/>
-    </javaClientGenerator>
-
-    <table schema="" tableName="ice_app" domainObjectName="IceApp">
-      <property name="runtimeSchema" value=""/>
-      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
-    </table>
-    <table schema="" tableName="ice_base" domainObjectName="IceBase">
-      <property name="runtimeSchema" value=""/>
-      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
-    </table>
-    <table schema="" tableName="ice_conf" domainObjectName="IceConf">
-      <property name="runtimeSchema" value=""/>
-      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
-    </table>
-    <table schema="" tableName="ice_push_history" domainObjectName="IcePushHistory">
-      <property name="runtimeSchema" value=""/>
-      <generatedKey column="id" sqlStatement="MySql" identity="true"/>
-    </table>
-  </context>
+        <table tableName="ice_app" domainObjectName="IceApp">
+            <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+        </table>
+        <table tableName="ice_base" domainObjectName="IceBase">
+            <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+        </table>
+        <table tableName="ice_conf" domainObjectName="IceConf">
+            <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+        </table>
+        <table tableName="ice_push_history" domainObjectName="IcePushHistory">
+            <generatedKey column="id" sqlStatement="MySql" identity="true"/>
+        </table>
+    </context>
 </generatorConfiguration>
