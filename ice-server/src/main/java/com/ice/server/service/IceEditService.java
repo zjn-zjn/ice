@@ -7,6 +7,7 @@ import com.ice.server.model.WebResult;
 /**
  * @author zjn
  */
+@Deprecated
 public interface IceEditService {
 
 /*

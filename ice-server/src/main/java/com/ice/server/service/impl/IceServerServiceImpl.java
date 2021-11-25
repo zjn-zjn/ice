@@ -7,6 +7,7 @@ import com.ice.common.enums.StatusEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.model.IceBaseDto;
 import com.ice.common.model.IceConfDto;
+import com.ice.common.model.IceTransferDto;
 import com.ice.server.controller.IceAppDto;
 import com.ice.server.dao.mapper.IceAppMapper;
 import com.ice.server.dao.mapper.IceBaseMapper;
@@ -133,7 +134,9 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
   public IceConf getActiveConfById(Integer app, Long confId) {
     Map<Long, IceConf> confMap = confActiveMap.get(app);
     if (!CollectionUtils.isEmpty(confMap)) {
-      return confMap.get(confId);
+      IceConf conf = confMap.get(confId);
+      addLeafClass(app, conf.getType(), conf.getConfName());
+      return conf;
     }
     return null;
   }
@@ -145,6 +148,31 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
       return map.get(type);
     }
     return null;
+  }
+
+  @Override
+  public void addLeafClass(Integer app, Byte type, String className) {
+    if (isLeaf(type)) {
+      Map<Byte, Map<String, Integer>> map = leafClassMap.get(app);
+      Map<String, Integer> classMap;
+      if (map == null) {
+        map = new HashMap<>();
+        leafClassMap.put(app, map);
+        classMap = new HashMap<>();
+        map.put(type, classMap);
+        classMap.put(className, 0);
+      } else {
+        classMap = map.get(type);
+        if (classMap == null) {
+          classMap = new HashMap<>();
+          map.put(type, classMap);
+          classMap.put(className, 0);
+        } else {
+          classMap.putIfAbsent(className, 0);
+        }
+      }
+      classMap.put(className, classMap.get(className) + 1);
+    }
   }
 
   @Override
@@ -381,7 +409,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
       if (updateMap != null) {
         updateMap.put("version", updateVersion);
         String message = JSON.toJSONString(updateMap);
-        amqpTemplate.convertAndSend(Constant.getUpdateExchange(), Constant.getUpdateRoutetKey(app), message);
+        amqpTemplate.convertAndSend(Constant.getUpdateExchange(), Constant.getUpdateRouteKey(app), message);
         log.info("ice update app:{}, content:{}", app, message);
       }
     }
@@ -629,11 +657,11 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
   @Override
   public String getInitJson(Integer app) {
     synchronized (LOCK) {
-      Map<String, Object> initMap = new HashMap<>(3);
-      initMap.put("insertOrUpdateConfs", this.getActiveConfsByApp(app));
-      initMap.put("insertOrUpdateBases", this.getActiveBasesByApp(app));
-      initMap.put("version", version);
-      return JSON.toJSONString(initMap);
+      IceTransferDto transferDto = new IceTransferDto();
+      transferDto.setInsertOrUpdateBases(this.getActiveBasesByApp(app));
+      transferDto.setInsertOrUpdateConfs(this.getActiveConfsByApp(app));
+      transferDto.setVersion(version);
+      return JSON.toJSONString(transferDto);
     }
   }
 

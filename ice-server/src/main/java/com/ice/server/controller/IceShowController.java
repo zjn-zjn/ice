@@ -21,6 +21,7 @@ import java.util.*;
  */
 
 @RestController
+@Deprecated
 public class IceShowController {
 
   private final IceServerService serverService;

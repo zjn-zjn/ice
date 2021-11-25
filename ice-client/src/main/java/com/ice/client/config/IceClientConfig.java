@@ -57,7 +57,7 @@ public class IceClientConfig {
   public Binding iceUpdateBinding(
       @Qualifier("iceUpdateQueue") Queue iceUpdateQueue,
       @Qualifier("iceUpdateExchange") DirectExchange iceUpdateExchange) {
-    return BindingBuilder.bind(iceUpdateQueue).to(iceUpdateExchange).with(Constant.getUpdateRoutetKey(properties.getApp()));
+    return BindingBuilder.bind(iceUpdateQueue).to(iceUpdateExchange).with(Constant.getUpdateRouteKey(properties.getApp()));
   }
 
   @Bean("iceUpdateMessageContainer")
@@ -85,6 +85,16 @@ public class IceClientConfig {
     return new DirectExchange(Constant.getShowConfExchange());
   }
 
+  @Bean(name = "iceConfExchange")
+  public DirectExchange iceConfExchange() {
+    return new DirectExchange(Constant.getConfExchange());
+  }
+
+  @Bean(name = "iceConfQueue")
+  public Queue iceConfQueue() {
+    return QueueBuilder.nonDurable(Constant.getConfQueue(properties.getApp())).autoDelete().build();
+  }
+
   @Bean("iceShowConfBinding")
   public Binding iceShowConfBinding(
       @Qualifier("iceShowConfQueue") Queue iceShowConfQueue,
@@ -99,6 +109,21 @@ public class IceClientConfig {
       @Qualifier("iceRabbitTemplate") RabbitTemplate iceRabbitTemplate) {
     SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(iceConnectionFactory);
     container.setQueues(iceShowConfQueue);
+    container.setExposeListenerChannel(true);
+    container.setPrefetchCount(1);
+    container.setConcurrentConsumers(1);
+    container.setAcknowledgeMode(AcknowledgeMode.NONE);
+    container.setMessageListener(new IceShowConfListener(properties.getApp(), iceRabbitTemplate));
+    return container;
+  }
+
+  @Bean("iceConfMessageContainer")
+  public SimpleMessageListenerContainer iceConfMessageContainer(
+          @Qualifier("iceConfQueue") Queue iceConfQueue,
+          @Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory,
+          @Qualifier("iceRabbitTemplate") RabbitTemplate iceRabbitTemplate) {
+    SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(iceConnectionFactory);
+    container.setQueues(iceConfQueue);
     container.setExposeListenerChannel(true);
     container.setPrefetchCount(1);
     container.setConcurrentConsumers(1);

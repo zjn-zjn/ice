@@ -76,7 +76,7 @@ public final class IceTimeUtils {
 
 /*
    * 时间戳校验
-   * 左闭右开
+   * 闭区间
    * @return time enable
    */
   public static boolean timeEnable(TimeTypeEnum typeEnum, long requestTime, long start, long end) {
@@ -88,13 +88,13 @@ public final class IceTimeUtils {
         return false;
       case BETWEEN:
       case TEST_BETWEEN:
-        return requestTime < start || requestTime >= end;
+        return requestTime < start || requestTime > end;
       case AFTER_START:
       case TEST_AFTER_START:
         return requestTime < start;
       case BEFORE_END:
       case TEST_BEFORE_END:
-        return requestTime >= end;
+        return requestTime > end;
       default:
         break;
     }

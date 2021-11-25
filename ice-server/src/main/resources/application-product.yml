@@ -9,5 +9,5 @@ spring:
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/ice?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
     username: zjn
-    password: 5%0hfbQ|Qm7tbQn
+    password: zjnzjn
 environment: product
