@@ -6,19 +6,24 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.beans.factory.annotation.Value;
 
+/**
+ * 初始化加载配置节点
+ */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class InitResult extends BaseLeafRoamResult {
+public class InitConfigResult extends BaseLeafRoamResult {
 
     @Value("${environment}")
-    private String environment;
+    private String activeEnvironment;
 
-    private IceRoam initRoam;
+    private IceRoam initRoamConfig;
+
+    private String configEnvironment;
 
     @Override
     protected boolean doRoamResult(IceRoam roam) {
-        if (!"product".equals(environment)) {
-            roam.putAll(initRoam);
+        if (activeEnvironment.equals(configEnvironment)) {
+            roam.putAll(initRoamConfig);
             return true;
         }
         return false;

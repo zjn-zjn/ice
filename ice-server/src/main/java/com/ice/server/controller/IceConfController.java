@@ -21,7 +21,7 @@ import java.util.*;
  * conf crud
  * @author zjn
  */
-
+@CrossOrigin
 @RestController
 public class IceConfController {
     @Resource
@@ -36,7 +36,7 @@ public class IceConfController {
     private AmqpTemplate amqpTemplate;
 
     @RequestMapping(value = "/ice-server/conf/edit", method = RequestMethod.POST)
-    public WebResult<Long> confEdit(@RequestBody IceConf conf, @RequestParam(required = false) Long parentId) {
+    public WebResult<Long> confEdit(@RequestBody IceConf conf, @RequestParam(required = false) Long parentId, @RequestParam(required = false) Long nextId) {
         WebResult<Long> result = new WebResult<>();
         if (conf == null) {
             result.setRet(-1);
@@ -48,7 +48,7 @@ public class IceConfController {
             result.setMsg("parentId can not be null in add");
             return result;
         }
-        Long id = iceConfService.confEdit(conf, parentId);
+        Long id = iceConfService.confEdit(conf, parentId, nextId);
         if (id <= 0) {
             result.setRet(-1);
             result.setMsg("error");

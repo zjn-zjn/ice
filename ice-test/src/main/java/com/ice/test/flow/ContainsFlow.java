@@ -15,24 +15,19 @@ import java.util.Collection;
 @EqualsAndHashCode(callSuper = true)
 public class ContainsFlow extends BaseLeafRoamFlow {
 
-    private Object key;
+    private Object value;
     /**
      * Collection
      * eg:Set[1,2]
      */
     private Object collection;
 
-    /*
-     * 叶子节点流程处理
-     *
-     * @param roam 传递roam
-     */
     @Override
     protected boolean doRoamFlow(IceRoam roam) {
-        Collection<Object> sets = roam.getUnion(collection);
-        if (sets == null || sets.isEmpty()) {
+        Collection<Object> collection = roam.getUnion(this.collection);
+        if (collection == null || collection.isEmpty()) {
             return false;
         }
-        return sets.contains(roam.getUnion(key));
+        return collection.contains(roam.getUnion(value));
     }
 }

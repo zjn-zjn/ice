@@ -25,23 +25,42 @@ public class IceConfServiceImpl implements IceConfService {
 
     @Override
     @Transactional
-    public Long confEdit(IceConf conf, Long parentId) {
+    public Long confEdit(IceConf conf, Long parentId, Long nextId) {
         conf.setUpdateAt(new Date());
         if (conf.getId() == null) {
-            IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
-            if (parent == null) {
-                return -1L;
+            if(parentId != null) {
+                /*add son*/
+                IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
+                if (parent == null) {
+                    return -1L;
+                }
+                iceConfMapper.insertSelective(conf);
+                Long id = conf.getId();
+                if (StringUtils.isEmpty(parent.getSonIds())) {
+                    parent.setSonIds(id + "");
+                } else {
+                    parent.setSonIds(parent.getSonIds() + "," + id);
+                }
+                parent.setUpdateAt(new Date());
+                iceConfMapper.updateByPrimaryKeySelective(parent);
+                return id;
             }
-            iceConfMapper.insertSelective(conf);
-            Long id = conf.getId();
-            if (StringUtils.isEmpty(parent.getSonIds())) {
-                parent.setSonIds(id + "");
-            } else {
-                parent.setSonIds(parent.getSonIds() + "," + id);
+            if(nextId != null){
+                /*add forward*/
+                IceConf next = iceConfMapper.selectByPrimaryKey(nextId);
+                if (next == null) {
+                    return -1L;
+                }
+                if(next.getForwardId() != null && next.getForwardId() > 0){
+                    return -1L;
+                }
+                iceConfMapper.insertSelective(conf);
+                Long id = conf.getId();
+                next.setForwardId(id);
+                next.setUpdateAt(new Date());
+                iceConfMapper.updateByPrimaryKeySelective(next);
+                return id;
             }
-            parent.setUpdateAt(new Date());
-            iceConfMapper.updateByPrimaryKeySelective(parent);
-            return id;
         }
         iceConfMapper.updateByPrimaryKeySelective(conf);
         return conf.getId();

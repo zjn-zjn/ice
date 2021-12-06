@@ -148,7 +148,7 @@ public class IceBaseServiceImpl implements IceBaseService {
                                     for (IceConf conf : iceConfs) {
                                         conf.setUpdateAt(new Date());
                                         if (isRelation(conf.getType()) && conf.getSonIds() == null) {
-                                            conf.setSonIds("");
+                                            conf.setSonIds(null);
                                         }
                                     }
                                     pushData.setConfs(iceConfs);
@@ -212,32 +212,39 @@ public class IceBaseServiceImpl implements IceBaseService {
         }
     }
 
+    public void initPushData(PushData data){
+        IceBase base = data.getBase();
+        List<IceConf> confs = data.getConfs();
+        if(base.getStart() == null){
+
+        }
+    }
+
     @Override
     @Transactional
     public void importData(PushData data) {
+
         IceBase base = data.getBase();
         List<IceConf> confs = data.getConfs();
         if (!CollectionUtils.isEmpty(confs)) {
             for (IceConf conf : confs) {
-                IceConfExample confExample = new IceConfExample();
-                confExample.createCriteria().andIdEqualTo(conf.getId());
-                List<IceConf> confList = iceConfMapper.selectByExample(confExample);
-                if (CollectionUtils.isEmpty(confList)) {
+                IceConf oldConf = iceConfMapper.selectByPrimaryKey(conf.getId());
+                if (oldConf == null) {
                     conf.setCreateAt(null);
                     conf.setUpdateAt(new Date());
                     iceConfMapper.insertSelectiveWithId(conf);
                 } else {
                     conf.setId(null);
                     conf.setUpdateAt(new Date());
-                    iceConfMapper.updateByExampleSelective(conf, confExample);
+                    iceConfMapper.updateByPrimaryKeySelective(conf);
                 }
             }
         }
         if (base != null) {
             IceBaseExample baseExample = new IceBaseExample();
             baseExample.createCriteria().andIdEqualTo(base.getId());
-            List<IceBase> baseList = iceBaseMapper.selectByExample(baseExample);
-            if (CollectionUtils.isEmpty(baseList)) {
+            IceBase oldBase = iceBaseMapper.selectByPrimaryKey(base.getId());
+            if (oldBase == null) {
                 base.setCreateAt(null);
                 base.setUpdateAt(new Date());
                 iceBaseMapper.insertSelectiveWithId(base);

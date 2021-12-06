@@ -34,6 +34,7 @@ import java.util.*;
  * @author zjn
  */
 @Service
+@Deprecated
 public class IceEditServiceImpl implements IceEditService {
 
     @Resource

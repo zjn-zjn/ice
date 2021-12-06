@@ -12,6 +12,7 @@ import javax.annotation.Resource;
  * app crud
  * @author zjn
  */
+@CrossOrigin
 @RestController
 public class IceAppController {
     @Resource

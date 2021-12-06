@@ -19,7 +19,7 @@ import javax.annotation.Resource;
  *
  * @author zjn
  */
-
+@CrossOrigin
 @RestController
 public class IceBaseController {
     @Resource

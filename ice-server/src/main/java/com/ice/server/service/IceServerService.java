@@ -48,6 +48,8 @@ public interface IceServerService {
 
   Map<String, Integer> getLeafClassMap(Integer app, Byte type);
 
+  void addLeafClass(Integer app, Byte type, String className);
+
   void updateByEdit();
 
   Set<Integer> getAppSet();

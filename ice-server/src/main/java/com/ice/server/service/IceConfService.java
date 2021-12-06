@@ -9,7 +9,7 @@ import java.util.List;
  * @author zjn
  */
 public interface IceConfService {
-    Long confEdit(IceConf conf, Long parentId);
+    Long confEdit(IceConf conf, Long parentId, Long nextId);
 
     List<IceLeafClass> confLeafClass(Integer app, Byte type);
 }

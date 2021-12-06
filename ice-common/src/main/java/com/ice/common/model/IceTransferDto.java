@@ -2,6 +2,7 @@ package com.ice.common.model;
 
 import lombok.Data;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -12,11 +13,11 @@ public final class IceTransferDto {
 
   private long version;
 
-  private List<IceConfDto> insertOrUpdateConfs;
+  private Collection<IceConfDto> insertOrUpdateConfs;
 
   private List<Long> deleteConfIds;
 
-  private List<IceBaseDto> insertOrUpdateBases;
+  private Collection<IceBaseDto> insertOrUpdateBases;
 
   private List<Long> deleteBaseIds;
 }

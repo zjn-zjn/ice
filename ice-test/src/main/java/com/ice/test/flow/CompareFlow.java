@@ -13,34 +13,29 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class CompareFlow extends BaseLeafRoamFlow {
 
-    private Object key;
+    private Object value1;
 
-    private Object another;
+    private Object value2;
     /*
      * 1判大(默认)
      * 0判等
      * -1判小
      */
-    private int code = 1;
+    private int code = 0;
 
-    /*
-     * 叶子节点流程处理
-     *
-     * @param roam 传递roam
-     */
     @Override
     protected boolean doRoamFlow(IceRoam roam) {
-        Comparable<Object> keyValue = roam.getUnion(key);
-        if (keyValue == null && code != 0) {
+        Comparable<Object> value1 = roam.getUnion(this.value1);
+        if (value1 == null && code != 0) {
             return false;
         }
-        Comparable<Object> anotherValue = roam.getUnion(another);
-        if (anotherValue == null) {
-            return code == 0 && keyValue == null;
+        Comparable<Object> value2 = roam.getUnion(this.value2);
+        if (value2 == null) {
+            return code == 0 && value1 == null;
         }
-        if (keyValue == null) {
+        if (value1 == null) {
             return false;
         }
-        return keyValue.compareTo(anotherValue) == code;
+        return value1.compareTo(value2) == code;
     }
 }

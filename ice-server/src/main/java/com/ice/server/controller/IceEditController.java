@@ -23,6 +23,7 @@ import java.util.Map;
  */
 
 @RestController
+@Deprecated
 public class IceEditController {
 
     private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

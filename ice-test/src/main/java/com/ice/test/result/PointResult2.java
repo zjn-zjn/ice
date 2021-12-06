@@ -15,22 +15,25 @@ public class PointResult2 extends BaseLeafPackResult {
 
     @Resource
     private SendService sendService;
-
+    //给谁发
     private String key;
-
+    //发多少
     private Object value;
 
     @Override
     protected boolean doPackResult(IcePack pack) {
         IceRoam roam = pack.getRoam();
         Integer uid = roam.getMulti(key);
-        Double val = roam.getUnion(value);
-        if (uid == null || val <= 0) {
+        if(uid == null){
             return false;
         }
-        boolean res = sendService.sendPoint(uid, val);
+        Double value = roam.getUnion(this.value);
+        if (value <= 0) {
+            return false;
+        }
+        boolean res = sendService.sendPoint(uid, value);
         roam.putMulti("result." + "sendPoint", res);
-        roam.putMulti("result." + "sendValue", val);
+        roam.putMulti("result." + "sendValue", value);
         roam.putMulti("result." + "scene", pack.getScene());
         return res;
     }
