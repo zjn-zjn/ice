@@ -43,7 +43,7 @@ public class IceShowController {
   public WebResult<List<IceAppDto>> getIceApp(@RequestParam(defaultValue = "1") Integer pageIndex,
                                 @RequestParam(defaultValue = "100") Integer pageSize) {
     WebResult<List<IceAppDto>> result = new WebResult<>();
-    result.setData(serverService.getAppList());
+    result.setData(Collections.singletonList(new IceAppDto(1, "Test", "")));
     return result;
   }
 

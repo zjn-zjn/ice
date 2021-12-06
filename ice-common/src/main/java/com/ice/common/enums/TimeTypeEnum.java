@@ -19,15 +19,15 @@ public enum TimeTypeEnum {
 /*
    * 大于开始时间
    */
-  AFTER_START((byte) 2),
+  AFTER_START((byte) 5),
 /*
    * 小于结束时间
    */
-  BEFORE_END((byte) 3),
+  BEFORE_END((byte) 6),
 /*
    * 在开始时间与结束时间之内
    */
-  BETWEEN((byte) 4),
+  BETWEEN((byte) 7),
 /*
    * 测试版大于开始时间
    */
