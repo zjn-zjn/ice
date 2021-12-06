@@ -46,7 +46,7 @@ public class IceConfController {
             result.setMsg("conf null");
             return result;
         }
-        if (conf.getId() == null && parentId == null) {
+        if (conf.getId() == null && (parentId == null || nextId == null)) {
             result.setRet(-1);
             result.setMsg("parentId can not be null in add");
             return result;
@@ -72,10 +72,10 @@ public class IceConfController {
         return result;
     }
 
-    @RequestMapping("/ice-server/conf/detail")
-    public WebResult<IceClientConf> confDetail(@RequestParam Integer app, @RequestParam Long confId) {
+    @RequestMapping(value = "/ice-server/conf/detail", method = RequestMethod.GET)
+    public WebResult<IceClientConf> confDetail(@RequestParam Integer app, @RequestParam Long iceId) {
         Object obj = amqpTemplate.convertSendAndReceive(Constant.getConfExchange(), String.valueOf(app),
-                String.valueOf(confId));
+                String.valueOf(iceId));
         if (obj != null) {
             String json = (String) obj;
             if (!StringUtils.isEmpty(json)) {
