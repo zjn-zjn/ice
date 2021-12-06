@@ -1,7 +1,7 @@
 package com.ice.client.listener;
 
 import com.alibaba.fastjson.JSON;
-import com.ice.common.model.IceTransferDto;
+import com.ice.common.dto.IceTransferDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageListener;

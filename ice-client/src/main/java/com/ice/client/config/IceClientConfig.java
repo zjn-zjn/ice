@@ -1,5 +1,6 @@
 package com.ice.client.config;
 
+import com.ice.client.listener.IceConfListener;
 import com.ice.client.listener.IceMockListener;
 import com.ice.client.listener.IceShowConfListener;
 import com.ice.client.listener.IceUpdateListener;
@@ -102,6 +103,13 @@ public class IceClientConfig {
     return BindingBuilder.bind(iceShowConfQueue).to(iceShowConfExchange).with(String.valueOf(properties.getApp()));
   }
 
+  @Bean("iceConfBinding")
+  public Binding iceConfBinding(
+          @Qualifier("iceConfQueue") Queue iceConfQueue,
+          @Qualifier("iceConfExchange") DirectExchange iceConfExchange) {
+    return BindingBuilder.bind(iceConfQueue).to(iceConfExchange).with(String.valueOf(properties.getApp()));
+  }
+
   @Bean("iceShowConfMessageContainer")
   public SimpleMessageListenerContainer iceShowConfMessageContainer(
       @Qualifier("iceShowConfQueue") Queue iceShowConfQueue,
@@ -128,7 +136,7 @@ public class IceClientConfig {
     container.setPrefetchCount(1);
     container.setConcurrentConsumers(1);
     container.setAcknowledgeMode(AcknowledgeMode.NONE);
-    container.setMessageListener(new IceShowConfListener(properties.getApp(), iceRabbitTemplate));
+    container.setMessageListener(new IceConfListener(properties.getApp(), iceRabbitTemplate));
     return container;
   }
 

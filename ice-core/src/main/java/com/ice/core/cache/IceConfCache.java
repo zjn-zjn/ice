@@ -3,7 +3,7 @@ package com.ice.core.cache;
 import com.alibaba.fastjson.JSON;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
-import com.ice.common.model.IceConfDto;
+import com.ice.common.dto.IceConfDto;
 import com.ice.core.annotation.IceParam;
 import com.ice.core.annotation.IceRes;
 import com.ice.core.base.BaseNode;

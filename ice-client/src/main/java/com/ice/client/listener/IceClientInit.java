@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.ice.client.config.IceClientProperties;
 import com.ice.common.constant.Constant;
 import com.ice.common.exception.IceException;
-import com.ice.common.model.IceTransferDto;
+import com.ice.common.dto.IceTransferDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

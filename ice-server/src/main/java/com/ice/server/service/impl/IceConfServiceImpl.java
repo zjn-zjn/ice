@@ -28,7 +28,7 @@ public class IceConfServiceImpl implements IceConfService {
     public Long confEdit(IceConf conf, Long parentId, Long nextId) {
         conf.setUpdateAt(new Date());
         if (conf.getId() == null) {
-            if(parentId != null) {
+            if (parentId != null) {
                 /*add son*/
                 IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
                 if (parent == null) {
@@ -45,13 +45,13 @@ public class IceConfServiceImpl implements IceConfService {
                 iceConfMapper.updateByPrimaryKeySelective(parent);
                 return id;
             }
-            if(nextId != null){
+            if (nextId != null) {
                 /*add forward*/
                 IceConf next = iceConfMapper.selectByPrimaryKey(nextId);
                 if (next == null) {
                     return -1L;
                 }
-                if(next.getForwardId() != null && next.getForwardId() > 0){
+                if (next.getForwardId() != null && next.getForwardId() > 0) {
                     return -1L;
                 }
                 iceConfMapper.insertSelective(conf);

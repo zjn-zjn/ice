@@ -1,6 +1,6 @@
 package com.ice.client.listener;
 
-import com.ice.common.model.IceTransferDto;
+import com.ice.common.dto.IceTransferDto;
 import com.ice.core.cache.IceConfCache;
 import com.ice.core.cache.IceHandlerCache;
 import lombok.extern.slf4j.Slf4j;

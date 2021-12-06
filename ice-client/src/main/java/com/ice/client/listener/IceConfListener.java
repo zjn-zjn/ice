@@ -6,6 +6,9 @@ import com.alibaba.fastjson.serializer.SerializeConfig;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.alibaba.fastjson.serializer.SimplePropertyPreFilter;
 import com.ice.common.codec.IceLongCodec;
+import com.ice.common.model.IceClientConf;
+import com.ice.common.model.IceClientHandler;
+import com.ice.common.model.IceClientNode;
 import com.ice.common.utils.AddressUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
@@ -35,138 +38,122 @@ import java.util.Map;
 @Slf4j
 public class IceConfListener implements MessageListener {
 
-  private static final SerializeConfig FAST_JSON_CONFIG;
-  private static final SpringBeanAndForwardFilter SPRING_BEAN_FILTER = new SpringBeanAndForwardFilter();
+    private static final SerializeConfig FAST_JSON_CONFIG;
+    private static final SpringBeanAndForwardFilter SPRING_BEAN_FILTER = new SpringBeanAndForwardFilter();
 
-  static {
-    FAST_JSON_CONFIG = new SerializeConfig();
-    FAST_JSON_CONFIG.put(Long.class, IceLongCodec.getInstance());
-  }
-
-  private final RabbitTemplate iceRabbitTemplate;
-  private Integer app;
-  private String address;
-  private MessageConverter messageConverter = new SimpleMessageConverter();
-
-  public IceConfListener(RabbitTemplate iceRabbitTemplate, MessageConverter messageConverter) {
-    this.iceRabbitTemplate = iceRabbitTemplate;
-    this.messageConverter = messageConverter;
-  }
-
-  public IceConfListener(RabbitTemplate iceRabbitTemplate) {
-    this.iceRabbitTemplate = iceRabbitTemplate;
-  }
-
-  public IceConfListener(Integer app, RabbitTemplate iceRabbitTemplate) {
-    this.app = app;
-    this.iceRabbitTemplate = iceRabbitTemplate;
-  }
-
-  private String getAddress() {
-    address = address == null ? AddressUtils.getAddressPort() : address;
-    return address;
-  }
-
-  @Override
-  public void onMessage(Message message) {
-    Address replyToAddress = message.getMessageProperties().getReplyToAddress();
-    if (replyToAddress == null) {
-      throw new AmqpRejectAndDontRequeueException("No replyToAddress in inbound AMQP Message");
+    static {
+        FAST_JSON_CONFIG = new SerializeConfig();
+        FAST_JSON_CONFIG.put(Long.class, IceLongCodec.getInstance());
     }
-    if (message.getBody() != null && message.getBody().length > 0) {
-      Map<Object, Object> resMap = new HashMap<>();
-      resMap.put("ip", getAddress());
-      String iceIdStr = new String(message.getBody());
-      Long iceId = Long.valueOf(iceIdStr);
-      resMap.put("iceId", iceId);
-      resMap.put("app", app);
-      if (iceId <= 0) {
-        resMap.put("handlerMap", IceHandlerCache.getIdHandlerMap());
-        resMap.put("confMap", IceConfCache.getConfMap());
-      } else {
-        IceHandler handler = IceHandlerCache.getHandlerById(iceId);
-        if (handler != null) {
-          Map<Object, Object> handlerMap = new HashMap<>();
-          handlerMap.put("iceId", handler.findIceId());
-          handlerMap.put("scenes", handler.getScenes());
-          handlerMap.put("debug", handler.getDebug());
-          handlerMap.put("start", handler.getStart());
-          handlerMap.put("end", handler.getEnd());
-          handlerMap.put("timeTypeEnum", handler.getTimeTypeEnum());
-          BaseNode root = handler.getRoot();
-          if (root != null) {
-            handlerMap.put("root", assembleNode(root));
-          }
-          resMap.put("handler", handlerMap);
-        }
-      }
-      send(JSON.toJSONString(resMap, FAST_JSON_CONFIG, SerializerFeature.DisableCircularReferenceDetect),
-          replyToAddress);
-    } else {
-      send("", replyToAddress);
-    }
-  }
 
-  @SuppressWarnings("unchecked")
-  private Map assembleNode(BaseNode node) {
-    if (node == null) {
-      return null;
-    }
-    Map map = new HashMap<>();
-    if (node instanceof BaseRelation) {
-      BaseRelation relation = (BaseRelation) node;
-      IceLinkedList<BaseNode> children = relation.getChildren();
-      if (children != null && !children.isEmpty()) {
-        List<Map> showChildren = new ArrayList<>(children.getSize());
-        for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();
-             listNode != null; listNode = listNode.next) {
-          BaseNode child = listNode.item;
-          Map childMap = assembleNode(child);
-          if (childMap != null) {
-            showChildren.add(childMap);
-          }
-        }
-        map.put("children", showChildren);
-      }
-      BaseNode forward = relation.getIceForward();
-      if (forward != null) {
-        Map forwardMap = assembleNode(forward);
-        if (forwardMap != null) {
-          map.put("iceForward", forwardMap);
-        }
-      }
-      map.put("iceNodeId", relation.getIceNodeId());
-      map.put("iceTimeTypeEnum", relation.getIceTimeTypeEnum());
-      map.put("iceStart", relation.getIceStart());
-      map.put("iceEnd", relation.getIceEnd());
-      map.put("iceNodeDebug", relation.isIceNodeDebug());
-      map.put("iceInverse", relation.isIceInverse());
-    } else {
-      map = JSON.parseObject(JSON.toJSONString(node, FAST_JSON_CONFIG, SPRING_BEAN_FILTER,
-          SerializerFeature.DisableCircularReferenceDetect), Map.class);
-      BaseNode forward = node.getIceForward();
-      if (forward != null) {
-        Map forwardMap = assembleNode(forward);
-        if (forwardMap != null) {
-          map.put("iceForward", forwardMap);
-        }
-      }
-    }
-    return map;
-  }
+    private final RabbitTemplate iceRabbitTemplate;
+    private Integer app;
+    private String address;
+    private MessageConverter messageConverter = new SimpleMessageConverter();
 
-  private void send(Object object, Address replyToAddress) {
-    Message message = this.messageConverter.toMessage(object, new MessageProperties());
-    iceRabbitTemplate.send(replyToAddress.getExchangeName(), replyToAddress.getRoutingKey(), message);
-  }
+    public IceConfListener(RabbitTemplate iceRabbitTemplate, MessageConverter messageConverter) {
+        this.iceRabbitTemplate = iceRabbitTemplate;
+        this.messageConverter = messageConverter;
+    }
 
-  private static final class SpringBeanAndForwardFilter extends SimplePropertyPreFilter {
+    public IceConfListener(RabbitTemplate iceRabbitTemplate) {
+        this.iceRabbitTemplate = iceRabbitTemplate;
+    }
+
+    public IceConfListener(Integer app, RabbitTemplate iceRabbitTemplate) {
+        this.app = app;
+        this.iceRabbitTemplate = iceRabbitTemplate;
+    }
+
+    private String getAddress() {
+        address = address == null ? AddressUtils.getAddressPort() : address;
+        return address;
+    }
+
     @Override
-    public boolean apply(JSONSerializer serializer, Object source, String name) {
-      if ("iceForward".equals(name)) {
-        return false;
-      }
-      return !IceBeanUtils.containsBean(name);
+    public void onMessage(Message message) {
+        Address replyToAddress = message.getMessageProperties().getReplyToAddress();
+        if (replyToAddress == null) {
+            throw new AmqpRejectAndDontRequeueException("No replyToAddress in inbound AMQP Message");
+        }
+        if (message.getBody() != null && message.getBody().length > 0) {
+            IceClientConf clientConf = new IceClientConf();
+            clientConf.setIp(getAddress());
+            String iceIdStr = new String(message.getBody());
+            long iceId = Long.parseLong(iceIdStr);
+            clientConf.setIceId(iceId);
+            clientConf.setApp(app);
+            IceHandler handler = IceHandlerCache.getHandlerById(iceId);
+            if (handler != null) {
+                IceClientHandler clientHandler = new IceClientHandler();
+                clientHandler.setScenes(handler.getScenes());
+                clientHandler.setDebug(handler.getDebug());
+                clientHandler.setStart(handler.getStart());
+                clientHandler.setEnd(handler.getEnd());
+                clientHandler.setIceTimeTypeEnum(handler.getTimeTypeEnum());
+                BaseNode root = handler.getRoot();
+                if (root != null) {
+                    clientHandler.setRoot(assembleNode(root));
+                }
+                clientConf.setHandler(clientHandler);
+            }
+            send(JSON.toJSONString(clientConf, FAST_JSON_CONFIG, SerializerFeature.DisableCircularReferenceDetect),
+                    replyToAddress);
+        } else {
+            send("", replyToAddress);
+        }
     }
-  }
+
+    private IceClientNode assembleNode(BaseNode node) {
+        if (node == null) {
+            return null;
+        }
+        IceClientNode clientNode = new IceClientNode();
+        if (node instanceof BaseRelation) {
+            BaseRelation relation = (BaseRelation) node;
+            IceLinkedList<BaseNode> children = relation.getChildren();
+            if (children != null && !children.isEmpty()) {
+                List<IceClientNode> showChildren = new ArrayList<>(children.getSize());
+                for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();
+                     listNode != null; listNode = listNode.next) {
+                    BaseNode child = listNode.item;
+                    IceClientNode childMap = assembleNode(child);
+                    if (childMap != null) {
+                        showChildren.add(childMap);
+                    }
+                }
+                clientNode.setChildren(showChildren);
+            }
+
+        }
+        BaseNode forward = node.getIceForward();
+        if (forward != null) {
+            IceClientNode forwardNode = assembleNode(forward);
+            if (forwardNode != null) {
+                clientNode.setIceForward(forwardNode);
+            }
+        }
+        clientNode.setIceNodeId(node.getIceNodeId());
+        clientNode.setIceTimeTypeEnum(node.getIceTimeTypeEnum());
+        clientNode.setIceStart(node.getIceStart());
+        clientNode.setIceEnd(node.getIceEnd());
+        clientNode.setIceNodeDebug(node.isIceNodeDebug());
+        clientNode.setIceInverse(node.isIceInverse());
+        return clientNode;
+    }
+
+    private void send(Object object, Address replyToAddress) {
+        Message message = this.messageConverter.toMessage(object, new MessageProperties());
+        iceRabbitTemplate.send(replyToAddress.getExchangeName(), replyToAddress.getRoutingKey(), message);
+    }
+
+    private static final class SpringBeanAndForwardFilter extends SimplePropertyPreFilter {
+        @Override
+        public boolean apply(JSONSerializer serializer, Object source, String name) {
+            if ("iceForward".equals(name)) {
+                return false;
+            }
+            return !IceBeanUtils.containsBean(name);
+        }
+    }
 }

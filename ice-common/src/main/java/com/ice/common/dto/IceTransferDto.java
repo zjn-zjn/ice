@@ -1,9 +1,8 @@
-package com.ice.common.model;
+package com.ice.common.dto;
 
 import lombok.Data;
 
 import java.util.Collection;
-import java.util.List;
 
 /**
  * @author zjn
