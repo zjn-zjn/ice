@@ -7,13 +7,7 @@ import com.ice.core.base.BaseNode;
 import com.ice.core.handler.IceHandler;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -51,7 +45,7 @@ public final class IceHandlerCache {
     return sceneHandlersMap.get(scene);
   }
 
-  public static List<String> insertOrUpdate(List<IceBaseDto> iceBaseDtos) {
+  public static List<String> insertOrUpdate(Collection<IceBaseDto> iceBaseDtos) {
     List<String> errors = new ArrayList<>(iceBaseDtos.size());
     for (IceBaseDto base : iceBaseDtos) {
       IceHandler handler = new IceHandler();
@@ -97,7 +91,7 @@ public final class IceHandlerCache {
     }
   }
 
-  public static void delete(List<Long> ids) {
+  public static void delete(Collection<Long> ids) {
     for (Long id : ids) {
       IceHandler removeHandler = idHandlerMap.get(id);
       if (removeHandler != null && removeHandler.getRoot() != null) {

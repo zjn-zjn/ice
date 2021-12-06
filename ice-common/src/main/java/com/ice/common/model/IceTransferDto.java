@@ -15,9 +15,9 @@ public final class IceTransferDto {
 
   private Collection<IceConfDto> insertOrUpdateConfs;
 
-  private List<Long> deleteConfIds;
+  private Collection<Long> deleteConfIds;
 
   private Collection<IceBaseDto> insertOrUpdateBases;
 
-  private List<Long> deleteBaseIds;
+  private Collection<Long> deleteBaseIds;
 }

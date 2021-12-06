@@ -77,7 +77,7 @@ public final class IceConfCache {
    *
    * @param iceConfDtos dto
    */
-  public static List<String> insertOrUpdate(List<IceConfDto> iceConfDtos) {
+  public static List<String> insertOrUpdate(Collection<IceConfDto> iceConfDtos) {
     List<String> errors = new ArrayList<>(iceConfDtos.size());
     Map<Long, BaseNode> tmpConfMap = new HashMap<>(iceConfDtos.size());
 
@@ -222,7 +222,7 @@ public final class IceConfCache {
     return errors;
   }
 
-  public static void delete(List<Long> ids) {
+  public static void delete(Collection<Long> ids) {
     //FIXME 删除的相关性问题(父子节点  forward)
     for (Long id : ids) {
       Set<Long> parentIds = parentIdsMap.get(id);

@@ -86,13 +86,10 @@ public final class IceTimeUtils {
     switch (typeEnum) {
       case NONE:
         return false;
-      case BETWEEN:
       case TEST_BETWEEN:
         return requestTime < start || requestTime > end;
-      case AFTER_START:
       case TEST_AFTER_START:
         return requestTime < start;
-      case BEFORE_END:
       case TEST_BEFORE_END:
         return requestTime > end;
       default:
