@@ -5,7 +5,7 @@ import com.ice.common.constant.Constant;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.model.WebResult;
 import com.ice.server.service.IceEditService;
-import com.ice.server.service.IceServerService;
+import com.ice.server.service.ServerService;
 import org.jetbrains.annotations.Contract;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.util.CollectionUtils;
@@ -24,7 +24,7 @@ import java.util.*;
 @Deprecated
 public class IceShowController {
 
-    private final IceServerService serverService;
+    private final ServerService serverService;
 
     @Resource
     private IceEditService editService;
@@ -35,7 +35,7 @@ public class IceShowController {
     private AmqpTemplate amqpTemplate;
 
     @Contract(pure = true)
-    public IceShowController(IceServerService serverService) {
+    public IceShowController(ServerService serverService) {
         this.serverService = serverService;
     }
 

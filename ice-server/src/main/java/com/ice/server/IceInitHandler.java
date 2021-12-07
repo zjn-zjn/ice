@@ -1,6 +1,6 @@
 package com.ice.server;
 
-import com.ice.server.service.IceServerService;
+import com.ice.server.service.ServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Contract;
 import org.springframework.amqp.core.Message;
@@ -18,10 +18,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class IceInitHandler {
 
-    private final IceServerService serverService;
+    private final ServerService serverService;
 
     @Contract(pure = true)
-    public IceInitHandler(IceServerService serverService) {
+    public IceInitHandler(ServerService serverService) {
         this.serverService = serverService;
     }
 

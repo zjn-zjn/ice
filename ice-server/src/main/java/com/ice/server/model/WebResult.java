@@ -1,5 +1,6 @@
 package com.ice.server.model;
 
+import com.ice.server.exception.ErrorCodeException;
 import lombok.Data;
 
 /**
@@ -20,9 +21,21 @@ public class WebResult<T> {
         this.data = data;
     }
 
-    public WebResult(int ret, T data) {
+    public WebResult(int ret, String msg) {
         this.ret = ret;
-        this.data = data;
+        this.msg = msg;
+    }
+
+    public static <T> WebResult<T> fail(ErrorCodeException e) {
+        return new WebResult<>(e.getErrorCode(), e.getMessage());
+    }
+
+    public static <T> WebResult<T> fail(int ret, String msg) {
+        return new WebResult<>(ret, msg);
+    }
+
+    public static <T> WebResult<T> success(T data) {
+        return new WebResult<>(0, null, data);
     }
 
     public WebResult(int ret, String msg, T data) {

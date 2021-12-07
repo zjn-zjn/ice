@@ -3,13 +3,13 @@ package com.ice.server.controller;
 import com.alibaba.fastjson.JSON;
 import com.ice.common.constant.Constant;
 import com.ice.common.model.IceClientConf;
-import com.ice.common.model.IceClientHandler;
 import com.ice.common.model.IceClientNode;
 import com.ice.server.dao.model.IceConf;
+import com.ice.server.exception.ErrorCode;
+import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceLeafClass;
-import com.ice.server.model.WebResult;
-import com.ice.server.service.IceConfService;
-import com.ice.server.service.IceServerService;
+import com.ice.server.service.ConfService;
+import com.ice.server.service.ServerService;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -26,12 +26,12 @@ import java.util.*;
  */
 @CrossOrigin
 @RestController
-public class IceConfController {
+public class ConfController {
     @Resource
-    private IceConfService iceConfService;
+    private ConfService confService;
 
     @Resource
-    private IceServerService serverService;
+    private ServerService serverService;
 
     private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -39,60 +39,37 @@ public class IceConfController {
     private AmqpTemplate amqpTemplate;
 
     @RequestMapping(value = "/ice-server/conf/edit", method = RequestMethod.POST)
-    public WebResult<Long> confEdit(@RequestBody IceConf conf, @RequestParam(required = false) Long parentId, @RequestParam(required = false) Long nextId) {
-        WebResult<Long> result = new WebResult<>();
-        if (conf == null) {
-            result.setRet(-1);
-            result.setMsg("conf null");
-            return result;
-        }
-        if (conf.getId() == null && (parentId == null || nextId == null)) {
-            result.setRet(-1);
-            result.setMsg("parentId can not be null in add");
-            return result;
-        }
+    public Long confEdit(@RequestBody IceConf conf, @RequestParam(required = false) Long parentId, @RequestParam(required = false) Long nextId) {
         //conf node edit-delete just pick up from parent
         conf.setStatus((byte) 1);
-        Long id = iceConfService.confEdit(conf, parentId, nextId);
-        if (id <= 0) {
-            result.setRet(-1);
-            result.setMsg("error");
-            return result;
-        }
-        result.setData(id);
+        Long id = confService.confEdit(conf, parentId, nextId);
         serverService.updateByEdit();
-        return result;
+        return id;
     }
 
     @RequestMapping(value = "/ice-server/conf/leaf/class", method = RequestMethod.GET)
-    public WebResult<List<IceLeafClass>> confLeafClass(@RequestParam Integer app, @RequestParam Byte type) {
-        WebResult<List<IceLeafClass>> result = new WebResult<>();
-        result.setData(iceConfService.confLeafClass(app, type));
-        serverService.updateByEdit();
-        return result;
+    public List<IceLeafClass> getConfLeafClass(@RequestParam Integer app, @RequestParam Byte type) {
+        return confService.getConfLeafClass(app, type);
     }
 
     @RequestMapping(value = "/ice-server/conf/detail", method = RequestMethod.GET)
-    public WebResult<IceClientConf> confDetail(@RequestParam Integer app, @RequestParam Long iceId) {
+    public IceClientConf confDetail(@RequestParam Integer app, @RequestParam Long confId) {
         Object obj = amqpTemplate.convertSendAndReceive(Constant.getConfExchange(), String.valueOf(app),
-                String.valueOf(iceId));
-        if (obj != null) {
-            String json = (String) obj;
-            if (!StringUtils.isEmpty(json)) {
-                IceClientConf clientConf = JSON.parseObject(json, IceClientConf.class);
-                if (clientConf != null) {
-                    IceClientHandler handler = clientConf.getHandler();
-                    if (handler != null) {
-                        IceClientNode root = handler.getRoot();
-                        if (root != null) {
-                            assemble(app, root);
-                            return new WebResult<>(clientConf);
-                        }
-                    }
-                }
-            }
+                String.valueOf(confId));
+        if (obj == null) {
+            throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, null);
         }
-        return new WebResult<>();
+        String json = (String) obj;
+        if (StringUtils.isEmpty(json)) {
+            throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, null);
+        }
+        IceClientConf clientConf = JSON.parseObject(json, IceClientConf.class);
+        IceClientNode node = clientConf.getNode();
+        if (node == null) {
+            throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, JSON.toJSONString(clientConf));
+        }
+        assemble(app, node);
+        return clientConf;
     }
 
     private void assemble(Integer app, IceClientNode clientNode) {

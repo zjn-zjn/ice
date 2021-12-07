@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * @author zjn
  */
-public interface IceServerService {
+public interface ServerService {
 
     /*
      * 根据app获取初始化json

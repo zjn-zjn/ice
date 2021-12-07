@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class IceClientConf {
     private String ip;
-    private long iceId;
+    private long confId;
     private int app;
-    private IceClientHandler handler;
+    private IceClientNode node;
 }

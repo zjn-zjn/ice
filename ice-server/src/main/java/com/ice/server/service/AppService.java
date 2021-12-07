@@ -7,7 +7,7 @@ import com.ice.server.model.PageResult;
 /**
  * @author zjn
  */
-public interface IceAppService {
+public interface AppService {
     PageResult<IceApp> appList(Integer pageNum, Integer pageSize, String name, Integer app);
 
     Long appEdit(IceApp app);
