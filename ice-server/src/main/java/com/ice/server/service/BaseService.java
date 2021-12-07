@@ -9,7 +9,7 @@ import com.ice.server.model.PushData;
 /**
  * @author zjn
  */
-public interface IceBaseService {
+public interface BaseService {
 
     PageResult<IceBase> baseList(IceBaseSearch search);
 

@@ -14,7 +14,7 @@ import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceBaseExample;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.dao.model.IceConfExample;
-import com.ice.server.service.IceServerService;
+import com.ice.server.service.ServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.InitializingBean;
@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-public class IceServerServiceImpl implements IceServerService, InitializingBean {
+public class ServerServiceImpl implements ServerService, InitializingBean {
 
     private static final Set<Integer> appSet = new HashSet<>();
 

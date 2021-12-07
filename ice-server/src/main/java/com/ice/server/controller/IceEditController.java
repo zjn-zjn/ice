@@ -5,7 +5,7 @@ import com.ice.server.model.IceBaseVo;
 import com.ice.server.model.IceConfVo;
 import com.ice.server.model.WebResult;
 import com.ice.server.service.IceEditService;
-import com.ice.server.service.IceServerService;
+import com.ice.server.service.ServerService;
 import com.github.kevinsawicki.http.HttpRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,7 +32,7 @@ public class IceEditController {
     private IceEditService editService;
 
     @Resource
-    private IceServerService serverService;
+    private ServerService serverService;
 
     @Value("${environment:dev}")
     private String environment;

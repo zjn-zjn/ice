@@ -8,8 +8,8 @@ import java.util.List;
 /**
  * @author zjn
  */
-public interface IceConfService {
+public interface ConfService {
     Long confEdit(IceConf conf, Long parentId, Long nextId);
 
-    List<IceLeafClass> confLeafClass(Integer app, Byte type);
+    List<IceLeafClass> getConfLeafClass(Integer app, Byte type);
 }

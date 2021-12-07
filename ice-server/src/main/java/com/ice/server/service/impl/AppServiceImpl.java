@@ -6,18 +6,17 @@ import com.ice.server.dao.mapper.IceAppMapper;
 import com.ice.server.dao.model.IceApp;
 import com.ice.server.dao.model.IceAppExample;
 import com.ice.server.model.PageResult;
-import com.ice.server.service.IceAppService;
+import com.ice.server.service.AppService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 import java.util.Date;
-import java.util.List;
 
 @Slf4j
 @Service
-public class IceAppServiceImpl implements IceAppService {
+public class AppServiceImpl implements AppService {
 
     @Resource
     private IceAppMapper iceAppMapper;
@@ -48,7 +47,7 @@ public class IceAppServiceImpl implements IceAppService {
     public Long appEdit(IceApp app) {
         app.setUpdateAt(new Date());
         if (app.getId() == null) {
-            /*新增*/
+            /*add*/
             iceAppMapper.insertSelective(app);
             return app.getId();
         }

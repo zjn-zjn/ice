@@ -7,13 +7,11 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.alibaba.fastjson.serializer.SimplePropertyPreFilter;
 import com.ice.common.codec.IceLongCodec;
 import com.ice.common.model.IceClientConf;
-import com.ice.common.model.IceClientHandler;
 import com.ice.common.model.IceClientNode;
 import com.ice.common.utils.AddressUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
-import com.ice.core.cache.IceHandlerCache;
-import com.ice.core.handler.IceHandler;
+import com.ice.core.cache.IceConfCache;
 import com.ice.core.utils.IceBeanUtils;
 import com.ice.core.utils.IceLinkedList;
 import lombok.extern.slf4j.Slf4j;
@@ -67,23 +65,13 @@ public class IceConfListener implements MessageListener {
         if (message.getBody() != null && message.getBody().length > 0) {
             IceClientConf clientConf = new IceClientConf();
             clientConf.setIp(getAddress());
-            String iceIdStr = new String(message.getBody());
-            long iceId = Long.parseLong(iceIdStr);
-            clientConf.setIceId(iceId);
+            String confIdStr = new String(message.getBody());
+            long confId = Long.parseLong(confIdStr);
             clientConf.setApp(app);
-            IceHandler handler = IceHandlerCache.getHandlerById(iceId);
-            if (handler != null) {
-                IceClientHandler clientHandler = new IceClientHandler();
-                clientHandler.setScenes(handler.getScenes());
-                clientHandler.setDebug(handler.getDebug());
-                clientHandler.setStart(handler.getStart());
-                clientHandler.setEnd(handler.getEnd());
-                clientHandler.setIceTimeTypeEnum(handler.getTimeTypeEnum());
-                BaseNode root = handler.getRoot();
-                if (root != null) {
-                    clientHandler.setRoot(assembleNode(root));
-                }
-                clientConf.setHandler(clientHandler);
+            clientConf.setConfId(confId);
+            BaseNode node = IceConfCache.getConfById(confId);
+            if (node != null) {
+                clientConf.setNode(assembleNode(node));
             }
             send(JSON.toJSONString(clientConf, FAST_JSON_CONFIG, SerializerFeature.DisableCircularReferenceDetect),
                     replyToAddress);

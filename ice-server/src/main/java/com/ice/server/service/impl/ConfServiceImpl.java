@@ -2,9 +2,11 @@ package com.ice.server.service.impl;
 
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.model.IceConf;
+import com.ice.server.exception.ErrorCode;
+import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceLeafClass;
-import com.ice.server.service.IceConfService;
-import com.ice.server.service.IceServerService;
+import com.ice.server.service.ConfService;
+import com.ice.server.service.ServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,24 +17,27 @@ import java.util.*;
 
 @Slf4j
 @Service
-public class IceConfServiceImpl implements IceConfService {
+public class ConfServiceImpl implements ConfService {
 
     @Resource
     private IceConfMapper iceConfMapper;
 
     @Resource
-    private IceServerService serverService;
+    private ServerService serverService;
 
     @Override
     @Transactional
     public Long confEdit(IceConf conf, Long parentId, Long nextId) {
         conf.setUpdateAt(new Date());
+        if (conf.getId() == null && (parentId == null || nextId == null)) {
+            throw new ErrorCodeException(ErrorCode.NOT_NULL, "parentId or nextId");
+        }
         if (conf.getId() == null) {
             if (parentId != null) {
                 /*add son*/
                 IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
                 if (parent == null) {
-                    return -1L;
+                    throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
                 }
                 iceConfMapper.insertSelective(conf);
                 Long id = conf.getId();
@@ -49,10 +54,10 @@ public class IceConfServiceImpl implements IceConfService {
                 /*add forward*/
                 IceConf next = iceConfMapper.selectByPrimaryKey(nextId);
                 if (next == null) {
-                    return -1L;
+                    throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", nextId);
                 }
                 if (next.getForwardId() != null && next.getForwardId() > 0) {
-                    return -1L;
+                    throw new ErrorCodeException(ErrorCode.ALREADY_EXIST, "nextId:" + nextId + " forward");
                 }
                 iceConfMapper.insertSelective(conf);
                 Long id = conf.getId();
@@ -67,7 +72,7 @@ public class IceConfServiceImpl implements IceConfService {
     }
 
     @Override
-    public List<IceLeafClass> confLeafClass(Integer app, Byte type) {
+    public List<IceLeafClass> getConfLeafClass(Integer app, Byte type) {
         List<IceLeafClass> list = new ArrayList<>();
         Map<String, Integer> leafClassMap = serverService.getLeafClassMap(app, type);
         if (leafClassMap != null) {

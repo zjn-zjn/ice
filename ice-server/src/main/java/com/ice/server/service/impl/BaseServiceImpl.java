@@ -5,19 +5,17 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.page.PageMethod;
 import com.ice.common.constant.Constant;
 import com.ice.common.enums.NodeTypeEnum;
-import com.ice.common.model.IceClientConf;
-import com.ice.common.model.IceClientHandler;
-import com.ice.common.model.IceClientNode;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IcePushHistoryMapper;
 import com.ice.server.dao.model.*;
+import com.ice.server.exception.ErrorCode;
+import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceBaseSearch;
 import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
-import com.ice.server.model.WebResult;
-import com.ice.server.service.IceBaseService;
-import com.ice.server.service.IceServerService;
+import com.ice.server.service.BaseService;
+import com.ice.server.service.ServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.stereotype.Service;
@@ -26,11 +24,12 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
 
 @Slf4j
 @Service
-public class IceBaseServiceImpl implements IceBaseService {
+public class BaseServiceImpl implements BaseService {
 
     @Resource
     private IceBaseMapper iceBaseMapper;
@@ -42,7 +41,7 @@ public class IceBaseServiceImpl implements IceBaseService {
     private IcePushHistoryMapper pushHistoryMapper;
 
     @Resource
-    private IceServerService serverService;
+    private ServerService serverService;
 
     @Resource
     private AmqpTemplate amqpTemplate;
@@ -107,7 +106,7 @@ public class IceBaseServiceImpl implements IceBaseService {
     public Long push(Integer app, Long iceId, String reason) {
         IceBase base = iceBaseMapper.selectByPrimaryKey(iceId);
         if (base == null) {
-            return null;
+            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", iceId);
         }
         base.setUpdateAt(new Date());
         if (base.getScenes() == null) {
@@ -177,13 +176,11 @@ public class IceBaseServiceImpl implements IceBaseService {
             if (history != null) {
                 return history.getPushData();
             }
-            return "";
+            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "pushId", pushId);
         }
-        IceBaseExample baseExample = new IceBaseExample();
-        baseExample.createCriteria().andIdEqualTo(iceId);
         IceBase base = iceBaseMapper.selectByPrimaryKey(iceId);
         if (base == null) {
-            return "";
+            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", iceId);
         }
         base.setUpdateAt(new Date());
         if (base.getScenes() == null) {
@@ -194,20 +191,16 @@ public class IceBaseServiceImpl implements IceBaseService {
 
     @Override
     public void rollback(Long pushId) {
-        if (pushId != null) {
-            IcePushHistoryExample historyExample = new IcePushHistoryExample();
-            historyExample.createCriteria().andIdEqualTo(pushId);
-            IcePushHistory history = pushHistoryMapper.selectByPrimaryKey(pushId);
-            if (history != null) {
-                importData(JSON.parseObject(history.getPushData(), PushData.class));
-            }
+        IcePushHistory history = pushHistoryMapper.selectByPrimaryKey(pushId);
+        if (history == null) {
+            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "pushId", pushId);
         }
+        importData(JSON.parseObject(history.getPushData(), PushData.class));
     }
 
     @Override
     @Transactional
     public void importData(PushData data) {
-
         IceBase base = data.getBase();
         List<IceConf> confs = data.getConfs();
         if (!CollectionUtils.isEmpty(confs)) {
@@ -245,21 +238,4 @@ public class IceBaseServiceImpl implements IceBaseService {
                 || type == NodeTypeEnum.AND.getType() || type == NodeTypeEnum.TRUE.getType()
                 || type == NodeTypeEnum.ANY.getType();
     }
-
-    private void findAllConfIds(IceClientNode node, Set<Long> ids) {
-        Long nodeId = node.getIceNodeId();
-        ids.add(nodeId);
-        IceClientNode forward = node.getIceForward();
-        if (forward != null) {
-            findAllConfIds(forward, ids);
-        }
-        List<IceClientNode> children = node.getChildren();
-        if (CollectionUtils.isEmpty(children)) {
-            return;
-        }
-        for (IceClientNode child : children) {
-            findAllConfIds(child, ids);
-        }
-    }
-
 }

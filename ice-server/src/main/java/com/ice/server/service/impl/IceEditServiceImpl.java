@@ -18,7 +18,7 @@ import com.ice.server.model.IceLeafClass;
 import com.ice.server.model.PushData;
 import com.ice.server.model.WebResult;
 import com.ice.server.service.IceEditService;
-import com.ice.server.service.IceServerService;
+import com.ice.server.service.ServerService;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.page.PageMethod;
 import org.springframework.amqp.core.AmqpTemplate;
@@ -47,7 +47,7 @@ public class IceEditServiceImpl implements IceEditService {
     private IcePushHistoryMapper pushHistoryMapper;
 
     @Resource
-    private IceServerService serverService;
+    private ServerService serverService;
 
     @Resource
     private AmqpTemplate amqpTemplate;
