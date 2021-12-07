@@ -7,27 +7,27 @@ import lombok.Data;
  */
 @Data
 public class WebResult<T> {
-  private int ret;
-  private String msg;
-  private T data;
+    private int ret;
+    private String msg;
+    private T data;
 
-  public WebResult() {
-    this.ret = 0;
-  }
+    public WebResult() {
+        this.ret = 0;
+    }
 
-  public WebResult(T data) {
-    this.ret = 0;
-    this.data = data;
-  }
+    public WebResult(T data) {
+        this.ret = 0;
+        this.data = data;
+    }
 
-  public WebResult(int ret, T data) {
-    this.ret = ret;
-    this.data = data;
-  }
+    public WebResult(int ret, T data) {
+        this.ret = ret;
+        this.data = data;
+    }
 
-  public WebResult(int ret, String msg, T data) {
-    this.ret = ret;
-    this.msg = msg;
-    this.data = data;
-  }
+    public WebResult(int ret, String msg, T data) {
+        this.ret = ret;
+        this.msg = msg;
+        this.data = data;
+    }
 }

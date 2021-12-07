@@ -14,12 +14,12 @@ import org.springframework.amqp.core.MessageListener;
 @Slf4j
 public class IceMockListener implements MessageListener {
 
-  @Override
-  public void onMessage(Message message) {
-    if (message.getBody() != null && message.getBody().length > 0) {
-      String json = new String(message.getBody());
-      IcePack pack = JSON.parseObject(json, IcePack.class);
-      IceClient.process(pack);
+    @Override
+    public void onMessage(Message message) {
+        if (message.getBody() != null && message.getBody().length > 0) {
+            String json = new String(message.getBody());
+            IcePack pack = JSON.parseObject(json, IcePack.class);
+            IceClient.process(pack);
+        }
     }
-  }
 }

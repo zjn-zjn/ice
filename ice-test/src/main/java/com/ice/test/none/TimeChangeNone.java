@@ -15,26 +15,26 @@ import java.util.Date;
 @EqualsAndHashCode(callSuper = true)
 public final class TimeChangeNone extends BaseLeafPackNone {
 
-  private Date time;
+    private Date time;
 
-  private long cursorMills;
+    private long cursorMills;
 
-  @Value("${environment}")
-  private String environment;
+    @Value("${environment}")
+    private String environment;
 
-/*
-   * 叶子节点处理
-   *
-   * @param pack 包裹
-   */
-  @Override
-  protected void doPackNone(IcePack pack) {
-    if (!"product".equals(environment)) {
-      if (time != null) {
-        pack.setRequestTime(time.getTime());
-      } else {
-        pack.setRequestTime(pack.getRequestTime() + cursorMills);
-      }
+    /*
+     * 叶子节点处理
+     *
+     * @param pack 包裹
+     */
+    @Override
+    protected void doPackNone(IcePack pack) {
+        if (!"product".equals(environment)) {
+            if (time != null) {
+                pack.setRequestTime(time.getTime());
+            } else {
+                pack.setRequestTime(pack.getRequestTime() + cursorMills);
+            }
+        }
     }
-  }
 }

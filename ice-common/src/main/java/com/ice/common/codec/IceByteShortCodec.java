@@ -22,87 +22,87 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class IceByteShortCodec implements ObjectSerializer, ObjectDeserializer {
 
-  private static final IceByteShortCodec INSTANCE = new IceByteShortCodec();
+    private static final IceByteShortCodec INSTANCE = new IceByteShortCodec();
 
-  public static IceByteShortCodec getInstance() {
-    return INSTANCE;
-  }
-
-  @Override
-  public void write(JSONSerializer serializer, Object object, Object fieldName, Type fieldType, int features) {
-    SerializeWriter out = serializer.out;
-
-    Number value = (Number) object;
-
-    if (value == null) {
-      out.writeNull(SerializerFeature.WriteNullNumberAsZero);
-      return;
+    public static IceByteShortCodec getInstance() {
+        return INSTANCE;
     }
 
-    if (object instanceof Long) {
-      out.writeLong(value.longValue());
-    } else {
-      out.writeInt(value.intValue());
-    }
-    if (out.isEnabled(IceSerializerFeature.CUSTOM_NUMBER_SHOW.getMask())) {
-      Class<?> clazz = value.getClass();
-      if (clazz == Byte.class) {
-        out.write('B');
-      } else if (clazz == Short.class) {
-        out.write('S');
-      }
-    }
-  }
+    @Override
+    public void write(JSONSerializer serializer, Object object, Object fieldName, Type fieldType, int features) {
+        SerializeWriter out = serializer.out;
 
-  @Override
-  @SuppressWarnings("unchecked")
-  public <T> T deserialze(DefaultJSONParser parser, Type clazz, Object fieldName) {
-    final JSONLexer lexer = parser.lexer;
+        Number value = (Number) object;
 
-    final int token = lexer.token();
-
-    if (token == JSONToken.NULL) {
-      lexer.nextToken(JSONToken.COMMA);
-      return null;
-    }
-
-    Integer intObj;
-    try {
-      if (token == JSONToken.LITERAL_INT) {
-        int val = lexer.intValue();
-        lexer.nextToken(JSONToken.COMMA);
-        intObj = val;
-      } else if (token == JSONToken.LITERAL_FLOAT) {
-        BigDecimal number = lexer.decimalValue();
-        intObj = TypeUtils.intValue(number);
-        lexer.nextToken(JSONToken.COMMA);
-      } else {
-        if (token == JSONToken.LBRACE) {
-          JSONObject jsonObject = new JSONObject(true);
-          parser.parseObject(jsonObject);
-          intObj = TypeUtils.castToInt(jsonObject);
-        } else {
-          Object value = parser.parse();
-          intObj = TypeUtils.castToInt(value);
+        if (value == null) {
+            out.writeNull(SerializerFeature.WriteNullNumberAsZero);
+            return;
         }
-      }
-    } catch (Exception ex) {
-      String message = "parseByteOrShort error";
-      if (fieldName != null) {
-        message += (", field : " + fieldName);
-      }
-      throw new JSONException(message, ex);
+
+        if (object instanceof Long) {
+            out.writeLong(value.longValue());
+        } else {
+            out.writeInt(value.intValue());
+        }
+        if (out.isEnabled(IceSerializerFeature.CUSTOM_NUMBER_SHOW.getMask())) {
+            Class<?> clazz = value.getClass();
+            if (clazz == Byte.class) {
+                out.write('B');
+            } else if (clazz == Short.class) {
+                out.write('S');
+            }
+        }
     }
 
-    if (clazz == AtomicInteger.class) {
-      return (T) new AtomicInteger(intObj);
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T deserialze(DefaultJSONParser parser, Type clazz, Object fieldName) {
+        final JSONLexer lexer = parser.lexer;
+
+        final int token = lexer.token();
+
+        if (token == JSONToken.NULL) {
+            lexer.nextToken(JSONToken.COMMA);
+            return null;
+        }
+
+        Integer intObj;
+        try {
+            if (token == JSONToken.LITERAL_INT) {
+                int val = lexer.intValue();
+                lexer.nextToken(JSONToken.COMMA);
+                intObj = val;
+            } else if (token == JSONToken.LITERAL_FLOAT) {
+                BigDecimal number = lexer.decimalValue();
+                intObj = TypeUtils.intValue(number);
+                lexer.nextToken(JSONToken.COMMA);
+            } else {
+                if (token == JSONToken.LBRACE) {
+                    JSONObject jsonObject = new JSONObject(true);
+                    parser.parseObject(jsonObject);
+                    intObj = TypeUtils.castToInt(jsonObject);
+                } else {
+                    Object value = parser.parse();
+                    intObj = TypeUtils.castToInt(value);
+                }
+            }
+        } catch (Exception ex) {
+            String message = "parseByteOrShort error";
+            if (fieldName != null) {
+                message += (", field : " + fieldName);
+            }
+            throw new JSONException(message, ex);
+        }
+
+        if (clazz == AtomicInteger.class) {
+            return (T) new AtomicInteger(intObj);
+        }
+
+        return (T) intObj;
     }
 
-    return (T) intObj;
-  }
-
-  @Override
-  public int getFastMatchToken() {
-    return JSONToken.LITERAL_INT;
-  }
+    @Override
+    public int getFastMatchToken() {
+        return JSONToken.LITERAL_INT;
+    }
 }

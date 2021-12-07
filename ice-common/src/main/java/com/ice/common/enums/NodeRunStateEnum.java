@@ -10,38 +10,38 @@ import java.util.Map;
  */
 public enum NodeRunStateEnum {
 
-/*
-   * false
-   */
-  FALSE((byte) 0),
-/*
-   * true
-   */
-  TRUE((byte) 1),
-/*
-   * 不参与节点运行结果
-   */
-  NONE((byte) 2);
+    /*
+     * false
+     */
+    FALSE((byte) 0),
+    /*
+     * true
+     */
+    TRUE((byte) 1),
+    /*
+     * 不参与节点运行结果
+     */
+    NONE((byte) 2);
 
-  private static final Map<Byte, NodeRunStateEnum> MAP = new HashMap<>();
+    private static final Map<Byte, NodeRunStateEnum> MAP = new HashMap<>();
 
-  static {
-    for (NodeRunStateEnum enums : NodeRunStateEnum.values()) {
-      MAP.put(enums.getState(), enums);
+    static {
+        for (NodeRunStateEnum enums : NodeRunStateEnum.values()) {
+            MAP.put(enums.getState(), enums);
+        }
     }
-  }
 
-  private final byte state;
+    private final byte state;
 
-  NodeRunStateEnum(byte state) {
-    this.state = state;
-  }
+    NodeRunStateEnum(byte state) {
+        this.state = state;
+    }
 
-  public static NodeRunStateEnum getEnum(byte state) {
-    return MAP.get(state);
-  }
+    public static NodeRunStateEnum getEnum(byte state) {
+        return MAP.get(state);
+    }
 
-  public byte getState() {
-    return state;
-  }
+    public byte getState() {
+        return state;
+    }
 }

@@ -18,15 +18,15 @@ import java.util.List;
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 
-  @Override
-  public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
-    /*自定义将jackson转换器变成fastjson*/
-    FastJsonHttpMessageConverter fastConverter = new FastJsonHttpMessageConverter();
-    FastJsonConfig fastJsonConfig = new FastJsonConfig();
-    List<MediaType> fastMediaTypes = new ArrayList<>();
-    fastMediaTypes.add(MediaType.APPLICATION_JSON_UTF8);
-    fastConverter.setSupportedMediaTypes(fastMediaTypes);
-    fastConverter.setFastJsonConfig(fastJsonConfig);
-    converters.add(0, fastConverter);
-  }
+    @Override
+    public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+        /*自定义将jackson转换器变成fastjson*/
+        FastJsonHttpMessageConverter fastConverter = new FastJsonHttpMessageConverter();
+        FastJsonConfig fastJsonConfig = new FastJsonConfig();
+        List<MediaType> fastMediaTypes = new ArrayList<>();
+        fastMediaTypes.add(MediaType.APPLICATION_JSON_UTF8);
+        fastConverter.setSupportedMediaTypes(fastMediaTypes);
+        fastConverter.setFastJsonConfig(fastJsonConfig);
+        converters.add(0, fastConverter);
+    }
 }

@@ -8,29 +8,29 @@ import lombok.Data;
 @Data
 public final class IceConfDto {
 
-  private Long id;
+    private Long id;
 
-  private String sonIds;
+    private String sonIds;
 
-  private Byte type;
+    private Byte type;
 
-  private Byte status;
+    private Byte status;
 
-  private String confName;
+    private String confName;
 
-  private String confField;
+    private String confField;
 
-  private Byte timeType;
+    private Byte timeType;
 
-  private Long start;
+    private Long start;
 
-  private Long end;
+    private Long end;
 
-  private Long forwardId;
+    private Long forwardId;
 
-  private Integer complex;
+    private Integer complex;
 
-  private Byte debug;
+    private Byte debug;
 
-  private Byte inverse;
+    private Byte inverse;
 }

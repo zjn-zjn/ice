@@ -52,7 +52,7 @@ public class IceConfController {
             return result;
         }
         //conf node edit-delete just pick up from parent
-        conf.setStatus((byte)1);
+        conf.setStatus((byte) 1);
         Long id = iceConfService.confEdit(conf, parentId, nextId);
         if (id <= 0) {
             result.setRet(-1);
@@ -127,7 +127,7 @@ public class IceConfController {
                 clientNode.setConfField(iceConf.getConfField());
             }
             if (!StringUtils.isEmpty(iceConf.getConfName())) {
-                clientNode.setConfName(iceConf.getId() + "-" + iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1));
+                clientNode.setConfName(iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1));
             }
             if (iceConf.getType() != null) {
                 clientNode.setNodeType(iceConf.getType());

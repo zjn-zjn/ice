@@ -9,17 +9,17 @@ import java.util.Map;
  */
 public interface IceServerService {
 
-/*
-   * 根据app获取初始化json
-   */
-  String getInitJson(Integer app);
+    /*
+     * 根据app获取初始化json
+     */
+    String getInitJson(Integer app);
 
-/*
-   * 根据confId获取配置信息
-   */
-  IceConf getActiveConfById(Integer app, Long confId);
+    /*
+     * 根据confId获取配置信息
+     */
+    IceConf getActiveConfById(Integer app, Long confId);
 
-  Map<String, Integer> getLeafClassMap(Integer app, Byte type);
+    Map<String, Integer> getLeafClassMap(Integer app, Byte type);
 
-  void updateByEdit();
+    void updateByEdit();
 }

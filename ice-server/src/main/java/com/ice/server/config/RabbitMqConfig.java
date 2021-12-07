@@ -11,25 +11,30 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class RabbitMqConfig {
-  @Bean
-  public DirectExchange updateExchange() {
-    return new DirectExchange(Constant.getUpdateExchange());
-  }
+    @Bean
+    public DirectExchange updateExchange() {
+        return new DirectExchange(Constant.getUpdateExchange());
+    }
 
-  @Bean
-  public DirectExchange showConfExchange() {
-    return new DirectExchange(Constant.getShowConfExchange());
-  }
+    @Bean
+    public DirectExchange showConfExchange() {
+        return new DirectExchange(Constant.getShowConfExchange());
+    }
 
-  @Bean
-  public DirectExchange confExchange() {
-    return new DirectExchange(Constant.getConfExchange());
-  }
+    @Bean
+    public DirectExchange confExchange() {
+        return new DirectExchange(Constant.getConfExchange());
+    }
 
-  @Bean
-  public Object configRabbitTemplate(RabbitTemplate rabbitTemplate){
-    //FIXME
-    rabbitTemplate.setUseDirectReplyToContainer(false);
-    return null;
-  }
+    @Bean
+    public DirectExchange allConfIdExchange() {
+        return new DirectExchange(Constant.getAllConfIdExchange());
+    }
+
+    @Bean
+    public Object configRabbitTemplate(RabbitTemplate rabbitTemplate) {
+        //FIXME
+        rabbitTemplate.setUseDirectReplyToContainer(false);
+        return null;
+    }
 }

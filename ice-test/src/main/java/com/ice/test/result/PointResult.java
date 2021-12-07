@@ -12,21 +12,21 @@ import javax.annotation.Resource;
 @EqualsAndHashCode(callSuper = true)
 public class PointResult extends BaseLeafRoamResult {
 
-  @Resource
-  private SendService sendService;
+    @Resource
+    private SendService sendService;
 
-  private String key;
+    private String key;
 
-  private double value;
+    private double value;
 
-  @Override
-  protected boolean doRoamResult(IceRoam roam) {
-    Integer uid = roam.getMulti(key);
-    if (uid == null || value <= 0) {
-      return false;
+    @Override
+    protected boolean doRoamResult(IceRoam roam) {
+        Integer uid = roam.getMulti(key);
+        if (uid == null || value <= 0) {
+            return false;
+        }
+        boolean res = sendService.sendPoint(uid, value);
+        roam.put("SEND_POINT", res);
+        return res;
     }
-    boolean res = sendService.sendPoint(uid, value);
-    roam.put("SEND_POINT", res);
-    return res;
-  }
 }

@@ -6,8 +6,6 @@ import com.ice.core.leaf.base.BaseLeafResult;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.lang.reflect.InvocationTargetException;
-
 /**
  * @author zjn
  */
@@ -15,15 +13,15 @@ import java.lang.reflect.InvocationTargetException;
 @EqualsAndHashCode(callSuper = true)
 public abstract class BaseLeafPackResult extends BaseLeafResult {
 
-  @Override
-  protected boolean doResult(IceContext cxt) throws InvocationTargetException, IllegalAccessException {
-    return doPackResult(cxt.getPack());
-  }
+    @Override
+    protected boolean doResult(IceContext cxt) {
+        return doPackResult(cxt.getPack());
+    }
 
-/*
-   * process leaf result with pack
-   *
-   * @param pack 包裹
-   */
-  protected abstract boolean doPackResult(IcePack pack) throws InvocationTargetException, IllegalAccessException;
+    /*
+     * process leaf result with pack
+     *
+     * @param pack
+     */
+    protected abstract boolean doPackResult(IcePack pack);
 }

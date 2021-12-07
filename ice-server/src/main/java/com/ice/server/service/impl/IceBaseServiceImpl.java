@@ -5,6 +5,9 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.page.PageMethod;
 import com.ice.common.constant.Constant;
 import com.ice.common.enums.NodeTypeEnum;
+import com.ice.common.model.IceClientConf;
+import com.ice.common.model.IceClientHandler;
+import com.ice.common.model.IceClientNode;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IcePushHistoryMapper;
@@ -127,34 +130,23 @@ public class IceBaseServiceImpl implements IceBaseService {
     private PushData getPushData(IceBase base) {
         PushData pushData = new PushData();
         pushData.setBase(base);
-        Object obj = amqpTemplate.convertSendAndReceive(Constant.getShowConfExchange(), String.valueOf(base.getApp()),
+        Object obj = amqpTemplate.convertSendAndReceive(Constant.getAllConfIdExchange(), String.valueOf(base.getApp()),
                 String.valueOf(base.getId()));
         if (obj != null) {
             String json = (String) obj;
             if (!StringUtils.isEmpty(json)) {
-                Map map = JSON.parseObject(json, Map.class);
-                if (!CollectionUtils.isEmpty(map)) {
-                    Map handlerMap = (Map) map.get("handler");
-                    if (!CollectionUtils.isEmpty(handlerMap)) {
-                        Map rootMap = (Map) handlerMap.get("root");
-                        if (!CollectionUtils.isEmpty(rootMap)) {
-                            Set<Long> allIdSet = new HashSet<>();
-                            findAllConfIds(rootMap, allIdSet);
-                            if (!CollectionUtils.isEmpty(allIdSet)) {
-                                IceConfExample confExample = new IceConfExample();
-                                confExample.createCriteria().andIdIn(new ArrayList<>(allIdSet));
-                                List<IceConf> iceConfs = iceConfMapper.selectByExample(confExample);
-                                if (!CollectionUtils.isEmpty(iceConfs)) {
-                                    for (IceConf conf : iceConfs) {
-                                        conf.setUpdateAt(new Date());
-                                        if (isRelation(conf.getType()) && conf.getSonIds() == null) {
-                                            conf.setSonIds(null);
-                                        }
-                                    }
-                                    pushData.setConfs(iceConfs);
-                                }
+                List<Long> allIds = JSON.parseArray(json, Long.class);
+                if (!CollectionUtils.isEmpty(allIds)) {
+                    IceConfExample confExample = new IceConfExample();
+                    confExample.createCriteria().andAppEqualTo(base.getApp()).andIdIn(allIds);
+                    List<IceConf> iceConfs = iceConfMapper.selectByExample(confExample);
+                    if (!CollectionUtils.isEmpty(iceConfs)) {
+                        for (IceConf conf : iceConfs) {
+                            if (isRelation(conf.getType()) && conf.getSonIds() == null) {
+                                conf.setSonIds("");
                             }
                         }
+                        pushData.setConfs(iceConfs);
                     }
                 }
             }
@@ -212,14 +204,6 @@ public class IceBaseServiceImpl implements IceBaseService {
         }
     }
 
-    public void initPushData(PushData data){
-        IceBase base = data.getBase();
-        List<IceConf> confs = data.getConfs();
-        if(base.getStart() == null){
-
-        }
-    }
-
     @Override
     @Transactional
     public void importData(PushData data) {
@@ -262,27 +246,20 @@ public class IceBaseServiceImpl implements IceBaseService {
                 || type == NodeTypeEnum.ANY.getType();
     }
 
-    private void findAllConfIds(Map map, Set<Long> ids) {
-        Long nodeId = (Long) map.get("iceNodeId");
-        if (nodeId != null) {
-            ids.add(nodeId);
-        }
-        Map forward = (Map) map.get("iceForward");
+    private void findAllConfIds(IceClientNode node, Set<Long> ids) {
+        Long nodeId = node.getIceNodeId();
+        ids.add(nodeId);
+        IceClientNode forward = node.getIceForward();
         if (forward != null) {
             findAllConfIds(forward, ids);
         }
-        List<Map> children = getChild(map);
+        List<IceClientNode> children = node.getChildren();
         if (CollectionUtils.isEmpty(children)) {
             return;
         }
-        for (Map child : children) {
+        for (IceClientNode child : children) {
             findAllConfIds(child, ids);
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Map> getChild(Map map) {
-        return (List) map.get("children");
     }
 
 }

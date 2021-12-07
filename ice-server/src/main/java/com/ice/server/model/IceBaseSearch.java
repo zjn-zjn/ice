@@ -11,10 +11,10 @@ import java.util.Date;
 @Data
 public class IceBaseSearch {
 
-  private Integer app;
-  private Long baseId;
-  private String name;
-  private String scene;
-  private Integer pageNum;
-  private Integer pageSize;
+    private Integer app;
+    private Long baseId;
+    private String name;
+    private String scene;
+    private Integer pageNum;
+    private Integer pageSize;
 }

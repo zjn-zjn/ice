@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class IceAppDto {
-  private long app;
-  private String appName;
-  private String info;
+    private long app;
+    private String appName;
+    private String info;
 }

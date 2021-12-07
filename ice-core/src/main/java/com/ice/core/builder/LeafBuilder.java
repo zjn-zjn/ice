@@ -10,44 +10,44 @@ import com.ice.core.base.BaseNode;
  */
 public class LeafBuilder extends BaseBuilder {
 
-  public LeafBuilder(BaseLeaf leaf) {
-    super(leaf);
-    if (leaf.getIceErrorHandleEnum() == null) {
-      leaf.setIceErrorHandleEnum(ErrorHandleEnum.SHUT_DOWN);
+    public LeafBuilder(BaseLeaf leaf) {
+        super(leaf);
+        if (leaf.getIceErrorHandleEnum() == null) {
+            leaf.setIceErrorHandleEnum(ErrorHandleEnum.SHUT_DOWN);
+        }
     }
-  }
 
-  public static LeafBuilder leaf(BaseLeaf leaf) {
-    return new LeafBuilder(leaf);
-  }
+    public static LeafBuilder leaf(BaseLeaf leaf) {
+        return new LeafBuilder(leaf);
+    }
 
-  @Override
-  public LeafBuilder forward(BaseNode forward) {
-    return (LeafBuilder) super.forward(forward);
-  }
+    @Override
+    public LeafBuilder forward(BaseNode forward) {
+        return (LeafBuilder) super.forward(forward);
+    }
 
-  @Override
-  public LeafBuilder forward(BaseBuilder builder) {
-    return (LeafBuilder) super.forward(builder);
-  }
+    @Override
+    public LeafBuilder forward(BaseBuilder builder) {
+        return (LeafBuilder) super.forward(builder);
+    }
 
-  @Override
-  public LeafBuilder start(long start) {
-    return (LeafBuilder) super.start(start);
-  }
+    @Override
+    public LeafBuilder start(long start) {
+        return (LeafBuilder) super.start(start);
+    }
 
-  @Override
-  public LeafBuilder end(long end) {
-    return (LeafBuilder) super.end(end);
-  }
+    @Override
+    public LeafBuilder end(long end) {
+        return (LeafBuilder) super.end(end);
+    }
 
-  @Override
-  public LeafBuilder timeType(TimeTypeEnum typeEnum) {
-    return (LeafBuilder) super.timeType(typeEnum);
-  }
+    @Override
+    public LeafBuilder timeType(TimeTypeEnum typeEnum) {
+        return (LeafBuilder) super.timeType(typeEnum);
+    }
 
-  public LeafBuilder errorHandle(ErrorHandleEnum handleEnum) {
-    ((BaseLeaf) this.getNode()).setIceErrorHandleEnum(handleEnum);
-    return this;
-  }
+    public LeafBuilder errorHandle(ErrorHandleEnum handleEnum) {
+        ((BaseLeaf) this.getNode()).setIceErrorHandleEnum(handleEnum);
+        return this;
+    }
 }

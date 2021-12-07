@@ -6,29 +6,27 @@ import com.ice.core.context.IceContext;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.lang.reflect.InvocationTargetException;
-
 /**
  * @author zjn
- * None 叶子节点
+ * None leaf
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
 public abstract class BaseLeafNone extends BaseLeaf {
 
-/*
-   * process leaf none
-   */
-  @Override
-  protected NodeRunStateEnum doLeaf(IceContext cxt) throws InvocationTargetException, IllegalAccessException {
-    doNone(cxt);
-    return NodeRunStateEnum.NONE;
-  }
+    /*
+     * process leaf none
+     */
+    @Override
+    protected NodeRunStateEnum doLeaf(IceContext cxt) {
+        doNone(cxt);
+        return NodeRunStateEnum.NONE;
+    }
 
-/*
-   * process leaf none
-   *
-   *
-   */
-  protected abstract void doNone(IceContext cxt) throws InvocationTargetException, IllegalAccessException;
+    /*
+     * process leaf none
+     *
+     *
+     */
+    protected abstract void doNone(IceContext cxt);
 }

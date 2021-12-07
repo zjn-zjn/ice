@@ -9,7 +9,7 @@ import org.springframework.context.annotation.ComponentScan;
  */
 @SpringBootApplication
 public class IceTestApplication {
-  public static void main(String... args) {
-    SpringApplication.run(IceTestApplication.class, args);
-  }
+    public static void main(String... args) {
+        SpringApplication.run(IceTestApplication.class, args);
+    }
 }

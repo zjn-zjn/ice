@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @MapperScan(basePackages = "com.ice.server.dao")
 @EnableTransactionManagement
 public class IceServerApplication {
-  public static void main(String... args) {
-    SpringApplication.run(IceServerApplication.class, args);
-  }
+    public static void main(String... args) {
+        SpringApplication.run(IceServerApplication.class, args);
+    }
 }

@@ -20,7 +20,7 @@ public class IceClientProperties {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class IceClientRabbitProperties{
+    public static class IceClientRabbitProperties {
         private int port;
         private String host;
         private String username;
