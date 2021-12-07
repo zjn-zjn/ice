@@ -17,59 +17,59 @@ import java.lang.reflect.InvocationTargetException;
 @EqualsAndHashCode(callSuper = true)
 public abstract class BaseLeaf extends BaseNode {
 
-/*
-   * 默认仅中止执行SHUT_DOWN
-   */
-  private ErrorHandleEnum iceErrorHandleEnum = ErrorHandleEnum.SHUT_DOWN;
+    /*
+     * 默认仅中止执行SHUT_DOWN
+     */
+    private ErrorHandleEnum iceErrorHandleEnum = ErrorHandleEnum.SHUT_DOWN;
 
-/*
-   * processNode
-   *
-   *
-   * @return 节点执行结果
-   */
-  @Override
-  protected NodeRunStateEnum processNode(IceContext cxt) throws InvocationTargetException, IllegalAccessException {
-    try {
-      return doLeaf(cxt);
-    } catch (Exception e) {
-      switch (iceErrorHandleEnum) {
-        case CONTINUE_NONE:
-          if (this.isIceNodeDebug()) {
-            log.error("error occur in {} handle with none", this.findIceNodeId());
-          }
-          return NodeRunStateEnum.NONE;
-        case CONTINUE_FALSE:
-          if (this.isIceNodeDebug()) {
-            log.error("error occur in {} handle with false", this.findIceNodeId());
-          }
-          return NodeRunStateEnum.FALSE;
-        case CONTINUE_TRUE:
-          if (this.isIceNodeDebug()) {
-            log.error("error occur in {} handle with true", this.findIceNodeId());
-          }
-          return NodeRunStateEnum.TRUE;
-        case SHUT_DOWN:
-          if (this.isIceNodeDebug()) {
-            log.error("error occur in {} handle with shut down", this.findIceNodeId());
-          }
-          throw e;
-        case SHUT_DOWN_STORE:
-          if (this.isIceNodeDebug()) {
-            log.error("error occur in {} handle with shut down store", this.findIceNodeId());
-          }
-          //TODO store
-          throw e;
-        default:
-          throw e;
-      }
+    /*
+     * processNode
+     *
+     *
+     * @return 节点执行结果
+     */
+    @Override
+    protected NodeRunStateEnum processNode(IceContext cxt) {
+        try {
+            return doLeaf(cxt);
+        } catch (Exception e) {
+            switch (iceErrorHandleEnum) {
+                case CONTINUE_NONE:
+                    if (this.isIceNodeDebug()) {
+                        log.error("error occur in {} handle with none", this.findIceNodeId());
+                    }
+                    return NodeRunStateEnum.NONE;
+                case CONTINUE_FALSE:
+                    if (this.isIceNodeDebug()) {
+                        log.error("error occur in {} handle with false", this.findIceNodeId());
+                    }
+                    return NodeRunStateEnum.FALSE;
+                case CONTINUE_TRUE:
+                    if (this.isIceNodeDebug()) {
+                        log.error("error occur in {} handle with true", this.findIceNodeId());
+                    }
+                    return NodeRunStateEnum.TRUE;
+                case SHUT_DOWN:
+                    if (this.isIceNodeDebug()) {
+                        log.error("error occur in {} handle with shut down", this.findIceNodeId());
+                    }
+                    throw e;
+                case SHUT_DOWN_STORE:
+                    if (this.isIceNodeDebug()) {
+                        log.error("error occur in {} handle with shut down store", this.findIceNodeId());
+                    }
+                    //TODO store
+                    throw e;
+                default:
+                    throw e;
+            }
+        }
     }
-  }
 
-/*
-   * process leaf
-   *
-   *
-   */
-  protected abstract NodeRunStateEnum doLeaf(IceContext cxt) throws InvocationTargetException, IllegalAccessException;
+    /*
+     * process leaf
+     *
+     *
+     */
+    protected abstract NodeRunStateEnum doLeaf(IceContext cxt);
 }

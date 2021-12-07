@@ -8,21 +8,21 @@ import lombok.Data;
 @Data
 public final class IceBaseDto {
 
-  private Long id;
+    private Long id;
 
-  private String scenes;
+    private String scenes;
 
-  private Byte status;
+    private Byte status;
 
-  private Long confId;
+    private Long confId;
 
-  private Byte timeType;
+    private Byte timeType;
 
-  private Long start;
+    private Long start;
 
-  private Long end;
+    private Long end;
 
-  private Byte debug;
+    private Byte debug;
 
-  private Long priority;
+    private Long priority;
 }

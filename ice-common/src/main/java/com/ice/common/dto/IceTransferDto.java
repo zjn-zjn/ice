@@ -10,13 +10,13 @@ import java.util.Collection;
 @Data
 public final class IceTransferDto {
 
-  private long version;
+    private long version;
 
-  private Collection<IceConfDto> insertOrUpdateConfs;
+    private Collection<IceConfDto> insertOrUpdateConfs;
 
-  private Collection<Long> deleteConfIds;
+    private Collection<Long> deleteConfIds;
 
-  private Collection<IceBaseDto> insertOrUpdateBases;
+    private Collection<IceBaseDto> insertOrUpdateBases;
 
-  private Collection<Long> deleteBaseIds;
+    private Collection<Long> deleteBaseIds;
 }

@@ -1,9 +1,6 @@
 package com.ice.client.config;
 
-import com.ice.client.listener.IceConfListener;
-import com.ice.client.listener.IceMockListener;
-import com.ice.client.listener.IceShowConfListener;
-import com.ice.client.listener.IceUpdateListener;
+import com.ice.client.listener.*;
 import com.ice.common.constant.Constant;
 import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.core.AmqpAdmin;
@@ -31,160 +28,192 @@ import javax.annotation.Resource;
 @EnableConfigurationProperties(IceClientProperties.class)
 public class IceClientConfig {
 
-  @Resource
-  private IceClientProperties properties;
+    @Resource
+    private IceClientProperties properties;
 
-  @Bean(name = "iceConnectionFactory")
-  public ConnectionFactory iceConnectionFactory() {
-    CachingConnectionFactory iceConnectionFactory = new CachingConnectionFactory();
-    iceConnectionFactory.setUsername(properties.getRabbit().getUsername());
-    iceConnectionFactory.setPassword(properties.getRabbit().getPassword());
-    iceConnectionFactory.setHost(properties.getRabbit().getHost());
-    iceConnectionFactory.setPort(properties.getRabbit().getPort());
-    return iceConnectionFactory;
-  }
+    @Bean(name = "iceConnectionFactory")
+    public ConnectionFactory iceConnectionFactory() {
+        CachingConnectionFactory iceConnectionFactory = new CachingConnectionFactory();
+        iceConnectionFactory.setUsername(properties.getRabbit().getUsername());
+        iceConnectionFactory.setPassword(properties.getRabbit().getPassword());
+        iceConnectionFactory.setHost(properties.getRabbit().getHost());
+        iceConnectionFactory.setPort(properties.getRabbit().getPort());
+        return iceConnectionFactory;
+    }
 
-  @Bean(name = "iceUpdateQueue")
-  public Queue iceUpdateQueue() {
-    return QueueBuilder.nonDurable(Constant.genUpdateTmpQueue()).exclusive().autoDelete().build();
-  }
+    @Bean(name = "iceUpdateQueue")
+    public Queue iceUpdateQueue() {
+        return QueueBuilder.nonDurable(Constant.genUpdateTmpQueue()).exclusive().autoDelete().build();
+    }
 
-  @Bean(name = "iceUpdateExchange")
-  public DirectExchange iceUpdateExchange() {
-    return new DirectExchange(Constant.getUpdateExchange());
-  }
+    @Bean(name = "iceUpdateExchange")
+    public DirectExchange iceUpdateExchange() {
+        return new DirectExchange(Constant.getUpdateExchange());
+    }
 
-  @Bean("iceUpdateBinding")
-  public Binding iceUpdateBinding(
-      @Qualifier("iceUpdateQueue") Queue iceUpdateQueue,
-      @Qualifier("iceUpdateExchange") DirectExchange iceUpdateExchange) {
-    return BindingBuilder.bind(iceUpdateQueue).to(iceUpdateExchange).with(Constant.getUpdateRouteKey(properties.getApp()));
-  }
+    @Bean("iceUpdateBinding")
+    public Binding iceUpdateBinding(
+            @Qualifier("iceUpdateQueue") Queue iceUpdateQueue,
+            @Qualifier("iceUpdateExchange") DirectExchange iceUpdateExchange) {
+        return BindingBuilder.bind(iceUpdateQueue).to(iceUpdateExchange).with(Constant.getUpdateRouteKey(properties.getApp()));
+    }
 
-  @Bean("iceUpdateMessageContainer")
-  public SimpleMessageListenerContainer iceUpdateMessageContainer(
-      @Qualifier("iceUpdateQueue") Queue iceUpdateQueue,
-      @Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory,
-      @Qualifier("iceRabbitTemplate") RabbitTemplate iceRabbitTemplate) {
-    SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(iceConnectionFactory);
-    container.setQueues(iceUpdateQueue);
-    container.setExposeListenerChannel(true);
-    container.setPrefetchCount(1);
-    container.setConcurrentConsumers(1);
-    container.setAcknowledgeMode(AcknowledgeMode.NONE);
-    container.setMessageListener(new IceUpdateListener());
-    return container;
-  }
+    @Bean("iceUpdateMessageContainer")
+    public SimpleMessageListenerContainer iceUpdateMessageContainer(
+            @Qualifier("iceUpdateQueue") Queue iceUpdateQueue,
+            @Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory,
+            @Qualifier("iceRabbitTemplate") RabbitTemplate iceRabbitTemplate) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(iceConnectionFactory);
+        container.setQueues(iceUpdateQueue);
+        container.setExposeListenerChannel(true);
+        container.setPrefetchCount(1);
+        container.setConcurrentConsumers(1);
+        container.setAcknowledgeMode(AcknowledgeMode.NONE);
+        container.setMessageListener(new IceUpdateListener());
+        return container;
+    }
 
-  @Bean(name = "iceShowConfQueue")
-  public Queue iceShowConfQueue() {
-    return QueueBuilder.nonDurable(Constant.getShowConfQueue(properties.getApp())).autoDelete().build();
-  }
+    @Bean(name = "iceShowConfQueue")
+    public Queue iceShowConfQueue() {
+        return QueueBuilder.nonDurable(Constant.getShowConfQueue(properties.getApp())).autoDelete().build();
+    }
 
-  @Bean(name = "iceShowConfExchange")
-  public DirectExchange iceShowConfExchange() {
-    return new DirectExchange(Constant.getShowConfExchange());
-  }
+    @Bean(name = "iceShowConfExchange")
+    public DirectExchange iceShowConfExchange() {
+        return new DirectExchange(Constant.getShowConfExchange());
+    }
 
-  @Bean(name = "iceConfExchange")
-  public DirectExchange iceConfExchange() {
-    return new DirectExchange(Constant.getConfExchange());
-  }
+    @Bean(name = "iceConfExchange")
+    public DirectExchange iceConfExchange() {
+        return new DirectExchange(Constant.getConfExchange());
+    }
 
-  @Bean(name = "iceConfQueue")
-  public Queue iceConfQueue() {
-    return QueueBuilder.nonDurable(Constant.getConfQueue(properties.getApp())).autoDelete().build();
-  }
+    @Bean(name = "iceAllConfIdExchange")
+    public DirectExchange iceAllConfIdExchange() {
+        return new DirectExchange(Constant.getAllConfIdExchange());
+    }
 
-  @Bean("iceShowConfBinding")
-  public Binding iceShowConfBinding(
-      @Qualifier("iceShowConfQueue") Queue iceShowConfQueue,
-      @Qualifier("iceShowConfExchange") DirectExchange iceShowConfExchange) {
-    return BindingBuilder.bind(iceShowConfQueue).to(iceShowConfExchange).with(String.valueOf(properties.getApp()));
-  }
+    @Bean(name = "iceConfQueue")
+    public Queue iceConfQueue() {
+        return QueueBuilder.nonDurable(Constant.getConfQueue(properties.getApp())).autoDelete().build();
+    }
 
-  @Bean("iceConfBinding")
-  public Binding iceConfBinding(
-          @Qualifier("iceConfQueue") Queue iceConfQueue,
-          @Qualifier("iceConfExchange") DirectExchange iceConfExchange) {
-    return BindingBuilder.bind(iceConfQueue).to(iceConfExchange).with(String.valueOf(properties.getApp()));
-  }
+    @Bean(name = "iceAllConfIdQueue")
+    public Queue iceAllConfIdQueue() {
+        return QueueBuilder.nonDurable(Constant.getAllConfIdQueue(properties.getApp())).autoDelete().build();
+    }
 
-  @Bean("iceShowConfMessageContainer")
-  public SimpleMessageListenerContainer iceShowConfMessageContainer(
-      @Qualifier("iceShowConfQueue") Queue iceShowConfQueue,
-      @Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory,
-      @Qualifier("iceRabbitTemplate") RabbitTemplate iceRabbitTemplate) {
-    SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(iceConnectionFactory);
-    container.setQueues(iceShowConfQueue);
-    container.setExposeListenerChannel(true);
-    container.setPrefetchCount(1);
-    container.setConcurrentConsumers(1);
-    container.setAcknowledgeMode(AcknowledgeMode.NONE);
-    container.setMessageListener(new IceShowConfListener(properties.getApp(), iceRabbitTemplate));
-    return container;
-  }
+    @Bean("iceAllConfIdBinding")
+    public Binding iceAllConfIdBinding(
+            @Qualifier("iceAllConfIdQueue") Queue iceAllConfIdQueue,
+            @Qualifier("iceAllConfIdExchange") DirectExchange iceAllConfIdExchange) {
+        return BindingBuilder.bind(iceAllConfIdQueue).to(iceAllConfIdExchange).with(String.valueOf(properties.getApp()));
+    }
 
-  @Bean("iceConfMessageContainer")
-  public SimpleMessageListenerContainer iceConfMessageContainer(
-          @Qualifier("iceConfQueue") Queue iceConfQueue,
-          @Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory,
-          @Qualifier("iceRabbitTemplate") RabbitTemplate iceRabbitTemplate) {
-    SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(iceConnectionFactory);
-    container.setQueues(iceConfQueue);
-    container.setExposeListenerChannel(true);
-    container.setPrefetchCount(1);
-    container.setConcurrentConsumers(1);
-    container.setAcknowledgeMode(AcknowledgeMode.NONE);
-    container.setMessageListener(new IceConfListener(properties.getApp(), iceRabbitTemplate));
-    return container;
-  }
+    @Bean("iceShowConfBinding")
+    public Binding iceShowConfBinding(
+            @Qualifier("iceShowConfQueue") Queue iceShowConfQueue,
+            @Qualifier("iceShowConfExchange") DirectExchange iceShowConfExchange) {
+        return BindingBuilder.bind(iceShowConfQueue).to(iceShowConfExchange).with(String.valueOf(properties.getApp()));
+    }
 
-  @Bean(name = "iceMockQueue")
-  public Queue iceMockQueue() {
-    return QueueBuilder.nonDurable(Constant.getMockQueue(properties.getApp())).autoDelete().build();
-  }
+    @Bean("iceConfBinding")
+    public Binding iceConfBinding(
+            @Qualifier("iceConfQueue") Queue iceConfQueue,
+            @Qualifier("iceConfExchange") DirectExchange iceConfExchange) {
+        return BindingBuilder.bind(iceConfQueue).to(iceConfExchange).with(String.valueOf(properties.getApp()));
+    }
 
-  @Bean(name = "iceMockExchange")
-  public DirectExchange iceMockExchange() {
-    return new DirectExchange(Constant.getMockExchange());
-  }
+    @Bean("iceShowConfMessageContainer")
+    public SimpleMessageListenerContainer iceShowConfMessageContainer(
+            @Qualifier("iceShowConfQueue") Queue iceShowConfQueue,
+            @Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory,
+            @Qualifier("iceRabbitTemplate") RabbitTemplate iceRabbitTemplate) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(iceConnectionFactory);
+        container.setQueues(iceShowConfQueue);
+        container.setExposeListenerChannel(true);
+        container.setPrefetchCount(1);
+        container.setConcurrentConsumers(1);
+        container.setAcknowledgeMode(AcknowledgeMode.NONE);
+        container.setMessageListener(new IceShowConfListener(properties.getApp(), iceRabbitTemplate));
+        return container;
+    }
 
-  @Bean("iceMockBinding")
-  public Binding iceMockBinding(
-      @Qualifier("iceMockQueue") Queue iceMockQueue,
-      @Qualifier("iceMockExchange") DirectExchange iceMockExchange) {
-    return BindingBuilder.bind(iceMockQueue).to(iceMockExchange).with(String.valueOf(properties.getApp()));
-  }
+    @Bean("iceConfMessageContainer")
+    public SimpleMessageListenerContainer iceConfMessageContainer(
+            @Qualifier("iceConfQueue") Queue iceConfQueue,
+            @Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory,
+            @Qualifier("iceRabbitTemplate") RabbitTemplate iceRabbitTemplate) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(iceConnectionFactory);
+        container.setQueues(iceConfQueue);
+        container.setExposeListenerChannel(true);
+        container.setPrefetchCount(1);
+        container.setConcurrentConsumers(1);
+        container.setAcknowledgeMode(AcknowledgeMode.NONE);
+        container.setMessageListener(new IceConfListener(properties.getApp(), iceRabbitTemplate));
+        return container;
+    }
 
-  @Bean
-  public IceMockListener iceMockListener() {
-    return new IceMockListener();
-  }
+    @Bean("iceAllConfIdMessageContainer")
+    public SimpleMessageListenerContainer iceAllConfIdMessageContainer(
+            @Qualifier("iceAllConfIdQueue") Queue iceAllConfIdQueue,
+            @Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory,
+            @Qualifier("iceRabbitTemplate") RabbitTemplate iceRabbitTemplate) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(iceConnectionFactory);
+        container.setQueues(iceAllConfIdQueue);
+        container.setExposeListenerChannel(true);
+        container.setPrefetchCount(1);
+        container.setConcurrentConsumers(1);
+        container.setAcknowledgeMode(AcknowledgeMode.NONE);
+        container.setMessageListener(new IceAllConfIdListener(iceRabbitTemplate));
+        return container;
+    }
 
-  @Bean("iceMockMessageContainer")
-  public SimpleMessageListenerContainer iceMockMessageContainer(
-      @Qualifier("iceMockQueue") Queue iceMockQueue,
-      @Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory) {
-    SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(iceConnectionFactory);
-    container.setQueues(iceMockQueue);
-    container.setExposeListenerChannel(true);
-    container.setPrefetchCount(1);
-    container.setConcurrentConsumers(1);
-    container.setAcknowledgeMode(AcknowledgeMode.NONE);
-    container.setMessageListener(iceMockListener());
-    return container;
-  }
+    @Bean(name = "iceMockQueue")
+    public Queue iceMockQueue() {
+        return QueueBuilder.nonDurable(Constant.getMockQueue(properties.getApp())).autoDelete().build();
+    }
 
-  @Bean(name = "iceRabbitTemplate")
-  public RabbitTemplate iceRabbitTemplate(@Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory) {
-    RabbitTemplate iceRabbitTemplate = new RabbitTemplate(iceConnectionFactory);
-    iceRabbitTemplate.setReplyTimeout(properties.getRabbit().getReplyTimeout());
-    return iceRabbitTemplate;
-  }
+    @Bean(name = "iceMockExchange")
+    public DirectExchange iceMockExchange() {
+        return new DirectExchange(Constant.getMockExchange());
+    }
 
-  @Bean(name = "iceAmqpAdmin")
-  public AmqpAdmin iceAmqpAdmin(@Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory) {
-    return new RabbitAdmin(iceConnectionFactory);
-  }
+    @Bean("iceMockBinding")
+    public Binding iceMockBinding(
+            @Qualifier("iceMockQueue") Queue iceMockQueue,
+            @Qualifier("iceMockExchange") DirectExchange iceMockExchange) {
+        return BindingBuilder.bind(iceMockQueue).to(iceMockExchange).with(String.valueOf(properties.getApp()));
+    }
+
+    @Bean
+    public IceMockListener iceMockListener() {
+        return new IceMockListener();
+    }
+
+    @Bean("iceMockMessageContainer")
+    public SimpleMessageListenerContainer iceMockMessageContainer(
+            @Qualifier("iceMockQueue") Queue iceMockQueue,
+            @Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(iceConnectionFactory);
+        container.setQueues(iceMockQueue);
+        container.setExposeListenerChannel(true);
+        container.setPrefetchCount(1);
+        container.setConcurrentConsumers(1);
+        container.setAcknowledgeMode(AcknowledgeMode.NONE);
+        container.setMessageListener(iceMockListener());
+        return container;
+    }
+
+    @Bean(name = "iceRabbitTemplate")
+    public RabbitTemplate iceRabbitTemplate(@Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory) {
+        RabbitTemplate iceRabbitTemplate = new RabbitTemplate(iceConnectionFactory);
+        iceRabbitTemplate.setReplyTimeout(properties.getRabbit().getReplyTimeout());
+        return iceRabbitTemplate;
+    }
+
+    @Bean(name = "iceAmqpAdmin")
+    public AmqpAdmin iceAmqpAdmin(@Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory) {
+        return new RabbitAdmin(iceConnectionFactory);
+    }
 }

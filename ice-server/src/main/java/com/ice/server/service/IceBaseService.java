@@ -11,16 +11,17 @@ import com.ice.server.model.PushData;
  */
 public interface IceBaseService {
 
-  PageResult<IceBase> baseList(IceBaseSearch search);
-  Long baseEdit(IceBase base);
+    PageResult<IceBase> baseList(IceBaseSearch search);
 
-  Long push(Integer app, Long iceId, String reason);
+    Long baseEdit(IceBase base);
 
-  PageResult<IcePushHistory> history(Integer app, Long iceId,Integer pageNum, Integer pageSize);
+    Long push(Integer app, Long iceId, String reason);
 
-  String exportData(Long iceId, Long pushId);
+    PageResult<IcePushHistory> history(Integer app, Long iceId, Integer pageNum, Integer pageSize);
 
-  void rollback(Long pushId);
+    String exportData(Long iceId, Long pushId);
 
-  void importData(PushData data);
+    void rollback(Long pushId);
+
+    void importData(PushData data);
 }

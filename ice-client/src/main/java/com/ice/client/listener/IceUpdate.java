@@ -13,20 +13,20 @@ import org.springframework.util.CollectionUtils;
 @Slf4j
 public final class IceUpdate {
 
-  public static void update(IceTransferDto info) {
-    /*优先conf*/
-    if (!CollectionUtils.isEmpty(info.getDeleteConfIds())) {
-      IceConfCache.delete(info.getDeleteConfIds());
+    public static void update(IceTransferDto info) {
+        /*优先conf*/
+        if (!CollectionUtils.isEmpty(info.getDeleteConfIds())) {
+            IceConfCache.delete(info.getDeleteConfIds());
+        }
+        if (!CollectionUtils.isEmpty(info.getInsertOrUpdateConfs())) {
+            IceConfCache.insertOrUpdate(info.getInsertOrUpdateConfs());
+        }
+        /*其次handler*/
+        if (!CollectionUtils.isEmpty(info.getDeleteBaseIds())) {
+            IceHandlerCache.delete(info.getDeleteBaseIds());
+        }
+        if (!CollectionUtils.isEmpty(info.getInsertOrUpdateBases())) {
+            IceHandlerCache.insertOrUpdate(info.getInsertOrUpdateBases());
+        }
     }
-    if (!CollectionUtils.isEmpty(info.getInsertOrUpdateConfs())) {
-      IceConfCache.insertOrUpdate(info.getInsertOrUpdateConfs());
-    }
-    /*其次handler*/
-    if (!CollectionUtils.isEmpty(info.getDeleteBaseIds())) {
-      IceHandlerCache.delete(info.getDeleteBaseIds());
-    }
-    if (!CollectionUtils.isEmpty(info.getInsertOrUpdateBases())) {
-      IceHandlerCache.insertOrUpdate(info.getInsertOrUpdateBases());
-    }
-  }
 }

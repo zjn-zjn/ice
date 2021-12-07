@@ -18,23 +18,23 @@ import org.springframework.stereotype.Component;
 @Component
 public class IceInitHandler {
 
-  private final IceServerService serverService;
+    private final IceServerService serverService;
 
-  @Contract(pure = true)
-  public IceInitHandler(IceServerService serverService) {
-    this.serverService = serverService;
-  }
-
-  @RabbitListener(bindings = @QueueBinding(
-      exchange = @Exchange("#{T(com.ice.common.constant.Constant).getInitExchange()}"),
-      value = @Queue(value = "ice.init.queue",
-          durable = "true")))
-  public String processMessage(Message message) {
-    if (message.getBody() != null && message.getBody().length > 0) {
-      String appStr = new String(message.getBody());
-      Integer app = Integer.valueOf(appStr);
-      return serverService.getInitJson(app);
+    @Contract(pure = true)
+    public IceInitHandler(IceServerService serverService) {
+        this.serverService = serverService;
     }
-    return "";
-  }
+
+    @RabbitListener(bindings = @QueueBinding(
+            exchange = @Exchange("#{T(com.ice.common.constant.Constant).getInitExchange()}"),
+            value = @Queue(value = "ice.init.queue",
+                    durable = "true")))
+    public String processMessage(Message message) {
+        if (message.getBody() != null && message.getBody().length > 0) {
+            String appStr = new String(message.getBody());
+            Integer app = Integer.valueOf(appStr);
+            return serverService.getInitJson(app);
+        }
+        return "";
+    }
 }

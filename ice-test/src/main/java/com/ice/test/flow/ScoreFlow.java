@@ -13,22 +13,22 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class ScoreFlow extends BaseLeafRoamFlow {
 
-  private double score;
+    private double score;
 
-  private String key;
+    private String key;
 
-/*
-   * 叶子节点流程处理
-   *
-   * @param roam 传递roam
-   */
-  @Override
-  protected boolean doRoamFlow(IceRoam roam) {
-    Object value = roam.getMulti(key);
-    if (value == null) {
-      return false;
+    /*
+     * 叶子节点流程处理
+     *
+     * @param roam 传递roam
+     */
+    @Override
+    protected boolean doRoamFlow(IceRoam roam) {
+        Object value = roam.getMulti(key);
+        if (value == null) {
+            return false;
+        }
+        double valueScore = Double.parseDouble(value.toString());
+        return !(valueScore < score);
     }
-    double valueScore = Double.parseDouble(value.toString());
-    return !(valueScore < score);
-  }
 }

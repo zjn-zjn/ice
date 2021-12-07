@@ -2,7 +2,9 @@ package com.ice.server.dao.mapper;
 
 import com.ice.server.dao.model.IceApp;
 import com.ice.server.dao.model.IceAppExample;
+
 import java.util.List;
+
 import org.apache.ibatis.annotations.Param;
 
 public interface IceAppMapper {

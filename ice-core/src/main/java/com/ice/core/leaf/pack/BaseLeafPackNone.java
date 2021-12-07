@@ -6,8 +6,6 @@ import com.ice.core.leaf.base.BaseLeafNone;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.lang.reflect.InvocationTargetException;
-
 /**
  * @author zjn
  */
@@ -15,15 +13,15 @@ import java.lang.reflect.InvocationTargetException;
 @EqualsAndHashCode(callSuper = true)
 public abstract class BaseLeafPackNone extends BaseLeafNone {
 
-  @Override
-  protected void doNone(IceContext cxt) throws InvocationTargetException, IllegalAccessException {
-    doPackNone(cxt.getPack());
-  }
+    @Override
+    protected void doNone(IceContext cxt) {
+        doPackNone(cxt.getPack());
+    }
 
-/*
-   * process leaf none with pack
-   *
-   * @param pack 包裹
-   */
-  protected abstract void doPackNone(IcePack pack) throws InvocationTargetException, IllegalAccessException;
+    /*
+     * process leaf none with pack
+     *
+     * @param pack
+     */
+    protected abstract void doPackNone(IcePack pack);
 }

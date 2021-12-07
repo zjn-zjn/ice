@@ -12,7 +12,6 @@ import com.ice.common.model.IceClientNode;
 import com.ice.common.utils.AddressUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
-import com.ice.core.cache.IceConfCache;
 import com.ice.core.cache.IceHandlerCache;
 import com.ice.core.handler.IceHandler;
 import com.ice.core.utils.IceBeanUtils;
@@ -28,9 +27,7 @@ import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.amqp.support.converter.SimpleMessageConverter;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author zjn
@@ -47,18 +44,9 @@ public class IceConfListener implements MessageListener {
     }
 
     private final RabbitTemplate iceRabbitTemplate;
-    private Integer app;
+    private final Integer app;
     private String address;
-    private MessageConverter messageConverter = new SimpleMessageConverter();
-
-    public IceConfListener(RabbitTemplate iceRabbitTemplate, MessageConverter messageConverter) {
-        this.iceRabbitTemplate = iceRabbitTemplate;
-        this.messageConverter = messageConverter;
-    }
-
-    public IceConfListener(RabbitTemplate iceRabbitTemplate) {
-        this.iceRabbitTemplate = iceRabbitTemplate;
-    }
+    private final MessageConverter messageConverter = new SimpleMessageConverter();
 
     public IceConfListener(Integer app, RabbitTemplate iceRabbitTemplate) {
         this.app = app;

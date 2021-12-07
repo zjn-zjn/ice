@@ -12,7 +12,7 @@ import java.util.List;
 @Data
 public class PushData {
 
-  private IceBase base;
+    private IceBase base;
 
-  private List<IceConf> confs;
+    private List<IceConf> confs;
 }

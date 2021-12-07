@@ -14,46 +14,46 @@ import org.springframework.stereotype.Component;
 @Component("iceBeanFactory")
 public class IceSpringBeanFactory implements IceBeanUtils.IceBeanFactory, ApplicationContextAware {
 
-  private AutowireCapableBeanFactory beanFactory;
+    private AutowireCapableBeanFactory beanFactory;
 
-/*
-   * 注入Bean
-   *
-   * @param existingBean
-   */
-  @Override
-  public void autowireBean(Object existingBean) {
-    this.beanFactory.autowireBean(existingBean);
-  }
+    /*
+     * 注入Bean
+     *
+     * @param existingBean
+     */
+    @Override
+    public void autowireBean(Object existingBean) {
+        this.beanFactory.autowireBean(existingBean);
+    }
 
-/*
-   * 检查是否有此Bean
-   *
-   * @param name
-   */
-  @Override
-  public boolean containsBean(String name) {
-    return this.beanFactory.containsBean(name);
-  }
+    /*
+     * 检查是否有此Bean
+     *
+     * @param name
+     */
+    @Override
+    public boolean containsBean(String name) {
+        return this.beanFactory.containsBean(name);
+    }
 
-/*
-   * 根据名称获取bean
-   *
-   * @param name beanName
-   */
-  @Override
-  public Object getBean(String name) {
-    return beanFactory.getBean(name);
-  }
+    /*
+     * 根据名称获取bean
+     *
+     * @param name beanName
+     */
+    @Override
+    public Object getBean(String name) {
+        return beanFactory.getBean(name);
+    }
 
-/*
-   * @param applicationContext
-   * @throws BeansException
-   */
-  @Override
-  public void setApplicationContext(ApplicationContext applicationContext) {
-    this.beanFactory = applicationContext.getAutowireCapableBeanFactory();
-    /*将初始化完的beanFactory塞入IceBeanUtils*/
-    IceBeanUtils.setFactory(this);
-  }
+    /*
+     * @param applicationContext
+     * @throws BeansException
+     */
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) {
+        this.beanFactory = applicationContext.getAutowireCapableBeanFactory();
+        /*将初始化完的beanFactory塞入IceBeanUtils*/
+        IceBeanUtils.setFactory(this);
+    }
 }

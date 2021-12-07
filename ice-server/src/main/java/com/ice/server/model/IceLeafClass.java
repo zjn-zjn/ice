@@ -8,11 +8,11 @@ import lombok.Data;
 @Data
 public class IceLeafClass {
 
-  private String shortName;
-  private String fullName;
-  private int count;
+    private String shortName;
+    private String fullName;
+    private int count;
 
-  public int sortNegativeCount() {
-    return -count;
-  }
+    public int sortNegativeCount() {
+        return -count;
+    }
 }

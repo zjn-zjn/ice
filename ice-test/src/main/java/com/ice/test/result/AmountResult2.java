@@ -24,7 +24,7 @@ public class AmountResult2 extends BaseLeafPackResult {
     protected boolean doPackResult(IcePack pack) {
         IceRoam roam = pack.getRoam();
         Integer uid = roam.getMulti(key);
-        if(uid == null){
+        if (uid == null) {
             return false;
         }
         Double value = roam.getUnion(this.value);

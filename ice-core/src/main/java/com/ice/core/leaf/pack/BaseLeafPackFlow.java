@@ -6,8 +6,6 @@ import com.ice.core.leaf.base.BaseLeafFlow;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.lang.reflect.InvocationTargetException;
-
 /**
  * @author zjn
  */
@@ -15,16 +13,16 @@ import java.lang.reflect.InvocationTargetException;
 @EqualsAndHashCode(callSuper = true)
 public abstract class BaseLeafPackFlow extends BaseLeafFlow {
 
-  @Override
-  protected boolean doFlow(IceContext cxt) throws InvocationTargetException, IllegalAccessException {
-    return doPackFlow(cxt.getPack());
-  }
+    @Override
+    protected boolean doFlow(IceContext cxt) {
+        return doPackFlow(cxt.getPack());
+    }
 
-/*
-   * process leaf flow with pack
-   *
-   * @param pack 包裹
-   * @return
-   */
-  protected abstract boolean doPackFlow(IcePack pack) throws InvocationTargetException, IllegalAccessException;
+    /*
+     * process leaf flow with pack
+     *
+     * @param pack
+     * @return
+     */
+    protected abstract boolean doPackFlow(IcePack pack);
 }
