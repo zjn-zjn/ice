@@ -27,7 +27,7 @@ public class AmountResult2 extends BaseLeafPackResult {
         if (uid == null) {
             return false;
         }
-        Double value = roam.getUnion(this.value);
+        Integer value = roam.getUnion(this.value);
         if (value <= 0) {
             return false;
         }
