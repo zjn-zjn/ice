@@ -1,19 +1,27 @@
-CREATE TABLE `ice_app` (
+CREATE DATABASE IF NOT EXISTS ice Character Set utf8mb4;
+
+-- ----------------------------
+-- Table structure for ice.ice_app
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `ice`.`ice_app` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '服务名',
-  `info` varchar(500) COLLATE utf8mb4_bin DEFAULT NULL,
-  `status` tinyint(11) NOT NULL DEFAULT '1' COMMENT '1正常0删除',
-  `create_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  `update_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `info` varchar(500) COLLATE utf8mb4_bin DEFAULT '',
+  `status` tinyint(1) NOT NULL DEFAULT '1',
+  `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
-CREATE TABLE `ice_base` (
+-- ----------------------------
+-- Table structure for ice.ice_base
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `ice`.`ice_base` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '名称',
   `app` int(11) NOT NULL COMMENT 'app',
   `scenes` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '场景(多场景以逗号分隔)',
-  `status` tinyint(11) NOT NULL DEFAULT '1' COMMENT '1正常0删除',
+  `status` tinyint(11) NOT NULL DEFAULT '1' COMMENT '1上架0下架',
   `conf_id` bigint(20) DEFAULT NULL,
   `time_type` tinyint(11) DEFAULT '1' COMMENT '1无限制2大于开始时间3小于结束时间4在开始结束之内',
   `start` datetime(3) DEFAULT NULL COMMENT '开始时间',
@@ -25,7 +33,10 @@ CREATE TABLE `ice_base` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
-CREATE TABLE `ice_conf` (
+-- ----------------------------
+-- Table structure for ice.ice_conf
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `ice`.`ice_conf` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `app` int(11) NOT NULL COMMENT 'app',
   `name` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '名称',
@@ -34,7 +45,7 @@ CREATE TABLE `ice_conf` (
   `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '1上架0下架',
   `inverse` tinyint(4) NOT NULL DEFAULT '0' COMMENT '反转-对TRUE和FALSE进行反转 对None节点无效',
   `conf_name` varchar(1000) COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '叶子节点-结果类名',
-  `conf_field` varchar(15000) COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '叶子节点-结果类json',
+  `conf_field` varchar(5000) COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '叶子节点-结果类json',
   `forward_id` bigint(20) DEFAULT NULL COMMENT '高耦合过滤树ID',
   `time_type` tinyint(11) NOT NULL DEFAULT '1' COMMENT '1无限制2大于开始时间3小于结束时间4在开始结束之内',
   `start` datetime(3) DEFAULT NULL COMMENT '开始时间',
@@ -46,7 +57,10 @@ CREATE TABLE `ice_conf` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
-CREATE TABLE `ice_push_history` (
+-- ----------------------------
+-- Table structure for ice.ice_push_history
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `ice`.`ice_push_history` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `app` int(11) NOT NULL,
   `ice_id` bigint(20) DEFAULT NULL,
@@ -55,4 +69,4 @@ CREATE TABLE `ice_push_history` (
   `operator` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
