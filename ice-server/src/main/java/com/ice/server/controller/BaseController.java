@@ -8,6 +8,7 @@ import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceBaseSearch;
 import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
+import com.ice.server.model.WebResult;
 import com.ice.server.service.BaseService;
 import com.ice.server.service.ServerService;
 import org.springframework.beans.factory.annotation.Value;
@@ -77,20 +78,22 @@ public class BaseController {
     }
 
     @RequestMapping(value = "/ice-server/base/export", method = RequestMethod.GET)
-    public String export(@RequestParam Long iceId,
+    public WebResult<String> export(@RequestParam Long iceId,
                          @RequestParam(required = false) Long pushId) {
-        return baseService.exportData(iceId, pushId);
+        return WebResult.success(baseService.exportData(iceId, pushId));
     }
 
     @RequestMapping(value = "/ice-server/base/rollback", method = RequestMethod.GET)
-    public void rollback(@RequestParam Long pushId) {
+    public WebResult<Void> rollback(@RequestParam Long pushId) {
         baseService.rollback(pushId);
         serverService.updateByEdit();
+        return WebResult.success();
     }
 
     @RequestMapping(value = "/ice-server/base/import", method = RequestMethod.POST)
-    public void importData(@RequestBody PushData data) {
+    public WebResult<Void> importData(@RequestBody PushData data) {
         baseService.importData(data);
         serverService.updateByEdit();
+        return WebResult.success();
     }
 }

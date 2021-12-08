@@ -38,6 +38,10 @@ public class WebResult<T> {
         return new WebResult<>(0, null, data);
     }
 
+    public static <T> WebResult<T> success() {
+        return success(null);
+    }
+
     public WebResult(int ret, String msg, T data) {
         this.ret = ret;
         this.msg = msg;
