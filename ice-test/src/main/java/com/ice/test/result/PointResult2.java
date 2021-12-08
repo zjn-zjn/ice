@@ -27,13 +27,12 @@ public class PointResult2 extends BaseLeafPackResult {
         if (uid == null) {
             return false;
         }
-        Double value = roam.getUnion(this.value);
+        Integer value = roam.getUnion(this.value);
         if (value <= 0) {
             return false;
         }
         boolean res = sendService.sendPoint(uid, value);
-        roam.putMulti("result." + "sendPoint", res);
-        roam.putMulti("result." + "sendValue", value);
+        roam.putMulti("result." + "sendPoint", value);
         roam.putMulti("result." + "scene", pack.getScene());
         return res;
     }

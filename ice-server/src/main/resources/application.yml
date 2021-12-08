@@ -12,9 +12,16 @@ spring:
         size: 10
     direct-reply-to-container: false
     #mybatis
-    datasource:
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      type: com.alibaba.druid.pool.DruidDataSource
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    initialization-mode: always
+    schema:
+    - classpath:sql/ice.sql
+    continue-on-error: false
+    platform: mysql
+    sql-script-encoding: UTF-8
+    separator: ;
 mybatis:
   config-location: classpath:mybatis/mybatis-config.xml
 pagehelper:
