@@ -32,8 +32,7 @@ public class AmountResult2 extends BaseLeafPackResult {
             return false;
         }
         boolean res = sendService.sendAmount(uid, value);
-        roam.putMulti("result." + "sendAmount", res);
-        roam.putMulti("result." + "sendValue", value);
+        roam.putMulti("result." + "sendAmount", value);
         roam.putMulti("result." + "scene", pack.getScene());
         return res;
     }
