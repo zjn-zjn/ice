@@ -2,11 +2,10 @@ package com.ice.server.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.ice.common.constant.Constant;
-import com.ice.common.enums.NodeTypeEnum;
-import com.ice.common.enums.StatusEnum;
 import com.ice.common.dto.IceBaseDto;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.dto.IceTransferDto;
+import com.ice.common.enums.StatusEnum;
 import com.ice.server.dao.mapper.IceAppMapper;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
@@ -14,6 +13,7 @@ import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceBaseExample;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.dao.model.IceConfExample;
+import com.ice.server.model.ServerConstant;
 import com.ice.server.service.ServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
@@ -24,7 +24,6 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author zjn
@@ -83,7 +82,7 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
     }
 
     public void addLeafClass(Integer app, Byte type, String className) {
-        if (isLeaf(type)) {
+        if (ServerConstant.isLeaf(type)) {
             Map<Byte, Map<String, Integer>> map = leafClassMap.get(app);
             Map<String, Integer> classMap;
             if (map == null) {
@@ -179,7 +178,7 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
                 transferDto = new IceTransferDto();
                 Collection<IceConfDto> confDtoList = new ArrayList<>(insertOrUpdateConfMap.values().size());
                 for (IceConf conf : insertOrUpdateConfMap.values()) {
-                    confDtoList.add(convert(conf));
+                    confDtoList.add(ServerConstant.confToDto(conf));
                 }
                 transferDto.setInsertOrUpdateConfs(confDtoList);
             }
@@ -190,7 +189,7 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
                 }
                 Collection<IceBaseDto> baseDtoList = new ArrayList<>(insertOrUpdateBaseMap.values().size());
                 for (IceBase base : insertOrUpdateBaseMap.values()) {
-                    baseDtoList.add(convert(base));
+                    baseDtoList.add(ServerConstant.baseToDto(base));
                 }
                 transferDto.setInsertOrUpdateBases(baseDtoList);
             }
@@ -281,7 +280,7 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
             for (IceConf conf : confList) {
                 appSet.add(conf.getApp());
                 confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getId(), conf);
-                if (isLeaf(conf.getType())) {
+                if (ServerConstant.isLeaf(conf.getType())) {
                     Map<Byte, Map<String, Integer>> map = leafClassMap.get(conf.getApp());
                     Map<String, Integer> classMap;
                     if (map == null) {
@@ -307,10 +306,6 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
         lastUpdateTime = now;
     }
 
-    private boolean isLeaf(byte type) {
-        return type == NodeTypeEnum.LEAF_FLOW.getType() || type == NodeTypeEnum.LEAF_NONE.getType() || type == NodeTypeEnum.LEAF_RESULT.getType();
-    }
-
     /*
      * 根据app获取生效中的ConfList
      */
@@ -319,7 +314,7 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
         if (map == null) {
             return Collections.emptyList();
         }
-        return map.values().stream().map(this::convert).collect(Collectors.toList());
+        return ServerConstant.confListToDtoList(map.values());
     }
 
     /*
@@ -330,7 +325,7 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
         if (map == null) {
             return Collections.emptyList();
         }
-        return map.values().stream().map(this::convert).collect(Collectors.toList());
+        return ServerConstant.baseListToDtoList(map.values());
     }
 
     /*
@@ -345,37 +340,5 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
             transferDto.setVersion(version);
             return JSON.toJSONString(transferDto);
         }
-    }
-
-    private IceBaseDto convert(IceBase base) {
-        IceBaseDto baseDto = new IceBaseDto();
-        baseDto.setConfId(base.getConfId());
-        baseDto.setDebug(base.getDebug());
-        baseDto.setId(base.getId());
-        baseDto.setStart(base.getStart() == null ? 0 : base.getStart().getTime());
-        baseDto.setEnd(base.getEnd() == null ? 0 : base.getEnd().getTime());
-        baseDto.setTimeType(base.getTimeType());
-        baseDto.setPriority(base.getPriority());
-        baseDto.setScenes(base.getScenes());
-        baseDto.setStatus(base.getStatus());
-        return baseDto;
-    }
-
-    private IceConfDto convert(IceConf conf) {
-        IceConfDto confDto = new IceConfDto();
-        confDto.setForwardId(conf.getForwardId());
-        confDto.setDebug(conf.getDebug());
-        confDto.setId(conf.getId());
-        confDto.setStart(conf.getStart() == null ? 0 : conf.getStart().getTime());
-        confDto.setEnd(conf.getEnd() == null ? 0 : conf.getEnd().getTime());
-        confDto.setTimeType(conf.getTimeType());
-        confDto.setComplex(conf.getComplex());
-        confDto.setSonIds(conf.getSonIds());
-        confDto.setStatus(conf.getStatus());
-        confDto.setConfName(conf.getConfName());
-        confDto.setConfField(conf.getConfField());
-        confDto.setInverse(conf.getInverse());
-        confDto.setType(conf.getType());
-        return confDto;
     }
 }

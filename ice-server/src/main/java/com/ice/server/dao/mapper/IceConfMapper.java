@@ -17,6 +17,8 @@ public interface IceConfMapper {
 
     int insert(IceConf record);
 
+    int insertWithId(IceConf record);
+
     int insertSelective(IceConf record);
 
     int insertSelectiveWithId(IceConf record);

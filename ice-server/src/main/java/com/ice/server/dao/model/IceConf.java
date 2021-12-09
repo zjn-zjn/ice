@@ -32,8 +32,6 @@ public class IceConf {
 
     private Date end;
 
-    private Integer complex;
-
     private Byte debug;
 
     private Date createAt;

@@ -4,7 +4,7 @@ import com.ice.server.dao.model.IceApp;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.PageResult;
-import com.ice.server.service.AppService;
+import com.ice.server.service.IceAppService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -16,16 +16,16 @@ import javax.annotation.Resource;
  */
 @CrossOrigin
 @RestController
-public class AppController {
+public class IceAppController {
     @Resource
-    private AppService appService;
+    private IceAppService iceAppService;
 
     @RequestMapping(value = "/ice-server/app/list", method = RequestMethod.GET)
     public PageResult<IceApp> appList(@RequestParam(defaultValue = "1") Integer pageNum,
                                       @RequestParam(defaultValue = "20") Integer pageSize,
                                       @RequestParam(defaultValue = "") String name,
                                       @RequestParam(required = false) Integer app) {
-        return appService.appList(pageNum, pageSize, name, app);
+        return iceAppService.appList(pageNum, pageSize, name, app);
     }
 
     @RequestMapping(value = "/ice-server/app/edit", method = RequestMethod.POST)
@@ -33,6 +33,6 @@ public class AppController {
         if (app == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR);
         }
-        return appService.appEdit(app);
+        return iceAppService.appEdit(app);
     }
 }

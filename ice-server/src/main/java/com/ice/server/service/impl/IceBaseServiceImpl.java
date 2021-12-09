@@ -5,6 +5,7 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.page.PageMethod;
 import com.ice.common.constant.Constant;
 import com.ice.common.enums.NodeTypeEnum;
+import com.ice.common.enums.StatusEnum;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IcePushHistoryMapper;
@@ -14,7 +15,8 @@ import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceBaseSearch;
 import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
-import com.ice.server.service.BaseService;
+import com.ice.server.model.ServerConstant;
+import com.ice.server.service.IceBaseService;
 import com.ice.server.service.ServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
@@ -24,12 +26,13 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
 @Slf4j
 @Service
-public class BaseServiceImpl implements BaseService {
+public class IceBaseServiceImpl implements IceBaseService {
 
     @Resource
     private IceBaseMapper iceBaseMapper;
@@ -88,6 +91,7 @@ public class BaseServiceImpl implements BaseService {
             if (base.getConfId() == null) {
                 IceConf createConf = new IceConf();
                 createConf.setApp(base.getApp());
+                createConf.setStatus(StatusEnum.ONLINE.getStatus());
                 createConf.setType(NodeTypeEnum.NONE.getType());
                 createConf.setUpdateAt(new Date());
                 iceConfMapper.insertSelective(createConf);
@@ -108,10 +112,6 @@ public class BaseServiceImpl implements BaseService {
         if (base == null) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", iceId);
         }
-        base.setUpdateAt(new Date());
-        if (base.getScenes() == null) {
-            base.setScenes("");
-        }
         IcePushHistory history = new IcePushHistory();
         history.setApp(base.getApp());
         history.setIceId(iceId);
@@ -128,7 +128,8 @@ public class BaseServiceImpl implements BaseService {
 
     private PushData getPushData(IceBase base) {
         PushData pushData = new PushData();
-        pushData.setBase(base);
+        pushData.setApp(base.getApp());
+        pushData.setBase(ServerConstant.baseToDtoWithName(base));
         Object obj = amqpTemplate.convertSendAndReceive(Constant.getAllConfIdExchange(), String.valueOf(base.getApp()),
                 String.valueOf(base.getId()));
         if (obj != null) {
@@ -139,14 +140,7 @@ public class BaseServiceImpl implements BaseService {
                     IceConfExample confExample = new IceConfExample();
                     confExample.createCriteria().andAppEqualTo(base.getApp()).andIdIn(allIds);
                     List<IceConf> iceConfs = iceConfMapper.selectByExample(confExample);
-                    if (!CollectionUtils.isEmpty(iceConfs)) {
-                        for (IceConf conf : iceConfs) {
-                            if (isRelation(conf.getType()) && conf.getSonIds() == null) {
-                                conf.setSonIds("");
-                            }
-                        }
-                        pushData.setConfs(iceConfs);
-                    }
+                    pushData.setConfs(ServerConstant.confListToDtoListWithName(iceConfs));
                 }
             }
         }
@@ -182,10 +176,6 @@ public class BaseServiceImpl implements BaseService {
         if (base == null) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", iceId);
         }
-        base.setUpdateAt(new Date());
-        if (base.getScenes() == null) {
-            base.setScenes("");
-        }
         return getPushDataJson(base);
     }
 
@@ -201,41 +191,27 @@ public class BaseServiceImpl implements BaseService {
     @Override
     @Transactional
     public void importData(PushData data) {
-        IceBase base = data.getBase();
-        List<IceConf> confs = data.getConfs();
+        Collection<IceConf> confs = ServerConstant.dtoListToConfList(data.getConfs(), data.getApp());
         if (!CollectionUtils.isEmpty(confs)) {
             for (IceConf conf : confs) {
                 IceConf oldConf = iceConfMapper.selectByPrimaryKey(conf.getId());
+                conf.setUpdateAt(new Date());
                 if (oldConf == null) {
-                    conf.setCreateAt(null);
-                    conf.setUpdateAt(new Date());
-                    iceConfMapper.insertSelectiveWithId(conf);
+                    iceConfMapper.insertWithId(conf);
                 } else {
-                    conf.setId(null);
-                    conf.setUpdateAt(new Date());
-                    iceConfMapper.updateByPrimaryKeySelective(conf);
+                    iceConfMapper.updateByPrimaryKey(conf);
                 }
             }
         }
+        IceBase base = ServerConstant.dtoToBase(data.getBase(), data.getApp());
         if (base != null) {
-            IceBaseExample baseExample = new IceBaseExample();
-            baseExample.createCriteria().andIdEqualTo(base.getId());
             IceBase oldBase = iceBaseMapper.selectByPrimaryKey(base.getId());
+            base.setUpdateAt(new Date());
             if (oldBase == null) {
-                base.setCreateAt(null);
-                base.setUpdateAt(new Date());
-                iceBaseMapper.insertSelectiveWithId(base);
+                iceBaseMapper.insertWithId(base);
             } else {
-                base.setId(null);
-                base.setUpdateAt(new Date());
-                iceBaseMapper.updateByExampleSelective(base, baseExample);
+                iceBaseMapper.updateByPrimaryKey(base);
             }
         }
-    }
-
-    public static boolean isRelation(Byte type) {
-        return type == NodeTypeEnum.NONE.getType() || type == NodeTypeEnum.ALL.getType()
-                || type == NodeTypeEnum.AND.getType() || type == NodeTypeEnum.TRUE.getType()
-                || type == NodeTypeEnum.ANY.getType();
     }
 }

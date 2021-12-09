@@ -5,7 +5,7 @@ import com.ice.server.dao.model.IceConf;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceLeafClass;
-import com.ice.server.service.ConfService;
+import com.ice.server.service.IceConfService;
 import com.ice.server.service.ServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +17,7 @@ import java.util.*;
 
 @Slf4j
 @Service
-public class ConfServiceImpl implements ConfService {
+public class IceConfServiceImpl implements IceConfService {
 
     @Resource
     private IceConfMapper iceConfMapper;

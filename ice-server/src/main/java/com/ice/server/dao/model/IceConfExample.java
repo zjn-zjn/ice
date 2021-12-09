@@ -925,66 +925,6 @@ public class IceConfExample {
             return (Criteria) this;
         }
 
-        public Criteria andComplexIsNull() {
-            addCriterion("complex is null");
-            return (Criteria) this;
-        }
-
-        public Criteria andComplexIsNotNull() {
-            addCriterion("complex is not null");
-            return (Criteria) this;
-        }
-
-        public Criteria andComplexEqualTo(Integer value) {
-            addCriterion("complex =", value, "complex");
-            return (Criteria) this;
-        }
-
-        public Criteria andComplexNotEqualTo(Integer value) {
-            addCriterion("complex <>", value, "complex");
-            return (Criteria) this;
-        }
-
-        public Criteria andComplexGreaterThan(Integer value) {
-            addCriterion("complex >", value, "complex");
-            return (Criteria) this;
-        }
-
-        public Criteria andComplexGreaterThanOrEqualTo(Integer value) {
-            addCriterion("complex >=", value, "complex");
-            return (Criteria) this;
-        }
-
-        public Criteria andComplexLessThan(Integer value) {
-            addCriterion("complex <", value, "complex");
-            return (Criteria) this;
-        }
-
-        public Criteria andComplexLessThanOrEqualTo(Integer value) {
-            addCriterion("complex <=", value, "complex");
-            return (Criteria) this;
-        }
-
-        public Criteria andComplexIn(List<Integer> values) {
-            addCriterion("complex in", values, "complex");
-            return (Criteria) this;
-        }
-
-        public Criteria andComplexNotIn(List<Integer> values) {
-            addCriterion("complex not in", values, "complex");
-            return (Criteria) this;
-        }
-
-        public Criteria andComplexBetween(Integer value1, Integer value2) {
-            addCriterion("complex between", value1, value2, "complex");
-            return (Criteria) this;
-        }
-
-        public Criteria andComplexNotBetween(Integer value1, Integer value2) {
-            addCriterion("complex not between", value1, value2, "complex");
-            return (Criteria) this;
-        }
-
         public Criteria andDebugIsNull() {
             addCriterion("debug is null");
             return (Criteria) this;

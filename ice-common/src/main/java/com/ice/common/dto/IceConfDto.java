@@ -14,8 +14,6 @@ public final class IceConfDto {
 
     private Byte type;
 
-    private Byte status;
-
     private String confName;
 
     private String confField;
@@ -28,9 +26,10 @@ public final class IceConfDto {
 
     private Long forwardId;
 
-    private Integer complex;
-
     private Byte debug;
 
-    private Byte inverse;
+    private Boolean inverse;
+
+    private String name;
+    private Integer app;
 }

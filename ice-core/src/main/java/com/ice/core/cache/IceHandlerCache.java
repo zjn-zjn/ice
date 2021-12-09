@@ -50,11 +50,11 @@ public final class IceHandlerCache {
         for (IceBaseDto base : iceBaseDtos) {
             IceHandler handler = new IceHandler();
             handler.setIceId(base.getId());
-            handler.setTimeTypeEnum(TimeTypeEnum.getEnum(base.getTimeType()));
+            handler.setTimeTypeEnum(TimeTypeEnum.getEnumDefaultNone(base.getTimeType()));
             handler.setStart(base.getStart() == null ? 0 : base.getStart());
             handler.setEnd(base.getEnd() == null ? 0 : base.getEnd());
             Long confId = base.getConfId();
-            if (confId != null && confId > 0) {
+            if (confId != null) {
                 /*confId等于空的情况不考虑处理,没配confId的handler是没有意义的*/
                 BaseNode root = IceConfCache.getConfById(confId);
                 if (root == null) {

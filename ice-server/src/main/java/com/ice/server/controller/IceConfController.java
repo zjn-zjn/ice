@@ -8,7 +8,7 @@ import com.ice.server.dao.model.IceConf;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceLeafClass;
-import com.ice.server.service.ConfService;
+import com.ice.server.service.IceConfService;
 import com.ice.server.service.ServerService;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.util.CollectionUtils;
@@ -16,8 +16,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.List;
 
 /**
  * conf crud
@@ -26,14 +25,12 @@ import java.util.*;
  */
 @CrossOrigin
 @RestController
-public class ConfController {
+public class IceConfController {
     @Resource
-    private ConfService confService;
+    private IceConfService iceConfService;
 
     @Resource
     private ServerService serverService;
-
-    private static final SimpleDateFormat SDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     @Resource
     private AmqpTemplate amqpTemplate;
@@ -42,14 +39,14 @@ public class ConfController {
     public Long confEdit(@RequestBody IceConf conf, @RequestParam(required = false) Long parentId, @RequestParam(required = false) Long nextId) {
         //conf node edit-delete just pick up from parent
         conf.setStatus((byte) 1);
-        Long id = confService.confEdit(conf, parentId, nextId);
+        Long id = iceConfService.confEdit(conf, parentId, nextId);
         serverService.updateByEdit();
         return id;
     }
 
     @RequestMapping(value = "/ice-server/conf/leaf/class", method = RequestMethod.GET)
     public List<IceLeafClass> getConfLeafClass(@RequestParam Integer app, @RequestParam Byte type) {
-        return confService.getConfLeafClass(app, type);
+        return iceConfService.getConfLeafClass(app, type);
     }
 
     @RequestMapping(value = "/ice-server/conf/detail", method = RequestMethod.GET)

@@ -51,7 +51,7 @@ public interface IceEditService {
      * @param iceId iceId
      * @param reason 发布原因
      */
-    WebResult push(Integer app, Long iceId, String reason);
+//    WebResult push(Integer app, Long iceId, String reason);
 
     /*
      * 发布历史
@@ -60,22 +60,22 @@ public interface IceEditService {
      * @param iceId iceId
      */
     WebResult history(Integer app, Long iceId);
-
-    /*
-     * 导出数据
-     */
-    WebResult exportData(Long iceId, Long pushId);
-
-    /*
-     * 回滚
-     */
-    WebResult rollback(Long pushId);
+//
+//    /*
+//     * 导出数据
+//     */
+//    WebResult exportData(Long iceId, Long pushId);
+//
+//    /*
+//     * 回滚
+//     */
+//    WebResult rollback(Long pushId);
 
     /*
      * 导入数据
      *
      * @param data 导入json
      */
-    WebResult importData(String data);
+//    WebResult importData(String data);
 
 }

@@ -6,7 +6,7 @@ import com.ice.server.dao.mapper.IceAppMapper;
 import com.ice.server.dao.model.IceApp;
 import com.ice.server.dao.model.IceAppExample;
 import com.ice.server.model.PageResult;
-import com.ice.server.service.AppService;
+import com.ice.server.service.IceAppService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -16,7 +16,7 @@ import java.util.Date;
 
 @Slf4j
 @Service
-public class AppServiceImpl implements AppService {
+public class IceAppServiceImpl implements IceAppService {
 
     @Resource
     private IceAppMapper iceAppMapper;
@@ -48,6 +48,7 @@ public class AppServiceImpl implements AppService {
         app.setUpdateAt(new Date());
         if (app.getId() == null) {
             /*add*/
+            app.setStatus(true);
             iceAppMapper.insertSelective(app);
             return app.getId();
         }

@@ -1,5 +1,6 @@
 package com.ice.common.dto;
 
+import com.ice.common.enums.TimeTypeEnum;
 import lombok.Data;
 
 /**
@@ -12,8 +13,6 @@ public final class IceBaseDto {
 
     private String scenes;
 
-    private Byte status;
-
     private Long confId;
 
     private Byte timeType;
@@ -25,4 +24,7 @@ public final class IceBaseDto {
     private Byte debug;
 
     private Long priority;
+
+    private Integer app;
+    private String name;
 }

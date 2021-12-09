@@ -16,6 +16,8 @@ public interface IceBaseMapper {
 
     int insert(IceBase record);
 
+    int insertWithId(IceBase record);
+
     int insertSelective(IceBase record);
 
     int insertSelectiveWithId(IceBase record);

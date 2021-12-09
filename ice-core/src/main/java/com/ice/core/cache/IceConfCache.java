@@ -229,7 +229,7 @@ public final class IceConfCache {
                 || dto.getType() == NodeTypeEnum.ANY.getType();
     }
 
-    private static BaseNode convert(IceConfDto confDto) throws ClassNotFoundException, NoSuchMethodException {
+    private static BaseNode convert(IceConfDto confDto) throws ClassNotFoundException {
         BaseNode node;
         switch (NodeTypeEnum.getEnum(confDto.getType())) {
             case LEAF_FLOW:
@@ -288,9 +288,9 @@ public final class IceConfCache {
                 break;
         }
         node.setIceNodeId(confDto.getId());
-        node.setIceNodeDebug(confDto.getDebug() == 1);
-        node.setIceInverse(confDto.getInverse() == 1);
-        node.setIceTimeTypeEnum(TimeTypeEnum.getEnum(confDto.getTimeType()));
+        node.setIceNodeDebug(confDto.getDebug() == null || confDto.getDebug() == 1);
+        node.setIceInverse(confDto.getInverse() != null && confDto.getInverse());
+        node.setIceTimeTypeEnum(TimeTypeEnum.getEnumDefaultNone(confDto.getTimeType()));
         node.setIceStart(confDto.getStart() == null ? 0 : confDto.getStart());
         node.setIceEnd(confDto.getEnd() == null ? 0 : confDto.getEnd());
         return node;

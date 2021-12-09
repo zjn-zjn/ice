@@ -43,6 +43,14 @@ public enum TimeTypeEnum {
         return MAP.get(type);
     }
 
+    public static TimeTypeEnum getEnumDefaultNone(Byte type) {
+        TimeTypeEnum typeEnum = MAP.get(type);
+        if (typeEnum == null) {
+            return TimeTypeEnum.NONE;
+        }
+        return typeEnum;
+    }
+
     public byte getType() {
         return type;
     }

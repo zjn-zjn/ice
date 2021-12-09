@@ -15,7 +15,6 @@
         <result column="time_type" jdbcType="TINYINT" property="timeType"/>
         <result column="start" jdbcType="TIMESTAMP" property="start"/>
         <result column="end" jdbcType="TIMESTAMP" property="end"/>
-        <result column="complex" jdbcType="INTEGER" property="complex"/>
         <result column="debug" jdbcType="TINYINT" property="debug"/>
         <result column="create_at" jdbcType="TIMESTAMP" property="createAt"/>
         <result column="update_at" jdbcType="TIMESTAMP" property="updateAt"/>
@@ -82,7 +81,7 @@
     </sql>
     <sql id="Base_Column_List">
         id, app, name, son_ids, type, status, inverse, conf_name, conf_field, forward_id,
-        time_type, start, end, complex, debug, create_at, update_at
+        time_type, start, end, debug, create_at, update_at
     </sql>
     <select id="selectByExample" parameterType="com.ice.server.dao.model.IceConfExample" resultMap="BaseResultMap">
         select
@@ -121,14 +120,26 @@
         insert into ice_conf (app, name, son_ids,
         type, status, inverse,
         conf_name, conf_field, forward_id,
-        time_type, start, end,
-        complex, debug, create_at,
+        time_type, start, end, debug, create_at,
         update_at)
         values (#{app,jdbcType=INTEGER}, #{name,jdbcType=VARCHAR}, #{sonIds,jdbcType=VARCHAR},
         #{type,jdbcType=TINYINT}, #{status,jdbcType=TINYINT}, #{inverse,jdbcType=TINYINT},
         #{confName,jdbcType=VARCHAR}, #{confField,jdbcType=VARCHAR}, #{forwardId,jdbcType=BIGINT},
         #{timeType,jdbcType=TINYINT}, #{start,jdbcType=TIMESTAMP}, #{end,jdbcType=TIMESTAMP},
-        #{complex,jdbcType=INTEGER}, #{debug,jdbcType=TINYINT}, #{createAt,jdbcType=TIMESTAMP},
+        #{debug,jdbcType=TINYINT}, #{createAt,jdbcType=TIMESTAMP},
+        #{updateAt,jdbcType=TIMESTAMP})
+    </insert>
+
+    <insert id="insertWithId" parameterType="com.ice.server.dao.model.IceConf">
+        insert into ice_conf (id, app, name, son_ids,
+        type, status, inverse,
+        conf_name, conf_field, forward_id,
+        time_type, start, end, debug,
+        update_at)
+        values (#{id,jdbcType=BIGINT}, #{app,jdbcType=INTEGER}, #{name,jdbcType=VARCHAR}, #{sonIds,jdbcType=VARCHAR},
+        #{type,jdbcType=TINYINT}, #{status,jdbcType=TINYINT}, #{inverse,jdbcType=TINYINT},
+        #{confName,jdbcType=VARCHAR}, #{confField,jdbcType=VARCHAR}, #{forwardId,jdbcType=BIGINT},
+        #{timeType,jdbcType=TINYINT}, #{start,jdbcType=TIMESTAMP}, #{end,jdbcType=TIMESTAMP}, #{debug,jdbcType=TINYINT},
         #{updateAt,jdbcType=TIMESTAMP})
     </insert>
     <insert id="insertSelective" parameterType="com.ice.server.dao.model.IceConf">
@@ -172,9 +183,6 @@
             </if>
             <if test="end != null">
                 end,
-            </if>
-            <if test="complex != null">
-                complex,
             </if>
             <if test="debug != null">
                 debug,
@@ -222,9 +230,6 @@
             </if>
             <if test="end != null">
                 #{end,jdbcType=TIMESTAMP},
-            </if>
-            <if test="complex != null">
-                #{complex,jdbcType=INTEGER},
             </if>
             <if test="debug != null">
                 #{debug,jdbcType=TINYINT},
@@ -279,9 +284,6 @@
             <if test="end != null">
                 end,
             </if>
-            <if test="complex != null">
-                complex,
-            </if>
             <if test="debug != null">
                 debug,
             </if>
@@ -331,9 +333,6 @@
             </if>
             <if test="end != null">
                 #{end,jdbcType=TIMESTAMP},
-            </if>
-            <if test="complex != null">
-                #{complex,jdbcType=INTEGER},
             </if>
             <if test="debug != null">
                 #{debug,jdbcType=TINYINT},
@@ -394,9 +393,6 @@
             <if test="record.end != null">
                 end = #{record.end,jdbcType=TIMESTAMP},
             </if>
-            <if test="record.complex != null">
-                complex = #{record.complex,jdbcType=INTEGER},
-            </if>
             <if test="record.debug != null">
                 debug = #{record.debug,jdbcType=TINYINT},
             </if>
@@ -426,7 +422,6 @@
         time_type = #{record.timeType,jdbcType=TINYINT},
         start = #{record.start,jdbcType=TIMESTAMP},
         end = #{record.end,jdbcType=TIMESTAMP},
-        complex = #{record.complex,jdbcType=INTEGER},
         debug = #{record.debug,jdbcType=TINYINT},
         create_at = #{record.createAt,jdbcType=TIMESTAMP},
         update_at = #{record.updateAt,jdbcType=TIMESTAMP}
@@ -473,9 +468,6 @@
             <if test="end != null">
                 end = #{end,jdbcType=TIMESTAMP},
             </if>
-            <if test="complex != null">
-                complex = #{complex,jdbcType=INTEGER},
-            </if>
             <if test="debug != null">
                 debug = #{debug,jdbcType=TINYINT},
             </if>
@@ -502,9 +494,7 @@
         time_type = #{timeType,jdbcType=TINYINT},
         start = #{start,jdbcType=TIMESTAMP},
         end = #{end,jdbcType=TIMESTAMP},
-        complex = #{complex,jdbcType=INTEGER},
         debug = #{debug,jdbcType=TINYINT},
-        create_at = #{createAt,jdbcType=TIMESTAMP},
         update_at = #{updateAt,jdbcType=TIMESTAMP}
         where id = #{id,jdbcType=BIGINT}
     </update>

@@ -1,10 +1,10 @@
 package com.ice.server.model;
 
-import com.ice.server.dao.model.IceBase;
-import com.ice.server.dao.model.IceConf;
+import com.ice.common.dto.IceBaseDto;
+import com.ice.common.dto.IceConfDto;
 import lombok.Data;
 
-import java.util.List;
+import java.util.Collection;
 
 /**
  * @author zjn
@@ -12,7 +12,9 @@ import java.util.List;
 @Data
 public class PushData {
 
-    private IceBase base;
+    private Integer app;
 
-    private List<IceConf> confs;
+    private IceBaseDto base;
+
+    private Collection<IceConfDto> confs;
 }

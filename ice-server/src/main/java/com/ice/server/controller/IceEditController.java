@@ -3,7 +3,9 @@ package com.ice.server.controller;
 import com.alibaba.fastjson.JSON;
 import com.ice.server.model.IceBaseVo;
 import com.ice.server.model.IceConfVo;
+import com.ice.server.model.PushData;
 import com.ice.server.model.WebResult;
+import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceEditService;
 import com.ice.server.service.ServerService;
 import com.github.kevinsawicki.http.HttpRequest;
@@ -30,6 +32,9 @@ public class IceEditController {
 
     @Resource
     private IceEditService editService;
+
+    @Resource
+    private IceBaseService iceBaseService;
 
     @Resource
     private ServerService serverService;
@@ -77,7 +82,7 @@ public class IceEditController {
     @Deprecated
     @RequestMapping(value = "/ice/conf/push", method = RequestMethod.POST)
     public WebResult push(@RequestBody Map map) {
-        return editService.push((Integer) map.get("app"), Long.parseLong(map.get("iceId").toString()), (String) map.get("reason"));
+        return WebResult.success(iceBaseService.push((Integer) map.get("app"), Long.parseLong(map.get("iceId").toString()), (String) map.get("reason")));
     }
 
     /*
@@ -115,7 +120,7 @@ public class IceEditController {
     @RequestMapping(value = "/ice/conf/export", method = RequestMethod.GET)
     public WebResult exportData(@RequestParam Long iceId,
                                 @RequestParam(defaultValue = "-1") Long pushId) {
-        return editService.exportData(iceId, pushId);
+        return WebResult.success(iceBaseService.exportData(iceId, pushId));
     }
 
     /*
@@ -123,9 +128,9 @@ public class IceEditController {
      */
     @RequestMapping(value = "/ice/conf/rollback", method = RequestMethod.GET)
     public WebResult exportData(@RequestParam Long pushId) {
-        WebResult result = editService.rollback(pushId);
+        iceBaseService.rollback(pushId);
         serverService.updateByEdit();
-        return result;
+        return WebResult.success();
     }
 
     /*
@@ -133,8 +138,8 @@ public class IceEditController {
      */
     @RequestMapping(value = "/ice/conf/import", method = RequestMethod.POST)
     public WebResult importData(@RequestBody Map map) {
-        WebResult result = editService.importData((String) map.get("data"));
+        iceBaseService.importData(JSON.parseObject((String) map.get("data"), PushData.class));
         serverService.updateByEdit();
-        return result;
+        return WebResult.success();
     }
 }
