@@ -8,19 +8,17 @@ import com.ice.core.utils.IceLinkedList;
 
 /**
  * @author zjn
- * 流程--AND关系
- * 有一个子节点返回FALSE将中断执行
- * 有FALSE--FALSE
- * 无FALSE有TRUE--TRUE
- * 无子节点--NONE
- * 全NONE--NONE
+ * relation AND
+ * return false on first false
+ * have FALSE--FALSE
+ * without FALSE have TRUE--TRUE
+ * without children--NONE
+ * all NONE--NONE
  */
 public final class And extends BaseRelation {
 
     /*
      * process relation and
-     *
-     *
      */
     @Override
     protected NodeRunStateEnum processNode(IceContext cxt) {

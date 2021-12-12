@@ -2,6 +2,7 @@ package com.ice.server.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ice.common.constant.Constant;
 import com.ice.core.context.IcePack;
 import com.ice.server.model.WebResult;
@@ -24,6 +25,7 @@ import java.util.List;
 
 @RestController
 public class IceMockController {
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     @Resource
     private AmqpTemplate amqpTemplate;

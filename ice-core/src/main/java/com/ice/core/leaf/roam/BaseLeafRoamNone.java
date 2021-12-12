@@ -20,8 +20,6 @@ public abstract class BaseLeafRoamNone extends BaseLeafPackNone {
 
     /*
      * process leaf none with roam
-     *
-     * @param roam
      */
     protected abstract void doRoamNone(IceRoam roam);
 }

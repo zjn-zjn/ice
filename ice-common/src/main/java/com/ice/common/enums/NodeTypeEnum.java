@@ -5,39 +5,39 @@ import java.util.Map;
 
 /**
  * @author zjn
- * 过滤节点类型
+ * node type
  */
 public enum NodeTypeEnum {
     /*
-     * 关系节点-none
+     * relation node-none
      */
     NONE((byte) 0),
     /*
-     * 关系节点-and
+     * relation node-and
      */
     AND((byte) 1),
     /*
-     * 关系节点-true
+     * relation node-true
      */
     TRUE((byte) 2),
     /*
-     * 关系节点-all
+     * relation node-all
      */
     ALL((byte) 3),
     /*
-     * 关系节点-any
+     * relation node-any
      */
     ANY((byte) 4),
     /*
-     * 叶子节点-flow
+     * leaf node-flow
      */
     LEAF_FLOW((byte) 5),
     /*
-     * 叶子节点-result
+     * leaf node-result
      */
     LEAF_RESULT((byte) 6),
     /*
-     * 叶子节点-none
+     * leaf node-none
      */
     LEAF_NONE((byte) 7);
 
@@ -55,7 +55,10 @@ public enum NodeTypeEnum {
         this.type = type;
     }
 
-    public static NodeTypeEnum getEnum(byte type) {
+    public static NodeTypeEnum getEnum(Byte type) {
+        if (type == null) {
+            return null;
+        }
         return MAP.get(type);
     }
 

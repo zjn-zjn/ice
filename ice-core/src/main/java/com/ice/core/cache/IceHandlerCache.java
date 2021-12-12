@@ -12,8 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author zjn
- * base配置缓存
- * base配置的实例化,层级构建,更新
+ * base config local cache
+ * base instance structure update
  */
 @Slf4j
 public final class IceHandlerCache {

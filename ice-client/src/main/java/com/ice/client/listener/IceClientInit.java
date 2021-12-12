@@ -33,8 +33,7 @@ public final class IceClientInit implements InitializingBean {
     private RabbitTemplate iceRabbitTemplate;
 
     /*
-     * 避免初始化与更新之间存在遗漏更新消息,此处先保证mq初始化完毕
-     * 初始化ice通过restTemplate远程调用server链接完成
+     * to avoid loss update msg in init,make mq init first
      */
     @Override
     public void afterPropertiesSet() {
@@ -42,7 +41,7 @@ public final class IceClientInit implements InitializingBean {
 
         Object obj = iceRabbitTemplate.convertSendAndReceive(Constant.getInitExchange(), "", String.valueOf(properties.getApp()));
         String json = (String) obj;
-        if (!StringUtils.isEmpty(json)) {
+        if (StringUtils.hasLength(json)) {
             IceTransferDto infoDto = JSON.parseObject(json, IceTransferDto.class);
             log.info("ice client init content:{}", JSON.toJSONString(infoDto));
             IceUpdate.update(infoDto);

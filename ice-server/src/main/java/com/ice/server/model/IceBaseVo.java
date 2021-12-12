@@ -10,6 +10,7 @@ import java.util.Date;
  */
 @Data
 @NoArgsConstructor
+@Deprecated
 public class IceBaseVo {
 
     private Integer app;

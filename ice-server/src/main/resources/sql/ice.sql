@@ -5,7 +5,7 @@ CREATE DATABASE IF NOT EXISTS ice Character Set utf8mb4;
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `ice`.`ice_app` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `name` varchar(200) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '服务名',
+  `name` varchar(200) COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'application name',
   `info` varchar(500) COLLATE utf8mb4_bin DEFAULT '',
   `status` tinyint(1) NOT NULL DEFAULT '1',
   `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -18,19 +18,20 @@ CREATE TABLE IF NOT EXISTS `ice`.`ice_app` (
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `ice`.`ice_base` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(200) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '名称',
-  `app` int(11) NOT NULL COMMENT 'app',
-  `scenes` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '场景(多场景以逗号分隔)',
-  `status` tinyint(11) NOT NULL DEFAULT '1' COMMENT '1上架0下架',
+  `name` varchar(200) COLLATE utf8mb4_bin DEFAULT NULL,
+  `app` int(11) NOT NULL COMMENT 'remote application id',
+  `scenes` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'scenes(mutli scene split with ,)',
+  `status` tinyint(11) NOT NULL DEFAULT '1' COMMENT '1 online 0 offline',
   `conf_id` bigint(20) DEFAULT NULL,
-  `time_type` tinyint(11) DEFAULT '1' COMMENT '1无限制5大于开始时间6小于结束时间7在开始结束之内',
-  `start` datetime(3) DEFAULT NULL COMMENT '开始时间',
-  `end` datetime(3) DEFAULT NULL COMMENT '结束时间',
+  `time_type` tinyint(11) DEFAULT '1' COMMENT 'see TimeTypeEnum',
+  `start` datetime(3) DEFAULT NULL,
+  `end` datetime(3) DEFAULT NULL,
   `debug` tinyint(4) NOT NULL DEFAULT '1',
-  `priority` bigint(20) DEFAULT '1' COMMENT '优先级',
+  `priority` bigint(20) DEFAULT '1',
   `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_at` datetime(3) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `update_index` (`update_at`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ----------------------------
@@ -38,22 +39,23 @@ CREATE TABLE IF NOT EXISTS `ice`.`ice_base` (
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `ice`.`ice_conf` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `app` int(11) NOT NULL COMMENT 'app',
-  `name` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '名称',
-  `son_ids` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '子节点ID列表',
-  `type` tinyint(4) NOT NULL DEFAULT '0' COMMENT '0关系none1关系and2关系or3关系节点all4关系节点any5Flow叶子6Result叶子7None叶子',
-  `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '1上架0下架',
-  `inverse` tinyint(4) NOT NULL DEFAULT '0' COMMENT '反转-对TRUE和FALSE进行反转 对None节点无效',
-  `conf_name` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '叶子节点-结果类名',
-  `conf_field` varchar(5000) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '叶子节点-结果类json',
-  `forward_id` bigint(20) DEFAULT NULL COMMENT '前置节点ID',
-  `time_type` tinyint(11) NOT NULL DEFAULT '1' COMMENT '1无限制5大于开始时间6小于结束时间7在开始结束之内',
-  `start` datetime(3) DEFAULT NULL COMMENT '开始时间',
-  `end` datetime(3) DEFAULT NULL COMMENT '结束时间',
-  `debug` tinyint(4) NOT NULL DEFAULT '1' COMMENT 'debug信息 1 true 0 false',
+  `app` int(11) NOT NULL COMMENT 'remote application id',
+  `name` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL,
+  `son_ids` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,
+  `type` tinyint(4) NOT NULL DEFAULT '6' COMMENT 'see NodeTypeEnum',
+  `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '1 online 0 offline',
+  `inverse` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'make true->false false->true',
+  `conf_name` varchar(1000) COLLATE utf8mb4_bin DEFAULT '' COMMENT 'leaf node class name',
+  `conf_field` varchar(5000) COLLATE utf8mb4_bin DEFAULT '' COMMENT 'leaf node json config',
+  `forward_id` bigint(20) DEFAULT NULL,
+  `time_type` tinyint(11) NOT NULL DEFAULT '1' COMMENT 'see TimeTypeEnum',
+  `start` datetime(3) DEFAULT NULL,
+  `end` datetime(3) DEFAULT NULL,
+  `debug` tinyint(4) NOT NULL DEFAULT '1',
   `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_at` datetime(3) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `update_index` (`update_at`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ----------------------------

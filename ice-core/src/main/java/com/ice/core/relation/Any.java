@@ -8,12 +8,12 @@ import com.ice.core.utils.IceLinkedList;
 
 /**
  * @author zjn
- * 结果--ANY关系
- * 有一个子节点返回TRUE将中断执行
- * 有TRUE--TRUE
- * 无TRUE有FALSE--FALSE
- * 无子节点--NONE
- * 全NONE--NONE
+ * relation ANY
+ * return true on first true
+ * have TRUE--TRUE
+ * without TRUE have FALSE--FALSE
+ * without children--NONE
+ * all NONE--NONE
  */
 public final class Any extends BaseRelation {
     /*

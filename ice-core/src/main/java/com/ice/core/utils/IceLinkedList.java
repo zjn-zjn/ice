@@ -2,10 +2,9 @@ package com.ice.core.utils;
 
 /**
  * @author zjn
- * Ice的linkedList
- * 与jdk LinkedList区别:不断链
- * 被删除的节点的next和prev不断链
- * 保证操作链表时不会中断操作前的执行
+ * ice`s linkedList
+ * different with jdk LinkedList:do not delete next link
+ * to prove execute perfect on update
  */
 public final class IceLinkedList<E> {
 

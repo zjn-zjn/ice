@@ -19,7 +19,7 @@ import java.util.Map;
 
 /**
  * @author zjn
- * Ice分发器
+ * ice dispatcher with id/scene
  */
 @Slf4j
 public final class IceDispatcher {
@@ -31,7 +31,7 @@ public final class IceDispatcher {
         if (!checkPack(pack)) {
             return Collections.emptyList();
         }
-        /*优先ID*/
+        /*first iceId*/
         if (pack.getIceId() > 0) {
             IceHandler handler = IceHandlerCache.getHandlerById(pack.getIceId());
             if (handler == null) {
@@ -42,7 +42,7 @@ public final class IceDispatcher {
             handler.handle(cxt);
             return Collections.singletonList(cxt);
         }
-        /*其次是按scene区分的一组*/
+        /*next scene*/
         if (pack.getScene() != null && !pack.getScene().isEmpty()) {
             Map<Long, IceHandler> handlerMap = IceHandlerCache.getHandlersByScene(pack.getScene());
             if (handlerMap == null || handlerMap.isEmpty()) {
@@ -52,14 +52,14 @@ public final class IceDispatcher {
 
             List<IceContext> cxtList = new LinkedList<>();
             if (handlerMap.size() == 1) {
-                /*处理的handler只有一个 直接处理*/
+                /*one handler*/
                 IceHandler handler = handlerMap.values().iterator().next();
                 IceContext cxt = new IceContext(handler.findIceId(), pack);
                 handler.handle(cxt);
                 cxtList.add(cxt);
                 return cxtList;
             }
-            /*处理的handler有多个 保障roam不冲突(注意浅拷贝影响)*/
+            /*mutli handler ever each handler roam not conflict(note the effect of roam`s shallow copy)*/
             IceRoam roam = pack.getRoam();
             for (IceHandler handler : handlerMap.values()) {
                 IceContext cxt = new IceContext(handler.findIceId(), pack.newPack(roam));
@@ -69,7 +69,7 @@ public final class IceDispatcher {
             return cxtList;
         }
 
-        /*最后是按照confId的root*/
+        /*last confId/nodeId*/
         long confId = pack.getConfId();
         if (confId <= 0) {
             return Collections.emptyList();
@@ -107,7 +107,6 @@ public final class IceDispatcher {
         if (!checkPack(pack)) {
             return;
         }
-        /*优先ID*/
         if (pack.getIceId() > 0) {
             IceHandler handler = IceHandlerCache.getHandlerById(pack.getIceId());
             if (handler == null) {
@@ -118,7 +117,6 @@ public final class IceDispatcher {
             handler.handle(cxt);
             return;
         }
-        /*其次是按scene区分的一组*/
         if (pack.getScene() != null && !pack.getScene().isEmpty()) {
             Map<Long, IceHandler> handlerMap = IceHandlerCache.getHandlersByScene(pack.getScene());
             if (handlerMap == null || handlerMap.isEmpty()) {
@@ -126,20 +124,17 @@ public final class IceDispatcher {
                 return;
             }
             if (handlerMap.size() == 1) {
-                /*处理的handler只有一个 直接处理*/
                 IceHandler handler = handlerMap.values().iterator().next();
                 IceContext cxt = new IceContext(handler.findIceId(), pack);
                 handler.handle(cxt);
                 return;
             }
-            /*处理的handler有多个 保障roam不冲突(注意浅拷贝影响)*/
             IceRoam roam = pack.getRoam();
             for (IceHandler handler : handlerMap.values()) {
                 IceContext cxt = new IceContext(handler.findIceId(), pack.newPack(roam));
                 handler.handle(cxt);
             }
         }
-        /*最后是按照confId的root*/
         long confId = pack.getConfId();
         if (confId <= 0) {
             return;

@@ -5,7 +5,7 @@ import com.ice.common.constant.Constant;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.model.WebResult;
 import com.ice.server.service.IceEditService;
-import com.ice.server.service.ServerService;
+import com.ice.server.service.IceServerService;
 import org.jetbrains.annotations.Contract;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.util.CollectionUtils;
@@ -24,7 +24,7 @@ import java.util.*;
 @Deprecated
 public class IceShowController {
 
-    private final ServerService serverService;
+    private final IceServerService iceServerService;
 
     @Resource
     private IceEditService editService;
@@ -35,8 +35,8 @@ public class IceShowController {
     private AmqpTemplate amqpTemplate;
 
     @Contract(pure = true)
-    public IceShowController(ServerService serverService) {
-        this.serverService = serverService;
+    public IceShowController(IceServerService iceServerService) {
+        this.iceServerService = iceServerService;
     }
 
     @RequestMapping(value = "/ice/app/list", method = RequestMethod.GET)
@@ -134,7 +134,7 @@ public class IceShowController {
             map.remove(removeKey);
         }
         map.put("showConf", showConf);
-        IceConf iceConf = serverService.getActiveConfById(app, nodeId);
+        IceConf iceConf = iceServerService.getActiveConfById(app, nodeId);
         if (iceConf != null) {
             if (!StringUtils.isEmpty(iceConf.getName())) {
                 showConf.put("nodeName", iceConf.getName());

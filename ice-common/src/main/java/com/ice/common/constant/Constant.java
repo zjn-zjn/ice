@@ -24,6 +24,10 @@ public final class Constant {
         return "ice.conf.exchange";
     }
 
+    public static String getConfClazzCheckExchange() {
+        return "ice.conf.clazz.check.exchange";
+    }
+
     public static String getAllConfIdExchange() {
         return "ice.all.conf.id.exchange";
     }
@@ -45,6 +49,10 @@ public final class Constant {
         return "ice.show.conf." + app;
     }
 
+    public static String getConfClazzCheckQueue(Integer app) {
+        return "ice.conf.clazz.check." + app;
+    }
+
     public static String getConfQueue(Integer app) {
         return "ice.conf." + app;
     }
@@ -59,6 +67,6 @@ public final class Constant {
 
     public static String genUpdateTmpQueue() {
         /*"ice.tmp.queue-" + host + ":" + port*/
-        return "ice.tmp.queue-" + AddressUtils.getAddressPort();
+        return "ice.tmp.queue-" + AddressUtils.getAddress();
     }
 }

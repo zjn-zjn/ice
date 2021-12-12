@@ -27,8 +27,6 @@ public abstract class BaseLeafFlow extends BaseLeaf {
 
     /*
      * process leaf flow
-     *
-     *
      */
     protected abstract boolean doFlow(IceContext cxt);
 }

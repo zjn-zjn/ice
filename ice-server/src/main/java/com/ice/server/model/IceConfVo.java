@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
  */
 @Data
 @NoArgsConstructor
+@Deprecated
 public class IceConfVo {
 
     private Integer app;

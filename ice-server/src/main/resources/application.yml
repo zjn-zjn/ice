@@ -17,7 +17,7 @@ spring:
     type: com.alibaba.druid.pool.DruidDataSource
     initialization-mode: always
     schema:
-    - classpath:sql/ice.sql
+      - classpath:sql/ice.sql
     continue-on-error: false
     platform: mysql
     sql-script-encoding: UTF-8

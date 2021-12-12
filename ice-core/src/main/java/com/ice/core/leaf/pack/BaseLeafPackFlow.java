@@ -20,9 +20,6 @@ public abstract class BaseLeafPackFlow extends BaseLeafFlow {
 
     /*
      * process leaf flow with pack
-     *
-     * @param pack
-     * @return
      */
     protected abstract boolean doPackFlow(IcePack pack);
 }

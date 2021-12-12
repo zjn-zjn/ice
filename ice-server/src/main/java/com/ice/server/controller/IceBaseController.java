@@ -10,7 +10,7 @@ import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
 import com.ice.server.model.WebResult;
 import com.ice.server.service.IceBaseService;
-import com.ice.server.service.ServerService;
+import com.ice.server.service.IceServerService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,7 +28,7 @@ public class IceBaseController {
     private IceBaseService iceBaseService;
 
     @Resource
-    private ServerService serverService;
+    private IceServerService iceServerService;
 
     @Value("${environment:dev}")
     private String environment;
@@ -47,7 +47,7 @@ public class IceBaseController {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR);
         }
         Long id = iceBaseService.baseEdit(base);
-        serverService.updateByEdit();
+        iceServerService.updateByEdit();
         return id;
     }
 
@@ -86,14 +86,14 @@ public class IceBaseController {
     @RequestMapping(value = "/ice-server/base/rollback", method = RequestMethod.GET)
     public WebResult<Void> rollback(@RequestParam Long pushId) {
         iceBaseService.rollback(pushId);
-        serverService.updateByEdit();
+        iceServerService.updateByEdit();
         return WebResult.success();
     }
 
     @RequestMapping(value = "/ice-server/base/import", method = RequestMethod.POST)
     public WebResult<Void> importData(@RequestBody PushData data) {
         iceBaseService.importData(data);
-        serverService.updateByEdit();
+        iceServerService.updateByEdit();
         return WebResult.success();
     }
 }

@@ -17,7 +17,7 @@ import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
 import com.ice.server.model.ServerConstant;
 import com.ice.server.service.IceBaseService;
-import com.ice.server.service.ServerService;
+import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.stereotype.Service;
@@ -44,7 +44,7 @@ public class IceBaseServiceImpl implements IceBaseService {
     private IcePushHistoryMapper pushHistoryMapper;
 
     @Resource
-    private ServerService serverService;
+    private IceServerService iceServerService;
 
     @Resource
     private AmqpTemplate amqpTemplate;
@@ -87,7 +87,7 @@ public class IceBaseServiceImpl implements IceBaseService {
     public Long baseEdit(IceBase base) {
         base.setUpdateAt(new Date());
         if (base.getId() == null) {
-            /*新增的需要在conf里新建一个root root默认是none*/
+            /*for the new base, you need to create a new root in conf. the default root is none*/
             if (base.getConfId() == null) {
                 IceConf createConf = new IceConf();
                 createConf.setApp(base.getApp());

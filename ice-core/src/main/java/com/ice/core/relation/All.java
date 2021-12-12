@@ -8,18 +8,16 @@ import com.ice.core.utils.IceLinkedList;
 
 /**
  * @author zjn
- * 结果--ALL关系
- * 子节点全部执行
- * 有TRUE--TRUE
- * 无TRUE有FALSE--FALSE
- * 无子节点--NONE
- * 全NONE--NONE
+ * relation ALL
+ * all child will execute
+ * have TRUE--TRUE
+ * without TRUE have FALSE--FALSE
+ * without chilren--NONE
+ * all NONE--NONE
  */
 public final class All extends BaseRelation {
     /*
      * process relation all
-     *
-     *
      */
     @Override
     protected NodeRunStateEnum processNode(IceContext cxt) {

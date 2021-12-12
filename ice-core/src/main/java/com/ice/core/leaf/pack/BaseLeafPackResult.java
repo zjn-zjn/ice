@@ -20,8 +20,6 @@ public abstract class BaseLeafPackResult extends BaseLeafResult {
 
     /*
      * process leaf result with pack
-     *
-     * @param pack
      */
     protected abstract boolean doPackResult(IcePack pack);
 }

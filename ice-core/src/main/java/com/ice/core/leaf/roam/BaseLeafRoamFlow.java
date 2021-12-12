@@ -20,8 +20,6 @@ public abstract class BaseLeafRoamFlow extends BaseLeafPackFlow {
 
     /*
      * process leaf flow with roam
-     *
-     * @param roam
      */
     protected abstract boolean doRoamFlow(IceRoam roam);
 }

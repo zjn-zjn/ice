@@ -12,7 +12,7 @@ import java.time.temporal.WeekFields;
 
 /**
  * @author zjn
- * Ice时间相关操作
+ * ice time operate
  */
 public final class IceTimeUtils {
 
@@ -75,9 +75,9 @@ public final class IceTimeUtils {
     }
 
     /*
-     * 时间戳校验
-     * 闭区间
-     * @return time enable
+     * time check
+     * all closed interval
+     * default true
      */
     public static boolean timeEnable(TimeTypeEnum typeEnum, long requestTime, long start, long end) {
         if (typeEnum == null) {

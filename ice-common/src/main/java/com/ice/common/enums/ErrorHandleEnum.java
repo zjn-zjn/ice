@@ -5,33 +5,33 @@ import java.util.Map;
 
 /**
  * @author zjn
- * 叶子节点异常处理方案
- * 默认终止执行不落盘
+ * leaf error handle method
+ * default shutdown and not store
  * 是否打印日志取决于节点debug配置
  */
 public enum ErrorHandleEnum {
     /*
-     * 继续执行做NONE处理
+     * continue process with return none
      */
     CONTINUE_NONE((byte) 0),
 
     /*
-     * 继续执行做FALSE处理
+     * continue process with return false
      */
     CONTINUE_FALSE((byte) 1),
 
     /*
-     * 继续执行做TRUE处理
+     * continue process with return true
      */
     CONTINUE_TRUE((byte) 2),
 
     /*
-     * 终止执行不落盘
+     * shut down process
      */
     SHUT_DOWN((byte) 3),
 
     /*
-     * 终止执行并落盘
+     * shut down process with store
      */
     SHUT_DOWN_STORE((byte) 4);
 

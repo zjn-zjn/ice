@@ -19,18 +19,21 @@ public final class IceClient {
     }
 
     /*
-     * 不关心结果-handler异步执行
-     *
-     * @param pack 包裹
+     * careless result async exec handler
      */
     public static void process(IcePack pack) {
         IceDispatcher.asyncDispatcher(pack);
     }
 
     /*
-     * 需要执行后的单个Roam
-     *
-     * @param pack 包裹
+     * care result sync exec handler
+     */
+    public static void syncProcess(IcePack pack) {
+        IceDispatcher.syncDispatcher(pack);
+    }
+
+    /*
+     * care result with single roam
      */
     public static IceRoam processSingleRoam(IcePack pack) {
         IceContext cxt = processSingleCxt(pack);
@@ -41,9 +44,7 @@ public final class IceClient {
     }
 
     /*
-     * 需要执行后的Roam列表
-     *
-     * @param pack 包裹
+     * care result with list roam
      */
     public static List<IceRoam> processRoam(IcePack pack) {
         List<IceContext> cxts = IceDispatcher.syncDispatcher(pack);
@@ -55,9 +56,7 @@ public final class IceClient {
     }
 
     /*
-     * 需要执行后的单个cxt
-     *
-     * @param pack 包裹
+     * care result with single cxt
      */
     public static IceContext processSingleCxt(IcePack pack) {
         List<IceContext> cxts = processCxt(pack);
@@ -68,9 +67,7 @@ public final class IceClient {
     }
 
     /*
-     * 需要执行后的cxt列表
-     *
-     * @param pack 包裹
+     * care result with single cxt list
      */
     public static List<IceContext> processCxt(IcePack pack) {
         return IceDispatcher.syncDispatcher(pack);

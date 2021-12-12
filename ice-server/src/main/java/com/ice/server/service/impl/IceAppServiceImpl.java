@@ -30,7 +30,7 @@ public class IceAppServiceImpl implements IceAppService {
         if (app != null) {
             criteria.andIdEqualTo(app.longValue());
         }
-        if (!StringUtils.isEmpty(name)) {
+        if (StringUtils.hasLength(name)) {
             criteria.andNameLike(name + "%");
         }
         iceAppMapper.selectByExample(example);

@@ -18,15 +18,13 @@ import java.lang.reflect.InvocationTargetException;
 public abstract class BaseLeaf extends BaseNode {
 
     /*
-     * 默认仅中止执行SHUT_DOWN
+     * default SHUT_DOWN
      */
     private ErrorHandleEnum iceErrorHandleEnum = ErrorHandleEnum.SHUT_DOWN;
 
     /*
-     * processNode
-     *
-     *
-     * @return 节点执行结果
+     * process node
+     * @return process result
      */
     @Override
     protected NodeRunStateEnum processNode(IceContext cxt) {
@@ -68,8 +66,6 @@ public abstract class BaseLeaf extends BaseNode {
 
     /*
      * process leaf
-     *
-     *
      */
     protected abstract NodeRunStateEnum doLeaf(IceContext cxt);
 }

@@ -2,8 +2,8 @@ package com.ice.core.utils;
 
 /**
  * @author zjn
- * IceBean工具类
- * 组装叶子节点在初始化时使用的Bean
+ * IceBean tool class
+ * init leaf node`s bean
  */
 public final class IceBeanUtils {
 
@@ -35,25 +35,11 @@ public final class IceBeanUtils {
     }
 
     public interface IceBeanFactory {
-        /*
-         * 注入Bean
-         *
-         * @param existingBean 待填充对象
-         */
+
         void autowireBean(Object existingBean);
 
-        /*
-         * 检查是否有此Bean
-         *
-         * @param name beanName
-         */
         boolean containsBean(String name);
 
-        /*
-         * 根据名称获取bean
-         *
-         * @param name beanName
-         */
         Object getBean(String name);
     }
 }

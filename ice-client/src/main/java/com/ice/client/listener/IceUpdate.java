@@ -8,20 +8,20 @@ import org.springframework.util.CollectionUtils;
 
 /**
  * @author zjn
- * 更新Client端本地缓存
+ * update client local ice cache from ice-server`s init/update msg
  */
 @Slf4j
 public final class IceUpdate {
 
     public static void update(IceTransferDto info) {
-        /*优先conf*/
+        /*conf first*/
         if (!CollectionUtils.isEmpty(info.getDeleteConfIds())) {
             IceConfCache.delete(info.getDeleteConfIds());
         }
         if (!CollectionUtils.isEmpty(info.getInsertOrUpdateConfs())) {
             IceConfCache.insertOrUpdate(info.getInsertOrUpdateConfs());
         }
-        /*其次handler*/
+        /*handler next*/
         if (!CollectionUtils.isEmpty(info.getDeleteBaseIds())) {
             IceHandlerCache.delete(info.getDeleteBaseIds());
         }

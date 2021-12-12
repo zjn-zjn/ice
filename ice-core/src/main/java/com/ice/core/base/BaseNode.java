@@ -15,43 +15,43 @@ import lombok.Data;
 @Data
 public abstract class BaseNode {
     /*
-     * 节点ID
+     * nodeId
      */
     private long iceNodeId;
     /*
-     * 时间类型
+     * time type
      */
     private TimeTypeEnum iceTimeTypeEnum;
     /*
-     * 开始时间
+     * node start run time
      */
     private long iceStart;
     /*
-     * 结束时间
+     * node end run time
      */
     private long iceEnd;
     /*
-     * iceNodeDebug
+     * iceNodeDebug(print process info)
      */
     private boolean iceNodeDebug;
     /*
-     * 反转
-     * 1.仅对TRUE和FALSE反转
-     * 2.对OUTTIME,NONE的反转无效
+     * inverse
+     * 1.only effect TRUE&FALSE
+     * 2.not eddect on OUTTIME&NONE
      */
     private boolean iceInverse;
     /*
-     * 前置节点
-     * 如果前置节点返回FALSE,节点的执行将被拒绝
-     * forward节点可以理解为是用AND连接的forward和this
+     * forward node
+     * if forward return FALSE then this node reject run
+     * forward node the same of combined with relation-and
      */
     private BaseNode iceForward;
     /*
-     * 同步锁 默认不开启
+     * sync lock default not work
      */
     private boolean iceLock;
     /*
-     * 事务 默认不开启
+     * transaction default not work
      */
     private boolean iceTransaction;
 
@@ -59,9 +59,7 @@ public abstract class BaseNode {
 
     /*
      * process
-     *
-     *
-     * @return true(f通过 r获得) false(f不通过 r丢失)
+     * @return NodeRunStateEnum
      */
     public NodeRunStateEnum process(IceContext cxt) {
         cxt.setCurrentId(this.iceNodeId);
@@ -95,10 +93,7 @@ public abstract class BaseNode {
     }
 
     /*
-     * processNode
-     *
-     *
-     * @return 节点执行结果
+     * process node
      */
     protected abstract NodeRunStateEnum processNode(IceContext cxt);
 

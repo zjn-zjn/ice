@@ -7,7 +7,7 @@ import lombok.EqualsAndHashCode;
 
 /**
  * @author zjn
- * 比大小比相等
+ * Comparable.compare
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

@@ -51,7 +51,6 @@ public final class IceUpdateListener implements MessageListener {
         String json = new String(message.getBody());
         IceTransferDto iceInfo = JSON.parseObject(json, IceTransferDto.class);
         if (iceInfo.getVersion() > initVersion) {
-            /*一旦后面有出现比initVersion大的version 将initVersion置为-1 防止server端重启导致version从0开始*/
             log.info("ice listener update wait msg iceStart iceInfo:{}", json);
             IceUpdate.update(iceInfo);
             log.info("ice listener update wait msg iceEnd success");

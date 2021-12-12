@@ -9,7 +9,7 @@ import java.util.Collection;
 
 /**
  * @author zjn
- * 判断key对应的值是否在set中
+ * collection.contains
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

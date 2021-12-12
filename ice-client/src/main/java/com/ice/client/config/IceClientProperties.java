@@ -13,7 +13,7 @@ public class IceClientProperties {
      */
     private Integer app;
     /*
-     * rabbitMq配置
+     * rabbitMq config
      */
     private IceClientRabbitProperties rabbit = new IceClientRabbitProperties();
 

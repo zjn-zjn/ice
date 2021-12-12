@@ -8,15 +8,13 @@ import com.ice.core.utils.IceLinkedList;
 
 /**
  * @author zjn
- * None关系
- * 子节点全部执行
- * 返回NONE
+ * relation NONE
+ * all child will execute
+ * return NONE
  */
 public final class None extends BaseRelation {
     /*
      * process relation none
-     *
-     *
      */
     @Override
     protected NodeRunStateEnum processNode(IceContext cxt) {

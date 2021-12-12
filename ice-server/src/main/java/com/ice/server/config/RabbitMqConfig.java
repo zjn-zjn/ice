@@ -32,6 +32,11 @@ public class RabbitMqConfig {
     }
 
     @Bean
+    public DirectExchange confClazzCheckExchange() {
+        return new DirectExchange(Constant.getConfClazzCheckExchange());
+    }
+
+    @Bean
     public Object configRabbitTemplate(RabbitTemplate rabbitTemplate) {
         //FIXME
         rabbitTemplate.setUseDirectReplyToContainer(false);

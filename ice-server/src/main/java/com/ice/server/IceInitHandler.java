@@ -1,6 +1,6 @@
 package com.ice.server;
 
-import com.ice.server.service.ServerService;
+import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Contract;
 import org.springframework.amqp.core.Message;
@@ -12,17 +12,17 @@ import org.springframework.stereotype.Component;
 
 /**
  * @author zjn
- * client在启动时向server发送请求init消息处理
+ * client start init msg handle
  */
 @Slf4j
 @Component
 public class IceInitHandler {
 
-    private final ServerService serverService;
+    private final IceServerService iceServerService;
 
     @Contract(pure = true)
-    public IceInitHandler(ServerService serverService) {
-        this.serverService = serverService;
+    public IceInitHandler(IceServerService iceServerService) {
+        this.iceServerService = iceServerService;
     }
 
     @RabbitListener(bindings = @QueueBinding(
@@ -33,7 +33,7 @@ public class IceInitHandler {
         if (message.getBody() != null && message.getBody().length > 0) {
             String appStr = new String(message.getBody());
             Integer app = Integer.valueOf(appStr);
-            return serverService.getInitJson(app);
+            return iceServerService.getInitJson(app);
         }
         return "";
     }

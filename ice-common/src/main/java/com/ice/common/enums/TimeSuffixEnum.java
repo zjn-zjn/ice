@@ -5,7 +5,7 @@ import java.util.Map;
 
 /**
  * @author zjn
- * 后缀时间类型
+ * time suffix type
  */
 public enum TimeSuffixEnum {
     /*

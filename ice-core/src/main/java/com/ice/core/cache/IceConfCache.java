@@ -19,8 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author zjn
- * conf配置缓存
- * conf配置的实例化,层级构建,更新
+ * conf instance structure update
  */
 @Slf4j
 public final class IceConfCache {
@@ -33,11 +32,6 @@ public final class IceConfCache {
 
     private static final Map<Long, Set<Long>> forwardUseIdsMap = new ConcurrentHashMap<>();
 
-    /*
-     * 根据ID获取Conf配置
-     *
-     * @param id iceId
-     */
     public static BaseNode getConfById(Long id) {
         if (id == null) {
             return null;
@@ -50,8 +44,7 @@ public final class IceConfCache {
     }
 
     /*
-     * 缓存更新
-     *
+     * update local cache
      * @param iceConfDtos dto
      */
     public static List<String> insertOrUpdate(Collection<IceConfDto> iceConfDtos) {

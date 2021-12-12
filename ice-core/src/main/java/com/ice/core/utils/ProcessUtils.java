@@ -13,16 +13,15 @@ public final class ProcessUtils {
     }
 
     /*
-     * 节点运行情况
-     * O outOfTime (不在节点执行时间)
-     * E error (错误)
-     * T true F false  (flow&result节点)
-     * R reject(前置节点未通过)
-     * N None节点 或没有子节点的关系节点,或全是None节点的非True节点的关系节点
-     * [节点ID:执行类名:执行结果:执行耗时(以handler开始执行到本节点执行完毕时间)]
-     * 另:
-     * 1.-INV表示该节点要反转
-     * 2.节点的执行时间为相邻节点的差值
+     * node run state
+     * O outOfTime (not in execute time)
+     * E error
+     * T true F false
+     * R reject(the forward return false)
+     * N None
+     * [iceNodeId:process class name:process return:time used]
+     * remarks:
+     * 1.-INV inverse active
      */
     public static void collectInfo(StringBuilder sb, BaseNode node, long start, NodeRunStateEnum stateEnum) {
         if (node.isIceNodeDebug()) {
@@ -48,13 +47,7 @@ public final class ProcessUtils {
     }
 
     /*
-     * 节点运行情况
-     * O outOfTime (不在节点执行时间)
-     * E error (错误)
-     * T true F false  (flow&result节点)
-     * R reject(前置节点未通过)
-     * N None节点 或没有子节点的关系节点,或全是None节点的非True节点的关系节点
-     * [节点ID:执行类名:执行结果]
+     * [iceNodeId:process class name:process return]
      */
     public static void collectInfo(StringBuilder sb, BaseNode node, char state) {
         if (node.isIceNodeDebug()) {
@@ -64,7 +57,7 @@ public final class ProcessUtils {
     }
 
     /*
-     * 拒绝执行信息
+     * reject info
      */
     public static void collectRejectInfo(StringBuilder sb, BaseNode node) {
         if (node.isIceNodeDebug()) {

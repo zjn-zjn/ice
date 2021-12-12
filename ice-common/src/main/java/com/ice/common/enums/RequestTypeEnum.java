@@ -5,15 +5,14 @@ import java.util.Map;
 
 /**
  * @author zjn
- * 请求类型
  */
 public enum RequestTypeEnum {
     /*
-     * 正式请求 默认
+     * formal request default
      */
     FORMAL((byte) 1),
     /*
-     * 预演/模拟/测试
+     * preview/imitate/test
      */
     PREVIEW((byte) 2);
 

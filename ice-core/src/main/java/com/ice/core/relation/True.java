@@ -8,16 +8,13 @@ import com.ice.core.utils.IceLinkedList;
 
 /**
  * @author zjn
- * 结果--TRUE关系
- * 子节点全部执行
- * 无子节点--TRUE
- * 有子节点--TRUE
+ * relation TRUE
+ * all child will execute
+ * return TRUE
  */
 public final class True extends BaseRelation {
     /*
      * process relation true
-     *
-     *
      */
     @Override
     protected NodeRunStateEnum processNode(IceContext cxt) {

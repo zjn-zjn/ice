@@ -20,8 +20,6 @@ public abstract class BaseLeafPackNone extends BaseLeafNone {
 
     /*
      * process leaf none with pack
-     *
-     * @param pack
      */
     protected abstract void doPackNone(IcePack pack);
 }

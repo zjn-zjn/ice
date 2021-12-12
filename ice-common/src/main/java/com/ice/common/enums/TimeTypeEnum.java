@@ -9,19 +9,19 @@ import java.util.Map;
  */
 public enum TimeTypeEnum {
     /*
-     * 无时间限制
+     * no limit
      */
     NONE((byte) 1),
     /*
-     * 大于开始时间
+     * after start time
      */
     AFTER_START((byte) 5),
     /*
-     * 小于结束时间
+     * before end time
      */
     BEFORE_END((byte) 6),
     /*
-     * 在开始时间与结束时间之内
+     * between start&end(both closed interval)
      */
     BETWEEN((byte) 7);
 

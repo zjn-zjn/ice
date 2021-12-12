@@ -13,39 +13,33 @@ import java.util.Set;
 
 /**
  * @author zjn
- * 通过scene和iceId获取到的由配置产生的具体的执行者
+ * the handler find by scene/iceId
  */
 @Slf4j
 @Data
 public final class IceHandler {
 
     /*
-     * iceId
+     * iceId(db base_id)
      */
     private long iceId;
 
     /*
-     * 场景
+     * triggered scenes
      */
     private Set<String> scenes;
     /*
-     * 时间类型
-     *
      * @see TimeTypeEnum
      */
     private TimeTypeEnum timeTypeEnum;
-    /*
-     * 开始时间
-     */
+
     private long start;
-    /*
-     * 结束时间
-     */
+
     private long end;
 
     /*
      * handler的debug
-     * 控制着入参,出参与执行过程的打印
+     * control pack process roam print
      */
     private byte debug;
 

@@ -88,6 +88,16 @@ public class IceClientConfig {
         return new DirectExchange(Constant.getConfExchange());
     }
 
+    @Bean(name = "iceConfClazzCheckExchange")
+    public DirectExchange iceConfClazzCheckExchange() {
+        return new DirectExchange(Constant.getConfClazzCheckExchange());
+    }
+
+    @Bean(name = "iceConfClazzCheckQueue")
+    public Queue iceConfClazzCheckQueue() {
+        return QueueBuilder.nonDurable(Constant.getConfClazzCheckQueue(properties.getApp())).autoDelete().build();
+    }
+
     @Bean(name = "iceAllConfIdExchange")
     public DirectExchange iceAllConfIdExchange() {
         return new DirectExchange(Constant.getAllConfIdExchange());
@@ -117,11 +127,33 @@ public class IceClientConfig {
         return BindingBuilder.bind(iceShowConfQueue).to(iceShowConfExchange).with(String.valueOf(properties.getApp()));
     }
 
+    @Bean("iceConfClazzCheckBinding")
+    public Binding iceConfClazzCheckBinding(
+            @Qualifier("iceConfClazzCheckQueue") Queue iceConfClazzCheckQueue,
+            @Qualifier("iceConfClazzCheckExchange") DirectExchange iceConfClazzCheckExchange) {
+        return BindingBuilder.bind(iceConfClazzCheckQueue).to(iceConfClazzCheckExchange).with(String.valueOf(properties.getApp()));
+    }
+
     @Bean("iceConfBinding")
     public Binding iceConfBinding(
             @Qualifier("iceConfQueue") Queue iceConfQueue,
             @Qualifier("iceConfExchange") DirectExchange iceConfExchange) {
         return BindingBuilder.bind(iceConfQueue).to(iceConfExchange).with(String.valueOf(properties.getApp()));
+    }
+
+    @Bean("iceConfClazzCheckMessageContainer")
+    public SimpleMessageListenerContainer iceConfClazzCheckMessageContainer(
+            @Qualifier("iceConfClazzCheckQueue") Queue iceConfClazzCheckQueue,
+            @Qualifier("iceConnectionFactory") ConnectionFactory iceConnectionFactory,
+            @Qualifier("iceRabbitTemplate") RabbitTemplate iceRabbitTemplate) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer(iceConnectionFactory);
+        container.setQueues(iceConfClazzCheckQueue);
+        container.setExposeListenerChannel(true);
+        container.setPrefetchCount(1);
+        container.setConcurrentConsumers(1);
+        container.setAcknowledgeMode(AcknowledgeMode.NONE);
+        container.setMessageListener(new IceConfClazzCheckListener(iceRabbitTemplate));
+        return container;
     }
 
     @Bean("iceShowConfMessageContainer")

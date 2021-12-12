@@ -31,5 +31,6 @@ public final class IceConfDto {
     private Boolean inverse;
 
     private String name;
+
     private Integer app;
 }

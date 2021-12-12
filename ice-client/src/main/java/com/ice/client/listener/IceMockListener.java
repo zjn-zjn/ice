@@ -9,7 +9,7 @@ import org.springframework.amqp.core.MessageListener;
 
 /**
  * @author zjn
- * mock信息
+ * handle mock msg
  */
 @Slf4j
 public class IceMockListener implements MessageListener {

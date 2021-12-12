@@ -5,8 +5,8 @@ import java.util.Map;
 
 /**
  * @author zjn
- * 节点执行结果
- * REJECT OUTTIME NONE 都不干预执行转向
+ * node run return
+ * REJECT OUTTIME NONE not control process
  */
 public enum NodeRunStateEnum {
 
@@ -19,7 +19,7 @@ public enum NodeRunStateEnum {
      */
     TRUE((byte) 1),
     /*
-     * 不参与节点运行结果
+     * none
      */
     NONE((byte) 2);
 

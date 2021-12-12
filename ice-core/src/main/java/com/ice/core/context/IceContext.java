@@ -5,42 +5,42 @@ import lombok.ToString;
 
 /**
  * @author zjn
- * Ice执行上下文
+ * Ice process context
  */
 @Data
 @ToString
 public final class IceContext {
 
     /*
-     * 进入ice开始执行的瞬间(cxt初始化瞬间)
+     * in ice process time (cxt init time)
      */
     private final long iceTime = System.currentTimeMillis();
     /*
-     * 执行的iceId
+     * process iceId
      */
     private long iceId;
     /*
-     * 请求内容
+     * user input
      */
     private IcePack pack;
     /*
-     * 当前正在执行的节点ID
+     * current processing nodeId
      */
     private long currentId;
     /*
-     * 当前正在执行的节点的父节点ID
+     * current processing node parentId
      */
     private long currentParentId;
     /*
-     * 当前循环点
+     * current loop
      */
     private int currentLoop;
     /*
-     * 当前正在执行节点的后置节点ID
+     * current processing node nextId
      */
     private long nextId;
     /*
-     * debug为true的节点执行过程信息
+     * node debug set true then process info
      */
     private StringBuilder processInfo = new StringBuilder();
 

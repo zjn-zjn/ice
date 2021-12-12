@@ -2,7 +2,6 @@ package com.ice.common.exception;
 
 /**
  * @author zjn
- * 申请结束并落盘数据exception
  */
 public class EndProcessStoreException extends RuntimeException {
 

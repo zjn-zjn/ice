@@ -20,8 +20,6 @@ public abstract class BaseLeafRoamResult extends BaseLeafPackResult {
 
     /*
      * process leaf result with roam
-     *
-     * @param roam
      */
     protected abstract boolean doRoamResult(IceRoam roam);
 }

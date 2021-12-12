@@ -7,7 +7,7 @@ import com.ice.server.model.PushData;
 import com.ice.server.model.WebResult;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceEditService;
-import com.ice.server.service.ServerService;
+import com.ice.server.service.IceServerService;
 import com.github.kevinsawicki.http.HttpRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,7 +37,7 @@ public class IceEditController {
     private IceBaseService iceBaseService;
 
     @Resource
-    private ServerService serverService;
+    private IceServerService iceServerService;
 
     @Value("${environment:dev}")
     private String environment;
@@ -52,7 +52,7 @@ public class IceEditController {
     @RequestMapping(value = "/ice/edit", method = RequestMethod.POST)
     public WebResult editBase(@RequestBody IceBaseVo baseVo) {
         WebResult result = editService.editBase(baseVo);
-        serverService.updateByEdit();
+        iceServerService.updateByEdit();
         return result;
     }
 
@@ -63,7 +63,7 @@ public class IceEditController {
     @RequestMapping(value = "/ice/conf/edit", method = RequestMethod.POST)
     public WebResult editConf(@RequestBody IceConfVo confVo) {
         WebResult result = editService.editConf(confVo.getApp(), confVo.getType(), confVo.getIceId(), confVo);
-        serverService.updateByEdit();
+        iceServerService.updateByEdit();
         return result;
     }
 
@@ -129,7 +129,7 @@ public class IceEditController {
     @RequestMapping(value = "/ice/conf/rollback", method = RequestMethod.GET)
     public WebResult exportData(@RequestParam Long pushId) {
         iceBaseService.rollback(pushId);
-        serverService.updateByEdit();
+        iceServerService.updateByEdit();
         return WebResult.success();
     }
 
@@ -139,7 +139,7 @@ public class IceEditController {
     @RequestMapping(value = "/ice/conf/import", method = RequestMethod.POST)
     public WebResult importData(@RequestBody Map map) {
         iceBaseService.importData(JSON.parseObject((String) map.get("data"), PushData.class));
-        serverService.updateByEdit();
+        iceServerService.updateByEdit();
         return WebResult.success();
     }
 }

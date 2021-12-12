@@ -2,7 +2,6 @@ package com.ice.common.exception;
 
 /**
  * @author zjn
- * 申请结束执行exception
  */
 public class EndProcessException extends RuntimeException {
 

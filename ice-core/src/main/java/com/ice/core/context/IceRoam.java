@@ -5,8 +5,7 @@ import java.util.Map;
 
 /**
  * @author zjn
- * Ice中执行的游荡字段的结构
- * 在HashMap的基础上使用String化的key对Ice做拓展
+ * based on HashMap extend
  */
 public final class IceRoam extends HashMap<String, Object> {
 
@@ -28,7 +27,7 @@ public final class IceRoam extends HashMap<String, Object> {
     }
 
     /*
-     * 以'.'为介质Key存储层次化的自定义结构
+     * use '.' split key achieve arrangement
      *
      * @param multiKey multiKey
      * @param value value
@@ -40,7 +39,7 @@ public final class IceRoam extends HashMap<String, Object> {
         }
         String[] keys = multiKey.split("\\.");
         if (keys.length == 1) {
-            /*只有一个*/
+            /*just one*/
             return (T) put(keys[0], value);
         }
         Map<String, Object> endMap = this;
@@ -65,7 +64,7 @@ public final class IceRoam extends HashMap<String, Object> {
     }
 
     /*
-     * 通过以'.'为介质的Key查找
+     * use '.' split key to find arrangement value
      *
      * @param multiKey multiKey
      * @return value
@@ -97,8 +96,8 @@ public final class IceRoam extends HashMap<String, Object> {
     }
 
     /*
-     * 多源联合获取值
-     * 前缀是@的字符串指向roam内部获取数据
+     * Multi source find value value
+     * prefix with '@' string directing to roam value
      *
      * @param union unionObj
      * @return value

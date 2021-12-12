@@ -64,7 +64,7 @@ public class IceShowConfListener implements MessageListener {
     }
 
     private String getAddress() {
-        address = address == null ? AddressUtils.getAddressPort() : address;
+        address = address == null ? AddressUtils.getAddress() : address;
         return address;
     }
 

@@ -5,16 +5,11 @@ import java.util.Map;
 
 /**
  * @author zjn
- * 上下架类型
  */
 public enum StatusEnum {
-    /*
-     * 上架
-     */
+
     ONLINE((byte) 1),
-    /*
-     * 下架
-     */
+
     OFFLINE((byte) 0);
 
     private static final Map<Byte, StatusEnum> MAP = new HashMap<>();

@@ -14,7 +14,7 @@ import com.ice.server.dao.model.IceBaseExample;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.dao.model.IceConfExample;
 import com.ice.server.model.ServerConstant;
-import com.ice.server.service.ServerService;
+import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.InitializingBean;
@@ -30,7 +30,7 @@ import java.util.*;
  */
 @Slf4j
 @Service
-public class ServerServiceImpl implements ServerService, InitializingBean {
+public class IceServerServiceImpl implements IceServerService, InitializingBean {
 
     private static final Set<Integer> appSet = new HashSet<>();
 
@@ -39,15 +39,22 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
      * key:app value baseList
      */
     private final Map<Integer, Map<Long, IceBase>> baseActiveMap = new HashMap<>();
+
+    private final Map<Integer, Map<Long, Set<Long>>> fromSetMap = new HashMap<>();
+    private final Map<Integer, Map<Long, Set<Long>>> toSetMap = new HashMap<>();
     /*
      * key:app value conf
      */
     private final Map<Integer, Map<Long, IceConf>> confActiveMap = new HashMap<>();
     private final Map<Integer, Map<Byte, Map<String, Integer>>> leafClassMap = new HashMap<>();
     /*
-     * 上次更新时间
+     * last update base
      */
-    private Date lastUpdateTime;
+    private Date lastBaseUpdateTime;
+    /*
+     * last update conf
+     */
+    private Date lastConfUpdateTime;
     private volatile long version;
     @Resource
     private IceBaseMapper baseMapper;
@@ -58,9 +65,7 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
     @Resource
     private AmqpTemplate amqpTemplate;
 
-    /*
-     * 根据confId获取配置信息
-     */
+
     @Override
     public IceConf getActiveConfById(Integer app, Long confId) {
         Map<Long, IceConf> confMap = confActiveMap.get(app);
@@ -111,29 +116,31 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
     }
 
     /*
-     * 定时任务,距上次执行完成20s后执行
+     * update by schedule
      */
     @Scheduled(fixedDelay = 20000)
     private void update() {
         Date now = new Date();
+        Date lastMaxBaseDate = lastBaseUpdateTime;
+        Date lastMaxConfDate = lastConfUpdateTime;
         Map<Integer, Set<Long>> deleteConfMap = new HashMap<>(appSet.size());
         Map<Integer, Set<Long>> deleteBaseMap = new HashMap<>(appSet.size());
 
         Map<Integer, Map<Long, IceConf>> activeChangeConfMap = new HashMap<>(appSet.size());
         Map<Integer, Map<Long, IceBase>> activeChangeBaseMap = new HashMap<>(appSet.size());
 
-        /*先找数据库里的变化*/
+        /*find change in db*/
         IceConfExample confExample = new IceConfExample();
-        confExample.createCriteria().andUpdateAtGreaterThan(lastUpdateTime).andUpdateAtLessThanOrEqualTo(now);
+        confExample.createCriteria().andUpdateAtGreaterThan(lastConfUpdateTime).andUpdateAtLessThanOrEqualTo(now);
         List<IceConf> confList = confMapper.selectByExample(confExample);
         if (!CollectionUtils.isEmpty(confList)) {
-            log.info("===============change conf list:{}", JSON.toJSONString(confList));
-        }
-        if (!CollectionUtils.isEmpty(confList)) {
             for (IceConf conf : confList) {
+                if (conf.getUpdateAt().after(lastMaxConfDate)) {
+                    lastMaxConfDate = conf.getUpdateAt();
+                }
                 appSet.add(conf.getApp());
                 if (conf.getStatus() == StatusEnum.OFFLINE.getStatus()) {
-                    /*手动更新下线*/
+                    /*update offline in db by hand*/
                     deleteConfMap.computeIfAbsent(conf.getApp(), k -> new HashSet<>()).add(conf.getId());
                     continue;
                 }
@@ -141,29 +148,30 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
             }
         }
         IceBaseExample baseExample = new IceBaseExample();
-        baseExample.createCriteria().andUpdateAtGreaterThan(lastUpdateTime).andUpdateAtLessThanOrEqualTo(now);
+        baseExample.createCriteria().andUpdateAtGreaterThan(lastBaseUpdateTime).andUpdateAtLessThanOrEqualTo(now);
         List<IceBase> baseList = baseMapper.selectByExample(baseExample);
         if (!CollectionUtils.isEmpty(baseList)) {
-            log.info("===============change base list:{}", JSON.toJSONString(baseList));
-        }
-        if (!CollectionUtils.isEmpty(baseList)) {
             for (IceBase base : baseList) {
+                if (base.getUpdateAt().after(lastMaxBaseDate)) {
+                    lastMaxBaseDate = base.getUpdateAt();
+                }
                 appSet.add(base.getApp());
                 if (base.getStatus() == StatusEnum.OFFLINE.getStatus()) {
-                    /*更新下线*/
+                    /*update offline in db by hand*/
                     deleteBaseMap.computeIfAbsent(base.getApp(), k -> new HashSet<>()).add(base.getId());
                     continue;
                 }
                 activeChangeBaseMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
             }
         }
-        /*更新本地缓存*/
+        /*update local cache*/
         long updateVersion = updateLocal(deleteBaseMap, deleteConfMap, activeChangeBaseMap,
                 activeChangeConfMap);
-        /*更新完毕 发送变更消息*/
+        /*send update msg to remote client*/
         sendChange(deleteConfMap, deleteBaseMap, activeChangeConfMap, activeChangeBaseMap, updateVersion);
-        /*更新时间*/
-        lastUpdateTime = now;
+        /*update time (why not update to now? to avoid timeline conflict)*/
+        lastBaseUpdateTime = lastMaxBaseDate;
+        lastConfUpdateTime = lastMaxConfDate;
     }
 
     private void sendChange(Map<Integer, Set<Long>> deleteConfMap,
@@ -207,7 +215,7 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
                 }
                 transferDto.setDeleteBaseIds(deleteBases);
             }
-            /*有更新就推送消息*/
+            /*send update msg to remote client while has change*/
             if (transferDto != null) {
                 transferDto.setVersion(updateVersion);
                 String message = JSON.toJSONString(transferDto);
@@ -218,9 +226,8 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
     }
 
     /*
-     * 更新本地cache
-     * 先处理删除,再处理插入与更新
-     * @return 当前更新版本
+     * update local cache
+     * first handle delete,then insert&update
      */
     private long updateLocal(Map<Integer, Set<Long>> deleteBaseMap,
                              Map<Integer, Set<Long>> deleteConfMap,
@@ -303,7 +310,8 @@ public class ServerServiceImpl implements ServerService, InitializingBean {
                 }
             }
         }
-        lastUpdateTime = now;
+        lastConfUpdateTime = now;
+        lastBaseUpdateTime = now;
     }
 
     /*

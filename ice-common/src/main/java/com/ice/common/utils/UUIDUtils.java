@@ -8,7 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public final class UUIDUtils {
 
     /*
-     * 采用64进制
+     * 64
      */
     private static final char[] DIGITS64 = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
             'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
@@ -19,7 +19,7 @@ public final class UUIDUtils {
     }
 
     /*
-     * 21-22位UUID
+     * 21-22 UUID
      */
     public static String generateMost22UUID() {
 
@@ -58,7 +58,7 @@ public final class UUIDUtils {
     }
 
     /*
-     * 无 - UUID
+     * without "-" UUID
      */
     public static String generateUUID() {
         byte[] randomBytes = new byte[16];
@@ -85,7 +85,7 @@ public final class UUIDUtils {
     }
 
     /*
-     * 22位UUID
+     * 22 UUID
      */
     public static String generateUUID22() {
         byte[] randomBytes = new byte[16];
@@ -104,7 +104,6 @@ public final class UUIDUtils {
             lsb = (lsb << 8) | (randomBytes[i] & 0xff);
         }
         char[] out = new char[24];
-        // 循环写法
         int bit = 0;
         int bt1 = 8;
         int bt2 = 8;

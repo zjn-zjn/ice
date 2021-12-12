@@ -27,8 +27,6 @@ public abstract class BaseLeafResult extends BaseLeaf {
 
     /*
      * process leaf result
-     *
-     *
      */
     protected abstract boolean doResult(IceContext cxt);
 }

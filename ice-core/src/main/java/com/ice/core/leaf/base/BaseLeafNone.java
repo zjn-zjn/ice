@@ -25,8 +25,6 @@ public abstract class BaseLeafNone extends BaseLeaf {
 
     /*
      * process leaf none
-     *
-     *
      */
     protected abstract void doNone(IceContext cxt);
 }

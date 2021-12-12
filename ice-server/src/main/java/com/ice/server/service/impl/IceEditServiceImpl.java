@@ -1,7 +1,5 @@
 package com.ice.server.service.impl;
 
-import com.alibaba.fastjson.JSON;
-import com.ice.common.constant.Constant;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
@@ -15,10 +13,9 @@ import com.ice.server.dao.model.IcePushHistoryExample;
 import com.ice.server.model.IceBaseVo;
 import com.ice.server.model.IceConfVo;
 import com.ice.server.model.IceLeafClass;
-import com.ice.server.model.PushData;
 import com.ice.server.model.WebResult;
 import com.ice.server.service.IceEditService;
-import com.ice.server.service.ServerService;
+import com.ice.server.service.IceServerService;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.page.PageMethod;
 import org.springframework.amqp.core.AmqpTemplate;
@@ -47,7 +44,7 @@ public class IceEditServiceImpl implements IceEditService {
     private IcePushHistoryMapper pushHistoryMapper;
 
     @Resource
-    private ServerService serverService;
+    private IceServerService iceServerService;
 
     @Resource
     private AmqpTemplate amqpTemplate;
@@ -457,7 +454,7 @@ public class IceEditServiceImpl implements IceEditService {
     public WebResult getLeafClass(int app, byte type) {
         WebResult<List> result = new WebResult<>();
         List<IceLeafClass> list = new ArrayList<>();
-        Map<String, Integer> leafClassMap = serverService.getLeafClassMap(app, type);
+        Map<String, Integer> leafClassMap = iceServerService.getLeafClassMap(app, type);
         if (leafClassMap != null) {
             for (Map.Entry<String, Integer> entry : leafClassMap.entrySet()) {
                 IceLeafClass leafClass = new IceLeafClass();
