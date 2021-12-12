@@ -1,6 +1,6 @@
 package com.ice.server.config;
 
-import com.ice.common.constant.Constant;
+import com.ice.server.constant.Constant;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.context.annotation.Bean;

@@ -1,7 +1,7 @@
 package com.ice.client.config;
 
+import com.ice.client.constant.Constant;
 import com.ice.client.listener.*;
-import com.ice.common.constant.Constant;
 import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.core.Binding;
@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 
 import javax.annotation.Resource;
 
@@ -42,6 +43,7 @@ public class IceClientConfig {
     }
 
     @Bean(name = "iceUpdateQueue")
+    @DependsOn("addressUtils")
     public Queue iceUpdateQueue() {
         return QueueBuilder.nonDurable(Constant.genUpdateTmpQueue()).exclusive().autoDelete().build();
     }

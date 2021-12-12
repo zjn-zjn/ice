@@ -1,10 +1,10 @@
-package com.ice.common.constant;
+package com.ice.client.constant;
 
-import com.ice.common.utils.AddressUtils;
+import com.ice.client.utils.AddressUtils;
 
 /**
  * @author zjn
- * 常量
+ * client constant
  */
 public final class Constant {
 

@@ -1,4 +1,4 @@
-package com.ice.server.model;
+package com.ice.server.constant;
 
 import com.ice.common.dto.IceBaseDto;
 import com.ice.common.dto.IceConfDto;
@@ -14,7 +14,46 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 
-public final class ServerConstant {
+public final class Constant {
+
+    public static String getUpdateExchange() {
+        return "ice.update.exchange";
+    }
+
+    @Deprecated
+    public static String getShowConfExchange() {
+        return "ice.show.conf.exchange";
+    }
+
+    public static String getConfExchange() {
+        return "ice.conf.exchange";
+    }
+
+    public static String getConfClazzCheckExchange() {
+        return "ice.conf.clazz.check.exchange";
+    }
+
+    public static String getAllConfIdExchange() {
+        return "ice.all.conf.id.exchange";
+    }
+
+    public static String getMockExchange() {
+        return "ice.mock.exchange";
+    }
+
+    public static String getInitExchange() {
+        return "ice.init.exchange";
+    }
+
+    public static String getUpdateRouteKey(Integer app) {
+        return "ice.update." + app;
+    }
+
+    @Deprecated
+    public static String getShowConfQueue(Integer app) {
+        return "ice.show.conf." + app;
+    }
+
     /**
      * base convert to dto
      * some filed has default value so delete it to improve trans
@@ -132,7 +171,7 @@ public final class ServerConstant {
         }
         Collection<IceConfDto> results = new ArrayList<>(confList.size());
         for (IceConf conf : confList) {
-            results.add(ServerConstant.confToDto(conf));
+            results.add(Constant.confToDto(conf));
         }
         return results;
     }
@@ -143,7 +182,7 @@ public final class ServerConstant {
         }
         Collection<IceConfDto> results = new ArrayList<>(confList.size());
         for (IceConf conf : confList) {
-            results.add(ServerConstant.confToDtoWithName(conf));
+            results.add(Constant.confToDtoWithName(conf));
         }
         return results;
     }
@@ -154,7 +193,7 @@ public final class ServerConstant {
         }
         Collection<IceBaseDto> results = new ArrayList<>(baseList.size());
         for (IceBase base : baseList) {
-            results.add(ServerConstant.baseToDto(base));
+            results.add(Constant.baseToDto(base));
         }
         return results;
     }
@@ -165,7 +204,7 @@ public final class ServerConstant {
         }
         Collection<IceConf> results = new ArrayList<>(dtoList.size());
         for (IceConfDto dto : dtoList) {
-            results.add(ServerConstant.dtoToConf(dto, app));
+            results.add(Constant.dtoToConf(dto, app));
         }
         return results;
     }

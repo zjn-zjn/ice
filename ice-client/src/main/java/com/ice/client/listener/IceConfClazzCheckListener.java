@@ -1,7 +1,7 @@
 package com.ice.client.listener;
 
 import com.ice.common.enums.NodeTypeEnum;
-import com.ice.common.utils.AddressUtils;
+import com.ice.client.utils.AddressUtils;
 import com.ice.core.leaf.base.BaseLeafFlow;
 import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;

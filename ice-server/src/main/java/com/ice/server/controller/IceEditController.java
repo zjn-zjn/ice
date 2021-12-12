@@ -51,6 +51,7 @@ public class IceEditController {
     @Deprecated
     @RequestMapping(value = "/ice/edit", method = RequestMethod.POST)
     public WebResult editBase(@RequestBody IceBaseVo baseVo) {
+        baseVo.setStatus((byte) 1);
         WebResult result = editService.editBase(baseVo);
         iceServerService.updateByEdit();
         return result;

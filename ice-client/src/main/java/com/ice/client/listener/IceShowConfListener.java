@@ -6,7 +6,7 @@ import com.alibaba.fastjson.serializer.SerializeConfig;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.alibaba.fastjson.serializer.SimplePropertyPreFilter;
 import com.ice.common.codec.IceLongCodec;
-import com.ice.common.utils.AddressUtils;
+import com.ice.client.utils.AddressUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
 import com.ice.core.cache.IceConfCache;

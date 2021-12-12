@@ -26,7 +26,7 @@ public class IceInitHandler {
     }
 
     @RabbitListener(bindings = @QueueBinding(
-            exchange = @Exchange("#{T(com.ice.common.constant.Constant).getInitExchange()}"),
+            exchange = @Exchange("#{T(com.ice.server.constant.Constant).getInitExchange()}"),
             value = @Queue(value = "ice.init.queue",
                     durable = "true")))
     public String processMessage(Message message) {

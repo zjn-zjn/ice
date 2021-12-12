@@ -3,7 +3,6 @@ package com.ice.server.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.page.PageMethod;
-import com.ice.common.constant.Constant;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.StatusEnum;
 import com.ice.server.dao.mapper.IceBaseMapper;
@@ -15,7 +14,7 @@ import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceBaseSearch;
 import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
-import com.ice.server.model.ServerConstant;
+import com.ice.server.constant.Constant;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
@@ -129,7 +128,7 @@ public class IceBaseServiceImpl implements IceBaseService {
     private PushData getPushData(IceBase base) {
         PushData pushData = new PushData();
         pushData.setApp(base.getApp());
-        pushData.setBase(ServerConstant.baseToDtoWithName(base));
+        pushData.setBase(Constant.baseToDtoWithName(base));
         Object obj = amqpTemplate.convertSendAndReceive(Constant.getAllConfIdExchange(), String.valueOf(base.getApp()),
                 String.valueOf(base.getId()));
         if (obj != null) {
@@ -140,7 +139,7 @@ public class IceBaseServiceImpl implements IceBaseService {
                     IceConfExample confExample = new IceConfExample();
                     confExample.createCriteria().andAppEqualTo(base.getApp()).andIdIn(allIds);
                     List<IceConf> iceConfs = iceConfMapper.selectByExample(confExample);
-                    pushData.setConfs(ServerConstant.confListToDtoListWithName(iceConfs));
+                    pushData.setConfs(Constant.confListToDtoListWithName(iceConfs));
                 }
             }
         }
@@ -191,7 +190,7 @@ public class IceBaseServiceImpl implements IceBaseService {
     @Override
     @Transactional
     public void importData(PushData data) {
-        Collection<IceConf> confs = ServerConstant.dtoListToConfList(data.getConfs(), data.getApp());
+        Collection<IceConf> confs = Constant.dtoListToConfList(data.getConfs(), data.getApp());
         if (!CollectionUtils.isEmpty(confs)) {
             for (IceConf conf : confs) {
                 IceConf oldConf = iceConfMapper.selectByPrimaryKey(conf.getId());
@@ -203,7 +202,7 @@ public class IceBaseServiceImpl implements IceBaseService {
                 }
             }
         }
-        IceBase base = ServerConstant.dtoToBase(data.getBase(), data.getApp());
+        IceBase base = Constant.dtoToBase(data.getBase(), data.getApp());
         if (base != null) {
             IceBase oldBase = iceBaseMapper.selectByPrimaryKey(base.getId());
             base.setUpdateAt(new Date());

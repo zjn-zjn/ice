@@ -1,7 +1,6 @@
 package com.ice.server.service.impl;
 
 import com.alibaba.fastjson.JSON;
-import com.ice.common.constant.Constant;
 import com.ice.common.dto.IceBaseDto;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.dto.IceTransferDto;
@@ -13,7 +12,7 @@ import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceBaseExample;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.dao.model.IceConfExample;
-import com.ice.server.model.ServerConstant;
+import com.ice.server.constant.Constant;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
@@ -87,7 +86,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     public void addLeafClass(Integer app, Byte type, String className) {
-        if (ServerConstant.isLeaf(type)) {
+        if (Constant.isLeaf(type)) {
             Map<Byte, Map<String, Integer>> map = leafClassMap.get(app);
             Map<String, Integer> classMap;
             if (map == null) {
@@ -186,7 +185,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
                 transferDto = new IceTransferDto();
                 Collection<IceConfDto> confDtoList = new ArrayList<>(insertOrUpdateConfMap.values().size());
                 for (IceConf conf : insertOrUpdateConfMap.values()) {
-                    confDtoList.add(ServerConstant.confToDto(conf));
+                    confDtoList.add(Constant.confToDto(conf));
                 }
                 transferDto.setInsertOrUpdateConfs(confDtoList);
             }
@@ -197,7 +196,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
                 }
                 Collection<IceBaseDto> baseDtoList = new ArrayList<>(insertOrUpdateBaseMap.values().size());
                 for (IceBase base : insertOrUpdateBaseMap.values()) {
-                    baseDtoList.add(ServerConstant.baseToDto(base));
+                    baseDtoList.add(Constant.baseToDto(base));
                 }
                 transferDto.setInsertOrUpdateBases(baseDtoList);
             }
@@ -287,7 +286,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             for (IceConf conf : confList) {
                 appSet.add(conf.getApp());
                 confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getId(), conf);
-                if (ServerConstant.isLeaf(conf.getType())) {
+                if (Constant.isLeaf(conf.getType())) {
                     Map<Byte, Map<String, Integer>> map = leafClassMap.get(conf.getApp());
                     Map<String, Integer> classMap;
                     if (map == null) {
@@ -322,7 +321,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         if (map == null) {
             return Collections.emptyList();
         }
-        return ServerConstant.confListToDtoList(map.values());
+        return Constant.confListToDtoList(map.values());
     }
 
     /*
@@ -333,7 +332,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         if (map == null) {
             return Collections.emptyList();
         }
-        return ServerConstant.baseListToDtoList(map.values());
+        return Constant.baseListToDtoList(map.values());
     }
 
     /*

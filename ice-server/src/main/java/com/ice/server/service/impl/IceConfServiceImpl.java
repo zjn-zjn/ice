@@ -2,7 +2,6 @@ package com.ice.server.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONValidator;
-import com.ice.common.constant.Constant;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.IceClientConf;
 import com.ice.common.model.IceClientNode;
@@ -11,7 +10,7 @@ import com.ice.server.dao.model.IceConf;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceLeafClass;
-import com.ice.server.model.ServerConstant;
+import com.ice.server.constant.Constant;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +57,7 @@ public class IceConfServiceImpl implements IceConfService {
             if (conf.getApp() == null) {
                 throw new ErrorCodeException(ErrorCode.CAN_NOT_NULL, "app");
             }
-            if (ServerConstant.isLeaf(conf.getType())) {
+            if (Constant.isLeaf(conf.getType())) {
                 leafClassCheck(conf.getApp(), conf.getConfName(), conf.getType());
             }
             if (parentId != null) {
@@ -100,7 +99,7 @@ public class IceConfServiceImpl implements IceConfService {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "confId", conf.getId());
         }
         Byte type = conf.getType() == null ? oldConf.getType() : conf.getType();
-        if (ServerConstant.isLeaf(type)) {
+        if (Constant.isLeaf(type)) {
             String clazz = StringUtils.hasLength(conf.getConfName()) ? conf.getConfName() : oldConf.getConfName();
             if (!(type.equals(oldConf.getType()) && clazz.equals(oldConf.getConfName()))) {
                 leafClassCheck(oldConf.getApp(), clazz, type);

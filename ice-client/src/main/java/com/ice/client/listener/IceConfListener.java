@@ -8,7 +8,7 @@ import com.alibaba.fastjson.serializer.SimplePropertyPreFilter;
 import com.ice.common.codec.IceLongCodec;
 import com.ice.common.model.IceClientConf;
 import com.ice.common.model.IceClientNode;
-import com.ice.common.utils.AddressUtils;
+import com.ice.client.utils.AddressUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
 import com.ice.core.cache.IceConfCache;

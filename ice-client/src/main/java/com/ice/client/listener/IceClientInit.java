@@ -2,7 +2,7 @@ package com.ice.client.listener;
 
 import com.alibaba.fastjson.JSON;
 import com.ice.client.config.IceClientProperties;
-import com.ice.common.constant.Constant;
+import com.ice.client.constant.Constant;
 import com.ice.common.exception.IceException;
 import com.ice.common.dto.IceTransferDto;
 import lombok.extern.slf4j.Slf4j;

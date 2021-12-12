@@ -1,7 +1,7 @@
 package com.ice.server.controller;
 
 import com.alibaba.fastjson.JSON;
-import com.ice.common.constant.Constant;
+import com.ice.server.constant.Constant;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.model.WebResult;
 import com.ice.server.service.IceEditService;
