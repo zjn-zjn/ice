@@ -3,11 +3,11 @@ server:
 spring:
   rabbitmq:
     port: 5672
-    host: 47.101.147.51
+    host: 127.0.0.1
     username: admin
     password: admin
   datasource:
-    url: jdbc:mysql://47.101.147.51:3306/ice?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://127.0.0.1:3306/ice?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
     username: zjn
-    password: 5%0hfbQ|Qm7tbQn
+    password: zjn
 environment: dev
