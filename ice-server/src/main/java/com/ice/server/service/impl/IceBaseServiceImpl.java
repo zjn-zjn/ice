@@ -63,6 +63,7 @@ public class IceBaseServiceImpl implements IceBaseService {
 
     private IceBaseExample searchToExample(IceBaseSearch search) {
         IceBaseExample example = new IceBaseExample();
+        example.setOrderByClause("update_at desc");
         IceBaseExample.Criteria criteria = example.createCriteria();
         criteria.andStatusEqualTo((byte) 1);
         if (search.getApp() != null) {
@@ -72,10 +73,10 @@ public class IceBaseServiceImpl implements IceBaseService {
             criteria.andIdEqualTo(search.getBaseId());
             return example;
         }
-        if (!StringUtils.isEmpty(search.getName())) {
+        if (StringUtils.hasLength(search.getName())) {
             criteria.andNameLike(search.getName() + "%");
         }
-        if (!StringUtils.isEmpty(search.getScene())) {
+        if (StringUtils.hasLength(search.getScene())) {
             criteria.andScenesFindInSet(search.getScene());
         }
         return example;
@@ -133,7 +134,7 @@ public class IceBaseServiceImpl implements IceBaseService {
                 String.valueOf(base.getId()));
         if (obj != null) {
             String json = (String) obj;
-            if (!StringUtils.isEmpty(json)) {
+            if (StringUtils.hasLength(json)) {
                 List<Long> allIds = JSON.parseArray(json, Long.class);
                 if (!CollectionUtils.isEmpty(allIds)) {
                     IceConfExample confExample = new IceConfExample();

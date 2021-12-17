@@ -213,7 +213,7 @@ public class IceEditServiceImpl implements IceEditService {
                         if (!CollectionUtils.isEmpty(confList)) {
                             IceConf operateConf = confList.get(0);
                             String sonIdStr = operateConf.getSonIds();
-                            if (!StringUtils.isEmpty(sonIdStr)) {
+                            if (StringUtils.hasLength(sonIdStr)) {
                                 String[] sonIdStrs = sonIdStr.split(",");
                                 StringBuilder sb = new StringBuilder();
                                 for (String idStr : sonIdStrs) {
@@ -370,7 +370,7 @@ public class IceEditServiceImpl implements IceEditService {
                             List<IceConf> confList = confMapper.selectByExample(confExample);
                             if (!CollectionUtils.isEmpty(confList)) {
                                 IceConf conf = confList.get(0);
-                                if (!StringUtils.isEmpty(conf.getSonIds())) {
+                                if (StringUtils.hasLength(conf.getSonIds())) {
                                     String[] sonIds = conf.getSonIds().split(",");
                                     if (sonIds.length <= 1) {
                                         break;
@@ -410,7 +410,7 @@ public class IceEditServiceImpl implements IceEditService {
                             List<IceConf> confList = confMapper.selectByExample(confExample);
                             if (!CollectionUtils.isEmpty(confList)) {
                                 IceConf conf = confList.get(0);
-                                if (!StringUtils.isEmpty(conf.getSonIds())) {
+                                if (StringUtils.hasLength(conf.getSonIds())) {
                                     String[] sonIds = conf.getSonIds().split(",");
                                     if (sonIds.length <= 1) {
                                         break;
@@ -494,7 +494,7 @@ public class IceEditServiceImpl implements IceEditService {
 //                String.valueOf(iceId));
 //        if (obj != null) {
 //            String json = (String) obj;
-//            if (!StringUtils.isEmpty(json)) {
+//            if (StringUtils.hasLength(json)) {
 //                Map map = JSON.parseObject(json, Map.class);
 //                if (!CollectionUtils.isEmpty(map)) {
 //                    Map handlerMap = (Map) map.get("handler");
@@ -586,7 +586,7 @@ public class IceEditServiceImpl implements IceEditService {
 //                String.valueOf(iceId));
 //        if (obj != null) {
 //            String json = (String) obj;
-//            if (!StringUtils.isEmpty(json)) {
+//            if (StringUtils.hasLength(json)) {
 //                Map map = JSON.parseObject(json, Map.class);
 //                if (!CollectionUtils.isEmpty(map)) {
 //                    Map handlerMap = (Map) map.get("handler");

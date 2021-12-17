@@ -59,7 +59,7 @@ public class IceShowController {
                 String.valueOf(iceId));
         if (obj != null) {
             String json = (String) obj;
-            if (!StringUtils.isEmpty(json)) {
+            if (StringUtils.hasLength(json)) {
                 Map map = JSON.parseObject(json, Map.class);
                 if (!CollectionUtils.isEmpty(map)) {
                     Map handlerMap = (Map) map.get("handler");
@@ -136,13 +136,13 @@ public class IceShowController {
         map.put("showConf", showConf);
         IceConf iceConf = iceServerService.getActiveConfById(app, nodeId);
         if (iceConf != null) {
-            if (!StringUtils.isEmpty(iceConf.getName())) {
+            if (StringUtils.hasLength(iceConf.getName())) {
                 showConf.put("nodeName", iceConf.getName());
             }
-            if (!StringUtils.isEmpty(iceConf.getConfField())) {
+            if (StringUtils.hasLength(iceConf.getConfField())) {
                 showConf.put("confField", iceConf.getConfField());
             }
-            if (!StringUtils.isEmpty(iceConf.getConfName())) {
+            if (StringUtils.hasLength(iceConf.getConfName())) {
                 showConf.put("confName", iceConf.getId() + "-" + iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1));
             }
             if (iceConf.getType() != null) {

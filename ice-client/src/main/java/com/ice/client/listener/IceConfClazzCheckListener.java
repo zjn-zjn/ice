@@ -1,7 +1,7 @@
 package com.ice.client.listener;
 
-import com.ice.common.enums.NodeTypeEnum;
 import com.ice.client.utils.AddressUtils;
+import com.ice.common.enums.NodeTypeEnum;
 import com.ice.core.leaf.base.BaseLeafFlow;
 import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;
@@ -44,28 +44,28 @@ public class IceConfClazzCheckListener implements MessageListener {
             boolean res = false;
             switch (typeEnum) {
                 case ALL:
-                    res = clientClazz.isAssignableFrom(All.class);
+                    res = All.class.isAssignableFrom(clientClazz);
                     break;
                 case AND:
-                    res = clientClazz.isAssignableFrom(And.class);
+                    res = And.class.isAssignableFrom(clientClazz);
                     break;
                 case NONE:
-                    res = clientClazz.isAssignableFrom(None.class);
+                    res = None.class.isAssignableFrom(clientClazz);
                     break;
                 case TRUE:
-                    res = clientClazz.isAssignableFrom(True.class);
+                    res = True.class.isAssignableFrom(clientClazz);
                     break;
                 case ANY:
-                    res = clientClazz.isAssignableFrom(Any.class);
+                    res = Any.class.isAssignableFrom(clientClazz);
                     break;
                 case LEAF_FLOW:
-                    res = clientClazz.isAssignableFrom(BaseLeafFlow.class);
+                    res = BaseLeafFlow.class.isAssignableFrom(clientClazz);
                     break;
                 case LEAF_NONE:
-                    res = clientClazz.isAssignableFrom(BaseLeafNone.class);
+                    res = BaseLeafNone.class.isAssignableFrom(clientClazz);
                     break;
                 case LEAF_RESULT:
-                    res = clientClazz.isAssignableFrom(BaseLeafResult.class);
+                    res = BaseLeafResult.class.isAssignableFrom(clientClazz);
                     break;
             }
             if (res) {

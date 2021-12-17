@@ -73,7 +73,7 @@ public final class Constant {
         if (base.getTimeType() != null && base.getTimeType() != TimeTypeEnum.NONE.getType()) {
             dto.setTimeType(base.getTimeType());
         }
-        if (!StringUtils.isEmpty(base.getScenes())) {
+        if (StringUtils.hasLength(base.getScenes())) {
             dto.setScenes(base.getScenes());
         }
         return dto;
@@ -106,10 +106,10 @@ public final class Constant {
         }
         if (isLeaf(conf.getType())) {
             dto.setConfName(conf.getConfName());
-            if (!StringUtils.isEmpty(conf.getConfField()) && !conf.getConfField().equals("{}")) {
+            if (StringUtils.hasLength(conf.getConfField()) && !conf.getConfField().equals("{}")) {
                 dto.setConfField(conf.getConfField());
             }
-        } else if (!StringUtils.isEmpty(conf.getSonIds())) {
+        } else if (StringUtils.hasLength(conf.getSonIds())) {
             dto.setSonIds(conf.getSonIds());
         }
         if (conf.getInverse() != null && conf.getInverse() != 0) {
@@ -156,7 +156,7 @@ public final class Constant {
         if (isLeaf(dto.getType())) {
             conf.setConfName(dto.getConfName());
             conf.setConfField(StringUtils.isEmpty(dto.getConfField()) ? "" : dto.getConfField());
-        } else if (!StringUtils.isEmpty(dto.getSonIds())) {
+        } else if (StringUtils.hasLength(dto.getSonIds())) {
             conf.setSonIds(dto.getSonIds());
         }
         conf.setInverse(dto.getInverse() == null ? (byte) 0 : (dto.getInverse() ? (byte) 0 : (byte) 1));

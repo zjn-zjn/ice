@@ -132,7 +132,7 @@ public class IceConfServiceImpl implements IceConfService {
         if (app == null || !StringUtils.hasLength(clazz) || typeEnum == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR);
         }
-        Object obj = amqpTemplate.convertSendAndReceive(Constant.getConfExchange(), String.valueOf(app), clazz + "," + type);
+        Object obj = amqpTemplate.convertSendAndReceive(Constant.getConfClazzCheckExchange(), String.valueOf(app), clazz + "," + type);
         if (obj == null) {
             throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app);
         }
@@ -142,7 +142,7 @@ public class IceConfServiceImpl implements IceConfService {
         }
         String[] res = resStr.split(",");
         if ("1".equals(res[0])) {
-            return res[1];
+            return null;
         }
         throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, res[1]);
     }
