@@ -5,6 +5,8 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.page.PageMethod;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.StatusEnum;
+import com.ice.common.enums.TimeTypeEnum;
+import com.ice.server.constant.Constant;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IcePushHistoryMapper;
@@ -14,7 +16,6 @@ import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceBaseSearch;
 import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
-import com.ice.server.constant.Constant;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
@@ -85,7 +86,7 @@ public class IceBaseServiceImpl implements IceBaseService {
     @Override
     @Transactional
     public Long baseEdit(IceBase base) {
-        base.setUpdateAt(new Date());
+        timeHandle(base);
         if (base.getId() == null) {
             /*for the new base, you need to create a new root in conf. the default root is none*/
             if (base.getConfId() == null) {
@@ -101,8 +102,40 @@ public class IceBaseServiceImpl implements IceBaseService {
             iceBaseMapper.insertSelective(base);
             return base.getId();
         }
-        iceBaseMapper.updateByPrimaryKeySelective(base);
+        iceBaseMapper.updateByPrimaryKey(base);
         return base.getId();
+    }
+
+    private static void timeHandle(IceBase base) {
+        base.setUpdateAt(new Date());
+        TimeTypeEnum typeEnum = TimeTypeEnum.getEnum(base.getTimeType());
+        if (typeEnum == null) {
+            base.setTimeType(TimeTypeEnum.NONE.getType());
+            typeEnum = TimeTypeEnum.NONE;
+        }
+        switch (typeEnum) {
+            case NONE:
+                base.setStart(null);
+                base.setEnd(null);
+                break;
+            case AFTER_START:
+                if (base.getStart() == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "start null");
+                }
+                base.setEnd(null);
+                break;
+            case BEFORE_END:
+                if (base.getEnd() == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "end null");
+                }
+                base.setStart(null);
+                break;
+            case BETWEEN:
+                if (base.getStart() == null || base.getEnd() == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "start|end null");
+                }
+                break;
+        }
     }
 
     @Override

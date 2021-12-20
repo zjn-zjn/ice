@@ -5,10 +5,10 @@ import com.alibaba.fastjson.serializer.JSONSerializer;
 import com.alibaba.fastjson.serializer.SerializeConfig;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.alibaba.fastjson.serializer.SimplePropertyPreFilter;
+import com.ice.client.utils.AddressUtils;
 import com.ice.common.codec.IceLongCodec;
 import com.ice.common.model.IceClientConf;
 import com.ice.common.model.IceClientNode;
-import com.ice.client.utils.AddressUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
 import com.ice.core.cache.IceConfCache;
@@ -106,15 +106,15 @@ public class IceConfListener implements MessageListener {
         if (forward != null) {
             IceClientNode forwardNode = assembleNode(forward);
             if (forwardNode != null) {
-                clientNode.setIceForward(forwardNode);
+                clientNode.setForward(forwardNode);
             }
         }
-        clientNode.setIceNodeId(node.getIceNodeId());
-        clientNode.setIceTimeTypeEnum(node.getIceTimeTypeEnum());
-        clientNode.setIceStart(node.getIceStart());
-        clientNode.setIceEnd(node.getIceEnd());
-        clientNode.setIceNodeDebug(node.isIceNodeDebug());
-        clientNode.setIceInverse(node.isIceInverse());
+        clientNode.setId(node.getIceNodeId());
+        clientNode.setTimeType(node.getIceTimeTypeEnum().getType());
+        clientNode.setStart(node.getIceStart() == 0 ? null : node.getIceStart());
+        clientNode.setEnd(node.getIceEnd() == 0 ? null : node.getIceEnd());
+        clientNode.setDebug(node.isIceNodeDebug() ? null : node.isIceNodeDebug());
+        clientNode.setInverse(node.isIceInverse() ? node.isIceInverse() : null);
         return clientNode;
     }
 

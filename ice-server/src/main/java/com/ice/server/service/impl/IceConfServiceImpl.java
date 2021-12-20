@@ -3,14 +3,15 @@ package com.ice.server.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONValidator;
 import com.ice.common.enums.NodeTypeEnum;
+import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.model.IceClientConf;
 import com.ice.common.model.IceClientNode;
+import com.ice.server.constant.Constant;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceLeafClass;
-import com.ice.server.constant.Constant;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +40,7 @@ public class IceConfServiceImpl implements IceConfService {
     @Override
     @Transactional
     public Long confEdit(IceConf conf, Long parentId, Long nextId) {
-        conf.setUpdateAt(new Date());
+        timeHandle(conf);
         if (StringUtils.hasLength(conf.getConfField())) {
             JSONValidator validator = JSONValidator.from(conf.getConfField());
             if (!validator.validate()) {
@@ -105,8 +106,40 @@ public class IceConfServiceImpl implements IceConfService {
                 leafClassCheck(oldConf.getApp(), clazz, type);
             }
         }
-        iceConfMapper.updateByPrimaryKeySelective(conf);
+        iceConfMapper.updateByPrimaryKey(conf);
         return conf.getId();
+    }
+
+    private static void timeHandle(IceConf conf) {
+        conf.setUpdateAt(new Date());
+        TimeTypeEnum typeEnum = TimeTypeEnum.getEnum(conf.getTimeType());
+        if (typeEnum == null) {
+            conf.setTimeType(TimeTypeEnum.NONE.getType());
+            typeEnum = TimeTypeEnum.NONE;
+        }
+        switch (typeEnum) {
+            case NONE:
+                conf.setStart(null);
+                conf.setEnd(null);
+                break;
+            case AFTER_START:
+                if (conf.getStart() == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "start null");
+                }
+                conf.setEnd(null);
+                break;
+            case BEFORE_END:
+                if (conf.getEnd() == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "end null");
+                }
+                conf.setStart(null);
+                break;
+            case BETWEEN:
+                if (conf.getStart() == null || conf.getEnd() == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "start|end null");
+                }
+                break;
+        }
     }
 
     @Override
@@ -171,8 +204,8 @@ public class IceConfServiceImpl implements IceConfService {
         if (clientNode == null) {
             return;
         }
-        Long nodeId = clientNode.getIceNodeId();
-        IceClientNode forward = clientNode.getIceForward();
+        Long nodeId = clientNode.getId();
+        IceClientNode forward = clientNode.getForward();
         if (forward != null) {
             forward.setNextId(nodeId);
         }
@@ -189,21 +222,22 @@ public class IceConfServiceImpl implements IceConfService {
     }
 
     private void assembleInfoInServer(Integer app, IceClientNode clientNode) {
-        Long nodeId = clientNode.getIceNodeId();
+        Long nodeId = clientNode.getId();
         IceConf iceConf = iceServerService.getActiveConfById(app, nodeId);
         if (iceConf != null) {
+            if (Constant.isRelation(iceConf.getType()) && StringUtils.hasLength(iceConf.getSonIds())) {
+                clientNode.setSonIds(iceConf.getSonIds());
+            }
             if (StringUtils.hasLength(iceConf.getName())) {
-                clientNode.setNodeName(iceConf.getName());
+                clientNode.setName(iceConf.getName());
             }
             if (StringUtils.hasLength(iceConf.getConfField())) {
                 clientNode.setConfField(iceConf.getConfField());
             }
             if (StringUtils.hasLength(iceConf.getConfName())) {
-                clientNode.setConfName(iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1));
+                clientNode.setConfName(iceConf.getConfName());
             }
-            if (iceConf.getType() != null) {
-                clientNode.setNodeType(iceConf.getType());
-            }
+            clientNode.setType(iceConf.getType());
         }
     }
 }

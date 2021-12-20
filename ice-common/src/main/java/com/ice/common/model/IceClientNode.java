@@ -1,6 +1,5 @@
 package com.ice.common.model;
 
-import com.ice.common.enums.TimeTypeEnum;
 import lombok.Data;
 
 import java.util.List;
@@ -9,31 +8,32 @@ import java.util.List;
 public class IceClientNode {
 
     //info in remote client
-    private long iceNodeId;
+    private long id;
 
-    private TimeTypeEnum iceTimeTypeEnum;
+    private Byte timeType;
 
-    private long iceStart;
+    private Long start;
 
-    private long iceEnd;
+    private Long end;
 
-    private boolean iceNodeDebug;
+    private Boolean debug;
 
-    private boolean iceInverse;
+    private Boolean inverse;
 
-    private IceClientNode iceForward;
+    private IceClientNode forward;
 
     private List<IceClientNode> children;
 
     //info in server
-
-    private Byte nodeType;
+    private Byte type;
 
     private Long parentId;
 
     private Long nextId;
 
-    private String nodeName;
+    private String sonIds;
+
+    private String name;
 
     private String confName;
 

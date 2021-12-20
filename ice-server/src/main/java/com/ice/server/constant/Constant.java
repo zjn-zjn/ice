@@ -212,4 +212,8 @@ public final class Constant {
     public static boolean isLeaf(byte type) {
         return type == NodeTypeEnum.LEAF_FLOW.getType() || type == NodeTypeEnum.LEAF_NONE.getType() || type == NodeTypeEnum.LEAF_RESULT.getType();
     }
+
+    public static boolean isRelation(byte type) {
+        return type == NodeTypeEnum.AND.getType() || type == NodeTypeEnum.ANY.getType() || type == NodeTypeEnum.ALL.getType() || type == NodeTypeEnum.NONE.getType() || type == NodeTypeEnum.TRUE.getType();
+    }
 }
