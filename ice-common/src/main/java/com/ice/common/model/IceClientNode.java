@@ -25,7 +25,7 @@ public class IceClientNode {
     private List<IceClientNode> children;
 
     //info in server
-    private Byte type;
+    private Byte nodeType;
 
     private Long parentId;
 

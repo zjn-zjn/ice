@@ -54,6 +54,7 @@ public class IceConfServiceImpl implements IceConfService {
     @Override
     @Transactional
     public Long confAddSon(Integer app, IceConf conf, Long parentId) {
+        conf.setId(null);
         conf.setApp(app);
         paramHandle(conf);
         IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
@@ -103,6 +104,7 @@ public class IceConfServiceImpl implements IceConfService {
     @Override
     @Transactional
     public Long confAddForward(Integer app, IceConf conf, Long nextId) {
+        conf.setId(null);
         conf.setApp(app);
         paramHandle(conf);
         IceConf next = iceConfMapper.selectByPrimaryKey(nextId);
@@ -232,6 +234,45 @@ public class IceConfServiceImpl implements IceConfService {
         } else {
             parent.setSonIds(null);
         }
+        parent.setUpdateAt(new Date());
+        iceConfMapper.updateByPrimaryKey(parent);
+        return parentId;
+    }
+
+    @Override
+    @Transactional
+    public Long confSonMove(Integer app, Long parentId, Long sonId, Integer originIndex, Integer toIndex) {
+        if(originIndex == null || toIndex == null){
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "originIndex|toIndex");
+        }
+        if(originIndex.equals(toIndex)){
+            return parentId;
+        }
+        IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
+        if (parent == null || !parent.getApp().equals(app)) {
+            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
+        }
+        if (!StringUtils.hasLength(parent.getSonIds())) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son");
+        }
+        String[] sonIdStrs = parent.getSonIds().split(",");
+        String sonIdStr = sonId + "";
+        if (originIndex < 0 || originIndex >= sonIdStrs.length || !sonIdStrs[originIndex].equals(sonIdStr)) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son with input origin index");
+        }
+        if (toIndex < 0 || toIndex >= sonIdStrs.length) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "input to index illegal");
+        }
+        sonIdStrs[originIndex] = sonIdStrs[toIndex];
+        sonIdStrs[toIndex] = sonIdStr;
+        StringBuilder sb = new StringBuilder();
+        for (String idStr : sonIdStrs) {
+            if (idStr != null) {
+                sb.append(idStr).append(",");
+            }
+        }
+        String str = sb.toString();
+        parent.setSonIds(str.substring(0, str.length() - 1));
         parent.setUpdateAt(new Date());
         iceConfMapper.updateByPrimaryKey(parent);
         return parentId;
@@ -402,7 +443,7 @@ public class IceConfServiceImpl implements IceConfService {
             if (StringUtils.hasLength(iceConf.getConfName())) {
                 clientNode.setConfName(iceConf.getConfName());
             }
-            clientNode.setType(iceConf.getType());
+            clientNode.setNodeType(iceConf.getType());
         }
     }
 }

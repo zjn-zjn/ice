@@ -90,6 +90,17 @@ public class IceConfController {
         return id;
     }
 
+    @RequestMapping(value = "/ice-server/conf/son/move", method = RequestMethod.POST)
+    public Long confSonMove(@RequestParam Integer app,
+                            @RequestParam Long parentId,
+                            @RequestParam Long sonId,
+                            @RequestParam Integer originIndex,
+                            @RequestParam Integer toIndex) {
+        Long id = iceConfService.confSonMove(app, parentId, sonId, originIndex, toIndex);
+        iceServerService.updateByEdit();
+        return id;
+    }
+
     @RequestMapping(value = "/ice-server/conf/son/delete", method = RequestMethod.POST)
     public Long confSonDelete(@RequestParam Integer app,
                               @RequestParam Long sonId,
