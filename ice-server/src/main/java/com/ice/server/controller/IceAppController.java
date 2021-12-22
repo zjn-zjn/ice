@@ -31,7 +31,7 @@ public class IceAppController {
     @RequestMapping(value = "/ice-server/app/edit", method = RequestMethod.POST)
     public Long appEdit(@RequestBody IceApp app) {
         if (app == null) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR);
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app");
         }
         return iceAppService.appEdit(app);
     }

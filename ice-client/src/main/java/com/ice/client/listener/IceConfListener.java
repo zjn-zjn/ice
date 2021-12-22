@@ -109,7 +109,7 @@ public class IceConfListener implements MessageListener {
                 clientNode.setForward(forwardNode);
             }
         }
-        clientNode.setId(node.getIceNodeId());
+        clientNode.setId(node.getIceNodeId() + "");
         clientNode.setTimeType(node.getIceTimeTypeEnum().getType());
         clientNode.setStart(node.getIceStart() == 0 ? null : node.getIceStart());
         clientNode.setEnd(node.getIceEnd() == 0 ? null : node.getIceEnd());

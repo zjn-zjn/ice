@@ -44,7 +44,7 @@ public class IceBaseController {
     @RequestMapping(value = "/ice-server/base/edit", method = RequestMethod.POST)
     public Long baseEdit(@RequestBody IceBase base) {
         if (base == null) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR);
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "base");
         }
         Long id = iceBaseService.baseEdit(base);
         iceServerService.updateByEdit();

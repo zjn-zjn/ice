@@ -8,7 +8,7 @@ import java.util.List;
 public class IceClientNode {
 
     //info in remote client
-    private long id;
+    private String id;
 
     private Byte timeType;
 
@@ -28,6 +28,8 @@ public class IceClientNode {
     private Byte type;
 
     private Long parentId;
+
+    private Integer index;
 
     private Long nextId;
 

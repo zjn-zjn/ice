@@ -1,8 +1,6 @@
 package com.ice.server.dao.model;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class IceConfExample {
     protected String orderByClause;
@@ -146,6 +144,11 @@ public class IceConfExample {
         }
 
         public Criteria andIdIn(List<Long> values) {
+            addCriterion("id in", values, "id");
+            return (Criteria) this;
+        }
+
+        public Criteria andIdIn(Set<Long> values) {
             addCriterion("id in", values, "id");
             return (Criteria) this;
         }
@@ -1194,7 +1197,7 @@ public class IceConfExample {
             this.condition = condition;
             this.value = value;
             this.typeHandler = typeHandler;
-            if (value instanceof List<?>) {
+            if (value instanceof Collection<?>) {
                 this.listValue = true;
             } else {
                 this.singleValue = true;

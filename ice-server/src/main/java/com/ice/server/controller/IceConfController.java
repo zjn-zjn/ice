@@ -25,11 +25,77 @@ public class IceConfController {
     @Resource
     private IceServerService iceServerService;
 
+    @RequestMapping(value = "/ice-server/conf/add/son", method = RequestMethod.POST)
+    public Long confAddSon(@RequestParam Integer app,
+                           @RequestBody IceConf conf,
+                           @RequestParam Long parentId) {
+        Long id = iceConfService.confAddSon(app, conf, parentId);
+        iceServerService.updateByEdit();
+        return id;
+    }
+
+    @RequestMapping(value = "/ice-server/conf/add/forward", method = RequestMethod.POST)
+    public Long confAddForward(@RequestParam Integer app,
+                               @RequestBody IceConf conf,
+                               @RequestParam Long nextId) {
+        Long id = iceConfService.confAddForward(app, conf, nextId);
+        iceServerService.updateByEdit();
+        return id;
+    }
+
+    @RequestMapping(value = "/ice-server/conf/add/son/ids", method = RequestMethod.POST)
+    public Long confAddSonIds(@RequestParam Integer app,
+                              @RequestParam Long parentId,
+                              @RequestParam String sonIds) {
+        Long id = iceConfService.confAddSonIds(app, sonIds, parentId);
+        iceServerService.updateByEdit();
+        return id;
+    }
+
+    @RequestMapping(value = "/ice-server/conf/add/forward/id", method = RequestMethod.POST)
+    public Long confAddForwardId(@RequestParam Integer app,
+                                 @RequestParam Long forwardId,
+                                 @RequestParam Long nextId) {
+        Long id = iceConfService.confAddForwardId(app, forwardId, nextId);
+        iceServerService.updateByEdit();
+        return id;
+    }
+
+    @RequestMapping(value = "/ice-server/conf/edit/id", method = RequestMethod.POST)
+    public Long confEditId(@RequestParam Integer app,
+                           @RequestParam Long nodeId,
+                           @RequestParam Long exchangeId,
+                           @RequestParam(required = false) Long parentId,
+                           @RequestParam(required = false) Long nextId,
+                           @RequestParam(required = false) Integer index) {
+        Long id = iceConfService.confEditId(app, nodeId, exchangeId, parentId, nextId, index);
+        iceServerService.updateByEdit();
+        return id;
+    }
+
     @RequestMapping(value = "/ice-server/conf/edit", method = RequestMethod.POST)
-    public Long confEdit(@RequestBody IceConf conf, @RequestParam(required = false) Long parentId, @RequestParam(required = false) Long nextId) {
-        //conf node edit-delete just pick up from parent
-        conf.setStatus((byte) 1);
-        Long id = iceConfService.confEdit(conf, parentId, nextId);
+    public Long confEdit(@RequestParam Integer app,
+                         @RequestBody IceConf conf) {
+        Long id = iceConfService.confEdit(app, conf);
+        iceServerService.updateByEdit();
+        return id;
+    }
+
+    @RequestMapping(value = "/ice-server/conf/forward/delete", method = RequestMethod.POST)
+    public Long confForwardDelete(@RequestParam Integer app,
+                                  @RequestParam Long forwardId,
+                                  @RequestParam Long nextId) {
+        Long id = iceConfService.confForwardDelete(app, forwardId, nextId);
+        iceServerService.updateByEdit();
+        return id;
+    }
+
+    @RequestMapping(value = "/ice-server/conf/son/delete", method = RequestMethod.POST)
+    public Long confSonDelete(@RequestParam Integer app,
+                              @RequestParam Long sonId,
+                              @RequestParam Long parentId,
+                              @RequestParam Integer index) {
+        Long id = iceConfService.confSonDelete(app, sonId, parentId, index);
         iceServerService.updateByEdit();
         return id;
     }
