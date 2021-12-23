@@ -75,11 +75,17 @@ public class IceConfServiceImpl implements IceConfService {
 
     @Override
     @Transactional
-    public Long confAddSonIds(Integer app, String sonIds, Long parentId) {
+    public List<Long> confAddSonIds(Integer app, String sonIds, Long parentId) {
         String[] sonIdStrs = sonIds.split(",");
         Set<Long> sonIdSet = new HashSet<>(sonIdStrs.length);
+        List<Long> sonIdList = new ArrayList<>(sonIdStrs.length);
         for (String sonIdStr : sonIdStrs) {
-            sonIdSet.add(Long.valueOf(sonIdStr));
+            Long sonId = Long.valueOf(sonIdStr);
+            sonIdSet.add(sonId);
+            sonIdList.add(sonId);
+        }
+        if (iceServerService.haveCircle(parentId, sonIdList)) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check sonIds");
         }
         IceConfExample example = new IceConfExample();
         example.createCriteria().andAppEqualTo(app).andIdIn(sonIdSet);
@@ -98,7 +104,7 @@ public class IceConfServiceImpl implements IceConfService {
         }
         parent.setUpdateAt(new Date());
         iceConfMapper.updateByPrimaryKey(parent);
-        return parentId;
+        return sonIdList;
     }
 
     @Override
@@ -124,6 +130,9 @@ public class IceConfServiceImpl implements IceConfService {
     @Override
     @Transactional
     public Long confAddForwardId(Integer app, Long forwardId, Long nextId) {
+        if (iceServerService.haveCircle(nextId, forwardId)) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check forwardId");
+        }
         IceConf forward = iceConfMapper.selectByPrimaryKey(forwardId);
         if (forward == null || !forward.getApp().equals(app)) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "forwardId", forwardId);
@@ -153,6 +162,9 @@ public class IceConfServiceImpl implements IceConfService {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "exchangeId", exchangeId);
         }
         if (parentId != null) {
+            if (iceServerService.haveCircle(parentId, exchangeId)) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check exchangeId");
+            }
             IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
             if (parent == null || !parent.getApp().equals(app)) {
                 throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
@@ -176,6 +188,9 @@ public class IceConfServiceImpl implements IceConfService {
             return parentId;
         }
         if (nextId != null) {
+            if (iceServerService.haveCircle(nextId, exchangeId)) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check exchangeId");
+            }
             IceConf next = iceConfMapper.selectByPrimaryKey(nextId);
             if (next == null || !next.getApp().equals(app)) {
                 throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", nextId);
@@ -242,10 +257,10 @@ public class IceConfServiceImpl implements IceConfService {
     @Override
     @Transactional
     public Long confSonMove(Integer app, Long parentId, Long sonId, Integer originIndex, Integer toIndex) {
-        if(originIndex == null || toIndex == null){
+        if (originIndex == null || toIndex == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "originIndex|toIndex");
         }
-        if(originIndex.equals(toIndex)){
+        if (originIndex.equals(toIndex)) {
             return parentId;
         }
         IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
@@ -379,8 +394,10 @@ public class IceConfServiceImpl implements IceConfService {
         }
         String[] res = resStr.split(",");
         if ("1".equals(res[0])) {
+            iceServerService.addLeafClass(app, type, clazz);
             return null;
         }
+        iceServerService.removeLeafClass(app, type, clazz);
         throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, res[1]);
     }
 

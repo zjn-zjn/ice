@@ -31,6 +31,7 @@ public class IceConfController {
                            @RequestParam Long parentId) {
         Long id = iceConfService.confAddSon(app, conf, parentId);
         iceServerService.updateByEdit();
+        iceServerService.link(parentId, id);
         return id;
     }
 
@@ -40,16 +41,18 @@ public class IceConfController {
                                @RequestParam Long nextId) {
         Long id = iceConfService.confAddForward(app, conf, nextId);
         iceServerService.updateByEdit();
+        iceServerService.link(nextId, id);
         return id;
     }
 
     @RequestMapping(value = "/ice-server/conf/add/son/ids", method = RequestMethod.POST)
-    public Long confAddSonIds(@RequestParam Integer app,
-                              @RequestParam Long parentId,
-                              @RequestParam String sonIds) {
-        Long id = iceConfService.confAddSonIds(app, sonIds, parentId);
+    public List<Long> confAddSonIds(@RequestParam Integer app,
+                                    @RequestParam Long parentId,
+                                    @RequestParam String sonIds) {
+        List<Long> ids = iceConfService.confAddSonIds(app, sonIds, parentId);
         iceServerService.updateByEdit();
-        return id;
+        iceServerService.link(parentId, ids);
+        return ids;
     }
 
     @RequestMapping(value = "/ice-server/conf/add/forward/id", method = RequestMethod.POST)
@@ -58,6 +61,7 @@ public class IceConfController {
                                  @RequestParam Long nextId) {
         Long id = iceConfService.confAddForwardId(app, forwardId, nextId);
         iceServerService.updateByEdit();
+        iceServerService.link(nextId, forwardId);
         return id;
     }
 
@@ -70,6 +74,14 @@ public class IceConfController {
                            @RequestParam(required = false) Integer index) {
         Long id = iceConfService.confEditId(app, nodeId, exchangeId, parentId, nextId, index);
         iceServerService.updateByEdit();
+        if (parentId != null) {
+            iceServerService.unlink(parentId, nodeId);
+            iceServerService.link(parentId, exchangeId);
+        }
+        if (nextId != null) {
+            iceServerService.unlink(nextId, nodeId);
+            iceServerService.link(nextId, exchangeId);
+        }
         return id;
     }
 
@@ -87,6 +99,7 @@ public class IceConfController {
                                   @RequestParam Long nextId) {
         Long id = iceConfService.confForwardDelete(app, forwardId, nextId);
         iceServerService.updateByEdit();
+        iceServerService.unlink(nextId, forwardId);
         return id;
     }
 
@@ -108,6 +121,7 @@ public class IceConfController {
                               @RequestParam Integer index) {
         Long id = iceConfService.confSonDelete(app, sonId, parentId, index);
         iceServerService.updateByEdit();
+        iceServerService.unlink(parentId, sonId);
         return id;
     }
 

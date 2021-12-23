@@ -14,7 +14,7 @@ public interface IceConfService {
 
     Long confAddSon(Integer app, IceConf conf, Long parentId);
 
-    Long confAddSonIds(Integer app, String sonIds, Long parentId);
+    List<Long> confAddSonIds(Integer app, String sonIds, Long parentId);
 
     Long confAddForward(Integer app, IceConf conf, Long nextId);
 

@@ -37,7 +37,7 @@ public abstract class BaseNode {
     /*
      * inverse
      * 1.only effect TRUE&FALSE
-     * 2.not eddect on OUTTIME&NONE
+     * 2.not effect on OUT_TIME&NONE
      */
     private boolean iceInverse;
     /*
