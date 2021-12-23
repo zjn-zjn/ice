@@ -31,4 +31,6 @@ public interface IceServerService {
     void link(Long nodeId, List<Long> linkIds);
 
     void unlink(Long nodeId, Long linkId);
+
+    void exchangeLink(Long nodeId, Long originId, Long exchangeId);
 }

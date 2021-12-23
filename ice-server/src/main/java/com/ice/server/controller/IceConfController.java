@@ -75,12 +75,10 @@ public class IceConfController {
         Long id = iceConfService.confEditId(app, nodeId, exchangeId, parentId, nextId, index);
         iceServerService.updateByEdit();
         if (parentId != null) {
-            iceServerService.unlink(parentId, nodeId);
-            iceServerService.link(parentId, exchangeId);
+            iceServerService.exchangeLink(parentId, nodeId, exchangeId);
         }
         if (nextId != null) {
-            iceServerService.unlink(nextId, nodeId);
-            iceServerService.link(nextId, exchangeId);
+            iceServerService.exchangeLink(nextId, nodeId, exchangeId);
         }
         return id;
     }
