@@ -91,9 +91,13 @@ public class IceShowConfListener implements MessageListener {
                     handlerMap.put("iceId", handler.findIceId());
                     handlerMap.put("scenes", handler.getScenes());
                     handlerMap.put("debug", handler.getDebug());
-                    handlerMap.put("start", handler.getStart());
-                    handlerMap.put("end", handler.getEnd());
-                    handlerMap.put("timeTypeEnum", handler.getTimeTypeEnum());
+                    if (handler.getStart() != 0) {
+                        handlerMap.put("start", handler.getStart());
+                    }
+                    if (handler.getEnd() != 0) {
+                        handlerMap.put("end", handler.getEnd());
+                    }
+                    handlerMap.put("timeType", handler.getTimeTypeEnum().getType());
                     BaseNode root = handler.getRoot();
                     if (root != null) {
                         handlerMap.put("root", assembleNode(root));
@@ -129,30 +133,24 @@ public class IceShowConfListener implements MessageListener {
                 }
                 map.put("children", showChildren);
             }
-            BaseNode forward = relation.getIceForward();
-            if (forward != null) {
-                Map forwardMap = assembleNode(forward);
-                if (forwardMap != null) {
-                    map.put("iceForward", forwardMap);
-                }
-            }
-            map.put("iceNodeId", relation.getIceNodeId());
-            map.put("iceTimeTypeEnum", relation.getIceTimeTypeEnum());
-            map.put("iceStart", relation.getIceStart());
-            map.put("iceEnd", relation.getIceEnd());
-            map.put("iceNodeDebug", relation.isIceNodeDebug());
-            map.put("iceInverse", relation.isIceInverse());
-        } else {
-            map = JSON.parseObject(JSON.toJSONString(node, FAST_JSON_CONFIG, SPRING_BEAN_FILTER,
-                    SerializerFeature.DisableCircularReferenceDetect), Map.class);
-            BaseNode forward = node.getIceForward();
-            if (forward != null) {
-                Map forwardMap = assembleNode(forward);
-                if (forwardMap != null) {
-                    map.put("iceForward", forwardMap);
-                }
+        }
+        BaseNode forward = node.getIceForward();
+        if (forward != null) {
+            Map forwardMap = assembleNode(forward);
+            if (forwardMap != null) {
+                map.put("forward", forwardMap);
             }
         }
+        map.put("nodeId", node.getIceNodeId());
+        map.put("timeType", node.getIceTimeTypeEnum().getType());
+        if (node.getIceStart() != 0) {
+            map.put("start", node.getIceStart());
+        }
+        if (node.getIceEnd() != 0) {
+            map.put("end", node.getIceEnd());
+        }
+        map.put("debug", node.isIceNodeDebug());
+        map.put("inverse", node.isIceInverse());
         return map;
     }
 

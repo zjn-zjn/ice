@@ -1,7 +1,10 @@
 package com.ice.server.controller;
 
 import com.ice.common.model.IceClientConf;
+import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceConf;
+import com.ice.server.exception.ErrorCode;
+import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceLeafClass;
 import com.ice.server.model.WebResult;
 import com.ice.server.service.IceConfService;
@@ -134,7 +137,11 @@ public class IceConfController {
     }
 
     @RequestMapping(value = "/ice-server/conf/detail", method = RequestMethod.GET)
-    public IceClientConf confDetail(@RequestParam Integer app, @RequestParam Long confId) {
-        return iceConfService.confDetail(app, confId);
+    public IceClientConf confDetail(@RequestParam Integer app, @RequestParam Long iceId) {
+        IceBase base = iceServerService.getActiveBaseById(app, iceId);
+        if (base == null) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|iceId");
+        }
+        return iceConfService.confDetail(app, base.getConfId());
     }
 }

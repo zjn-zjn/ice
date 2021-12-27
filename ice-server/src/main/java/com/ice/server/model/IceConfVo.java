@@ -62,6 +62,10 @@ public class IceConfVo {
      */
     private Long parentId;
     /*
+     * index
+     */
+    private Integer index;
+    /*
      * 后置节点ID
      */
     private Long nextId;

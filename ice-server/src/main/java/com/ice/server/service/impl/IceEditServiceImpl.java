@@ -1,6 +1,9 @@
 package com.ice.server.service.impl;
 
+import com.alibaba.fastjson.JSONValidator;
 import com.ice.common.enums.NodeTypeEnum;
+import com.ice.common.enums.TimeTypeEnum;
+import com.ice.server.constant.Constant;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IcePushHistoryMapper;
@@ -10,10 +13,10 @@ import com.ice.server.dao.model.IceConf;
 import com.ice.server.dao.model.IceConfExample;
 import com.ice.server.dao.model.IcePushHistory;
 import com.ice.server.dao.model.IcePushHistoryExample;
-import com.ice.server.model.IceBaseVo;
-import com.ice.server.model.IceConfVo;
-import com.ice.server.model.IceLeafClass;
-import com.ice.server.model.WebResult;
+import com.ice.server.exception.ErrorCode;
+import com.ice.server.exception.ErrorCodeException;
+import com.ice.server.model.*;
+import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceEditService;
 import com.ice.server.service.IceServerService;
 import com.github.pagehelper.Page;
@@ -49,6 +52,9 @@ public class IceEditServiceImpl implements IceEditService {
     @Resource
     private AmqpTemplate amqpTemplate;
 
+    @Resource
+    private IceConfService iceConfService;
+
     public static boolean isRelation(IceConfVo dto) {
         return isRelation(dto.getNodeType());
     }
@@ -63,9 +69,22 @@ public class IceEditServiceImpl implements IceEditService {
      * get Base
      */
     @Override
-    public WebResult getBase(Integer app, Integer pageIndex, Integer pageSize) {
+    public WebResult getBase(Integer app, Integer pageIndex, Integer pageSize, Long id, String name, String scene) {
+        if (id != null) {
+            IceBase base = baseMapper.selectByPrimaryKey(id);
+            if (base != null) {
+                return new WebResult(Collections.singletonList(base));
+            }
+        }
         IceBaseExample example = new IceBaseExample();
-        example.createCriteria().andAppEqualTo(app);
+        IceBaseExample.Criteria criteria = example.createCriteria();
+        if (StringUtils.hasLength(name)) {
+            criteria.andNameLike(name + "%");
+        }
+        if (StringUtils.hasLength(scene)) {
+            criteria.andScenesFindInSet(scene);
+        }
+        criteria.andAppEqualTo(app);
         example.setOrderByClause("update_at desc");
         Page<IcePushHistory> startPage = PageMethod.startPage(pageIndex, pageSize);
         return new WebResult<>(baseMapper.selectByExample(example));
@@ -112,51 +131,107 @@ public class IceEditServiceImpl implements IceEditService {
      */
     @Override
     @Transactional
-    public WebResult editConf(Integer app, Integer type, Long iceId, IceConfVo confVo) {
-        WebResult result = new WebResult<>();
-
+    public EditResult editConf(Integer app, Integer type, Long iceId, IceConfVo confVo) {
+        EditResult result = new EditResult();
+        TimeTypeEnum typeEnum = TimeTypeEnum.getEnum(confVo.getTimeType());
+        if (typeEnum == null) {
+            confVo.setTimeType(TimeTypeEnum.NONE.getType());
+            typeEnum = TimeTypeEnum.NONE;
+        }
+        switch (typeEnum) {
+            case NONE:
+                confVo.setStart(null);
+                confVo.setEnd(null);
+                break;
+            case AFTER_START:
+                if (confVo.getStart() == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "start null");
+                }
+                confVo.setEnd(null);
+                break;
+            case BEFORE_END:
+                if (confVo.getEnd() == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "end null");
+                }
+                confVo.setStart(null);
+                break;
+            case BETWEEN:
+                if (confVo.getStart() == null || confVo.getEnd() == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "start|end null");
+                }
+                break;
+        }
+        if (confVo.getNodeType() != null && Constant.isRelation(confVo.getNodeType())) {
+            confVo.setConfName(null);
+            confVo.setConfField(null);
+        }
         switch (type) {
-            case 1:
+            case 1://新建
                 /*新建*/
                 if (confVo.getOperateNodeId() == null) {
                     /*新建根节点*/
-                    IceBaseExample baseExample = new IceBaseExample();
-                    baseExample.createCriteria().andAppEqualTo(app).andIdEqualTo(iceId);
-                    List<IceBase> baseList = baseMapper.selectByExample(baseExample);
-                    if (!CollectionUtils.isEmpty(baseList)) {
-                        IceBase base = baseList.get(0);
-                        Long rootId = base.getConfId() > 0 ? base.getConfId() : -base.getConfId();
-                        IceConfExample confExample = new IceConfExample();
-                        confExample.createCriteria().andIdEqualTo(rootId);
-                        IceConf conf = new IceConf();
-                        conf.setDebug(confVo.getDebug() ? (byte) 1 : (byte) 0);
-                        conf.setTimeType(confVo.getTimeType());
-                        conf.setStart(confVo.getStart() == null ? null : new Date(confVo.getStart()));
-                        conf.setEnd(confVo.getEnd() == null ? null : new Date(confVo.getEnd()));
-                        conf.setInverse(confVo.getInverse() ? (byte) 1 : (byte) 0);
-                        conf.setType(confVo.getNodeType());
-                        conf.setName(StringUtils.isEmpty(confVo.getName()) ? "" : confVo.getName());
-                        if (!isRelation(confVo)) {
-                            conf.setConfName(confVo.getConfName());
-                            conf.setConfField(StringUtils.isEmpty(confVo.getConfField()) ? "{}" : confVo.getConfField());
-                        }
-                        conf.setUpdateAt(new Date());
-                        confMapper.updateByExampleSelective(conf, confExample);
-                        base.setConfId(rootId);
-                        base.setUpdateAt(new Date());
-                        baseMapper.updateByExampleSelective(base, baseExample);
-                    }
+//                    IceBaseExample baseExample = new IceBaseExample();
+//                    baseExample.createCriteria().andAppEqualTo(app).andIdEqualTo(iceId);
+//                    List<IceBase> baseList = baseMapper.selectByExample(baseExample);
+//                    if (!CollectionUtils.isEmpty(baseList)) {
+//                        IceBase base = baseList.get(0);
+//                        Long rootId = base.getConfId() > 0 ? base.getConfId() : -base.getConfId();
+//                        IceConfExample confExample = new IceConfExample();
+//                        confExample.createCriteria().andIdEqualTo(rootId);
+//                        IceConf conf = new IceConf();
+//                        conf.setDebug(confVo.getDebug() ? (byte) 1 : (byte) 0);
+//                        conf.setTimeType(confVo.getTimeType());
+//                        conf.setStart(confVo.getStart() == null ? null : new Date(confVo.getStart()));
+//                        conf.setEnd(confVo.getEnd() == null ? null : new Date(confVo.getEnd()));
+//                        conf.setInverse(confVo.getInverse() ? (byte) 1 : (byte) 0);
+//                        conf.setType(confVo.getNodeType());
+//                        conf.setName(StringUtils.isEmpty(confVo.getName()) ? "" : confVo.getName());
+//                        if (!isRelation(confVo)) {
+//                            conf.setConfName(confVo.getConfName());
+//                            conf.setConfField(StringUtils.isEmpty(confVo.getConfField()) ? "{}" : confVo.getConfField());
+//                        }
+//                        conf.setUpdateAt(new Date());
+//                        confMapper.updateByExampleSelective(conf, confExample);
+//                        base.setConfId(rootId);
+//                        base.setUpdateAt(new Date());
+//                        baseMapper.updateByExampleSelective(base, baseExample);
+//                    }
                 } else {
-                    IceConfExample confExample = new IceConfExample();
-                    confExample.createCriteria().andIdEqualTo(confVo.getOperateNodeId()).andAppEqualTo(app);
-                    List<IceConf> confList = confMapper.selectByExample(confExample);
-                    if (!CollectionUtils.isEmpty(confList)) {
-                        IceConf operateConf = confList.get(0);
+                    IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getOperateNodeId());
+                    if (operateConf != null) {
+                        if(!isRelation(operateConf.getType())){
+                            result.setCode(-1);
+                            result.setMsg("only relation can have son");
+                            return result;
+                        }
                         if (confVo.getNodeId() != null) {
                             /*从已知节点ID添加*/
+                            String[] sonIdStrs = confVo.getNodeId().split(",");
+                            List<Long> sonIdList = new ArrayList<>(sonIdStrs.length);
+                            Set<Long> sonIdSet = new HashSet<>(sonIdStrs.length);
+                            for (String sonIdStr : sonIdStrs) {
+                                Long sonId = Long.valueOf(sonIdStr);
+                                sonIdList.add(sonId);
+                                sonIdSet.add(sonId);
+                            }
+                            if (iceServerService.haveCircle(operateConf.getId(), sonIdList)) {
+                                result.setCode(-1);
+                                result.setMsg("have circle");
+                                return result;
+                            }
+                            IceConfExample example = new IceConfExample();
+                            example.createCriteria().andAppEqualTo(app).andIdIn(sonIdSet);
+                            List<IceConf> children = confMapper.selectByExample(example);
+                            if (CollectionUtils.isEmpty(children) || children.size() != sonIdSet.size()) {
+                                result.setCode(-1);
+                                result.setMsg("one of son id not exist:" + confVo.getNodeId());
+                                return result;
+                            }
                             operateConf.setSonIds(StringUtils.isEmpty(operateConf.getSonIds()) ?
                                     String.valueOf(confVo.getNodeId()) :
                                     operateConf.getSonIds() + "," + confVo.getNodeId());
+                            result.setNodeId(operateConf.getId());
+                            result.setLinkIds(sonIdList);
                         } else {
                             IceConf createConf = new IceConf();
                             createConf.setDebug(confVo.getDebug() ? (byte) 1 : (byte) 0);
@@ -168,27 +243,41 @@ public class IceEditServiceImpl implements IceEditService {
                             createConf.setType(confVo.getNodeType());
                             createConf.setName(StringUtils.isEmpty(confVo.getName()) ? "" : confVo.getName());
                             if (!isRelation(confVo)) {
+                                if (StringUtils.hasLength(confVo.getConfField())) {
+                                    JSONValidator validator = JSONValidator.from(confVo.getConfField());
+                                    if (!validator.validate()) {
+                                        result.setMsg("confFiled json illegal");
+                                        result.setCode(-1);
+                                        return result;
+                                    }
+                                }
+                                try {
+                                    iceConfService.leafClassCheck(app, confVo.getConfName(), confVo.getNodeType());
+                                } catch (Exception e) {
+                                    result.setCode(-1);
+                                    result.setMsg(e.getMessage());
+                                    return result;
+                                }
                                 createConf.setConfName(confVo.getConfName());
-                                createConf.setConfField(StringUtils.isEmpty(confVo.getConfField()) ? "{}" : confVo.getConfField());
+                                createConf.setConfField(confVo.getConfField());
                             }
                             createConf.setUpdateAt(new Date());
                             confMapper.insertSelective(createConf);
                             operateConf.setSonIds(StringUtils.isEmpty(operateConf.getSonIds()) ?
                                     String.valueOf(createConf.getId()) :
                                     operateConf.getSonIds() + "," + createConf.getId());
+                            result.setNodeId(operateConf.getId());
+                            result.setLinkId(createConf.getId());
                         }
                         operateConf.setUpdateAt(new Date());
-                        confMapper.updateByExampleSelective(operateConf, confExample);
+                        confMapper.updateByPrimaryKey(operateConf);
                     }
                 }
                 break;
-            case 2:
+            case 2://编辑
                 if (confVo.getOperateNodeId() != null) {
-                    IceConfExample confExample = new IceConfExample();
-                    confExample.createCriteria().andIdEqualTo(confVo.getOperateNodeId()).andAppEqualTo(app);
-                    List<IceConf> confList = confMapper.selectByExample(confExample);
-                    if (!CollectionUtils.isEmpty(confList)) {
-                        IceConf operateConf = confList.get(0);
+                    IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getOperateNodeId());
+                    if (operateConf != null) {
                         operateConf.setDebug(confVo.getDebug() ? (byte) 1 : (byte) 0);
                         operateConf.setTimeType(confVo.getTimeType());
                         operateConf.setStart(confVo.getStart() == null ? null : new Date(confVo.getStart()));
@@ -196,22 +285,26 @@ public class IceEditServiceImpl implements IceEditService {
                         operateConf.setInverse(confVo.getInverse() ? (byte) 1 : (byte) 0);
                         operateConf.setName(StringUtils.isEmpty(confVo.getName()) ? "" : confVo.getName());
                         if (!isRelation(confVo)) {
-                            operateConf.setConfName(confVo.getConfName());
-                            operateConf.setConfField(StringUtils.isEmpty(confVo.getConfField()) ? "{}" : confVo.getConfField());
+                            if (StringUtils.hasLength(confVo.getConfField())) {
+                                JSONValidator validator = JSONValidator.from(confVo.getConfField());
+                                if (!validator.validate()) {
+                                    result.setMsg("confFiled json illegal");
+                                    result.setCode(-1);
+                                    return result;
+                                }
+                            }
+                            operateConf.setConfField(confVo.getConfField());
                         }
                         operateConf.setUpdateAt(new Date());
-                        confMapper.updateByExampleSelective(operateConf, confExample);
+                        confMapper.updateByPrimaryKey(operateConf);
                     }
                 }
                 break;
-            case 3:
+            case 3://删除
                 if (confVo.getOperateNodeId() != null) {
                     if (confVo.getParentId() != null) {
-                        IceConfExample confExample = new IceConfExample();
-                        confExample.createCriteria().andIdEqualTo(confVo.getParentId()).andAppEqualTo(app);
-                        List<IceConf> confList = confMapper.selectByExample(confExample);
-                        if (!CollectionUtils.isEmpty(confList)) {
-                            IceConf operateConf = confList.get(0);
+                        IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getParentId());
+                        if (operateConf != null) {
                             String sonIdStr = operateConf.getSonIds();
                             if (StringUtils.hasLength(sonIdStr)) {
                                 String[] sonIdStrs = sonIdStr.split(",");
@@ -227,50 +320,67 @@ public class IceEditServiceImpl implements IceEditService {
                                 } else {
                                     operateConf.setSonIds(str.substring(0, str.length() - 1));
                                 }
+                                result.setNodeId(confVo.getParentId());
+                                result.setUnLinkId(confVo.getOperateNodeId());
                                 operateConf.setUpdateAt(new Date());
-                                confMapper.updateByExampleSelective(operateConf, confExample);
+                                confMapper.updateByPrimaryKey(operateConf);
                             }
                         }
                     } else if (confVo.getNextId() != null) {
-                        IceConfExample confExample = new IceConfExample();
-                        confExample.createCriteria().andIdEqualTo(confVo.getNextId());
-                        List<IceConf> confList = confMapper.selectByExample(confExample);
-                        if (!CollectionUtils.isEmpty(confList)) {
-                            IceConf operateConf = confList.get(0);
+                        IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getNextId());
+                        if (operateConf != null) {
                             /*多校验一步*/
                             if (operateConf.getForwardId() != null && operateConf.getForwardId().equals(confVo.getOperateNodeId())) {
                                 operateConf.setForwardId(null);
                                 operateConf.setUpdateAt(new Date());
-                                confMapper.updateByExample(operateConf, confExample);
+                                result.setNodeId(confVo.getNextId());
+                                result.setUnLinkId(confVo.getOperateNodeId());
+                                confMapper.updateByPrimaryKey(operateConf);
                             }
                         }
-                    } else {
-                        /*该节点没有父节点和next 判断为根节点 根节点删除直接将base表中confId变成负数,避免只是为了改变根节点类型而直接全部删除重做*/
+                    } /*else {
+                     *//*该节点没有父节点和next 判断为根节点 根节点删除直接将base表中confId变成负数,避免只是为了改变根节点类型而直接全部删除重做*//*
                         IceBaseExample baseExample = new IceBaseExample();
                         baseExample.createCriteria().andAppEqualTo(app).andIdEqualTo(iceId);
                         List<IceBase> baseList = baseMapper.selectByExample(baseExample);
                         if (!CollectionUtils.isEmpty(baseList)) {
                             IceBase base = baseList.get(0);
                             if (base.getConfId().equals(confVo.getOperateNodeId())) {
-                                /*校验相等再变更*/
+                                *//*校验相等再变更*//*
                                 base.setConfId(-confVo.getOperateNodeId());
                                 base.setUpdateAt(new Date());
                                 baseMapper.updateByExampleSelective(base, baseExample);
                             }
                         }
-                    }
+                    }*/
                 }
                 break;
-            case 4:
+            case 4://新增前置
                 if (confVo.getOperateNodeId() != null) {
-                    IceConfExample confExample = new IceConfExample();
-                    confExample.createCriteria().andIdEqualTo(confVo.getOperateNodeId()).andAppEqualTo(app);
-                    List<IceConf> confList = confMapper.selectByExample(confExample);
-                    if (!CollectionUtils.isEmpty(confList)) {
-                        IceConf operateConf = confList.get(0);
+                    IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getOperateNodeId());
+                    if (operateConf != null) {
+                        if (operateConf.getForwardId() != null) {
+                            result.setCode(-1);
+                            result.setMsg("already have forward");
+                            return result;
+                        }
                         if (confVo.getNodeId() != null) {
                             /*从已知节点ID添加*/
-                            operateConf.setForwardId(Long.valueOf(confVo.getNodeId()));
+                            Long forwardId = Long.valueOf(confVo.getNodeId());
+                            if (iceServerService.haveCircle(operateConf.getId(), forwardId)) {
+                                result.setCode(-1);
+                                result.setMsg("have circle");
+                                return result;
+                            }
+                            IceConf forward = confMapper.selectByPrimaryKey(forwardId);
+                            if (forward == null) {
+                                result.setCode(-1);
+                                result.setMsg("id not exist:" + confVo.getNodeId());
+                                return result;
+                            }
+                            operateConf.setForwardId(forwardId);
+                            result.setNodeId(operateConf.getId());
+                            result.setLinkId(forwardId);
                         } else {
                             IceConf createConf = new IceConf();
                             createConf.setDebug(confVo.getDebug() ? (byte) 1 : (byte) 0);
@@ -282,15 +392,32 @@ public class IceEditServiceImpl implements IceEditService {
                             createConf.setApp(app);
                             createConf.setName(StringUtils.isEmpty(confVo.getName()) ? "" : confVo.getName());
                             if (!isRelation(confVo)) {
+                                if (StringUtils.hasLength(confVo.getConfField())) {
+                                    JSONValidator validator = JSONValidator.from(confVo.getConfField());
+                                    if (!validator.validate()) {
+                                        result.setMsg("confFiled json illegal");
+                                        result.setCode(-1);
+                                        return result;
+                                    }
+                                }
+                                try {
+                                    iceConfService.leafClassCheck(app, confVo.getConfName(), confVo.getNodeType());
+                                } catch (Exception e) {
+                                    result.setCode(-1);
+                                    result.setMsg(e.getMessage());
+                                    return result;
+                                }
                                 createConf.setConfName(confVo.getConfName());
-                                createConf.setConfField(StringUtils.isEmpty(confVo.getConfField()) ? "{}" : confVo.getConfField());
+                                createConf.setConfField(confVo.getConfField());
                             }
                             createConf.setUpdateAt(new Date());
                             confMapper.insertSelective(createConf);
                             operateConf.setForwardId(createConf.getId());
+                            result.setNodeId(operateConf.getId());
+                            result.setLinkId(createConf.getId());
                         }
                         operateConf.setUpdateAt(new Date());
-                        confMapper.updateByExampleSelective(operateConf, confExample);
+                        confMapper.updateByPrimaryKey(operateConf);
                     }
                 }
                 break;
@@ -299,63 +426,117 @@ public class IceEditServiceImpl implements IceEditService {
                 if (confVo.getOperateNodeId() != null) {
                     if (confVo.getNodeId() != null) {
                         /*把自己直接换成其他id 父节点的该子节点更换即可 */
-                        if (confVo.getParentId() == null) {
-                            /*父节点更换 涉及base更换*/
-                            IceBaseExample baseExample = new IceBaseExample();
-                            baseExample.createCriteria().andConfIdEqualTo(confVo.getOperateNodeId()).andAppEqualTo(app);
-                            List<IceBase> baseList = baseMapper.selectByExample(baseExample);
-                            if (!CollectionUtils.isEmpty(baseList)) {
-                                IceBase base = baseList.get(0);
-                                base.setConfId(Long.valueOf(confVo.getNodeId()));
-                                base.setUpdateAt(new Date());
-                                baseMapper.updateByExampleSelective(base, baseExample);
-                            }
-                        } else {
-                            IceConfExample confExample = new IceConfExample();
-                            confExample.createCriteria().andIdEqualTo(confVo.getParentId()).andAppEqualTo(app);
-                            List<IceConf> confList = confMapper.selectByExample(confExample);
-                            if (!CollectionUtils.isEmpty(confList)) {
-                                IceConf conf = confList.get(0);
+                        if (confVo.getParentId() == null && confVo.getNextId() == null) {
+                            /*根节点更换 涉及base更换*/
+                            result.setMsg("root can not exchange by id");
+                            result.setCode(-1);
+                            return result;
+//                            IceBaseExample baseExample = new IceBaseExample();
+//                            baseExample.createCriteria().andConfIdEqualTo(confVo.getOperateNodeId()).andAppEqualTo(app);
+//                            List<IceBase> baseList = baseMapper.selectByExample(baseExample);
+//                            if (!CollectionUtils.isEmpty(baseList)) {
+//                                IceBase base = baseList.get(0);
+//                                base.setConfId(Long.valueOf(confVo.getNodeId()));
+//                                base.setUpdateAt(new Date());
+//                                baseMapper.updateByExampleSelective(base, baseExample);
+//                            }
+                        } else if (confVo.getParentId() != null) {
+                            IceConf conf = confMapper.selectByPrimaryKey(confVo.getParentId());
+                            if (conf != null) {
+                                String[] sonIdStrs = confVo.getNodeId().split(",");
+                                List<Long> sonIdList = new ArrayList<>(sonIdStrs.length);
+                                for (String sonIdStr : sonIdStrs) {
+                                    Long sonId = Long.valueOf(sonIdStr);
+                                    sonIdList.add(sonId);
+                                }
+                                if (iceServerService.haveCircle(confVo.getParentId(), sonIdList)) {
+                                    result.setCode(-1);
+                                    result.setMsg("have circle");
+                                    return result;
+                                }
                                 String[] sonIds = conf.getSonIds().split(",");
                                 StringBuilder sb = new StringBuilder();
+                                boolean hasChange = false;
                                 for (String sonIdStr : sonIds) {
                                     Long sonId = Long.valueOf(sonIdStr);
-                                    if (confVo.getOperateNodeId().equals(sonId)) {
-                                        /*相同的更换掉 FIXME 默认全部换掉*/
+                                    if (!hasChange && confVo.getOperateNodeId().equals(sonId)) {
+                                        /*相同的更换掉 FIXME 默认换掉第一个*/
                                         sb.append(confVo.getNodeId()).append(",");
+                                        hasChange = true;
                                     } else {
                                         sb.append(sonIdStr).append(",");
                                     }
                                 }
+                                result.setNodeId(confVo.getParentId());
+                                result.setUnLinkId(confVo.getOperateNodeId());
+                                result.setLinkIds(sonIdList);
                                 conf.setSonIds(sb.substring(0, sb.length() - 1));
                                 conf.setUpdateAt(new Date());
-                                confMapper.updateByExampleSelective(conf, confExample);
+                                confMapper.updateByPrimaryKey(conf);
+                            }
+                        } else if (confVo.getNextId() != null) {
+                            /*更换前置节点*/
+                            IceConf conf = confMapper.selectByPrimaryKey(confVo.getNextId());
+                            if (conf != null) {
+                                Long forwardId = conf.getId();
+                                if (forwardId == null) {
+                                    result.setCode(-1);
+                                    result.setMsg("forward不存在");
+                                    return result;
+                                }
+                                Long exchangeForwardId = Long.parseLong(confVo.getNodeId());
+                                if (iceServerService.haveCircle(confVo.getNextId(), exchangeForwardId)) {
+                                    result.setCode(-1);
+                                    result.setMsg("have circle");
+                                    return result;
+                                }
+                                result.setNodeId(confVo.getNextId());
+                                result.setUnLinkId(confVo.getOperateNodeId());
+                                result.setLinkId(exchangeForwardId);
+                                conf.setForwardId(exchangeForwardId);
+                                conf.setUpdateAt(new Date());
+                                confMapper.updateByPrimaryKey(conf);
                             }
                         }
                     } else {
                         /*正常的更换,把所有参数换一遍*/
-                        IceConfExample confExample = new IceConfExample();
-                        confExample.createCriteria().andIdEqualTo(confVo.getOperateNodeId()).andAppEqualTo(app);
-                        List<IceConf> confList = confMapper.selectByExample(confExample);
-                        if (!CollectionUtils.isEmpty(confList)) {
-                            IceConf operateConf = confList.get(0);
+                        IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getOperateNodeId());
+                        if (operateConf != null) {
                             operateConf.setDebug(confVo.getDebug() ? (byte) 1 : (byte) 0);
                             operateConf.setInverse(confVo.getInverse() ? (byte) 1 : (byte) 0);
                             operateConf.setTimeType(confVo.getTimeType());
                             operateConf.setStart(confVo.getStart() == null ? null : new Date(confVo.getStart()));
                             operateConf.setEnd(confVo.getEnd() == null ? null : new Date(confVo.getEnd()));
                             operateConf.setType(confVo.getNodeType());
+                            if (!isRelation(confVo.getNodeType())) {
+                                operateConf.setSonIds(null);
+                            }
                             operateConf.setApp(app);
                             operateConf.setName(StringUtils.isEmpty(confVo.getName()) ? "" : confVo.getName());
                             if (!isRelation(confVo)) {
+                                if (StringUtils.hasLength(confVo.getConfField())) {
+                                    JSONValidator validator = JSONValidator.from(confVo.getConfField());
+                                    if (!validator.validate()) {
+                                        result.setMsg("confFiled json illegal");
+                                        result.setCode(-1);
+                                        return result;
+                                    }
+                                }
+                                try {
+                                    iceConfService.leafClassCheck(app, confVo.getConfName(), confVo.getNodeType());
+                                } catch (Exception e) {
+                                    result.setCode(-1);
+                                    result.setMsg(e.getMessage());
+                                    return result;
+                                }
                                 operateConf.setConfName(confVo.getConfName());
-                                operateConf.setConfField(StringUtils.isEmpty(confVo.getConfField()) ? "{}" : confVo.getConfField());
+                                operateConf.setConfField(confVo.getConfField());
                             } else {
-                                operateConf.setConfName("");
-                                operateConf.setConfField("");
+                                operateConf.setConfName(null);
+                                operateConf.setConfField(null);
                             }
                             operateConf.setUpdateAt(new Date());
-                            confMapper.updateByExampleSelective(operateConf, confExample);
+                            confMapper.updateByPrimaryKey(operateConf);
                         }
                     }
                 }
@@ -365,11 +546,8 @@ public class IceEditServiceImpl implements IceEditService {
                 if (confVo.getOperateNodeId() != null) {
                     if (confVo.getParentId() != null) {
                         if (confVo.getParentId() != null) {
-                            IceConfExample confExample = new IceConfExample();
-                            confExample.createCriteria().andIdEqualTo(confVo.getParentId()).andAppEqualTo(app);
-                            List<IceConf> confList = confMapper.selectByExample(confExample);
-                            if (!CollectionUtils.isEmpty(confList)) {
-                                IceConf conf = confList.get(0);
+                            IceConf conf = confMapper.selectByPrimaryKey(confVo.getParentId());
+                            if (conf != null) {
                                 if (StringUtils.hasLength(conf.getSonIds())) {
                                     String[] sonIds = conf.getSonIds().split(",");
                                     if (sonIds.length <= 1) {
@@ -393,7 +571,7 @@ public class IceEditServiceImpl implements IceEditService {
                                     }
                                     conf.setSonIds(sb.substring(0, sb.length() - 1));
                                     conf.setUpdateAt(new Date());
-                                    confMapper.updateByExampleSelective(conf, confExample);
+                                    confMapper.updateByPrimaryKey(conf);
                                 }
                             }
                         }
@@ -405,11 +583,8 @@ public class IceEditServiceImpl implements IceEditService {
                 if (confVo.getOperateNodeId() != null) {
                     if (confVo.getParentId() != null) {
                         if (confVo.getParentId() != null) {
-                            IceConfExample confExample = new IceConfExample();
-                            confExample.createCriteria().andIdEqualTo(confVo.getParentId()).andAppEqualTo(app);
-                            List<IceConf> confList = confMapper.selectByExample(confExample);
-                            if (!CollectionUtils.isEmpty(confList)) {
-                                IceConf conf = confList.get(0);
+                            IceConf conf = confMapper.selectByPrimaryKey(confVo.getParentId());
+                            if (conf != null) {
                                 if (StringUtils.hasLength(conf.getSonIds())) {
                                     String[] sonIds = conf.getSonIds().split(",");
                                     if (sonIds.length <= 1) {
@@ -433,7 +608,7 @@ public class IceEditServiceImpl implements IceEditService {
                                     }
                                     conf.setSonIds(sb.substring(0, sb.length() - 1));
                                     conf.setUpdateAt(new Date());
-                                    confMapper.updateByExampleSelective(conf, confExample);
+                                    confMapper.updateByPrimaryKey(conf);
                                 }
                             }
                         }
@@ -441,7 +616,6 @@ public class IceEditServiceImpl implements IceEditService {
                 }
                 break;
             default:
-                result.setRet(-1);
                 return result;
         }
         return result;
@@ -710,7 +884,7 @@ public class IceEditServiceImpl implements IceEditService {
         base.setId(vo.getId());
         base.setTimeType(vo.getTimeType());
         base.setApp(vo.getApp());
-        base.setDebug(vo.getDebug());
+        base.setDebug(vo.getDebug() == null ? 0 : vo.getDebug());
         base.setName(vo.getName());
         base.setScenes(vo.getScenes() == null ? "" : vo.getScenes());
         base.setStart(vo.getStart());

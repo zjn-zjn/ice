@@ -81,7 +81,9 @@ public final class Constant {
 
     public static IceBaseDto baseToDtoWithName(IceBase base) {
         IceBaseDto dto = baseToDto(base);
-        dto.setName(base.getName());
+        if(StringUtils.hasLength(base.getName())){
+            dto.setName(base.getName());
+        }
         return dto;
     }
 
@@ -121,7 +123,9 @@ public final class Constant {
 
     public static IceConfDto confToDtoWithName(IceConf conf) {
         IceConfDto dto = confToDto(conf);
-        dto.setName(conf.getName());
+        if(StringUtils.hasLength(conf.getName())){
+            dto.setName(conf.getName());
+        }
         return dto;
     }
 

@@ -13,6 +13,6 @@ import lombok.NoArgsConstructor;
 @Deprecated
 public class IceAppDto {
     private long app;
-    private String appName;
+    private String name;
     private String info;
 }

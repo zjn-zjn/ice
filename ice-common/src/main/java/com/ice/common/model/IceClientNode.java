@@ -37,6 +37,8 @@ public class IceClientNode {
 
     private String name;
 
+    private String labelName;
+
     private String confName;
 
     private String confField;

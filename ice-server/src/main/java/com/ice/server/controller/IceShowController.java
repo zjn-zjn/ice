@@ -1,9 +1,16 @@
 package com.ice.server.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.ice.common.enums.NodeTypeEnum;
 import com.ice.server.constant.Constant;
+import com.ice.server.dao.model.IceApp;
+import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceConf;
+import com.ice.server.model.IceBaseSearch;
+import com.ice.server.model.PageResult;
 import com.ice.server.model.WebResult;
+import com.ice.server.service.IceAppService;
+import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceEditService;
 import com.ice.server.service.IceServerService;
 import org.jetbrains.annotations.Contract;
@@ -27,7 +34,13 @@ public class IceShowController {
     private final IceServerService iceServerService;
 
     @Resource
+    private IceAppService iceAppService;
+
+    @Resource
     private IceEditService editService;
+
+    @Resource
+    private IceBaseService baseService;
 
     private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -40,17 +53,26 @@ public class IceShowController {
     }
 
     @RequestMapping(value = "/ice/app/list", method = RequestMethod.GET)
-    public WebResult<List<IceAppDto>> getIceApp(@RequestParam(defaultValue = "1") Integer pageIndex,
-                                                @RequestParam(defaultValue = "100") Integer pageSize) {
-        WebResult<List<IceAppDto>> result = new WebResult<>();
-        result.setData(Collections.singletonList(new IceAppDto(1, "Test", "")));
+    public WebResult<List<IceApp>> getIceApp(@RequestParam(defaultValue = "1") Integer pageIndex,
+                                             @RequestParam(defaultValue = "1000") Integer pageSize) {
+        WebResult<List<IceApp>> result = new WebResult<>();
+        PageResult<IceApp> pageResult = iceAppService.appList(pageIndex, pageSize, null, null);
+        if (pageResult == null) {
+            result.setData(Collections.emptyList());
+        } else {
+            result.setData(pageResult.getList());
+        }
         return result;
     }
 
     @RequestMapping(value = "/ice/conf/list", method = RequestMethod.GET)
-    public WebResult getIceConf(@RequestParam Integer app, @RequestParam(defaultValue = "1") Integer pageIndex,
-                                @RequestParam(defaultValue = "100") Integer pageSize) {
-        return editService.getBase(app, pageIndex, pageSize);
+    public WebResult<PageResult<IceBase>> getIceConfList(@RequestParam Integer app,
+                                                      @RequestParam(defaultValue = "1") Integer pageId,
+                                                      @RequestParam(defaultValue = "100") Integer pageSize,
+                                                      @RequestParam(defaultValue = "") Long id,
+                                                      @RequestParam(defaultValue = "") String scene,
+                                                      @RequestParam(defaultValue = "") String name) {
+        return new WebResult<>(baseService.baseList(new IceBaseSearch(app, id, name, scene, pageId, pageSize)));
     }
 
     @RequestMapping("/ice/conf/detail")
@@ -74,7 +96,7 @@ public class IceShowController {
                 }
             }
         }
-        return new WebResult<>();
+        return new WebResult<>(-1, "no available client");
     }
 
     @SuppressWarnings("unchecked")
@@ -87,11 +109,11 @@ public class IceShowController {
         if (map == null) {
             return;
         }
-        Long nodeId = (Long) map.get("iceNodeId");
+        Long nodeId = (Long) map.get("nodeId");
         if (nodeId == null) {
             return;
         }
-        Map forward = (Map) map.get("iceForward");
+        Map forward = (Map) map.get("forward");
         if (forward != null) {
             forward.put("nextId", nodeId);
         }
@@ -101,7 +123,10 @@ public class IceShowController {
         if (CollectionUtils.isEmpty(children)) {
             return;
         }
+        int i = 0;
         for (Map child : children) {
+            child.put("index", i);
+            i++;
             child.put("parentId", nodeId);
             assemble(app, child, nodeIdSet);
         }
@@ -109,7 +134,7 @@ public class IceShowController {
 
     @SuppressWarnings("unchecked")
     private void assembleOther(Integer app, Map map, Set<Long> nodeIdSet) {
-        Long nodeId = (Long) map.get("iceNodeId");
+        Long nodeId = (Long) map.get("nodeId");
         if (nodeId == null /*|| nodeIdSet.contains(iceNodeId)*/) {
             return;
         }
@@ -118,17 +143,12 @@ public class IceShowController {
         Set<Map.Entry> entrySet = map.entrySet();
         List<Object> needRemoveKey = new ArrayList<>(map.size());
         for (Map.Entry entry : entrySet) {
-            if (!("iceForward".equals(entry.getKey()) || "children".equals(entry.getKey()) || "nextId".equals(entry.getKey()) || "parentId".equals(entry.getKey()))) {
+            if (!("forward".equals(entry.getKey()) || "children".equals(entry.getKey()) || "nextId".equals(entry.getKey()) || "parentId".equals(entry.getKey()))) {
                 needRemoveKey.add(entry.getKey());
                 if (!adjust(entry.getKey(), entry.getValue(), showConf)) {
                     showConf.put(entry.getKey(), entry.getValue());
                 }
             }
-        }
-        Object iceForward = map.get("iceForward");
-        if (iceForward != null) {
-            map.remove("iceForward");
-            map.put("forward", iceForward);
         }
         for (Object removeKey : needRemoveKey) {
             map.remove(removeKey);
@@ -138,15 +158,21 @@ public class IceShowController {
         if (iceConf != null) {
             if (StringUtils.hasLength(iceConf.getName())) {
                 showConf.put("nodeName", iceConf.getName());
+                showConf.put("name", iceConf.getName());
             }
             if (StringUtils.hasLength(iceConf.getConfField())) {
                 showConf.put("confField", iceConf.getConfField());
             }
             if (StringUtils.hasLength(iceConf.getConfName())) {
-                showConf.put("confName", iceConf.getId() + "-" + iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1));
+                showConf.put("confName", iceConf.getConfName());
             }
             if (iceConf.getType() != null) {
                 showConf.put("nodeType", iceConf.getType());
+                if (Constant.isRelation(iceConf.getType())) {
+                    showConf.put("labelName", nodeId + "-" + NodeTypeEnum.getEnum(iceConf.getType()).name() + (StringUtils.hasLength(iceConf.getName()) ? ("-" + iceConf.getName()) : ""));
+                } else {
+                    showConf.put("labelName", nodeId + "-" + (StringUtils.hasLength(iceConf.getConfName()) ? iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(iceConf.getName()) ? ("-" + iceConf.getName()) : ""));
+                }
             }
             if (iceConf.getStart() != null) {
                 map.put("start", iceConf.getStart());
@@ -162,29 +188,15 @@ public class IceShowController {
 
     @SuppressWarnings("unchecked")
     private boolean adjust(Object key, Object value, Map showConf) {
-        if ("iceNodeId".equals(key)) {
+        if ("nodeId".equals(key)) {
             showConf.put("nodeId", value);
             return true;
         }
-        if ("iceNodeDebug".equals(key)) {
+        if ("debug".equals(key)) {
             showConf.put("debug", value);
             return true;
         }
-        if ("iceStart".equals(key)) {
-            long time = Long.parseLong(value.toString());
-            if (time != 0) {
-                showConf.put("开始时间", sdf.format(new Date(time)));
-            }
-            return true;
-        }
-        if ("iceEnd".equals(key)) {
-            long time = Long.parseLong(value.toString());
-            if (time != 0) {
-                showConf.put("结束时间", sdf.format(new Date(time)));
-            }
-            return true;
-        }
-        if ("iceInverse".equals(key)) {
+        if ("inverse".equals(key)) {
             if (Boolean.parseBoolean(value.toString())) {
                 showConf.put("inverse", value);
             }

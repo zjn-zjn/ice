@@ -22,7 +22,7 @@ public class IceAppController {
 
     @RequestMapping(value = "/ice-server/app/list", method = RequestMethod.GET)
     public PageResult<IceApp> appList(@RequestParam(defaultValue = "1") Integer pageNum,
-                                      @RequestParam(defaultValue = "20") Integer pageSize,
+                                      @RequestParam(defaultValue = "1000") Integer pageSize,
                                       @RequestParam(defaultValue = "") String name,
                                       @RequestParam(required = false) Integer app) {
         return iceAppService.appList(pageNum, pageSize, name, app);

@@ -153,10 +153,6 @@ public class IceConfServiceImpl implements IceConfService {
     @Override
     @Transactional
     public Long confEditId(Integer app, Long nodeId, Long exchangeId, Long parentId, Long nextId, Integer index) {
-        IceConf node = iceConfMapper.selectByPrimaryKey(nodeId);
-        if (node == null || !node.getApp().equals(app)) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nodeId", nodeId);
-        }
         IceConf exchange = iceConfMapper.selectByPrimaryKey(exchangeId);
         if (exchange == null || !exchange.getApp().equals(app)) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "exchangeId", exchangeId);
@@ -448,8 +444,10 @@ public class IceConfServiceImpl implements IceConfService {
         Long nodeId = Long.parseLong(clientNode.getId());
         IceConf iceConf = iceServerService.getActiveConfById(app, nodeId);
         if (iceConf != null) {
-            if (Constant.isRelation(iceConf.getType()) && StringUtils.hasLength(iceConf.getSonIds())) {
-                clientNode.setSonIds(iceConf.getSonIds());
+            if (Constant.isRelation(iceConf.getType())) {
+                clientNode.setLabelName(nodeId + "-" + NodeTypeEnum.getEnum(iceConf.getType()).name() + (StringUtils.hasLength(iceConf.getConfName()) ? ("-" + iceConf.getName()) : ""));
+            } else {
+                clientNode.setLabelName(nodeId + "-" + (StringUtils.hasLength(iceConf.getConfName()) ? iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(iceConf.getConfName()) ? ("-" + iceConf.getName()) : ""));
             }
             if (StringUtils.hasLength(iceConf.getName())) {
                 clientNode.setName(iceConf.getName());

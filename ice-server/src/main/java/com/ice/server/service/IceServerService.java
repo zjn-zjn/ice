@@ -1,5 +1,6 @@
 package com.ice.server.service;
 
+import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceConf;
 
 import java.util.List;
@@ -13,6 +14,8 @@ public interface IceServerService {
     String getInitJson(Integer app);
 
     IceConf getActiveConfById(Integer app, Long confId);
+
+    IceBase getActiveBaseById(Integer app, Long iceId);
 
     Map<String, Integer> getLeafClassMap(Integer app, Byte type);
 

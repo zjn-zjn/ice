@@ -1,5 +1,6 @@
 package com.ice.server.service;
 
+import com.ice.server.model.EditResult;
 import com.ice.server.model.IceBaseVo;
 import com.ice.server.model.IceConfVo;
 import com.ice.server.model.WebResult;
@@ -17,7 +18,7 @@ public interface IceEditService {
      * @param pageIndex 页码
      * @param pageSize 页大小
      */
-    WebResult getBase(Integer app, Integer pageIndex, Integer pageSize);
+    WebResult getBase(Integer app, Integer pageIndex, Integer pageSize, Long id, String name, String scene);
 
     /*
      * 编辑base
@@ -34,7 +35,7 @@ public interface IceEditService {
      * @param iceId iceId
      * @param confVo 配置Vo
      */
-    WebResult editConf(Integer app, Integer type, Long iceId, IceConfVo confVo);
+    EditResult editConf(Integer app, Integer type, Long iceId, IceConfVo confVo);
 
     /*
      * 获取leafClass

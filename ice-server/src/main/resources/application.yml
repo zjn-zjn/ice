@@ -1,3 +1,7 @@
+server:
+  compression:
+    enabled: true
+    mime-types: application/javascript
 spring:
   profiles:
     active: dev

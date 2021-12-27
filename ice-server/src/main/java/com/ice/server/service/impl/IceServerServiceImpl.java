@@ -123,15 +123,19 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
      * nodeId next reduce linkId count
      */
     public synchronized void unlink(Long nodeId, Long linkId) {
-        Map<Long, Integer> nodeNextMap = nextMapMap.computeIfAbsent(nodeId, k -> new HashMap<>());
-        int nodeNextCount = nodeNextMap.computeIfAbsent(linkId, k -> 0);
-        if (nodeNextCount <= 1) {
-            nodeNextMap.remove(linkId);
-            if (CollectionUtils.isEmpty(nodeNextMap)) {
-                nextMapMap.remove(nodeId);
+        Map<Long, Integer> nodeNextMap = nextMapMap.get(nodeId);
+        if (nodeNextMap != null) {
+            Integer nodeNextCount = nodeNextMap.get(linkId);
+            if (nodeNextCount != null) {
+                if (nodeNextCount <= 1) {
+                    nodeNextMap.remove(linkId);
+                    if (CollectionUtils.isEmpty(nodeNextMap)) {
+                        nextMapMap.remove(nodeId);
+                    }
+                } else {
+                    nodeNextMap.put(linkId, nodeNextCount - 1);
+                }
             }
-        } else {
-            nodeNextMap.put(linkId, nodeNextCount - 1);
         }
     }
 
@@ -146,6 +150,15 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         Map<Long, IceConf> confMap = confActiveMap.get(app);
         if (!CollectionUtils.isEmpty(confMap)) {
             return confMap.get(confId);
+        }
+        return null;
+    }
+
+    @Override
+    public IceBase getActiveBaseById(Integer app, Long iceId) {
+        Map<Long, IceBase> confMap = baseActiveMap.get(app);
+        if (!CollectionUtils.isEmpty(confMap)) {
+            return confMap.get(iceId);
         }
         return null;
     }

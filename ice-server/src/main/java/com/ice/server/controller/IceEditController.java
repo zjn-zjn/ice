@@ -1,10 +1,7 @@
 package com.ice.server.controller;
 
 import com.alibaba.fastjson.JSON;
-import com.ice.server.model.IceBaseVo;
-import com.ice.server.model.IceConfVo;
-import com.ice.server.model.PushData;
-import com.ice.server.model.WebResult;
+import com.ice.server.model.*;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceEditService;
 import com.ice.server.service.IceServerService;
@@ -63,9 +60,22 @@ public class IceEditController {
     @Deprecated
     @RequestMapping(value = "/ice/conf/edit", method = RequestMethod.POST)
     public WebResult editConf(@RequestBody IceConfVo confVo) {
-        WebResult result = editService.editConf(confVo.getApp(), confVo.getType(), confVo.getIceId(), confVo);
+        EditResult editResult = editService.editConf(confVo.getApp(), confVo.getType(), confVo.getIceId(), confVo);
         iceServerService.updateByEdit();
-        return result;
+        if (editResult.getCode() == null) {
+            if (editResult.getNodeId() != null) {
+                if (editResult.getUnLinkId() != null) {
+                    iceServerService.unlink(editResult.getNodeId(), editResult.getUnLinkId());
+                }
+                if (editResult.getLinkId() != null) {
+                    iceServerService.link(editResult.getNodeId(), editResult.getLinkId());
+                }
+                if (editResult.getLinkIds() != null) {
+                    iceServerService.link(editResult.getNodeId(), editResult.getLinkIds());
+                }
+            }
+        }
+        return new WebResult(editResult.getCode() == null ? 0 : editResult.getCode(), editResult.getMsg());
     }
 
     /*
