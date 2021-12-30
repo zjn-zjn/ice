@@ -715,11 +715,15 @@ public class IceEditServiceImpl implements IceEditService {
         WebResult<List> result = new WebResult<>();
         IcePushHistoryExample example = new IcePushHistoryExample();
         example.createCriteria().andAppEqualTo(app).andIceIdEqualTo(iceId);
-        example.setOrderByClause("create_at desc");
-        Page<IcePushHistory> startPage = PageMethod.startPage(1, 100);
-        pushHistoryMapper.selectByExample(example);
-        result.setData(startPage.getResult());
+        example.setOrderByClause("create_at desc limit 100");
+        result.setData(pushHistoryMapper.selectByExample(example));
         return result;
+    }
+
+    @Override
+    public WebResult deleteHistory(Long pushId) {
+        pushHistoryMapper.deleteByPrimaryKey(pushId);
+        return WebResult.success();
     }
 //
 //    /*

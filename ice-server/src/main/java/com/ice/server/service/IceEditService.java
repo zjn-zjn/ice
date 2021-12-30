@@ -61,6 +61,9 @@ public interface IceEditService {
      * @param iceId iceId
      */
     WebResult history(Integer app, Long iceId);
+
+    WebResult deleteHistory(Long pushId);
+
 //
 //    /*
 //     * 导出数据

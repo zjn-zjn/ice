@@ -1,6 +1,7 @@
 package com.ice.server.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONException;
 import com.ice.server.model.*;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceEditService;
@@ -126,6 +127,15 @@ public class IceEditController {
     }
 
     /*
+     * 发布历史
+     */
+    @Deprecated
+    @RequestMapping(value = "/ice/conf/history/delete", method = RequestMethod.GET)
+    public WebResult deleteHistory(@RequestParam Long pushId) {
+        return editService.deleteHistory(pushId);
+    }
+
+    /*
      * 导出
      */
     @RequestMapping(value = "/ice/conf/export", method = RequestMethod.GET)
@@ -149,7 +159,13 @@ public class IceEditController {
      */
     @RequestMapping(value = "/ice/conf/import", method = RequestMethod.POST)
     public WebResult importData(@RequestBody Map map) {
-        iceBaseService.importData(JSON.parseObject((String) map.get("data"), PushData.class));
+        try {
+            iceBaseService.importData(JSON.parseObject((String) map.get("data"), PushData.class));
+        }catch (JSONException e){
+            return WebResult.fail(-1, "json error");
+        }catch (Exception e){
+            return WebResult.fail(-1, "import error");
+        }
         iceServerService.updateByEdit();
         return WebResult.success();
     }
