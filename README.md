@@ -183,4 +183,4 @@ gitee：https://gitee.com/waitmoon/ice
 
 ## 交流探讨
 
-http://waitmoon.com/docs/#/?id=%e4%ba%a4%e6%b5%81%e6%8e%a2%e8%ae%a8
+http://waitmoon.com/docs 文末有微信使用交流群二维码~ 欢迎加入探讨~ 
