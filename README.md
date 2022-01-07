@@ -23,9 +23,9 @@ X公司将在国庆放假期间，开展一个为期七天的充值小活动，�
 
 **活动内容：**
 
-充值100元 送5元余额 (10.1-10.7)
+充值100元 送5元余额 (10.1-10.7)
 
-充值50元   送10积分 (10.5-10.7)
+充值50元 送10积分 (10.5-10.7)
 
 **活动备注：**不叠加送(充值100元只能获得5元余额，不会叠加赠送10积分)
 
@@ -44,7 +44,7 @@ X公司将在国庆放假期间，开展一个为期七天的充值小活动，�
 
 ### 流程图式实现
 
-类Activiti、 Flowable实现：
+类Activiti、 Flowable实现：
 
 <img width="779" alt="3" src="https://user-images.githubusercontent.com/33447125/148500648-6964373f-f810-4406-9b70-580f8725513f.png">
 
@@ -56,7 +56,7 @@ X公司将在国庆放假期间，开展一个为期七天的充值小活动，�
 
 ### 执行树式实现
 
-类Drools实现(When X Then Y)：
+类Drools实现(When X Then Y)：
 
 <img width="1110" alt="5" src="https://user-images.githubusercontent.com/33447125/148500665-d59127a6-092b-4203-99de-01c4f807e84f.png">
 
@@ -175,7 +175,7 @@ X公司将在国庆放假期间，开展一个为期七天的充值小活动，�
 
 ## Code
 
-Talk is cheap. Show me the code…
+Talk is cheap. Show me the code…
 
 github：https://github.com/zjn-zjn/ice
 
