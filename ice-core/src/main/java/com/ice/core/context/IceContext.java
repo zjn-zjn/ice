@@ -30,15 +30,15 @@ public final class IceContext {
     /*
      * current processing node parentId
      */
-    private long currentParentId;
-    /*
-     * current loop
-     */
-    private int currentLoop;
+    private long parentId;
     /*
      * current processing node nextId
      */
     private long nextId;
+    /*
+     * current processing node index
+     */
+    private int index;
     /*
      * node debug set true then process info
      */

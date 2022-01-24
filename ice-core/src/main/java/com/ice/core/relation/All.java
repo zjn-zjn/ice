@@ -10,10 +10,10 @@ import com.ice.core.utils.IceLinkedList;
  * @author zjn
  * relation ALL
  * all child will execute
- * have TRUE--TRUE
- * without TRUE have FALSE--FALSE
- * without chilren--NONE
- * all NONE--NONE
+ * have TRUE-->TRUE
+ * without TRUE have FALSE-->FALSE
+ * without chilren-->NONE
+ * all NONE-->NONE
  */
 public final class All extends BaseRelation {
     /*
@@ -27,35 +27,17 @@ public final class All extends BaseRelation {
         }
         boolean hasTrue = false;
         boolean hasFalse = false;
-        int loop = this.getLoop();
-        if (loop == 0) {
-            for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
-                BaseNode node = listNode.item;
-                if (node != null) {
-                    NodeRunStateEnum stateEnum = node.process(cxt);
-                    if (!hasTrue) {
-                        hasTrue = stateEnum == NodeRunStateEnum.TRUE;
-                    }
-                    if (!hasFalse) {
-                        hasFalse = stateEnum == NodeRunStateEnum.FALSE;
-                    }
+        int index = 0;
+        for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
+            BaseNode node = listNode.item;
+            if (node != null) {
+                NodeRunStateEnum stateEnum = node.process(cxt, this.findIceNodeId(), -1, index);
+                index++;
+                if (!hasTrue) {
+                    hasTrue = stateEnum == NodeRunStateEnum.TRUE;
                 }
-            }
-        } else {
-            for (int i = 0; i < loop; i++) {
-                cxt.setCurrentLoop(i);
-                for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();
-                     listNode != null; listNode = listNode.next) {
-                    BaseNode node = listNode.item;
-                    if (node != null) {
-                        NodeRunStateEnum stateEnum = node.process(cxt);
-                        if (!hasTrue) {
-                            hasTrue = stateEnum == NodeRunStateEnum.TRUE;
-                        }
-                        if (!hasFalse) {
-                            hasFalse = stateEnum == NodeRunStateEnum.FALSE;
-                        }
-                    }
+                if (!hasFalse) {
+                    hasFalse = stateEnum == NodeRunStateEnum.FALSE;
                 }
             }
         }

@@ -22,27 +22,14 @@ public final class True extends BaseRelation {
         if (children == null || children.isEmpty()) {
             return NodeRunStateEnum.TRUE;
         }
-
-        int loop = this.getLoop();
-        if (loop == 0) {
-            for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
-                BaseNode node = listNode.item;
-                if (node != null) {
-                    node.process(cxt);
-                }
-            }
-        } else {
-            for (int i = 0; i < loop; i++) {
-                cxt.setCurrentLoop(i);
-                for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();
-                     listNode != null; listNode = listNode.next) {
-                    BaseNode node = listNode.item;
-                    if (node != null) {
-                        node.process(cxt);
-                    }
-                }
+        int index = 0;
+        for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
+            BaseNode node = listNode.item;
+            if (node != null) {
+                node.process(cxt, this.findIceNodeId(), -1, index);
             }
         }
+
         return NodeRunStateEnum.TRUE;
     }
 }

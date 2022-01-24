@@ -10,10 +10,10 @@ import com.ice.core.utils.IceLinkedList;
  * @author zjn
  * relation AND
  * return false on first false
- * have FALSE--FALSE
- * without FALSE have TRUE--TRUE
- * without children--NONE
- * all NONE--NONE
+ * have FALSE-->FALSE
+ * without FALSE have TRUE-->TRUE
+ * without children-->NONE
+ * all NONE-->NONE
  */
 public final class And extends BaseRelation {
 
@@ -27,54 +27,17 @@ public final class And extends BaseRelation {
             return NodeRunStateEnum.NONE;
         }
         boolean hasTrue = false;
-        int loop = this.getLoop();
-        if (loop == 0) {
-            for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
-                BaseNode node = listNode.item;
-                if (node != null) {
-                    NodeRunStateEnum stateEnum = node.process(cxt);
-                    if (stateEnum == NodeRunStateEnum.FALSE) {
-                        return NodeRunStateEnum.FALSE;
-                    }
-                    if (!hasTrue) {
-                        hasTrue = stateEnum == NodeRunStateEnum.TRUE;
-                    }
+        int index = 0;
+        for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
+            BaseNode node = listNode.item;
+            if (node != null) {
+                NodeRunStateEnum stateEnum = node.process(cxt, this.findIceNodeId(), -1, index);
+                index++;
+                if (stateEnum == NodeRunStateEnum.FALSE) {
+                    return NodeRunStateEnum.FALSE;
                 }
-            }
-        } else if (loop < 0) {
-            loop = 0;
-            while (true) {
-                loop++;
-                cxt.setCurrentLoop(loop);
-                for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();
-                     listNode != null; listNode = listNode.next) {
-                    BaseNode node = listNode.item;
-                    if (node != null) {
-                        NodeRunStateEnum stateEnum = node.process(cxt);
-                        if (stateEnum == NodeRunStateEnum.FALSE) {
-                            return NodeRunStateEnum.FALSE;
-                        }
-                        if (!hasTrue) {
-                            hasTrue = stateEnum == NodeRunStateEnum.TRUE;
-                        }
-                    }
-                }
-            }
-        } else {
-            for (; loop > 0; loop--) {
-                cxt.setCurrentLoop(loop);
-                for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();
-                     listNode != null; listNode = listNode.next) {
-                    BaseNode node = listNode.item;
-                    if (node != null) {
-                        NodeRunStateEnum stateEnum = node.process(cxt);
-                        if (stateEnum == NodeRunStateEnum.FALSE) {
-                            return NodeRunStateEnum.FALSE;
-                        }
-                        if (!hasTrue) {
-                            hasTrue = stateEnum == NodeRunStateEnum.TRUE;
-                        }
-                    }
+                if (!hasTrue) {
+                    hasTrue = stateEnum == NodeRunStateEnum.TRUE;
                 }
             }
         }

@@ -19,14 +19,6 @@ public abstract class BaseRelation extends BaseNode {
      */
     private boolean future;
 
-    /*
-     * loop count
-     * 1.default 0 not loop
-     * 2.in and/any shutdown loop on false/true
-     * 3.<0 used on and/any infinite loop shutdown with false/true
-     */
-    private int loop;
-
     protected BaseRelation() {
         children = new IceLinkedList<>();
     }
