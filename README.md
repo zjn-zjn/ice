@@ -12,7 +12,7 @@
 
 ## Background
 
-we are not unfamiliar with rule/process engines. Drools, Esper, Activiti, Flowable, etc. are familiar to everyone. Many big manufacturers are also keen to study their own rule engines, which are used to solve complex rules and process problems in flexible scenarios. To change the configuration, you can generate/validate new rules, and get rid of the hard-coded bitter sea. After all, changing the configuration and arranging rules/processes on an existing basis is much cheaper than hard coding, but using the existing rule engine on the market to arrange, firstly, the access cost and learning cost are not low, and secondly With the passage of time, the rules have become more and more complex and some scenarios are not applicable, which makes people complain even more.
+We are not unfamiliar with rule/process engines. Drools, Esper, Activiti, Flowable, etc. are familiar to everyone. Many big manufacturers are also keen to study their own rule engines, which are used to solve complex rules and process problems in flexible scenarios. To change the configuration, you can generate/validate new rules, and get rid of the hard-coded bitter sea. After all, changing the configuration and arranging rules/processes on an existing basis is much cheaper than hard coding, but using the existing rule engine on the market to arrange, firstly, the access cost and learning cost are not low, and secondly With the passage of time, the rules have become more and more complex and some scenarios are not applicable, which makes people complain even more.
 
 ## Design ideas
 
@@ -20,17 +20,17 @@ In order to facilitate understanding, the design idea will be accompanied by a s
 
 ### Example
 
-Company X will carry out a seven-day recharge activity during the National Day holiday. The contents of the activity are as follows:
+Company X will carry out a seven-day recharge activity. The contents of the activity are as follows:
 
 **Activity time:**(10.1-10.7)
 
 **Activities:**
 
-Recharge 100 yuan, get 5 yuan balance(10.1-10.7)
+Recharge 100 dollar, get 5 dollar balance(10.1-10.7)
 
-Recharge 50 yuan, get 10 points(10.5-10.7)
+Recharge 50 dollar, get 10 points(10.5-10.7)
 
-**Event Notes:**No superimposed gift (recharge 100 yuan can only get 5 yuan balance, will not be superimposed to give 10 points)
+**Event Notes:** No superimposed gift (recharge 100 dollar can only get 5 dollar balance, will not be superimposed to give 10 points)
 
 Simply dismantling, to complete this activity, we need to develop the following modules:
 
@@ -78,11 +78,11 @@ The advantage of the above two solutions is that some scattered configurations c
 
 #### Reality
 
-①Change the recharge from 100 yuan to 80, change 10 points to 20 points, and change the time to 10.8 and end it (*smile*, after all, I spent so much time working on the rules engine, and it finally shows its value!)
+①Change the recharge from 100 dollar to 80, change 10 points to 20 points, and change the time to 10.8 and end it (*smile*, after all, I spent so much time working on the rules engine, and it finally shows its value!)
 
 ②Users are not very motivated to participate, so let’s get rid of the non-overlay and send them all (*think about it a little*, it’s okay to spend a few brain cells to move around, it’s better than changing the code and then going online!)
 
-③The balance of 5 yuan can't be given too much. Let's set up an inventory of 100. By the way, if the inventory is insufficient, you will still have to send 10 points to charge 100 yuan (*dead...* If you knew it earlier, it would be better to hard code)
+③The balance of 5 dollar can't be given too much. Let's set up an inventory of 100. By the way, if the inventory is insufficient, you will still have to send 10 points to charge 100 dollar (*dead...* If you knew it earlier, it would be better to hard code)
 
 The above changes do not seem unrealistic. After all, the real online changes are much more outrageous than this. The main disadvantage of the flow chart and execution tree implementations is that they can affect the whole body. It is easy to make mistakes if it is not considered in place, and this is just a simple example. The actual content of activities is much more complicated than this, and there are also many timelines. Considering this, plus the cost of using the learning framework, Often the gain outweighs the gain, and in the end it turns out that it's better to hardcode it.
 
@@ -175,9 +175,3 @@ In the same way, if there is a problem on the line, such as the sendAmount inter
 <img width="453" alt="10" src="https://user-images.githubusercontent.com/33447125/148500727-dc3a3bac-eec7-4287-8360-262e65c9874b.png">
 
 In the above logic, we can see that some AND nodes are closely bound. In order to simplify the view and configuration, the concept of forward node is added. This node will be executed if and only when the execution result of the current node is not false. , the semantics are consistent with the two nodes connected by AND.
-
-## Code
-
-Talk is cheap. Show me the code…
-
-github：https://github.com/zjn-zjn/ice
