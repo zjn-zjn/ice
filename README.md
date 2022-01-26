@@ -1,186 +1,183 @@
-# ice简介
+<img width="128" alt="5" src="https://user-images.githubusercontent.com/33447125/151098049-72aaf8d1-b759-4d84-bf6b-1a2260033582.png">
 
-> 致力于解决灵活繁复的硬编码问题
+[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-文档：http://waitmoon.com/docs
+> http://waitmoon.com/docs
+- en [English](README.md)
+- cn [简体中文](README.cn.md)
 
-视频简介：https://www.bilibili.com/video/BV1hg411A7jx
+# Ice introduction
 
-## 背景介绍
+> Committed to solving flexible and complex hard-coded problems
 
-规则/流程引擎想必大家并不陌生，耳熟能详的就有Drools，Esper，Activiti，Flowable等，很多大厂也热衷于研究自己的规则引擎，都是用于解决灵活场景下的复杂规则与流程问题，想要做到改改配置就可以生成/生效新的规则，脱离硬编码的苦海。毕竟改改配置和在已有基础上编排规则/流程，比硬编码的成本低很多，但是使用市面上现有的规则引擎来编排，一来接入成本和学习成本都不低，二来随着时间的推移，规则变的越发庞大以及一些场景的不适用，更加让人叫苦不迭。
+## Background
 
+we are not unfamiliar with rule/process engines. Drools, Esper, Activiti, Flowable, etc. are familiar to everyone. Many big manufacturers are also keen to study their own rule engines, which are used to solve complex rules and process problems in flexible scenarios. To change the configuration, you can generate/validate new rules, and get rid of the hard-coded bitter sea. After all, changing the configuration and arranging rules/processes on an existing basis is much cheaper than hard coding, but using the existing rule engine on the market to arrange, firstly, the access cost and learning cost are not low, and secondly With the passage of time, the rules have become more and more complex and some scenarios are not applicable, which makes people complain even more.
 
-## 设计思路
+## Design ideas
 
-为了方便理解，设计思路将伴随着一个简单的充值例子展开
+In order to facilitate understanding, the design idea will be accompanied by a simple recharge example.
 
-### 举例
+### Example
 
-X公司将在国庆放假期间，开展一个为期七天的充值小活动，活动内容如下：
+Company X will carry out a seven-day recharge activity during the National Day holiday. The contents of the activity are as follows:
 
-**活动时间：**(10.1-10.7)
+**Activity time:**(10.1-10.7)
 
-**活动内容：**
+**Activities:**
 
-充值100元 送5元余额 (10.1-10.7)
+Recharge 100 yuan, get 5 yuan balance(10.1-10.7)
 
-充值50元 送10积分 (10.5-10.7)
+Recharge 50 yuan, get 10 points(10.5-10.7)
 
-**活动备注：**不叠加送(充值100元只能获得5元余额，不会叠加赠送10积分)
+**Event Notes:**No superimposed gift (recharge 100 yuan can only get 5 yuan balance, will not be superimposed to give 10 points)
 
-简单拆解一下，想要完成这个活动，我们需要开发如下模块：
+Simply dismantling, to complete this activity, we need to develop the following modules:
 
 ![1](https://user-images.githubusercontent.com/33447125/148500616-f37caadc-e536-4e96-9e36-a997f60a5f70.png)
 
-图中发现有待发放key，这个key是从哪里来呢：
+In the figure, it is found that the key to be issued is to be issued. Where does this key come from:
 
 <img width="719" alt="2" src="https://user-images.githubusercontent.com/33447125/148500633-654597e0-ed9c-4e0c-9060-7b5751ed72db.png">
 
-如图，当用户充值成功后，会产生对应充值场景的参数包裹Pack(类Activiti/Drools的Fact)，包裹里会有充值用户的uid，充值金额cost，充值的时间requestTime等信息。我们可以通过定义的key，拿到包裹中的值(类似map.get(key))。
+As shown in the figure, when the user recharges successfully, a parameter package Pack (like Activiti/Drools Fact) corresponding to the recharge scenario will be generated. The package will contain the recharge user's uid, recharge amount cost, recharge time requestTime and other information. We can get the value in the package through the defined key (similar to map.get(key)).
 
-模块怎么设计无可厚非，重点要讲的是后面的怎么编排实现配置自由，接下来将通过已有的上述节点，讲解不同的规则引擎在核心的编排上的优缺点，并比较ice是怎么做的。
+There is nothing wrong with how the module is designed. The key point is how to arrange the following to achieve freedom of configuration. Next, through the existing nodes above, we will explain the advantages and disadvantages of different rule engines in the core arrangement, and compare how ice does it.
 
+### Flowchart implementation
 
-### 流程图式实现
-
-类Activiti、 Flowable实现：
+Like Activiti, Flowable implementation:
 
 <img width="779" alt="3" src="https://user-images.githubusercontent.com/33447125/148500648-6964373f-f810-4406-9b70-580f8725513f.png">
 
-流程图式实现，应该是我们最常想到的编排方式了~ 看起来非常的简洁易懂，通过特殊的设计，如去掉一些不必要的线，可以把UI做的更简洁一些。但由于有时间属性，其实时间也是一个规则条件，加上之后就变成了：
+Flowchart implementation should be the most common arrangement method we think of~ It looks very concise and easy to understand. Through special design, such as removing some unnecessary lines, the UI can be made more concise. But because of the time attribute, time is actually a rule condition, and after adding it becomes:
 
 <img width="1103" alt="4" src="https://user-images.githubusercontent.com/33447125/148500657-c08e014d-014d-4526-8612-3414c4d8ab87.png">
 
-看起来也还好
+looks ok too
 
-### 执行树式实现
+### Execution tree implementation
 
-类Drools实现(When X Then Y)：
+Like Drools implementation (When X Then Y):
 
 <img width="1110" alt="5" src="https://user-images.githubusercontent.com/33447125/148500665-d59127a6-092b-4203-99de-01c4f807e84f.png">
 
-这个看起来也还好，再加上时间线试试：
+This looks fine too, try it with the timeline:
 
 <img width="1648" alt="6" src="https://user-images.githubusercontent.com/33447125/148500674-297dbe13-efaf-41f8-b362-2cbbdc5613cb.png">
 
-依旧比较简洁，至少比较流程图式，我会比较愿意修改这个。
+It's still relatively concise, at least compared to the flowchart format, and I would be more willing to modify this.
 
-### 变动
+### Change
 
-上面两种方案的优点在于，可以把一些零散的配置结合业务很好的管理了起来，对配置的小修小改，都是信手拈来，但是真实的业务场景，可能还是要锤爆你，有了灵活的变动，一切都不一样了。
+The advantage of the above two solutions is that some scattered configurations can be well managed in combination with the business, and minor modifications to the configuration can be done at your fingertips, but in real business scenarios, you may still have to hammer you. With flexibility changes, everything is different.
 
-#### 理想
+#### Ideal
 
-*不会变的，放心吧，就这样，上*
+*It won't change, don't worry, that's it, go online*
 
-#### 现实
+#### Reality
 
-①充值100元改成80吧，10积分变20积分吧，时间改成10.8号结束吧（*微微一笑*，毕竟我费了这么大劲搞规则引擎，终于体现到价值了！）
+①Change the recharge from 100 yuan to 80, change 10 points to 20 points, and change the time to 10.8 and end it (*smile*, after all, I spent so much time working on the rules engine, and it finally shows its value!)
 
-②用户参与积极性不高啊，去掉不叠加送吧，都送（*稍加思索*，费几个脑细胞挪一挪还是可以的，怎么也比改代码再上线强吧！）
+②Users are not very motivated to participate, so let’s get rid of the non-overlay and send them all (*think about it a little*, it’s okay to spend a few brain cells to move around, it’s better than changing the code and then going online!)
 
-③5元余额不能送太多，设置个库存100个吧，对了，库存不足了充100元还是得送10积分的哈（*卒…*早知道还不如硬编码了）
+③The balance of 5 yuan can't be given too much. Let's set up an inventory of 100. By the way, if the inventory is insufficient, you will still have to send 10 points to charge 100 yuan (*dead...* If you knew it earlier, it would be better to hard code)
 
-以上变动其实并非看起来不切实际，毕竟真实线上变动比这离谱的多的是，流程图式和执行树式实现的主要缺点在于，牵一发而动全身，改动一个节点需要瞻前顾后，如果考虑不到位，很容易弄错，而且这还只是一个简单的例子，现实的活动内容要比这复杂的多的多，时间线也是很多条，考虑到这，再加上使用学习框架的成本，往往得不偿失，到头来发现还不如硬编码。
+The above changes do not seem unrealistic. After all, the real online changes are much more outrageous than this. The main disadvantage of the flow chart and execution tree implementations is that they can affect the whole body. It is easy to make mistakes if it is not considered in place, and this is just a simple example. The actual content of activities is much more complicated than this, and there are also many timelines. Considering this, plus the cost of using the learning framework, Often the gain outweighs the gain, and in the end it turns out that it's better to hardcode it.
 
-怎么办？
+what to do?
 
-### ice是怎么做的？
+### How is ice made?
 
-#### 引入关系节点
+#### Introduce relation nodes
 
-关系节点为了控制业务流转
+In order to control the flow of business, the relation node
 
 **AND**
 
-所有子节点中，有一个返回false 该节点也将是false，全部是true才是true，在执行到false的地方终止执行，类似于Java的&&
+Among all child nodes, one returns false, and the node will also be false, all true is true, and the execution is terminated at the place where false is executed, similar to Java's &&
 
 **ANY**
 
-所有子节点中，有一个返回true 该节点也将是true，全部false则false，在执行到true的地方终止执行，类似于Java的||
+Among all child nodes, if one returns true, the node will also be true, all false are false, and the execution will be terminated when the execution reaches true, similar to Java's ||
 
 **ALL**
 
-所有子节点都会执行，有任意一个返回true该节点也是true，没有true有一个节点是false则false，没有true也没有false则返回none，所有子节点执行完毕终止
+All child nodes will be executed. If any one returns true, the node is also true. If there is no true, if a node is false, it will return false. If there is no true and no false, it will return none. All child nodes are terminated after execution.
 
 **NONE**
 
-所有子节点都会执行，无论子节点返回什么，都返回none
+All child nodes will execute, no matter what the child node returns, it will return none
 
 **TRUE**
 
-所有子节点都会执行，无论子节点返回什么，都返回true，没有子节点也返回true(其他没有子节点返回none)
+All child nodes will be executed, no matter what the child node returns, it will return true, and no child node will return true (other nodes without children return none)
 
-#### 引入叶子节点
+#### Introduce leaf nodes
 
-叶子节点为真正处理的节点
+The leaf node is the real processing node
 
 **Flow**
 
-一些条件与规则节点，如例子中的ScoreFlow
+Some condition and rule nodes, such as ScoreFlow in the example
 
 **Result**
 
-一些结果性质的节点，如例子中的AmountResult，PointResult
+Nodes with some result properties, such as AmountResult, PointResult in the example
 
 **None**
 
-一些不干预流程的动作，如装配工作等，如下文会介绍到的TimeChangeNone
+Some actions that do not interfere with the process, such as assembly work, etc., such as TimeChangeNone will be introduced below
 
-有了以上节点，我们要怎么组装呢？
+With the above nodes, how do we assemble it?
 
 <img width="599" alt="7" src="https://user-images.githubusercontent.com/33447125/148500688-d67c76c1-add4-42b1-bd63-c9f99d3cfeab.png">
 
-如图，使用树形结构(对传统树做了镜像和旋转)，执行顺序还是类似于中序遍历，从root执行，root是个关系节点，从上到下执行子节点，若用户充值金额是70元，执行流程：
+As shown in the figure, using the tree structure (the traditional tree is mirrored and rotated), the execution order is similar to in-order traversal. It is executed from the root, which is a relationship node, and the child nodes are executed from top to bottom. If the user's recharge amount is 70 Element, the execution process:
 
 [ScoreFlow-100:false]→[AND:false]→[ScoreFlow-50:true]→[PointResult:true]→[AND:true]→[ANY:true]
 
-这个时候可以看到，之前需要剥离出的时间，已经可以融合到各个节点上了，把时间配置还给节点，如果没到执行时间，如发放积分的节点10.5日之后才生效，那么在10.5之前，可以理解为这个节点不存在。
+At this time, it can be seen that the time that needs to be stripped out before can be integrated into each node, and the time configuration is returned to the node. If the execution time is not reached, such as the node that issued the points will take effect after 10.5 days, then before 10.5 , it can be understood that this node does not exist.
 
-#### 变动与问题的解决
+#### Changes and problem resolution
 
-对于①直接修改节点配置就可以
+For ① directly modify the node configuration
 
-对于②直接把root节点的ANY改成ALL就可以(叠加送与不叠加送的逻辑在这个节点上，属于这个节点的逻辑就该由这个节点去解决)
+For ②, you can directly change the ANY of the root node to ALL (the logic of superimposed and non-superimposed transmission is on this node, and the logic belonging to this node should be solved by this node)
 
-对于③由于库存的不足，相当于没有给用户发放，则AmountResult返回false，流程还会继续向下执行，不用做任何更改
+For ③ due to insufficient inventory, it is equivalent to not issuing to the user, then AmountResult returns false, and the process will continue to be executed downwards without any changes.
 
-再加一个棘手的问题，当时间线复杂时，测试工作以及测试并发要怎么做？
+One more thorny question, when the timeline is complex, what to do with test work and test concurrency?
 
-一个10.1开始的活动，一定是在10.1之前开发上线完毕，比如我在9.15要怎么去测试一个10.1开始的活动？在ice中，只需要稍微修改一下：
+An event that started in 10.1 must be developed and launched before 10.1. For example, how do I test an event that started in 10.1 in 9.15? In ice, it just needs to be modified slightly:
 
 <img width="738" alt="8" src="https://user-images.githubusercontent.com/33447125/148500698-66bd662a-0f14-4cb8-9cb1-b2a0886fcba3.png">
 
-如图，引入一个负责更改时间的节点TimeChangeNone(更改包裹中的requestTime)，后面的节点执行都是依赖于包裹中的时间即可，TimeChangeNone类似于一个改时间的插件一样，如果测试并行，那就给多个测试每人在自己负责的业务上加上改时间插件即可。
+As shown in the figure, a node TimeChangeNone (changing the requestTime in the package) is introduced, which is responsible for changing the time. The execution of the subsequent nodes depends on the time in the package. TimeChangeNone is similar to a plug-in for changing time. If the test is parallel, then You can add a time change plug-in to the business that each person is responsible for for multiple tests.
 
-#### 特性
+#### Characteristic
 
-为什么这么拆解呢？为什么这样就能解决这些变动与问题呢？
+Why dismantle it like this? Why does this solve these changes and problems?
 
-其实，就是使用树形结构解耦，流程图式和执行树式实现在改动逻辑的时候，不免需要瞻前顾后，但是ice不需要，ice的业务逻辑都在本节点上，每一个节点都可以代表单一逻辑，比如我改不叠加送变成叠加送这一逻辑就只限制在那个ANY节点逻辑上，只要把它改成我想要的逻辑即可，至于子节点有哪些，不用特别在意，节点之间依赖包裹流转，每个节点执行完的后续流程不需要自己指定。
+In fact, the tree structure is used for decoupling. When the flow chart and execution tree are implemented, when changing the logic, it is inevitable to look forward and backward, but ice does not need it. The business logic of ice is all on this node, and each node can represent a single Logic, for example, if I change from stacking to stacking, the logic is only limited to the logic of that ANY node. Just change it to the logic I want. As for the child nodes, don't pay special attention. It depends on the flow of packages, and the subsequent process executed by each node does not need to be specified by itself.
 
-因为自己执行完后的执行流程不再由自己掌控，就可以做到复用：
+Because the execution process after executing it is no longer under its control, it can be reused:
 
+<img width="1338" alt="9" src="https://user-images.githubusercontent.com/33447125/151101151-4f2ebc59-d588-4385-84ee-750416127e1a.png">
 
-如图，参与活动这里用到的TimeChangeNone，如果现在还有个H5页面需要做呈现，不同的呈现也与时间相关，怎么办？只需要在呈现活动这里使用同一个实例，更改其中一个，另一个也会被更新，避免了到处改时间的问题。
+As shown in the figure, TimeChangeNone is used here for participating in the activity. If there is still an H5 page that needs to be presented, and different presentations are also related to time, what should I do? Just use the same instance in the render activity, change one, and the other will be updated, avoiding the problem of changing the time everywhere.
 
-同理，如果线上出了问题，比如sendAmount接口挂了，由于是error不会反回false继续执行，而是提供了可选策略，比如将Pack以及执行到了哪个节点落盘起来，等到接口修复，再继续丢进ice重新跑即可(由于落盘时间是发生问题时间，完全不用担心活动结束了的修复不生效问题)，同样的，如果是不关键的业务如头像服务挂了，但是依然希望跑起来，只是没有头像而已，这样可以选择跳过错误继续执行。这里的落盘等规则不细展开描述。同样的原理也可以用在mock上，只需要在Pack中增加需要mock的数据，就可以跑起来。
+In the same way, if there is a problem on the line, such as the sendAmount interface hangs, because the error will not return false to continue execution, but provide optional strategies, such as the Pack and the node to which it is executed, and wait until the interface is repaired. , and then continue to throw it into ice and run it again (because the time of placing the order is the time when the problem occurs, there is no need to worry about the problem that the repair after the event ends will not take effect). Similarly, if it is a non-critical business such as the avatar service, it still hangs. I hope to run, but there is no avatar, so you can choose to skip the error and continue to execute. The rules for placing orders here are not described in detail. The same principle can also be used for mocks. Just add the data that needs to be mocked in the Pack, and you can run it.
 
-#### 引入前置节点
+#### Introduce the forward node
 
 <img width="453" alt="10" src="https://user-images.githubusercontent.com/33447125/148500727-dc3a3bac-eec7-4287-8360-262e65c9874b.png">
 
-上面的逻辑中可以看到有一些AND节点紧密绑定的关系，为了视图与配置简化，增加了前置(forward)节点概念，当且仅当前置节点执行结果为非false时才会执行本节点，语义与AND相连的两个节点一致。
+In the above logic, we can see that some AND nodes are closely bound. In order to simplify the view and configuration, the concept of forward node is added. This node will be executed if and only when the execution result of the current node is not false. , the semantics are consistent with the two nodes connected by AND.
 
 ## Code
 
 Talk is cheap. Show me the code…
 
 github：https://github.com/zjn-zjn/ice
-
-gitee：https://gitee.com/waitmoon/ice
-
-## 交流探讨
-
-http://waitmoon.com/docs 文末有微信使用交流群二维码~ 欢迎加入探讨~ 
