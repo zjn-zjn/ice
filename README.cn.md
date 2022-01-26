@@ -36,10 +36,6 @@ X公司将在国庆放假期间，开展一个为期七天的充值小活动，�
 
 简单拆解一下，想要完成这个活动，我们需要开发如下模块：
 
-![1](https://user-images.githubusercontent.com/33447125/148500616-f37caadc-e536-4e96-9e36-a997f60a5f70.png)
-
-图中发现有待发放key，这个key是从哪里来呢：
-
 <img width="719" alt="2" src="https://user-images.githubusercontent.com/33447125/148500633-654597e0-ed9c-4e0c-9060-7b5751ed72db.png">
 
 如图，当用户充值成功后，会产生对应充值场景的参数包裹Pack(类Activiti/Drools的Fact)，包裹里会有充值用户的uid，充值金额cost，充值的时间requestTime等信息。我们可以通过定义的key，拿到包裹中的值(类似map.get(key))。

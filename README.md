@@ -34,10 +34,6 @@ Recharge 50 dollar, get 10 points(10.5-10.7)
 
 Simply dismantling, to complete this activity, we need to develop the following modules:
 
-![1](https://user-images.githubusercontent.com/33447125/148500616-f37caadc-e536-4e96-9e36-a997f60a5f70.png)
-
-In the figure, it is found that the key to be issued is to be issued. Where does this key come from:
-
 <img width="719" alt="2" src="https://user-images.githubusercontent.com/33447125/148500633-654597e0-ed9c-4e0c-9060-7b5751ed72db.png">
 
 As shown in the figure, when the user recharges successfully, a parameter package Pack (like Activiti/Drools Fact) corresponding to the recharge scenario will be generated. The package will contain the recharge user's uid, recharge amount cost, recharge time requestTime and other information. We can get the value in the package through the defined key (similar to map.get(key)).
