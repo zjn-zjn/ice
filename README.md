@@ -8,11 +8,11 @@
 
 - **文档链接**
     - [**首页**](http://waitmoon.com/docs/#/)
-    - [**快速开始**](http://waitmoon.com/docs/#/started)
-    - [**介绍**](http://waitmoon.com/docs/#/?id=ice%e4%bb%8b%e7%bb%8d)
+    - [**快速开始**](http://waitmoon.com/docs/#/?id=ice使用)
+    - [**介绍**](http://waitmoon.com/docs/#/?id=ice介绍)
 
 
 - **Doc links** 
     - [**Home Page**](http://waitmoon.com/docs/#/en/)
-    - [**Quick start**](http://waitmoon.com/docs/#/en/started)
+    - [**Quick start**](http://waitmoon.com/docs/#/en/?id=ice-use)
     - [**Introduction**](http://waitmoon.com/docs/#/en/?id=ice-introduction)
