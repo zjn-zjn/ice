@@ -6,13 +6,13 @@
 
 # ice
 
-- **En doc links** 
-    - [**Home Page**](http://waitmoon.com/docs/#/en/)
-    - [**Quick start**](http://waitmoon.com/docs/#/en/started)
-    - [**Introduction**](http://waitmoon.com/docs/#/en/?id=ice-introduction)
-    
-
-- **中文文档链接** 
+- **文档链接**
     - [**首页**](http://waitmoon.com/docs/#/)
     - [**快速开始**](http://waitmoon.com/docs/#/started)
     - [**介绍**](http://waitmoon.com/docs/#/?id=ice%e4%bb%8b%e7%bb%8d)
+
+
+- **Doc links** 
+    - [**Home Page**](http://waitmoon.com/docs/#/en/)
+    - [**Quick start**](http://waitmoon.com/docs/#/en/started)
+    - [**Introduction**](http://waitmoon.com/docs/#/en/?id=ice-introduction)
