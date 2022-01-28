@@ -7,7 +7,7 @@
     <artifactId>ice</artifactId>
     <version>0.0.6</version>
     <packaging>pom</packaging>
-    <description>致力于解决灵活繁复的硬编码问题</description>
+    <description>Committed to solving flexible and complex hard-coded problems</description>
     <url>http://waitmoon.com/docs</url>
 
     <name>ice</name>
@@ -51,7 +51,7 @@
         <module>ice-client-spring-boot-autoconfigure</module>
     </modules>
 
-    <!--许可证信息，根据自己的情况修改-->
+    <!--License-->
     <licenses>
         <license>
             <name>The Apache Software License, Version2.0</name>
@@ -60,14 +60,14 @@
         </license>
     </licenses>
 
-    <!--托管仓库信息，根据自己的应用情况修改-->
+    <!--git-->
     <scm>
         <connection>https://github.com/zjn-zjn/ice.git</connection>
         <developerConnection>https://github.com/zjn-zjn/ice.git</developerConnection>
         <url>https://github.com/zjn-zjn/ice</url>
     </scm>
 
-    <!--开发者信息-->
+    <!--developer-->
     <developers>
         <developer>
             <name>zjn</name>
@@ -80,7 +80,7 @@
         </developer>
     </developers>
 
-    <!--仓库地址配置信息-->
+    <!--sonatype repositories-->
     <distributionManagement>
         <snapshotRepository>
             <id>sonatype-snapshot</id>
@@ -94,7 +94,7 @@
 
     <build>
         <plugins>
-            <!--java source生成插件-->
+            <!--java source-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
@@ -110,7 +110,7 @@
                 </executions>
             </plugin>
 
-            <!--java doc生成插件-->
+            <!--java doc-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -125,7 +125,7 @@
                 </executions>
             </plugin>
 
-            <!--gpg签名插件-->
+            <!--gpg-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>

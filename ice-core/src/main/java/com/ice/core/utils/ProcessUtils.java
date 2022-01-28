@@ -5,7 +5,7 @@ import com.ice.core.base.BaseNode;
 
 /**
  * @author zjn
- * 过程信息组装类
+ * process info assemlby
  */
 public final class ProcessUtils {
 
