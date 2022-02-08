@@ -4,7 +4,9 @@ import com.alibaba.fastjson.JSON;
 import com.ice.common.dto.IceBaseDto;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.dto.IceTransferDto;
+import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.StatusEnum;
+import com.ice.server.constant.Constant;
 import com.ice.server.dao.mapper.IceAppMapper;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
@@ -12,7 +14,6 @@ import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceBaseExample;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.dao.model.IceConfExample;
-import com.ice.server.constant.Constant;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.service.IceServerService;
@@ -383,7 +384,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             for (IceConf conf : confList) {
                 appSet.add(conf.getApp());
                 confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getId(), conf);
-                if (Constant.isRelation(conf.getType()) && StringUtils.hasLength(conf.getSonIds())) {
+                if (NodeTypeEnum.isRelation(conf.getType()) && StringUtils.hasLength(conf.getSonIds())) {
                     String[] sonIdStrs = conf.getSonIds().split(",");
                     for (String sonIdStr : sonIdStrs) {
                         Long sonId = Long.parseLong(sonIdStr);
@@ -399,7 +400,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
                     nextCount += 1;
                     nextMap.put(conf.getForwardId(), nextCount);
                 }
-                if (Constant.isLeaf(conf.getType())) {
+                if (NodeTypeEnum.isLeaf(conf.getType())) {
                     Map<Byte, Map<String, Integer>> map = leafClassMap.get(conf.getApp());
                     Map<String, Integer> classMap;
                     if (map == null) {

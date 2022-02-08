@@ -301,7 +301,7 @@ public class IceConfServiceImpl implements IceConfService {
             }
         }
         if (conf.getId() == null) {
-            if (Constant.isLeaf(conf.getType())) {
+            if (NodeTypeEnum.isLeaf(conf.getType())) {
                 leafClassCheck(conf.getApp(), conf.getConfName(), conf.getType());
             }
         } else {
@@ -312,7 +312,7 @@ public class IceConfServiceImpl implements IceConfService {
             /*can not edit sonIds in here*/
             conf.setSonIds(oldConf.getSonIds());
             Byte type = conf.getType();
-            if (Constant.isLeaf(type)) {
+            if (NodeTypeEnum.isLeaf(type)) {
                 String clazz = conf.getConfName();
                 if (!(type.equals(oldConf.getType()) && clazz.equals(oldConf.getConfName()))) {
                     leafClassCheck(oldConf.getApp(), clazz, type);
@@ -348,10 +348,10 @@ public class IceConfServiceImpl implements IceConfService {
                 }
                 break;
         }
-        if (Constant.isLeaf(conf.getType())) {
+        if (NodeTypeEnum.isLeaf(conf.getType())) {
             conf.setSonIds(null);
         }
-        if (Constant.isRelation(conf.getType())) {
+        if (NodeTypeEnum.isRelation(conf.getType())) {
             conf.setConfName(null);
             conf.setConfField(null);
         }
@@ -444,7 +444,7 @@ public class IceConfServiceImpl implements IceConfService {
         Long nodeId = Long.parseLong(clientNode.getId());
         IceConf iceConf = iceServerService.getActiveConfById(app, nodeId);
         if (iceConf != null) {
-            if (Constant.isRelation(iceConf.getType())) {
+            if (NodeTypeEnum.isRelation(iceConf.getType())) {
                 clientNode.setLabelName(nodeId + "-" + NodeTypeEnum.getEnum(iceConf.getType()).name() + (StringUtils.hasLength(iceConf.getConfName()) ? ("-" + iceConf.getName()) : ""));
             } else {
                 clientNode.setLabelName(nodeId + "-" + (StringUtils.hasLength(iceConf.getConfName()) ? iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(iceConf.getConfName()) ? ("-" + iceConf.getName()) : ""));

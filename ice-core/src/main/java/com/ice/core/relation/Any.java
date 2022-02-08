@@ -26,12 +26,10 @@ public final class Any extends BaseRelation {
             return NodeRunStateEnum.NONE;
         }
         boolean hasFalse = false;
-        int index = 0;
         for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
             BaseNode node = listNode.item;
             if (node != null) {
-                NodeRunStateEnum stateEnum = node.process(cxt, this.findIceNodeId(), -1, index);
-                index++;
+                NodeRunStateEnum stateEnum = node.process(cxt);
                 if (stateEnum == NodeRunStateEnum.TRUE) {
                     return NodeRunStateEnum.TRUE;
                 }

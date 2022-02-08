@@ -17,7 +17,10 @@ import org.jetbrains.annotations.Contract;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
 import java.text.SimpleDateFormat;
@@ -67,11 +70,11 @@ public class IceShowController {
 
     @RequestMapping(value = "/ice/conf/list", method = RequestMethod.GET)
     public WebResult<PageResult<IceBase>> getIceConfList(@RequestParam Integer app,
-                                                      @RequestParam(defaultValue = "1") Integer pageId,
-                                                      @RequestParam(defaultValue = "100") Integer pageSize,
-                                                      @RequestParam(defaultValue = "") Long id,
-                                                      @RequestParam(defaultValue = "") String scene,
-                                                      @RequestParam(defaultValue = "") String name) {
+                                                         @RequestParam(defaultValue = "1") Integer pageId,
+                                                         @RequestParam(defaultValue = "100") Integer pageSize,
+                                                         @RequestParam(defaultValue = "") Long id,
+                                                         @RequestParam(defaultValue = "") String scene,
+                                                         @RequestParam(defaultValue = "") String name) {
         return new WebResult<>(baseService.baseList(new IceBaseSearch(app, id, name, scene, pageId, pageSize)));
     }
 
@@ -168,7 +171,7 @@ public class IceShowController {
             }
             if (iceConf.getType() != null) {
                 showConf.put("nodeType", iceConf.getType());
-                if (Constant.isRelation(iceConf.getType())) {
+                if (NodeTypeEnum.isRelation(iceConf.getType())) {
                     showConf.put("labelName", nodeId + "-" + NodeTypeEnum.getEnum(iceConf.getType()).name() + (StringUtils.hasLength(iceConf.getName()) ? ("-" + iceConf.getName()) : ""));
                 } else {
                     showConf.put("labelName", nodeId + "-" + (StringUtils.hasLength(iceConf.getConfName()) ? iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(iceConf.getName()) ? ("-" + iceConf.getName()) : ""));

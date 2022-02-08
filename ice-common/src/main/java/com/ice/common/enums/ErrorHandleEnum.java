@@ -7,7 +7,6 @@ import java.util.Map;
  * @author zjn
  * leaf error handle method
  * default shutdown and not store
- * 是否打印日志取决于节点debug配置
  */
 public enum ErrorHandleEnum {
     /*

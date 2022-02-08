@@ -1,10 +1,17 @@
-package com.ice.core.relation;
+package com.ice.core.relation.parallel;
 
 import com.ice.common.enums.NodeRunStateEnum;
+import com.ice.common.exception.NodeException;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
 import com.ice.core.context.IceContext;
+import com.ice.core.utils.IceExecutor;
 import com.ice.core.utils.IceLinkedList;
+import javafx.util.Pair;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.Future;
 
 /**
  * @author zjn
@@ -15,7 +22,7 @@ import com.ice.core.utils.IceLinkedList;
  * without chilren-->NONE
  * all NONE-->NONE
  */
-public final class All extends BaseRelation {
+public final class ParallelAll extends BaseRelation {
     /*
      * process relation all
      */
@@ -25,12 +32,21 @@ public final class All extends BaseRelation {
         if (children == null || children.isEmpty()) {
             return NodeRunStateEnum.NONE;
         }
-        boolean hasTrue = false;
-        boolean hasFalse = false;
+        List<Pair<Long, Future<NodeRunStateEnum>>> pairList = new LinkedList<>();
         for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
             BaseNode node = listNode.item;
             if (node != null) {
-                NodeRunStateEnum stateEnum = node.process(cxt);
+                pairList.add(new Pair<>(node.findIceNodeId(), IceExecutor.submitNodeCallable(node, cxt)));
+            }
+        }
+        boolean hasTrue = false;
+        boolean hasFalse = false;
+        long nodeId = 0;
+        try {
+            for (Pair<Long, Future<NodeRunStateEnum>> pair : pairList) {
+                nodeId = pair.getKey();
+                NodeRunStateEnum stateEnum;
+                stateEnum = pair.getValue().get();
                 if (!hasTrue) {
                     hasTrue = stateEnum == NodeRunStateEnum.TRUE;
                 }
@@ -38,6 +54,8 @@ public final class All extends BaseRelation {
                     hasFalse = stateEnum == NodeRunStateEnum.FALSE;
                 }
             }
+        } catch (Exception e) {
+            throw new NodeException(nodeId, e);
         }
         if (hasTrue) {
             return NodeRunStateEnum.TRUE;

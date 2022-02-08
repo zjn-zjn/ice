@@ -81,7 +81,7 @@ public final class Constant {
 
     public static IceBaseDto baseToDtoWithName(IceBase base) {
         IceBaseDto dto = baseToDto(base);
-        if(StringUtils.hasLength(base.getName())){
+        if (StringUtils.hasLength(base.getName())) {
             dto.setName(base.getName());
         }
         return dto;
@@ -106,7 +106,7 @@ public final class Constant {
         if (conf.getTimeType() != null && conf.getTimeType() != TimeTypeEnum.NONE.getType()) {
             dto.setTimeType(conf.getTimeType());
         }
-        if (isLeaf(conf.getType())) {
+        if (NodeTypeEnum.isLeaf(conf.getType())) {
             dto.setConfName(conf.getConfName());
             if (StringUtils.hasLength(conf.getConfField()) && !conf.getConfField().equals("{}")) {
                 dto.setConfField(conf.getConfField());
@@ -123,7 +123,7 @@ public final class Constant {
 
     public static IceConfDto confToDtoWithName(IceConf conf) {
         IceConfDto dto = confToDto(conf);
-        if(StringUtils.hasLength(conf.getName())){
+        if (StringUtils.hasLength(conf.getName())) {
             dto.setName(conf.getName());
         }
         return dto;
@@ -157,7 +157,7 @@ public final class Constant {
         conf.setStart(dto.getStart() == null ? null : new Date(dto.getStart()));
         conf.setEnd(dto.getEnd() == null ? null : new Date(dto.getEnd()));
         conf.setTimeType(dto.getTimeType() == null ? TimeTypeEnum.NONE.getType() : dto.getTimeType());
-        if (isLeaf(dto.getType())) {
+        if (NodeTypeEnum.isLeaf(dto.getType())) {
             conf.setConfName(dto.getConfName());
             conf.setConfField(StringUtils.isEmpty(dto.getConfField()) ? "" : dto.getConfField());
         } else if (StringUtils.hasLength(dto.getSonIds())) {
@@ -211,13 +211,5 @@ public final class Constant {
             results.add(Constant.dtoToConf(dto, app));
         }
         return results;
-    }
-
-    public static boolean isLeaf(byte type) {
-        return type == NodeTypeEnum.LEAF_FLOW.getType() || type == NodeTypeEnum.LEAF_NONE.getType() || type == NodeTypeEnum.LEAF_RESULT.getType();
-    }
-
-    public static boolean isRelation(byte type) {
-        return type == NodeTypeEnum.AND.getType() || type == NodeTypeEnum.ANY.getType() || type == NodeTypeEnum.ALL.getType() || type == NodeTypeEnum.NONE.getType() || type == NodeTypeEnum.TRUE.getType();
     }
 }

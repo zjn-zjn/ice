@@ -24,6 +24,8 @@ public final class IceHandler {
      */
     private long iceId;
 
+    private long confId;
+
     /*
      * triggered scenes
      */
@@ -72,9 +74,32 @@ public final class IceHandler {
                 log.error("root not exist please check! iceId:{}", this.iceId);
             }
         } catch (NodeException ne) {
-            log.error("error occur in node iceId:{} node:{} cxt:{}", this.iceId, cxt.getCurrentId(), JSON.toJSONString(cxt), ne);
+            log.error("error occur in node iceId:{} node:{} cxt:{}", this.iceId, ne.getNodeId(), JSON.toJSONString(cxt), ne);
         } catch (Exception e) {
-            log.error("error occur iceId:{} node:{} cxt:{}", this.iceId, cxt.getCurrentId(), JSON.toJSONString(cxt), e);
+            log.error("error occur iceId:{} cxt:{}", this.iceId, JSON.toJSONString(cxt), e);
+        }
+    }
+
+    public void handleWithConfId(IceContext cxt) {
+        if (DebugEnum.filter(DebugEnum.IN_PACK, debug)) {
+            log.info("handle confId:{} in pack:{}", this.confId, JSON.toJSONString(cxt.getPack()));
+        }
+        try {
+            root.process(cxt);
+            if (DebugEnum.filter(DebugEnum.PROCESS, debug)) {
+                log.info("handle confId:{} process:{}", this.confId, cxt.getProcessInfo().toString());
+            }
+            if (DebugEnum.filter(DebugEnum.OUT_PACK, debug)) {
+                log.info("handle confId:{} out pack:{}", this.confId, JSON.toJSONString(cxt.getPack()));
+            } else {
+                if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
+                    log.info("handle confId:{} out roam:{}", this.confId, JSON.toJSONString(cxt.getPack().getRoam()));
+                }
+            }
+        } catch (NodeException ne) {
+            log.error("error occur in node confId:{} node:{} cxt:{}", this.confId, ne.getNodeId(), JSON.toJSONString(cxt), ne);
+        } catch (Exception e) {
+            log.error("error occur confId:{} cxt:{}", this.confId, JSON.toJSONString(cxt), e);
         }
     }
 

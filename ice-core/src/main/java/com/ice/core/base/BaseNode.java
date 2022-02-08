@@ -57,27 +57,18 @@ public abstract class BaseNode {
 
     private String iceLogName;
 
-
-    public NodeRunStateEnum process(IceContext cxt) {
-        return process(cxt, -1, -1, -1);
-    }
-
     /*
      * process
      * @return NodeRunStateEnum
      */
-    public NodeRunStateEnum process(IceContext cxt, long parentId, long nextId, int index) {
-        cxt.setCurrentId(this.iceNodeId);
-        cxt.setParentId(parentId);
-        cxt.setNextId(nextId);
-        cxt.setIndex(index);
+    public NodeRunStateEnum process(IceContext cxt) {
         if (IceTimeUtils.timeEnable(iceTimeTypeEnum, cxt.getPack().getRequestTime(), iceStart, iceEnd)) {
             ProcessUtils.collectInfo(cxt.getProcessInfo(), this, 'O');
             return NodeRunStateEnum.NONE;
         }
         long start = System.currentTimeMillis();
         if (iceForward != null) {
-            NodeRunStateEnum forwardRes = iceForward.process(cxt, -1, iceNodeId, -1);
+            NodeRunStateEnum forwardRes = iceForward.process(cxt);
             if (forwardRes != NodeRunStateEnum.FALSE) {
                 NodeRunStateEnum res = processNode(cxt);
                 res = forwardRes == NodeRunStateEnum.NONE ? res : (res == NodeRunStateEnum.NONE ? NodeRunStateEnum.TRUE : res);

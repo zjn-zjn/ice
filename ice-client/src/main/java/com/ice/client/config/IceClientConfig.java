@@ -2,13 +2,8 @@ package com.ice.client.config;
 
 import com.ice.client.constant.Constant;
 import com.ice.client.listener.*;
-import org.springframework.amqp.core.AcknowledgeMode;
-import org.springframework.amqp.core.AmqpAdmin;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.DirectExchange;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.QueueBuilder;
+import com.ice.core.utils.IceExecutor;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
@@ -21,6 +16,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 
 import javax.annotation.Resource;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author zjn
@@ -40,6 +39,17 @@ public class IceClientConfig {
         iceConnectionFactory.setHost(properties.getRabbit().getHost());
         iceConnectionFactory.setPort(properties.getRabbit().getPort());
         return iceConnectionFactory;
+    }
+
+    @Bean(name = "iceExecutor")
+    public void iceExecutorConfig() {
+        ExecutorService executor = new ThreadPoolExecutor(properties.getPool().getCoreSize(),
+                properties.getPool().getMaxSize(),
+                properties.getPool().getKeepAliveSeconds(),
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(properties.getPool().getQueueCapacity()),
+                new ThreadPoolExecutor.CallerRunsPolicy());
+        IceExecutor.setExecutor(executor);
     }
 
     @Bean(name = "iceUpdateQueue")

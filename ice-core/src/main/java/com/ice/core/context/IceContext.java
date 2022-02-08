@@ -24,22 +24,6 @@ public final class IceContext {
      */
     private IcePack pack;
     /*
-     * current processing nodeId
-     */
-    private long currentId;
-    /*
-     * current processing node parentId
-     */
-    private long parentId;
-    /*
-     * current processing node nextId
-     */
-    private long nextId;
-    /*
-     * current processing node index
-     */
-    private int index;
-    /*
      * node debug set true then process info
      */
     private StringBuilder processInfo = new StringBuilder();

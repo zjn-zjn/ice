@@ -1,26 +1,20 @@
 package com.ice.server.service.impl;
 
 import com.alibaba.fastjson.JSONValidator;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.page.PageMethod;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
-import com.ice.server.constant.Constant;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IcePushHistoryMapper;
-import com.ice.server.dao.model.IceBase;
-import com.ice.server.dao.model.IceBaseExample;
-import com.ice.server.dao.model.IceConf;
-import com.ice.server.dao.model.IceConfExample;
-import com.ice.server.dao.model.IcePushHistory;
-import com.ice.server.dao.model.IcePushHistoryExample;
+import com.ice.server.dao.model.*;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.*;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceEditService;
 import com.ice.server.service.IceServerService;
-import com.github.pagehelper.Page;
-import com.github.pagehelper.page.PageMethod;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -161,7 +155,7 @@ public class IceEditServiceImpl implements IceEditService {
                 }
                 break;
         }
-        if (confVo.getNodeType() != null && Constant.isRelation(confVo.getNodeType())) {
+        if (confVo.getNodeType() != null && NodeTypeEnum.isRelation(confVo.getNodeType())) {
             confVo.setConfName(null);
             confVo.setConfField(null);
         }
@@ -199,7 +193,7 @@ public class IceEditServiceImpl implements IceEditService {
                 } else {
                     IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getOperateNodeId());
                     if (operateConf != null) {
-                        if(!isRelation(operateConf.getType())){
+                        if (!isRelation(operateConf.getType())) {
                             result.setCode(-1);
                             result.setMsg("only relation can have son");
                             return result;

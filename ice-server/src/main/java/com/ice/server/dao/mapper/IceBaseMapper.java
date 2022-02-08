@@ -2,10 +2,9 @@ package com.ice.server.dao.mapper;
 
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceBaseExample;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
-
-import org.apache.ibatis.annotations.Param;
 
 public interface IceBaseMapper {
     long countByExample(IceBaseExample example);

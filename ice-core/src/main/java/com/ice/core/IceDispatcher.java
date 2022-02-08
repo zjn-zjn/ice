@@ -1,8 +1,6 @@
 package com.ice.core;
 
 import com.alibaba.fastjson.JSON;
-import com.ice.common.enums.DebugEnum;
-import com.ice.common.exception.NodeException;
 import com.ice.core.base.BaseNode;
 import com.ice.core.cache.IceConfCache;
 import com.ice.core.cache.IceHandlerCache;
@@ -10,12 +8,12 @@ import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
 import com.ice.core.context.IceRoam;
 import com.ice.core.handler.IceHandler;
+import com.ice.core.utils.IceExecutor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.Future;
 
 /**
  * @author zjn
@@ -27,6 +25,7 @@ public final class IceDispatcher {
     private IceDispatcher() {
     }
 
+    @SneakyThrows
     public static List<IceContext> syncDispatcher(IcePack pack) {
         if (!checkPack(pack)) {
             return Collections.emptyList();
@@ -61,10 +60,14 @@ public final class IceDispatcher {
             }
             /*mutli handler ever each handler roam not conflict(note the effect of roam`s shallow copy)*/
             IceRoam roam = pack.getRoam();
+            List<Future<?>> futures = new ArrayList<>(handlerMap.size());
             for (IceHandler handler : handlerMap.values()) {
                 IceContext cxt = new IceContext(handler.findIceId(), pack.newPack(roam));
-                handler.handle(cxt);
+                futures.add(IceExecutor.submitHandler(handler, cxt));
                 cxtList.add(cxt);
+            }
+            for (Future<?> future : futures) {
+                future.get();
             }
             return cxtList;
         }
@@ -74,33 +77,16 @@ public final class IceDispatcher {
         if (confId <= 0) {
             return Collections.emptyList();
         }
-        IceContext cxt = new IceContext(confId, pack);
-        if (DebugEnum.filter(DebugEnum.IN_PACK, pack.getDebug())) {
-            log.info("handle confId:{} in pack:{}", confId, JSON.toJSONString(pack));
-        }
         BaseNode root = IceConfCache.getConfById(confId);
         if (root != null) {
-            try {
-                root.process(cxt);
-                if (DebugEnum.filter(DebugEnum.PROCESS, pack.getDebug())) {
-                    log.info("handle confId:{} process:{}", confId, cxt.getProcessInfo().toString());
-                }
-                if (DebugEnum.filter(DebugEnum.OUT_PACK, pack.getDebug())) {
-                    log.info("handle confId:{} out pack:{}", confId, JSON.toJSONString(pack));
-                } else {
-                    if (DebugEnum.filter(DebugEnum.OUT_ROAM, pack.getDebug())) {
-                        log.info("handle confId:{} out roam:{}", confId, JSON.toJSONString(pack.getRoam()));
-                    }
-                }
-            } catch (NodeException ne) {
-                log.error("error occur in node confId:{} node:{} cxt:{}", confId, cxt.getCurrentId(), JSON.toJSONString(cxt), ne);
-            } catch (Exception e) {
-                log.error("error occur confId:{} node:{} cxt:{}", confId, cxt.getCurrentId(), JSON.toJSONString(cxt), e);
-            }
-        } else {
-            log.error("root not exist please check! confId:{}", confId);
+            IceContext cxt = new IceContext(confId, pack);
+            IceHandler handler = new IceHandler();
+            handler.setDebug(pack.getDebug());
+            handler.setRoot(root);
+            handler.setConfId(confId);
+            return Collections.singletonList(cxt);
         }
-        return Collections.singletonList(cxt);
+        return Collections.emptyList();
     }
 
     public static void asyncDispatcher(IcePack pack) {
@@ -110,60 +96,42 @@ public final class IceDispatcher {
         if (pack.getIceId() > 0) {
             IceHandler handler = IceHandlerCache.getHandlerById(pack.getIceId());
             if (handler == null) {
-                log.debug("handler maybe expired iceId:{}", pack.getIceId());
                 return;
             }
             IceContext cxt = new IceContext(handler.findIceId(), pack);
-            handler.handle(cxt);
+            IceExecutor.submitHandler(handler, cxt);
             return;
         }
         if (pack.getScene() != null && !pack.getScene().isEmpty()) {
             Map<Long, IceHandler> handlerMap = IceHandlerCache.getHandlersByScene(pack.getScene());
             if (handlerMap == null || handlerMap.isEmpty()) {
-                log.debug("handlers maybe all expired scene:{}", pack.getScene());
                 return;
             }
             if (handlerMap.size() == 1) {
                 IceHandler handler = handlerMap.values().iterator().next();
                 IceContext cxt = new IceContext(handler.findIceId(), pack);
-                handler.handle(cxt);
+                IceExecutor.submitHandler(handler, cxt);
                 return;
             }
             IceRoam roam = pack.getRoam();
             for (IceHandler handler : handlerMap.values()) {
                 IceContext cxt = new IceContext(handler.findIceId(), pack.newPack(roam));
-                handler.handle(cxt);
+                IceExecutor.submitHandler(handler, cxt);
             }
         }
         long confId = pack.getConfId();
         if (confId <= 0) {
             return;
         }
-        IceContext cxt = new IceContext(confId, pack);
-        if (DebugEnum.filter(DebugEnum.IN_PACK, pack.getDebug())) {
-            log.info("handle confId:{} in pack:{}", confId, JSON.toJSONString(pack));
-        }
+
         BaseNode root = IceConfCache.getConfById(confId);
         if (root != null) {
-            try {
-                root.process(cxt);
-                if (DebugEnum.filter(DebugEnum.PROCESS, pack.getDebug())) {
-                    log.info("handle confId:{} process:{}", confId, cxt.getProcessInfo().toString());
-                }
-                if (DebugEnum.filter(DebugEnum.OUT_PACK, pack.getDebug())) {
-                    log.info("handle confId:{} out pack:{}", confId, JSON.toJSONString(pack));
-                } else {
-                    if (DebugEnum.filter(DebugEnum.OUT_ROAM, pack.getDebug())) {
-                        log.info("handle confId:{} out roam:{}", confId, JSON.toJSONString(pack.getRoam()));
-                    }
-                }
-            } catch (NodeException ne) {
-                log.error("error occur in node confId:{} node:{} cxt:{}", confId, cxt.getCurrentId(), JSON.toJSONString(cxt), ne);
-            } catch (Exception e) {
-                log.error("error occur confId:{} node:{} cxt:{}", confId, cxt.getCurrentId(), JSON.toJSONString(cxt), e);
-            }
-        } else {
-            log.error("root not exist please check! confId:{}", confId);
+            IceContext cxt = new IceContext(confId, pack);
+            IceHandler handler = new IceHandler();
+            handler.setDebug(pack.getDebug());
+            handler.setRoot(root);
+            handler.setConfId(confId);
+            IceExecutor.submitHandler(handler, cxt);
         }
     }
 

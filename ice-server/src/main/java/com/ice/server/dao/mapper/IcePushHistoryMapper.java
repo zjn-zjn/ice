@@ -2,10 +2,9 @@ package com.ice.server.dao.mapper;
 
 import com.ice.server.dao.model.IcePushHistory;
 import com.ice.server.dao.model.IcePushHistoryExample;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
-
-import org.apache.ibatis.annotations.Param;
 
 public interface IcePushHistoryMapper {
     long countByExample(IcePushHistoryExample example);

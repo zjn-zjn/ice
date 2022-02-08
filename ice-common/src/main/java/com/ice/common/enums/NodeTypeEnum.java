@@ -1,7 +1,9 @@
 package com.ice.common.enums;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author zjn
@@ -39,14 +41,46 @@ public enum NodeTypeEnum {
     /*
      * leaf node-none
      */
-    LEAF_NONE((byte) 7);
+    LEAF_NONE((byte) 7),
+    /*
+     * relation node parallel-none
+     */
+    PARALLEL_NONE((byte) 8),
+    /*
+     * relation node parallel-and
+     */
+    PARALLEL_AND((byte) 9),
+    /*
+     * relation node parallel-true
+     */
+    PARALLEL_TRUE((byte) 10),
+    /*
+     * relation node parallel-all
+     */
+    PARALLEL_ALL((byte) 11),
+    /*
+     * relation node parallel-any
+     */
+    PARALLEL_ANY((byte) 12);
 
-    private static final Map<Byte, NodeTypeEnum> MAP = new HashMap<>();
+    private static final Map<Byte, NodeTypeEnum> MAP = new HashMap<>(NodeTypeEnum.values().length);
+
+    private static final Set<Byte> RELATION_SET = new HashSet<>(10);
 
     static {
         for (NodeTypeEnum enums : NodeTypeEnum.values()) {
             MAP.put(enums.getType(), enums);
         }
+        RELATION_SET.add(NONE.type);
+        RELATION_SET.add(AND.type);
+        RELATION_SET.add(TRUE.type);
+        RELATION_SET.add(ALL.type);
+        RELATION_SET.add(ANY.type);
+        RELATION_SET.add(PARALLEL_NONE.type);
+        RELATION_SET.add(PARALLEL_AND.type);
+        RELATION_SET.add(PARALLEL_TRUE.type);
+        RELATION_SET.add(PARALLEL_ALL.type);
+        RELATION_SET.add(PARALLEL_ANY.type);
     }
 
     private final byte type;
@@ -64,5 +98,13 @@ public enum NodeTypeEnum {
 
     public byte getType() {
         return type;
+    }
+
+    public static boolean isRelation(byte type) {
+        return RELATION_SET.contains(type);
+    }
+
+    public static boolean isLeaf(byte type) {
+        return type == LEAF_FLOW.type || type == LEAF_NONE.type || type == LEAF_RESULT.type;
     }
 }

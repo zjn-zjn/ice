@@ -2,17 +2,13 @@ package com.ice.server.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONException;
+import com.github.kevinsawicki.http.HttpRequest;
 import com.ice.server.model.*;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceEditService;
 import com.ice.server.service.IceServerService;
-import com.github.kevinsawicki.http.HttpRequest;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.text.SimpleDateFormat;
@@ -161,9 +157,9 @@ public class IceEditController {
     public WebResult importData(@RequestBody Map map) {
         try {
             iceBaseService.importData(JSON.parseObject((String) map.get("data"), PushData.class));
-        }catch (JSONException e){
+        } catch (JSONException e) {
             return WebResult.fail(-1, "json error");
-        }catch (Exception e){
+        } catch (Exception e) {
             return WebResult.fail(-1, "import error");
         }
         iceServerService.updateByEdit();

@@ -2,6 +2,7 @@ package com.ice.core.base;
 
 import com.ice.common.enums.ErrorHandleEnum;
 import com.ice.common.enums.NodeRunStateEnum;
+import com.ice.common.exception.NodeException;
 import com.ice.core.context.IceContext;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -49,13 +50,13 @@ public abstract class BaseLeaf extends BaseNode {
                     if (this.isIceNodeDebug()) {
                         log.error("error occur in {} handle with shut down", this.findIceNodeId());
                     }
-                    throw e;
+                    throw new NodeException(this.findIceNodeId(), e);
                 case SHUT_DOWN_STORE:
                     if (this.isIceNodeDebug()) {
                         log.error("error occur in {} handle with shut down store", this.findIceNodeId());
                     }
                     //TODO store
-                    throw e;
+                    throw new NodeException(this.findIceNodeId(), e);
                 default:
                     throw e;
             }

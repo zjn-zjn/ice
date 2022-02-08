@@ -1,7 +1,6 @@
 package com.ice.client.config;
 
 import com.ice.core.utils.IceBeanUtils;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;

@@ -3,11 +3,7 @@ package com.ice.core.builder;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
-import com.ice.core.relation.All;
-import com.ice.core.relation.And;
-import com.ice.core.relation.Any;
-import com.ice.core.relation.None;
-import com.ice.core.relation.True;
+import com.ice.core.relation.*;
 
 import java.util.Arrays;
 

@@ -10,6 +10,7 @@ import com.ice.core.leaf.base.BaseLeafFlow;
 import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.core.relation.*;
+import com.ice.core.relation.parallel.*;
 import com.ice.core.utils.IceBeanUtils;
 import com.ice.core.utils.IceLinkedList;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +63,7 @@ public final class IceConfCache {
         }
         for (IceConfDto confInfo : iceConfDtos) {
             BaseNode origin = confMap.get(confInfo.getId());
-            if (isRelation(confInfo)) {
+            if (NodeTypeEnum.isRelation(confInfo.getType())) {
                 List<Long> sonIds;
                 if (confInfo.getSonIds() == null || confInfo.getSonIds().isEmpty()) {
                     sonIds = Collections.emptyList();
@@ -216,12 +217,6 @@ public final class IceConfCache {
         }
     }
 
-    public static boolean isRelation(IceConfDto dto) {
-        return dto.getType() == NodeTypeEnum.NONE.getType() || dto.getType() == NodeTypeEnum.ALL.getType()
-                || dto.getType() == NodeTypeEnum.AND.getType() || dto.getType() == NodeTypeEnum.TRUE.getType()
-                || dto.getType() == NodeTypeEnum.ANY.getType();
-    }
-
     private static BaseNode convert(IceConfDto confDto) throws ClassNotFoundException {
         BaseNode node;
         switch (NodeTypeEnum.getEnum(confDto.getType())) {
@@ -270,6 +265,31 @@ public final class IceConfCache {
                 node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), Any.class);
                 node.setIceLogName("Any");
+                break;
+            case PARALLEL_ALL:
+                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                        confDto.getConfField(), ParallelAll.class);
+                node.setIceLogName("P-All");
+                break;
+            case PARALLEL_AND:
+                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                        confDto.getConfField(), ParallelAnd.class);
+                node.setIceLogName("P-And");
+                break;
+            case PARALLEL_ANY:
+                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                        confDto.getConfField(), ParallelAny.class);
+                node.setIceLogName("P-Any");
+                break;
+            case PARALLEL_NONE:
+                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                        confDto.getConfField(), ParallelNone.class);
+                node.setIceLogName("P-None");
+                break;
+            case PARALLEL_TRUE:
+                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                        confDto.getConfField(), ParallelTrue.class);
+                node.setIceLogName("P-True");
                 break;
             default:
                 node = (BaseNode) JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
