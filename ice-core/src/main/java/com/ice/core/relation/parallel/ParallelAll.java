@@ -32,6 +32,9 @@ public final class ParallelAll extends BaseRelation {
         if (children == null || children.isEmpty()) {
             return NodeRunStateEnum.NONE;
         }
+        if (children.getSize() == 1) {
+            return children.get(0).process(cxt);
+        }
         List<Pair<Long, Future<NodeRunStateEnum>>> pairList = new LinkedList<>();
         for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
             BaseNode node = listNode.item;

@@ -29,7 +29,10 @@ public final class ParallelNone extends BaseRelation {
         if (children == null || children.isEmpty()) {
             return NodeRunStateEnum.NONE;
         }
-
+        if (children.getSize() == 1) {
+            children.get(0).process(cxt);
+            return NodeRunStateEnum.NONE;
+        }
         List<Pair<Long, Future<?>>> futurePairs = new LinkedList<>();
         for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
             BaseNode node = listNode.item;
