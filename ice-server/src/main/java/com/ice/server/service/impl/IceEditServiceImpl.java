@@ -54,9 +54,7 @@ public class IceEditServiceImpl implements IceEditService {
     }
 
     public static boolean isRelation(Byte type) {
-        return type == NodeTypeEnum.NONE.getType() || type == NodeTypeEnum.ALL.getType()
-                || type == NodeTypeEnum.AND.getType() || type == NodeTypeEnum.TRUE.getType()
-                || type == NodeTypeEnum.ANY.getType();
+        return NodeTypeEnum.isRelation(type);
     }
 
     /*

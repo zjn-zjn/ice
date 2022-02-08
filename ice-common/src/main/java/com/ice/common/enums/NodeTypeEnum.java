@@ -45,23 +45,23 @@ public enum NodeTypeEnum {
     /*
      * relation node parallel-none
      */
-    PARALLEL_NONE((byte) 8),
+    P_NONE((byte) 8),
     /*
      * relation node parallel-and
      */
-    PARALLEL_AND((byte) 9),
+    P_AND((byte) 9),
     /*
      * relation node parallel-true
      */
-    PARALLEL_TRUE((byte) 10),
+    P_TRUE((byte) 10),
     /*
      * relation node parallel-all
      */
-    PARALLEL_ALL((byte) 11),
+    P_ALL((byte) 11),
     /*
      * relation node parallel-any
      */
-    PARALLEL_ANY((byte) 12);
+    P_ANY((byte) 12);
 
     private static final Map<Byte, NodeTypeEnum> MAP = new HashMap<>(NodeTypeEnum.values().length);
 
@@ -76,11 +76,11 @@ public enum NodeTypeEnum {
         RELATION_SET.add(TRUE.type);
         RELATION_SET.add(ALL.type);
         RELATION_SET.add(ANY.type);
-        RELATION_SET.add(PARALLEL_NONE.type);
-        RELATION_SET.add(PARALLEL_AND.type);
-        RELATION_SET.add(PARALLEL_TRUE.type);
-        RELATION_SET.add(PARALLEL_ALL.type);
-        RELATION_SET.add(PARALLEL_ANY.type);
+        RELATION_SET.add(P_NONE.type);
+        RELATION_SET.add(P_AND.type);
+        RELATION_SET.add(P_TRUE.type);
+        RELATION_SET.add(P_ALL.type);
+        RELATION_SET.add(P_ANY.type);
     }
 
     private final byte type;

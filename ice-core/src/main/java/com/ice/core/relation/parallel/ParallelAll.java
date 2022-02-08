@@ -17,10 +17,10 @@ import java.util.concurrent.Future;
  * @author zjn
  * relation ALL
  * all child will execute
- * have TRUE-->TRUE
- * without TRUE have FALSE-->FALSE
- * without chilren-->NONE
- * all NONE-->NONE
+ * have TRUE--TRUE
+ * without TRUE have FALSE--FALSE
+ * without chilren--NONE
+ * all NONE--NONE
  */
 public final class ParallelAll extends BaseRelation {
     /*

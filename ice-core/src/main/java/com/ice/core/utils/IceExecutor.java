@@ -15,7 +15,7 @@ import java.util.concurrent.Future;
 /**
  * @author zjn
  * IceExecutor
- * used on mutli handler & parallel relation
+ * used on mutli handler and parallel relation
  */
 @Data
 @AllArgsConstructor

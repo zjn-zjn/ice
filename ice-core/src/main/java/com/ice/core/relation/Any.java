@@ -10,10 +10,10 @@ import com.ice.core.utils.IceLinkedList;
  * @author zjn
  * relation ANY
  * return true on first true
- * have TRUE-->TRUE
- * without TRUE have FALSE-->FALSE
- * without children-->NONE
- * all NONE-->NONE
+ * have TRUE--TRUE
+ * without TRUE have FALSE--FALSE
+ * without children--NONE
+ * all NONE--NONE
  */
 public final class Any extends BaseRelation {
     /*

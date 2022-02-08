@@ -266,27 +266,27 @@ public final class IceConfCache {
                         confDto.getConfField(), Any.class);
                 node.setIceLogName("Any");
                 break;
-            case PARALLEL_ALL:
+            case P_ALL:
                 node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), ParallelAll.class);
                 node.setIceLogName("P-All");
                 break;
-            case PARALLEL_AND:
+            case P_AND:
                 node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), ParallelAnd.class);
                 node.setIceLogName("P-And");
                 break;
-            case PARALLEL_ANY:
+            case P_ANY:
                 node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), ParallelAny.class);
                 node.setIceLogName("P-Any");
                 break;
-            case PARALLEL_NONE:
+            case P_NONE:
                 node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), ParallelNone.class);
                 node.setIceLogName("P-None");
                 break;
-            case PARALLEL_TRUE:
+            case P_TRUE:
                 node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), ParallelTrue.class);
                 node.setIceLogName("P-True");

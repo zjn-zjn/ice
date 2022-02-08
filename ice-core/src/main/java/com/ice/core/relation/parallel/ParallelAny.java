@@ -18,10 +18,10 @@ import java.util.concurrent.Future;
  * @author zjn
  * relation ANY
  * return true on first true
- * have TRUE-->TRUE
- * without TRUE have FALSE-->FALSE
- * without children-->NONE
- * all NONE-->NONE
+ * have TRUE--TRUE
+ * without TRUE have FALSE--FALSE
+ * without children--NONE
+ * all NONE--NONE
  */
 public final class ParallelAny extends BaseRelation {
     /*
