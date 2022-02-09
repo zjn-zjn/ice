@@ -16,7 +16,7 @@ import java.util.concurrent.Future;
 
 /**
  * @author zjn
- * relation ANY
+ * relation P_ANY(parallel execute)
  * return true on first true
  * have TRUE--TRUE
  * without TRUE have FALSE--FALSE

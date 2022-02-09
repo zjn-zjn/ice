@@ -14,11 +14,6 @@ public abstract class BaseRelation extends BaseNode {
 
     private IceLinkedList<BaseNode> children;
 
-    /*
-     * future exec default false
-     */
-    private boolean future;
-
     protected BaseRelation() {
         children = new IceLinkedList<>();
     }

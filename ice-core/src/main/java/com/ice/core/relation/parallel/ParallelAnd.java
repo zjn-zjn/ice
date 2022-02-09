@@ -16,7 +16,7 @@ import java.util.concurrent.Future;
 
 /**
  * @author zjn
- * relation AND
+ * relation P_AND(parallel execute)
  * return false on first false
  * have FALSE--FALSE
  * without FALSE have TRUE--TRUE

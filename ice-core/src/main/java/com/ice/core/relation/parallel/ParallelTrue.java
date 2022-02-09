@@ -15,7 +15,7 @@ import java.util.concurrent.Future;
 
 /**
  * @author zjn
- * relation TRUE
+ * relation P_TRUE(parallel execute)
  * all child will execute
  * return TRUE
  */
