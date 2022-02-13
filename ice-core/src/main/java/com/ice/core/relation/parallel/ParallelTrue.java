@@ -32,7 +32,7 @@ public final class ParallelTrue extends BaseRelation {
         if (children.getSize() == 1) {
             BaseNode node = children.get(0);
             if (node == null) {
-                return NodeRunStateEnum.NONE;
+                return NodeRunStateEnum.TRUE;
             }
             return node.process(cxt);
         }
