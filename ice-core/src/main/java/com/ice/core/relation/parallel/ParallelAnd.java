@@ -34,7 +34,11 @@ public final class ParallelAnd extends BaseRelation {
             return NodeRunStateEnum.NONE;
         }
         if (children.getSize() == 1) {
-            return children.get(0).process(cxt);
+            BaseNode node = children.get(0);
+            if (node == null) {
+                return NodeRunStateEnum.NONE;
+            }
+            return node.process(cxt);
         }
         LinkedList<Pair<Long, Future<NodeRunStateEnum>>> futurePairs = new LinkedList<>();
         for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {

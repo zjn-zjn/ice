@@ -27,7 +27,11 @@ public final class And extends BaseRelation {
             return NodeRunStateEnum.NONE;
         }
         if (children.getSize() == 1) {
-            return children.get(0).process(cxt);
+            BaseNode node = children.get(0);
+            if (node == null) {
+                return NodeRunStateEnum.NONE;
+            }
+            return node.process(cxt);
         }
         boolean hasTrue = false;
         for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
