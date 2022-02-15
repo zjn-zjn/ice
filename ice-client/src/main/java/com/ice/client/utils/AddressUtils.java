@@ -11,10 +11,11 @@ import java.net.InetAddress;
 @Component("addressUtils")
 public final class AddressUtils {
 
-    private static String address;
+    private static volatile String address;
+    private static volatile String host;
     private static String port;
 
-    @Value("${server.port:}")
+    @Value("${server.port}")
     public void setPort(String port) {
         AddressUtils.port = port;
     }
@@ -30,14 +31,25 @@ public final class AddressUtils {
             if (address != null) {
                 return address;
             }
-            String host;
+            address = getHost() + ":" + port;
+            return address;
+        }
+    }
+
+    public static String getHost() {
+        if (host != null) {
+            return host;
+        }
+        synchronized (AddressUtils.class) {
+            if (host != null) {
+                return host;
+            }
             try {
                 host = InetAddress.getLocalHost().getHostAddress();
             } catch (Exception e) {
                 throw new RuntimeException("get host failed", e);
             }
-            address = host + ":" + port;
-            return address;
+            return host;
         }
     }
 }

@@ -15,7 +15,6 @@ import com.ice.server.model.*;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceEditService;
 import com.ice.server.service.IceServerService;
-import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -42,9 +41,6 @@ public class IceEditServiceImpl implements IceEditService {
 
     @Resource
     private IceServerService iceServerService;
-
-    @Resource
-    private AmqpTemplate amqpTemplate;
 
     @Resource
     private IceConfService iceConfService;
@@ -635,70 +631,6 @@ public class IceEditServiceImpl implements IceEditService {
         return result;
     }
 
-//    /*
-//     * 发布
-//     */
-//    @Override
-//    public WebResult push(Integer app, Long iceId, String reason) {
-//        WebResult<Long> result = new WebResult<>();
-//        IceBaseExample baseExample = new IceBaseExample();
-//        baseExample.createCriteria().andIdEqualTo(iceId);
-//        List<IceBase> baseList = baseMapper.selectByExample(baseExample);
-//        if (CollectionUtils.isEmpty(baseList)) {
-//            result.setRet(-1);
-//            result.setMsg("ice id " + iceId + "not exist");
-//        }
-//        IceBase base = baseList.get(0);
-//        base.setUpdateAt(new Date());
-//        if (base.getScenes() == null) {
-//            base.setScenes("");
-//        }
-//        PushData pushData = new PushData();
-//        pushData.setBase(base);
-//        Long confId = base.getConfId();
-//        Object obj = amqpTemplate.convertSendAndReceive(Constant.getShowConfExchange(), String.valueOf(base.getApp()),
-//                String.valueOf(iceId));
-//        if (obj != null) {
-//            String json = (String) obj;
-//            if (StringUtils.hasLength(json)) {
-//                Map map = JSON.parseObject(json, Map.class);
-//                if (!CollectionUtils.isEmpty(map)) {
-//                    Map handlerMap = (Map) map.get("handler");
-//                    if (!CollectionUtils.isEmpty(handlerMap)) {
-//                        Map rootMap = (Map) handlerMap.get("root");
-//                        if (!CollectionUtils.isEmpty(rootMap)) {
-//                            Set<Long> allIdSet = new HashSet<>();
-//                            findAllConfIds(rootMap, allIdSet);
-//                            if (!CollectionUtils.isEmpty(allIdSet)) {
-//                                IceConfExample confExample = new IceConfExample();
-//                                confExample.createCriteria().andIdIn(new ArrayList<>(allIdSet));
-//                                List<IceConf> iceConfs = confMapper.selectByExample(confExample);
-//                                if (!CollectionUtils.isEmpty(iceConfs)) {
-//                                    for (IceConf conf : iceConfs) {
-//                                        conf.setUpdateAt(new Date());
-//                                        if (isRelation(conf.getType()) && conf.getSonIds() == null) {
-//                                            conf.setSonIds("");
-//                                        }
-//                                    }
-//                                    pushData.setConfs(iceConfs);
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        IcePushHistory history = new IcePushHistory();
-//        history.setApp(base.getApp());
-//        history.setIceId(iceId);
-//        history.setReason(reason);
-//        history.setOperator("zjn");
-//        history.setPushData(JSON.toJSONString(pushData));
-//        pushHistoryMapper.insertSelective(history);
-//        result.setData(history.getId());
-//        return result;
-//    }
-
     /*
      * 发布历史
      */
@@ -717,163 +649,6 @@ public class IceEditServiceImpl implements IceEditService {
         pushHistoryMapper.deleteByPrimaryKey(pushId);
         return WebResult.success();
     }
-//
-//    /*
-//     * 导出数据
-//     */
-//    @Override
-//    public WebResult exportData(Long iceId, Long pushId) {
-//        WebResult<String> result = new WebResult<>();
-//        if (pushId != null && pushId > 0) {
-//            IcePushHistoryExample historyExample = new IcePushHistoryExample();
-//            historyExample.createCriteria().andIdEqualTo(pushId);
-//            List<IcePushHistory> histories = pushHistoryMapper.selectByExampleWithBLOBs(historyExample);
-//            if (!CollectionUtils.isEmpty(histories)) {
-//                result.setData(histories.get(0).getPushData());
-//                return result;
-//            }
-//            result.setRet(-1);
-//            result.setMsg("pushId不存在");
-//            return result;
-//        }
-//        IceBaseExample baseExample = new IceBaseExample();
-//        baseExample.createCriteria().andIdEqualTo(iceId);
-//        List<IceBase> baseList = baseMapper.selectByExample(baseExample);
-//        if (CollectionUtils.isEmpty(baseList)) {
-//            result.setRet(-1);
-//            result.setMsg("iceId不存在");
-//            return result;
-//        }
-//        IceBase base = baseList.get(0);
-//        base.setUpdateAt(new Date());
-//        if (base.getScenes() == null) {
-//            base.setScenes("");
-//        }
-//        PushData pushData = new PushData();
-//        pushData.setBase(base);
-//        Long confId = base.getConfId();
-//        Object obj = amqpTemplate.convertSendAndReceive(Constant.getShowConfExchange(), String.valueOf(base.getApp()),
-//                String.valueOf(iceId));
-//        if (obj != null) {
-//            String json = (String) obj;
-//            if (StringUtils.hasLength(json)) {
-//                Map map = JSON.parseObject(json, Map.class);
-//                if (!CollectionUtils.isEmpty(map)) {
-//                    Map handlerMap = (Map) map.get("handler");
-//                    if (!CollectionUtils.isEmpty(handlerMap)) {
-//                        Map rootMap = (Map) handlerMap.get("root");
-//                        if (!CollectionUtils.isEmpty(rootMap)) {
-//                            Set<Long> allIdSet = new HashSet<>();
-//                            findAllConfIds(rootMap, allIdSet);
-//                            if (!CollectionUtils.isEmpty(allIdSet)) {
-//                                IceConfExample confExample = new IceConfExample();
-//                                confExample.createCriteria().andIdIn(new ArrayList<>(allIdSet));
-//                                List<IceConf> iceConfs = confMapper.selectByExample(confExample);
-//                                if (!CollectionUtils.isEmpty(iceConfs)) {
-//                                    for (IceConf conf : iceConfs) {
-//                                        conf.setUpdateAt(new Date());
-//                                        if (isRelation(conf.getType()) && conf.getSonIds() == null) {
-//                                            conf.setSonIds("");
-//                                        }
-//                                    }
-//                                    pushData.setConfs(iceConfs);
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        result.setData(JSON.toJSONString(pushData));
-//        return result;
-//    }
-//
-//    /*
-//     * 回滚
-//     */
-//    @Override
-//    @Transactional
-//    public WebResult rollback(Long pushId) {
-//        WebResult result = new WebResult<>();
-//        if (pushId != null && pushId > 0) {
-//            IcePushHistoryExample historyExample = new IcePushHistoryExample();
-//            historyExample.createCriteria().andIdEqualTo(pushId);
-//            List<IcePushHistory> histories = pushHistoryMapper.selectByExampleWithBLOBs(historyExample);
-//            if (!CollectionUtils.isEmpty(histories)) {
-//                importData(histories.get(0).getPushData());
-//                return result;
-//            }
-//            result.setRet(-1);
-//            result.setMsg("pushId不存在");
-//        }
-//        return result;
-//    }
-
-//    private void findAllConfIds(Map map, Set<Long> ids) {
-//        Long nodeId = (Long) map.get("iceNodeId");
-//        if (nodeId != null) {
-//            ids.add(nodeId);
-//        }
-//        Map forward = (Map) map.get("iceForward");
-//        if (forward != null) {
-//            findAllConfIds(forward, ids);
-//        }
-//        List<Map> children = getChild(map);
-//        if (CollectionUtils.isEmpty(children)) {
-//            return;
-//        }
-//        for (Map child : children) {
-//            findAllConfIds(child, ids);
-//        }
-//    }
-
-//    @SuppressWarnings("unchecked")
-//    private List<Map> getChild(Map map) {
-//        return (List) map.get("children");
-//    }
-
-    /*
-     * 导入数据
-     */
-//    @Override
-//    @Transactional
-//    public WebResult importData(String data) {
-//        WebResult result = new WebResult<>();
-//        PushData pushData = JSON.parseObject(data, PushData.class);
-//        IceBase base = pushData.getBase();
-//        List<IceConf> confs = pushData.getConfs();
-//        if (!CollectionUtils.isEmpty(confs)) {
-//            for (IceConf conf : confs) {
-//                IceConfExample confExample = new IceConfExample();
-//                confExample.createCriteria().andIdEqualTo(conf.getId());
-//                List<IceConf> confList = confMapper.selectByExample(confExample);
-//                if (CollectionUtils.isEmpty(confList)) {
-//                    conf.setCreateAt(null);
-//                    conf.setUpdateAt(new Date());
-//                    confMapper.insertSelectiveWithId(conf);
-//                } else {
-//                    conf.setId(null);
-//                    conf.setUpdateAt(new Date());
-//                    confMapper.updateByExampleSelective(conf, confExample);
-//                }
-//            }
-//        }
-//        if (base != null) {
-//            IceBaseExample baseExample = new IceBaseExample();
-//            baseExample.createCriteria().andIdEqualTo(base.getId());
-//            List<IceBase> baseList = baseMapper.selectByExample(baseExample);
-//            if (CollectionUtils.isEmpty(baseList)) {
-//                base.setCreateAt(null);
-//                base.setUpdateAt(new Date());
-//                baseMapper.insertSelectiveWithId(base);
-//            } else {
-//                base.setId(null);
-//                base.setUpdateAt(new Date());
-//                baseMapper.updateByExampleSelective(base, baseExample);
-//            }
-//        }
-//        return result;
-//    }
 
     private IceBase convert(IceBaseVo vo) {
         IceBase base = new IceBase();

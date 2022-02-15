@@ -33,10 +33,10 @@
             <artifactId>ice-core</artifactId>
             <version>0.0.6</version>
         </dependency>
-        <!--rabbitmq-->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
+            <groupId>com.waitmoon.ice</groupId>
+            <artifactId>ice-rmi-common</artifactId>
+            <version>0.0.6</version>
         </dependency>
         <!--web-->
         <dependency>

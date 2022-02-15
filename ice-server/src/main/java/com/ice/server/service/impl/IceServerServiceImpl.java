@@ -17,8 +17,8 @@ import com.ice.server.dao.model.IceConfExample;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.service.IceServerService;
+import com.ice.server.trans.IceRmiClientManager;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -64,8 +64,6 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     private IceConfMapper confMapper;
     @Resource
     private IceAppMapper iceAppMapper;
-    @Resource
-    private AmqpTemplate amqpTemplate;
 
     public synchronized boolean haveCircle(Long nodeId, Long linkId) {
         if (nodeId.equals(linkId)) {
@@ -315,9 +313,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             /*send update msg to remote client while has change*/
             if (transferDto != null) {
                 transferDto.setVersion(updateVersion);
-                String message = JSON.toJSONString(transferDto);
-                amqpTemplate.convertAndSend(Constant.getUpdateExchange(), Constant.getUpdateRouteKey(app), message);
-                log.info("ice update app:{}, content:{}", app, message);
+                IceRmiClientManager.update(app, transferDto);
+                log.info("ice update app:{}, content:{}", app, JSON.toJSONString(transferDto));
             }
         }
     }
@@ -444,13 +441,13 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public String getInitJson(Integer app) {
+    public IceTransferDto getInitConfig(Integer app) {
         synchronized (LOCK) {
             IceTransferDto transferDto = new IceTransferDto();
             transferDto.setInsertOrUpdateBases(this.getActiveBasesByApp(app));
             transferDto.setInsertOrUpdateConfs(this.getActiveConfsByApp(app));
             transferDto.setVersion(version);
-            return JSON.toJSONString(transferDto);
+            return transferDto;
         }
     }
 }

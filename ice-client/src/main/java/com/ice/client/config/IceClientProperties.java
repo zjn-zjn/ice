@@ -13,27 +13,35 @@ public class IceClientProperties {
      */
     private Integer app;
     /*
-     * rabbitMq config
+     * rmi config
      */
-    private IceClientRabbitProperties rabbit = new IceClientRabbitProperties();
+    private IceClientRmiProperties rmi = new IceClientRmiProperties();
     /*
      * ice thread pool
      */
     private IceClientThreadPoolProperties pool = new IceClientThreadPoolProperties();
 
     @Data
-    @AllArgsConstructor
     @NoArgsConstructor
-    public static class IceClientRabbitProperties {
-        private int port;
-        private String host;
-        private String username;
-        private String password;
-        private int replyTimeout = 10000;
+    public static class IceClientRmiProperties {
+        private int port = 9099;
+        private String server;
+        private String serverHost;
+        private int serverPort;
+
+        public void setServer(String server) {
+            this.server = server;
+            String[] serverHostPort = server.split(":");
+            try {
+                this.serverHost = serverHostPort[0];
+                this.serverPort = Integer.parseInt(serverHostPort[1]);
+            } catch (Exception e) {
+                throw new RuntimeException("ice server config error conf:" + server);
+            }
+        }
     }
 
     @Data
-    @AllArgsConstructor
     @NoArgsConstructor
     public static class IceClientThreadPoolProperties {
         private int coreSize = 4;

@@ -1,5 +1,6 @@
 package com.ice.server.service;
 
+import com.ice.common.dto.IceTransferDto;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceConf;
 
@@ -11,7 +12,7 @@ import java.util.Map;
  */
 public interface IceServerService {
 
-    String getInitJson(Integer app);
+    IceTransferDto getInitConfig(Integer app);
 
     IceConf getActiveConfById(Integer app, Long confId);
 

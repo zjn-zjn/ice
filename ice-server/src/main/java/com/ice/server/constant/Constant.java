@@ -16,44 +16,6 @@ import java.util.Date;
 
 public final class Constant {
 
-    public static String getUpdateExchange() {
-        return "ice.update.exchange";
-    }
-
-    @Deprecated
-    public static String getShowConfExchange() {
-        return "ice.show.conf.exchange";
-    }
-
-    public static String getConfExchange() {
-        return "ice.conf.exchange";
-    }
-
-    public static String getConfClazzCheckExchange() {
-        return "ice.conf.clazz.check.exchange";
-    }
-
-    public static String getAllConfIdExchange() {
-        return "ice.all.conf.id.exchange";
-    }
-
-    public static String getMockExchange() {
-        return "ice.mock.exchange";
-    }
-
-    public static String getInitExchange() {
-        return "ice.init.exchange";
-    }
-
-    public static String getUpdateRouteKey(Integer app) {
-        return "ice.update." + app;
-    }
-
-    @Deprecated
-    public static String getShowConfQueue(Integer app) {
-        return "ice.show.conf." + app;
-    }
-
     /**
      * base convert to dto
      * some filed has default value so delete it to improve trans

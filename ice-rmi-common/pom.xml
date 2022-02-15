@@ -8,24 +8,17 @@
         <artifactId>ice</artifactId>
         <version>0.0.6</version>
     </parent>
+
+    <artifactId>ice-rmi-common</artifactId>
     <packaging>jar</packaging>
-    <artifactId>ice-client</artifactId>
-    <name>ice-client</name>
+
+    <name>ice-rmi-common</name>
 
     <dependencies>
         <dependency>
             <groupId>com.waitmoon.ice</groupId>
             <artifactId>ice-core</artifactId>
             <version>0.0.6</version>
-        </dependency>
-        <dependency>
-            <groupId>com.waitmoon.ice</groupId>
-            <artifactId>ice-rmi-common</artifactId>
-            <version>0.0.6</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot</artifactId>
         </dependency>
     </dependencies>
 </project>

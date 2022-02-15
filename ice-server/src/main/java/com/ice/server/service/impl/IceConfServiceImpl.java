@@ -7,7 +7,6 @@ import com.ice.common.enums.StatusEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.model.IceClientConf;
 import com.ice.common.model.IceClientNode;
-import com.ice.server.constant.Constant;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.dao.model.IceConfExample;
@@ -16,8 +15,9 @@ import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceLeafClass;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
+import com.ice.server.trans.IceRmiClientManager;
+import javafx.util.Pair;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -35,9 +35,6 @@ public class IceConfServiceImpl implements IceConfService {
 
     @Resource
     private IceServerService iceServerService;
-
-    @Resource
-    private AmqpTemplate amqpTemplate;
 
     @Override
     @Transactional
@@ -380,35 +377,18 @@ public class IceConfServiceImpl implements IceConfService {
         if (app == null || !StringUtils.hasLength(clazz) || typeEnum == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|clazz|type");
         }
-        Object obj = amqpTemplate.convertSendAndReceive(Constant.getConfClazzCheckExchange(), String.valueOf(app), clazz + "," + type);
-        if (obj == null) {
-            throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app);
-        }
-        String resStr = (String) obj;
-        if (!StringUtils.hasLength(resStr)) {
-            throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app);
-        }
-        String[] res = resStr.split(",");
-        if ("1".equals(res[0])) {
+        Pair<Integer, String> res = IceRmiClientManager.confClazzCheck(app, clazz, type);
+        if (res.getKey() == 1) {
             iceServerService.addLeafClass(app, type, clazz);
             return null;
         }
         iceServerService.removeLeafClass(app, type, clazz);
-        throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, res[1]);
+        throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, res.getValue());
     }
 
     @Override
     public IceClientConf confDetail(Integer app, Long confId) {
-        Object obj = amqpTemplate.convertSendAndReceive(Constant.getConfExchange(), String.valueOf(app),
-                String.valueOf(confId));
-        if (obj == null) {
-            throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, null);
-        }
-        String json = (String) obj;
-        if (!StringUtils.hasLength(json)) {
-            throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, null);
-        }
-        IceClientConf clientConf = JSON.parseObject(json, IceClientConf.class);
+        IceClientConf clientConf = IceRmiClientManager.getConf(app, confId);
         IceClientNode node = clientConf.getNode();
         if (node == null) {
             throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, JSON.toJSONString(clientConf));

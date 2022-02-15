@@ -7,12 +7,9 @@ spring:
 
 ice:
   app: 1
-  rabbit:
-    port: 5672
-    host: localhost
-    username: guest
-    password: guest
-    reply-timeout: 10000
+  rmi:
+    port: 9099
+    server: 127.0.0.1:8088
   pool:
     coreSize: 4
     maxSize: 4

@@ -2,11 +2,13 @@ package com.ice.common.dto;
 
 import lombok.Data;
 
+import java.io.Serializable;
+
 /**
  * @author zjn
  */
 @Data
-public final class IceBaseDto {
+public final class IceBaseDto implements Serializable {
 
     private Long id;
 

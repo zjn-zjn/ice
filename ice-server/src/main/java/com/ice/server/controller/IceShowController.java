@@ -1,8 +1,6 @@
 package com.ice.server.controller;
 
-import com.alibaba.fastjson.JSON;
 import com.ice.common.enums.NodeTypeEnum;
-import com.ice.server.constant.Constant;
 import com.ice.server.dao.model.IceApp;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceConf;
@@ -13,8 +11,8 @@ import com.ice.server.service.IceAppService;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceEditService;
 import com.ice.server.service.IceServerService;
+import com.ice.server.trans.IceRmiClientManager;
 import org.jetbrains.annotations.Contract;
-import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,9 +45,6 @@ public class IceShowController {
 
     private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    @Resource
-    private AmqpTemplate amqpTemplate;
-
     @Contract(pure = true)
     public IceShowController(IceServerService iceServerService) {
         this.iceServerService = iceServerService;
@@ -80,26 +75,19 @@ public class IceShowController {
 
     @RequestMapping("/ice/conf/detail")
     public WebResult getIceAppConf(@RequestParam Integer app, @RequestParam Long iceId) {
-        Object obj = amqpTemplate.convertSendAndReceive(Constant.getShowConfExchange(), String.valueOf(app),
-                String.valueOf(iceId));
-        if (obj != null) {
-            String json = (String) obj;
-            if (StringUtils.hasLength(json)) {
-                Map map = JSON.parseObject(json, Map.class);
-                if (!CollectionUtils.isEmpty(map)) {
-                    Map handlerMap = (Map) map.get("handler");
-                    if (!CollectionUtils.isEmpty(handlerMap)) {
-                        Map rootMap = (Map) handlerMap.get("root");
-                        if (!CollectionUtils.isEmpty(rootMap)) {
-                            Set<Long> nodeIdSet = new HashSet<>();
-                            assemble(app, rootMap, nodeIdSet);
-                            return new WebResult<>(map);
-                        }
-                    }
+        Map<String, Object> map = IceRmiClientManager.getShowConf(app, iceId);
+        if (!CollectionUtils.isEmpty(map)) {
+            Map handlerMap = (Map) map.get("handler");
+            if (!CollectionUtils.isEmpty(handlerMap)) {
+                Map rootMap = (Map) handlerMap.get("root");
+                if (!CollectionUtils.isEmpty(rootMap)) {
+                    Set<Long> nodeIdSet = new HashSet<>();
+                    assemble(app, rootMap, nodeIdSet);
+                    return new WebResult<>(map);
                 }
             }
         }
-        return new WebResult<>(-1, "no available client");
+        return new WebResult<>(-8, "no available client");
     }
 
     @SuppressWarnings("unchecked")

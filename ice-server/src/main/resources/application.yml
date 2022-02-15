@@ -10,12 +10,6 @@ spring:
     suffix: .html
   resources:
     static-locations: classpath:/
-  rabbitmq:
-    cache:
-      channel:
-        size: 10
-    direct-reply-to-container: false
-    #mybatis
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource

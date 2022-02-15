@@ -1,13 +1,11 @@
 server:
   port: 8121
 spring:
-  rabbitmq:
-    port: 5672
-    host: localhost
-    username: guest
-    password: guest
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/ice?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
     username: root
     password: rootroot
+ice:
+  rmi:
+    port: 8088
 environment: test

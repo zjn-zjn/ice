@@ -2,13 +2,14 @@ package com.ice.common.dto;
 
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 /**
  * @author zjn
  */
 @Data
-public final class IceTransferDto {
+public final class IceTransferDto implements Serializable {
 
     private long version;
 

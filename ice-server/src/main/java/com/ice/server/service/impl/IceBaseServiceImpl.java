@@ -18,8 +18,8 @@ import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceServerService;
+import com.ice.server.trans.IceRmiClientManager;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -29,6 +29,7 @@ import javax.annotation.Resource;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -45,9 +46,6 @@ public class IceBaseServiceImpl implements IceBaseService {
 
     @Resource
     private IceServerService iceServerService;
-
-    @Resource
-    private AmqpTemplate amqpTemplate;
 
     @Override
     public PageResult<IceBase> baseList(IceBaseSearch search) {
@@ -163,19 +161,13 @@ public class IceBaseServiceImpl implements IceBaseService {
         PushData pushData = new PushData();
         pushData.setApp(base.getApp());
         pushData.setBase(Constant.baseToDtoWithName(base));
-        Object obj = amqpTemplate.convertSendAndReceive(Constant.getAllConfIdExchange(), String.valueOf(base.getApp()),
-                String.valueOf(base.getId()));
-        if (obj != null) {
-            String json = (String) obj;
-            if (StringUtils.hasLength(json)) {
-                List<Long> allIds = JSON.parseArray(json, Long.class);
-                if (!CollectionUtils.isEmpty(allIds)) {
-                    IceConfExample confExample = new IceConfExample();
-                    confExample.createCriteria().andAppEqualTo(base.getApp()).andIdIn(allIds);
-                    List<IceConf> iceConfs = iceConfMapper.selectByExample(confExample);
-                    pushData.setConfs(Constant.confListToDtoListWithName(iceConfs));
-                }
-            }
+
+        Set<Long> allIds = IceRmiClientManager.getAllConfId(base.getApp(), base.getId());
+        if (!CollectionUtils.isEmpty(allIds)) {
+            IceConfExample confExample = new IceConfExample();
+            confExample.createCriteria().andAppEqualTo(base.getApp()).andIdIn(allIds);
+            List<IceConf> iceConfs = iceConfMapper.selectByExample(confExample);
+            pushData.setConfs(Constant.confListToDtoListWithName(iceConfs));
         }
         return pushData;
     }
