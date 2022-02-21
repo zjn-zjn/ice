@@ -1,6 +1,6 @@
 package com.ice.server.controller;
 
-import com.ice.common.model.IceClientConf;
+import com.ice.common.model.IceShowConf;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.exception.ErrorCode;
@@ -137,7 +137,7 @@ public class IceConfController {
     }
 
     @RequestMapping(value = "/ice-server/conf/detail", method = RequestMethod.GET)
-    public IceClientConf confDetail(@RequestParam Integer app, @RequestParam Long iceId) {
+    public IceShowConf confDetail(@RequestParam Integer app, @RequestParam Long iceId) {
         IceBase base = iceServerService.getActiveBaseById(app, iceId);
         if (base == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|iceId");

@@ -5,8 +5,8 @@ import com.alibaba.fastjson.JSONValidator;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.StatusEnum;
 import com.ice.common.enums.TimeTypeEnum;
-import com.ice.common.model.IceClientConf;
-import com.ice.common.model.IceClientNode;
+import com.ice.common.model.IceShowConf;
+import com.ice.common.model.IceShowNode;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.dao.model.IceConfExample;
@@ -387,9 +387,9 @@ public class IceConfServiceImpl implements IceConfService {
     }
 
     @Override
-    public IceClientConf confDetail(Integer app, Long confId) {
-        IceClientConf clientConf = IceRmiClientManager.getConf(app, confId);
-        IceClientNode node = clientConf.getNode();
+    public IceShowConf confDetail(Integer app, Long confId) {
+        IceShowConf clientConf = IceRmiClientManager.getConf(app, confId);
+        IceShowNode node = clientConf.getNode();
         if (node == null) {
             throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, JSON.toJSONString(clientConf));
         }
@@ -397,31 +397,31 @@ public class IceConfServiceImpl implements IceConfService {
         return clientConf;
     }
 
-    private void assemble(Integer app, IceClientNode clientNode) {
+    private void assemble(Integer app, IceShowNode clientNode) {
         if (clientNode == null) {
             return;
         }
-        Long nodeId = Long.parseLong(clientNode.getId());
-        IceClientNode forward = clientNode.getForward();
+        Long nodeId = clientNode.getId();
+        IceShowNode forward = clientNode.getForward();
         if (forward != null) {
             forward.setNextId(nodeId);
         }
         assembleInfoInServer(app, clientNode);
         assemble(app, forward);
-        List<IceClientNode> children = clientNode.getChildren();
+        List<IceShowNode> children = clientNode.getChildren();
         if (CollectionUtils.isEmpty(children)) {
             return;
         }
         for (int i = 0; i < children.size(); i++) {
-            IceClientNode child = children.get(i);
+            IceShowNode child = children.get(i);
             child.setIndex(i);
             child.setParentId(nodeId);
             assemble(app, child);
         }
     }
 
-    private void assembleInfoInServer(Integer app, IceClientNode clientNode) {
-        Long nodeId = Long.parseLong(clientNode.getId());
+    private void assembleInfoInServer(Integer app, IceShowNode clientNode) {
+        Long nodeId = clientNode.getId();
         IceConf iceConf = iceServerService.getActiveConfById(app, nodeId);
         if (iceConf != null) {
             if (NodeTypeEnum.isRelation(iceConf.getType())) {

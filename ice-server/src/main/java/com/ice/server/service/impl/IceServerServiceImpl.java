@@ -6,18 +6,20 @@ import com.ice.common.dto.IceConfDto;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.StatusEnum;
+import com.ice.common.model.IceShowNode;
 import com.ice.server.constant.Constant;
 import com.ice.server.dao.mapper.IceAppMapper;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
+import com.ice.server.dao.mapper.IceConfUpdateMapper;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceBaseExample;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.dao.model.IceConfExample;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
-import com.ice.server.service.IceServerService;
 import com.ice.server.rmi.IceRmiClientManager;
+import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -43,13 +45,17 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
      */
     private final Map<Integer, Map<Long, IceBase>> baseActiveMap = new HashMap<>();
 
-    private final Map<Long, Map<Long, Integer>> nextMapMap = new HashMap<>();
+    private final Map<Long, Map<Long, Integer>> atlasMap = new HashMap<>();
     /*
      * key:app value conf
      */
     private final Map<Integer, Map<Long, IceConf>> confActiveMap = new HashMap<>();
 
     private final Map<Integer, Map<Long, IceConf>> confUpdateMap = new HashMap<>();
+
+    private final Map<Integer, Map<Long, IceShowNode>> mixConfShowMap = new HashMap<>();
+
+    private final Map<Integer, Map<Long, List<IceConf>>> iceIdConfUpdatesMap = new HashMap<>();
 
     private final Map<Integer, Map<Byte, Map<String, Integer>>> leafClassMap = new HashMap<>();
     /*
@@ -66,13 +72,15 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     @Resource
     private IceConfMapper confMapper;
     @Resource
+    private IceConfUpdateMapper confUpdateMapper;
+    @Resource
     private IceAppMapper iceAppMapper;
 
     public synchronized boolean haveCircle(Long nodeId, Long linkId) {
         if (nodeId.equals(linkId)) {
             return true;
         }
-        Map<Long, Integer> linkNextMap = nextMapMap.get(linkId);
+        Map<Long, Integer> linkNextMap = atlasMap.get(linkId);
         if (CollectionUtils.isEmpty(linkNextMap)) {
             return false;
         }
@@ -107,7 +115,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         if (haveCircle(nodeId, linkId)) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "have circle nodeId:" + nodeId + " linkId:" + linkId);
         }
-        Map<Long, Integer> nodeNextMap = nextMapMap.computeIfAbsent(nodeId, k -> new HashMap<>());
+        Map<Long, Integer> nodeNextMap = atlasMap.computeIfAbsent(nodeId, k -> new HashMap<>());
         Integer nodeNextCount = nodeNextMap.computeIfAbsent(linkId, k -> 0);
         nodeNextMap.put(linkId, nodeNextCount + 1);
     }
@@ -125,14 +133,14 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
      * nodeId next reduce linkId count
      */
     public synchronized void unlink(Long nodeId, Long linkId) {
-        Map<Long, Integer> nodeNextMap = nextMapMap.get(nodeId);
+        Map<Long, Integer> nodeNextMap = atlasMap.get(nodeId);
         if (nodeNextMap != null) {
             Integer nodeNextCount = nodeNextMap.get(linkId);
             if (nodeNextCount != null) {
                 if (nodeNextCount <= 1) {
                     nodeNextMap.remove(linkId);
                     if (CollectionUtils.isEmpty(nodeNextMap)) {
-                        nextMapMap.remove(nodeId);
+                        atlasMap.remove(nodeId);
                     }
                 } else {
                     nodeNextMap.put(linkId, nodeNextCount - 1);
@@ -152,6 +160,48 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         Map<Long, IceConf> confMap = confActiveMap.get(app);
         if (!CollectionUtils.isEmpty(confMap)) {
             return confMap.get(confId);
+        }
+        return null;
+    }
+
+    @Override
+    public List<IceConf> getMixConfListByIds(Integer app, Set<Long> confSet) {
+        if (CollectionUtils.isEmpty(confSet)) {
+            return null;
+        }
+        List<IceConf> confList = new ArrayList<>(confSet.size());
+        for (Long confId : confSet) {
+            IceConf conf = this.getMixConfById(app, confId);
+            if (conf == null) {
+                /*one of confId not exist return null*/
+                return null;
+            }
+            confList.add(conf);
+        }
+        return confList;
+    }
+
+    @Override
+    public IceConf getMixConfById(Integer app, Long confId) {
+        Map<Long, IceConf> updateMap = confUpdateMap.get(app);
+        if (!CollectionUtils.isEmpty(updateMap)) {
+            IceConf updateConf = updateMap.get(confId);
+            if (updateConf != null) {
+                return updateConf;
+            }
+        }
+        Map<Long, IceConf> activeMap = confActiveMap.get(app);
+        if (!CollectionUtils.isEmpty(activeMap)) {
+            return activeMap.get(confId);
+        }
+        return null;
+    }
+
+    @Override
+    public IceShowNode getConfMixById(Integer app, Long confId) {
+        Map<Long, IceShowNode> mixMap = mixConfShowMap.get(app);
+        if (!CollectionUtils.isEmpty(mixMap)) {
+            return mixMap.get(confId);
         }
         return null;
     }
@@ -364,10 +414,10 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
 
     @Override
     public void afterPropertiesSet() {
-        Date now = new Date();
+//        Date now = new Date();
         /*baseList*/
         IceBaseExample baseExample = new IceBaseExample();
-        baseExample.createCriteria().andStatusEqualTo(StatusEnum.ONLINE.getStatus()).andUpdateAtLessThanOrEqualTo(now);
+        baseExample.createCriteria().andStatusEqualTo(StatusEnum.ONLINE.getStatus());
         List<IceBase> baseList = baseMapper.selectByExample(baseExample);
 
         if (!CollectionUtils.isEmpty(baseList)) {
@@ -376,55 +426,103 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
                 baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
             }
         }
+        /*UpdateList*/
+        IceConfExample confUpdateExample = new IceConfExample();
+        confUpdateExample.createCriteria().andStatusEqualTo(StatusEnum.ONLINE.getStatus());
+        List<IceConf> confUpdateList = confUpdateMapper.selectByExample(confUpdateExample);
+        Map<Long, IceShowNode> showNodeMap = new HashMap<>();
+        if (!CollectionUtils.isEmpty(confUpdateList)) {
+            for (IceConf conf : confUpdateList) {
+                appSet.add(conf.getApp());
+                IceShowNode showNode = Constant.confToShow(conf, true);
+                showNodeMap.put(conf.getId(), showNode);
+                confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getId(), conf);
+                mixConfShowMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getId(), showNode);
+                iceIdConfUpdatesMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new ArrayList<>()).add(conf);
+                assembleAtlas(conf);
+                assembleLeafClass(conf);
+            }
+        }
         /*ConfList*/
         IceConfExample confExample = new IceConfExample();
-        confExample.createCriteria().andStatusEqualTo(StatusEnum.ONLINE.getStatus()).andUpdateAtLessThanOrEqualTo(now);
+        confExample.createCriteria().andStatusEqualTo(StatusEnum.ONLINE.getStatus());
         List<IceConf> confList = confMapper.selectByExample(confExample);
         if (!CollectionUtils.isEmpty(confList)) {
             for (IceConf conf : confList) {
                 appSet.add(conf.getApp());
                 confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getId(), conf);
-                if (NodeTypeEnum.isRelation(conf.getType()) && StringUtils.hasLength(conf.getSonIds())) {
-                    String[] sonIdStrs = conf.getSonIds().split(",");
-                    for (String sonIdStr : sonIdStrs) {
-                        Long sonId = Long.parseLong(sonIdStr);
-                        Map<Long, Integer> nextMap = nextMapMap.computeIfAbsent(conf.getId(), k -> new HashMap<>());
-                        int nextCount = nextMap.computeIfAbsent(sonId, k -> 0);
-                        nextCount += 1;
-                        nextMap.put(sonId, nextCount);
-                    }
+                if (!showNodeMap.containsKey(conf.getId())) {
+                    assembleAtlas(conf);
+                    showNodeMap.put(conf.getId(), Constant.confToShow(conf, false));
                 }
-                if (conf.getForwardId() != null) {
-                    Map<Long, Integer> nextMap = nextMapMap.computeIfAbsent(conf.getId(), k -> new HashMap<>());
-                    int nextCount = nextMap.computeIfAbsent(conf.getForwardId(), k -> 0);
-                    nextCount += 1;
-                    nextMap.put(conf.getForwardId(), nextCount);
-                }
-                if (NodeTypeEnum.isLeaf(conf.getType())) {
-                    Map<Byte, Map<String, Integer>> map = leafClassMap.get(conf.getApp());
-                    Map<String, Integer> classMap;
-                    if (map == null) {
-                        map = new HashMap<>();
-                        leafClassMap.put(conf.getApp(), map);
-                        classMap = new HashMap<>();
-                        map.put(conf.getType(), classMap);
-                        classMap.put(conf.getConfName(), 0);
-                    } else {
-                        classMap = map.get(conf.getType());
-                        if (classMap == null) {
-                            classMap = new HashMap<>();
-                            map.put(conf.getType(), classMap);
-                            classMap.put(conf.getConfName(), 0);
-                        } else {
-                            classMap.putIfAbsent(conf.getConfName(), 0);
-                        }
-                    }
-                    classMap.put(conf.getConfName(), classMap.get(conf.getConfName()) + 1);
-                }
+                assembleLeafClass(conf);
             }
         }
-        lastConfUpdateTime = now;
-        lastBaseUpdateTime = now;
+        for (IceShowNode showNode : showNodeMap.values()) {
+            if (NodeTypeEnum.isRelation(showNode.getNodeType())) {
+                if (StringUtils.hasLength(showNode.getSonIds())) {
+                    String[] sonIdStrs = showNode.getSonIds().split(",");
+                    List<Long> sonIds = new ArrayList<>(sonIdStrs.length);
+                    for (String sonStr : sonIdStrs) {
+                        sonIds.add(Long.valueOf(sonStr));
+                    }
+                    List<IceShowNode> children = new ArrayList<>(sonIdStrs.length);
+                    for (Long sonId : sonIds) {
+                        IceShowNode node = showNodeMap.get(sonId);
+                        if (node != null) {
+                            children.add(showNodeMap.get(sonId));
+                        }
+                    }
+                    showNode.setChildren(children);
+                }
+            }
+            if (showNode.getForwardId() != null) {
+                showNode.setForward(showNodeMap.get(showNode.getForwardId()));
+            }
+        }
+    }
+
+    private void assembleAtlas(IceConf conf) {
+        if (NodeTypeEnum.isRelation(conf.getType()) && StringUtils.hasLength(conf.getSonIds())) {
+            String[] sonIdStrs = conf.getSonIds().split(",");
+            for (String sonIdStr : sonIdStrs) {
+                Long sonId = Long.parseLong(sonIdStr);
+                Map<Long, Integer> nextMap = atlasMap.computeIfAbsent(conf.getId(), k -> new HashMap<>());
+                int nextCount = nextMap.computeIfAbsent(sonId, k -> 0);
+                nextCount += 1;
+                nextMap.put(sonId, nextCount);
+            }
+        }
+        if (conf.getForwardId() != null) {
+            Map<Long, Integer> nextMap = atlasMap.computeIfAbsent(conf.getId(), k -> new HashMap<>());
+            int nextCount = nextMap.computeIfAbsent(conf.getForwardId(), k -> 0);
+            nextCount += 1;
+            nextMap.put(conf.getForwardId(), nextCount);
+        }
+    }
+
+    private void assembleLeafClass(IceConf conf) {
+        if (NodeTypeEnum.isLeaf(conf.getType())) {
+            Map<Byte, Map<String, Integer>> map = leafClassMap.get(conf.getApp());
+            Map<String, Integer> classMap;
+            if (map == null) {
+                map = new HashMap<>();
+                leafClassMap.put(conf.getApp(), map);
+                classMap = new HashMap<>();
+                map.put(conf.getType(), classMap);
+                classMap.put(conf.getConfName(), 0);
+            } else {
+                classMap = map.get(conf.getType());
+                if (classMap == null) {
+                    classMap = new HashMap<>();
+                    map.put(conf.getType(), classMap);
+                    classMap.put(conf.getConfName(), 0);
+                } else {
+                    classMap.putIfAbsent(conf.getConfName(), 0);
+                }
+            }
+            classMap.put(conf.getConfName(), classMap.get(conf.getConfName()) + 1);
+        }
     }
 
     public Collection<IceConfDto> getActiveConfsByApp(Integer app) {

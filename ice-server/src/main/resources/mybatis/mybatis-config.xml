@@ -11,6 +11,7 @@
         <mapper resource="mybatis/IceAppMapper.xml"/>
         <mapper resource="mybatis/IceBaseMapper.xml"/>
         <mapper resource="mybatis/IceConfMapper.xml"/>
+        <mapper resource="mybatis/IceConfUpdateMapper.xml"/>
         <mapper resource="mybatis/IcePushHistoryMapper.xml"/>
         <mapper resource="mybatis/IceRmiMapper.xml"/>
     </mappers>

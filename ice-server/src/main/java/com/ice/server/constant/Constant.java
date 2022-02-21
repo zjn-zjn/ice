@@ -4,6 +4,7 @@ import com.ice.common.dto.IceBaseDto;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
+import com.ice.common.model.IceShowNode;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceConf;
 import org.springframework.util.CollectionUtils;
@@ -129,6 +130,34 @@ public final class Constant {
         conf.setType(dto.getType());
         conf.setStatus((byte) 1);
         return conf;
+    }
+
+    public static IceShowNode confToShow(IceConf conf, boolean update) {
+        IceShowNode show = new IceShowNode();
+        show.setForwardId(conf.getForwardId());
+        show.setDebug(conf.getDebug() == null || conf.getDebug() == 1);
+        show.setId(conf.getId());
+        show.setStart(conf.getStart() == null ? null : conf.getStart().getTime());
+        show.setEnd(conf.getEnd() == null ? null : conf.getEnd().getTime());
+        if (conf.getTimeType() != null && conf.getTimeType() != TimeTypeEnum.NONE.getType()) {
+            show.setTimeType(conf.getTimeType());
+        }
+        if (NodeTypeEnum.isRelation(conf.getType())) {
+            if (StringUtils.hasLength(conf.getSonIds())) {
+                show.setSonIds(conf.getSonIds());
+            }
+            show.setLabelName(conf.getId() + (update ? "^" : "") + "-" + NodeTypeEnum.getEnum(conf.getType()).name() + (StringUtils.hasLength(conf.getConfName()) ? ("-" + conf.getName()) : ""));
+        } else {
+            show.setConfName(conf.getConfName());
+            if (StringUtils.hasLength(conf.getConfField()) && !conf.getConfField().equals("{}")) {
+                show.setConfField(conf.getConfField());
+            }
+            show.setLabelName(conf.getId() + (update ? "^" : "") + "-" + (StringUtils.hasLength(conf.getConfName()) ? conf.getConfName().substring(conf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(conf.getConfName()) ? ("-" + conf.getName()) : ""));
+        }
+        show.setInverse(conf.getInverse() != null && conf.getInverse() == 1);
+        show.setName(conf.getName());
+        show.setNodeType(conf.getType());
+        return show;
     }
 
     public static Collection<IceConfDto> confListToDtoList(Collection<IceConf> confList) {

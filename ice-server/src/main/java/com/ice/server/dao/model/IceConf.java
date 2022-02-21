@@ -9,6 +9,8 @@ public class IceConf {
     private Long id;
 
     private Integer app;
+    //only in ice_conf_update
+    private Long iceId;
 
     private String name;
 

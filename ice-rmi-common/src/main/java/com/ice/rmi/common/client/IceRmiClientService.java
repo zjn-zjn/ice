@@ -1,7 +1,7 @@
 package com.ice.rmi.common.client;
 
 import com.ice.common.dto.IceTransferDto;
-import com.ice.common.model.IceClientConf;
+import com.ice.common.model.IceShowConf;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
 import javafx.util.Pair;
@@ -22,7 +22,7 @@ public interface IceRmiClientService extends Remote {
 
     Map<String, Object> getShowConf(Long iceId) throws RemoteException;
 
-    IceClientConf getConf(Long confId) throws RemoteException;
+    IceShowConf getConf(Long confId) throws RemoteException;
 
     List<IceContext> mock(IcePack pack) throws RemoteException;
 

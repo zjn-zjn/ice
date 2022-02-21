@@ -688,6 +688,66 @@ public class IceConfExample {
             return (Criteria) this;
         }
 
+        public Criteria andIceIdIsNull() {
+            addCriterion("ice_id is null");
+            return (Criteria) this;
+        }
+
+        public Criteria andIceIdIsNotNull() {
+            addCriterion("ice_id is not null");
+            return (Criteria) this;
+        }
+
+        public Criteria andIceIdEqualTo(Long value) {
+            addCriterion("ice_id =", value, "iceId");
+            return (Criteria) this;
+        }
+
+        public Criteria andIceIdNotEqualTo(Long value) {
+            addCriterion("ice_id <>", value, "iceId");
+            return (Criteria) this;
+        }
+
+        public Criteria andIceIdGreaterThan(Long value) {
+            addCriterion("ice_id >", value, "iceId");
+            return (Criteria) this;
+        }
+
+        public Criteria andIceIdGreaterThanOrEqualTo(Long value) {
+            addCriterion("ice_id >=", value, "iceId");
+            return (Criteria) this;
+        }
+
+        public Criteria andIceIdLessThan(Long value) {
+            addCriterion("ice_id <", value, "iceId");
+            return (Criteria) this;
+        }
+
+        public Criteria andIceIdLessThanOrEqualTo(Long value) {
+            addCriterion("ice_id <=", value, "iceId");
+            return (Criteria) this;
+        }
+
+        public Criteria andIceIdIn(List<Long> values) {
+            addCriterion("ice_id in", values, "iceId");
+            return (Criteria) this;
+        }
+
+        public Criteria andIceIdNotIn(List<Long> values) {
+            addCriterion("ice_id not in", values, "iceId");
+            return (Criteria) this;
+        }
+
+        public Criteria andIceIdBetween(Long value1, Long value2) {
+            addCriterion("ice_id between", value1, value2, "iceId");
+            return (Criteria) this;
+        }
+
+        public Criteria andIceIdNotBetween(Long value1, Long value2) {
+            addCriterion("ice_id not between", value1, value2, "iceId");
+            return (Criteria) this;
+        }
+
         public Criteria andForwardIdIsNull() {
             addCriterion("forward_id is null");
             return (Criteria) this;

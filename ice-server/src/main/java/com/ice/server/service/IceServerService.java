@@ -1,11 +1,14 @@
 package com.ice.server.service;
 
 import com.ice.common.dto.IceTransferDto;
+import com.ice.common.model.IceShowConf;
+import com.ice.common.model.IceShowNode;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceConf;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author zjn
@@ -15,6 +18,12 @@ public interface IceServerService {
     IceTransferDto getInitConfig(Integer app);
 
     IceConf getActiveConfById(Integer app, Long confId);
+
+    List<IceConf> getMixConfListByIds(Integer app, Set<Long> confSet);
+
+    IceConf getMixConfById(Integer app, Long confId);
+
+    IceShowNode getConfMixById(Integer app, Long confId);
 
     IceBase getActiveBaseById(Integer app, Long iceId);
 

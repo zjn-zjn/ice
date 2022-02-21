@@ -7,8 +7,8 @@ import com.ice.client.config.IceClientProperties;
 import com.ice.client.utils.AddressUtils;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
-import com.ice.common.model.IceClientConf;
-import com.ice.common.model.IceClientNode;
+import com.ice.common.model.IceShowConf;
+import com.ice.common.model.IceShowNode;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
 import com.ice.core.cache.IceConfCache;
@@ -193,32 +193,32 @@ public class IceRmiClientServiceImpl implements IceRmiClientService, Initializin
     }
 
     @Override
-    public IceClientConf getConf(Long confId) throws RemoteException {
-        IceClientConf clientConf = new IceClientConf();
+    public IceShowConf getConf(Long confId) throws RemoteException {
+        IceShowConf clientConf = new IceShowConf();
         clientConf.setIp(AddressUtils.getAddress());
         clientConf.setApp(properties.getApp());
         clientConf.setConfId(confId);
         BaseNode node = IceConfCache.getConfById(confId);
         if (node != null) {
-            clientConf.setNode(assembleNode1(node));
+            clientConf.setNode(assembleShowNode(node));
         }
         return clientConf;
     }
 
-    private IceClientNode assembleNode1(BaseNode node) {
+    private IceShowNode assembleShowNode(BaseNode node) {
         if (node == null) {
             return null;
         }
-        IceClientNode clientNode = new IceClientNode();
+        IceShowNode clientNode = new IceShowNode();
         if (node instanceof BaseRelation) {
             BaseRelation relation = (BaseRelation) node;
             IceLinkedList<BaseNode> children = relation.getChildren();
             if (children != null && !children.isEmpty()) {
-                List<IceClientNode> showChildren = new ArrayList<>(children.getSize());
+                List<IceShowNode> showChildren = new ArrayList<>(children.getSize());
                 for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();
                      listNode != null; listNode = listNode.next) {
                     BaseNode child = listNode.item;
-                    IceClientNode childMap = assembleNode1(child);
+                    IceShowNode childMap = assembleShowNode(child);
                     if (childMap != null) {
                         showChildren.add(childMap);
                     }
@@ -229,12 +229,12 @@ public class IceRmiClientServiceImpl implements IceRmiClientService, Initializin
         }
         BaseNode forward = node.getIceForward();
         if (forward != null) {
-            IceClientNode forwardNode = assembleNode1(forward);
+            IceShowNode forwardNode = assembleShowNode(forward);
             if (forwardNode != null) {
                 clientNode.setForward(forwardNode);
             }
         }
-        clientNode.setId(node.getIceNodeId() + "");
+        clientNode.setId(node.getIceNodeId());
         clientNode.setTimeType(node.getIceTimeTypeEnum().getType());
         clientNode.setStart(node.getIceStart() == 0 ? null : node.getIceStart());
         clientNode.setEnd(node.getIceEnd() == 0 ? null : node.getIceEnd());

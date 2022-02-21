@@ -4,9 +4,11 @@ import com.alibaba.fastjson.JSONValidator;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.page.PageMethod;
 import com.ice.common.enums.NodeTypeEnum;
+import com.ice.common.enums.StatusEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
+import com.ice.server.dao.mapper.IceConfUpdateMapper;
 import com.ice.server.dao.mapper.IcePushHistoryMapper;
 import com.ice.server.dao.model.*;
 import com.ice.server.exception.ErrorCode;
@@ -35,6 +37,9 @@ public class IceEditServiceImpl implements IceEditService {
 
     @Resource
     private IceConfMapper confMapper;
+
+    @Resource
+    private IceConfUpdateMapper updateMapper;
 
     @Resource
     private IcePushHistoryMapper pushHistoryMapper;
@@ -185,7 +190,7 @@ public class IceEditServiceImpl implements IceEditService {
 //                        baseMapper.updateByExampleSelective(base, baseExample);
 //                    }
                 } else {
-                    IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getOperateNodeId());
+                    IceConf operateConf = iceServerService.getMixConfById(app, confVo.getOperateNodeId());
                     if (operateConf != null) {
                         if (!isRelation(operateConf.getType())) {
                             result.setCode(-1);
@@ -207,9 +212,7 @@ public class IceEditServiceImpl implements IceEditService {
                                 result.setMsg("have circle");
                                 return result;
                             }
-                            IceConfExample example = new IceConfExample();
-                            example.createCriteria().andAppEqualTo(app).andIdIn(sonIdSet);
-                            List<IceConf> children = confMapper.selectByExample(example);
+                            List<IceConf> children = iceServerService.getMixConfListByIds(app, sonIdSet);
                             if (CollectionUtils.isEmpty(children) || children.size() != sonIdSet.size()) {
                                 result.setCode(-1);
                                 result.setMsg("one of son id not exist:" + confVo.getNodeId());
@@ -250,7 +253,11 @@ public class IceEditServiceImpl implements IceEditService {
                                 createConf.setConfField(confVo.getConfField());
                             }
                             createConf.setUpdateAt(new Date());
+                            createConf.setStatus(StatusEnum.OFFLINE.getStatus());
                             confMapper.insertSelective(createConf);
+                            createConf.setIceId(iceId);
+                            createConf.setStatus(StatusEnum.ONLINE.getStatus());
+                            updateMapper.insertSelectiveWithId(createConf);
                             operateConf.setSonIds(StringUtils.isEmpty(operateConf.getSonIds()) ?
                                     String.valueOf(createConf.getId()) :
                                     operateConf.getSonIds() + "," + createConf.getId());
@@ -258,13 +265,19 @@ public class IceEditServiceImpl implements IceEditService {
                             result.setLinkId(createConf.getId());
                         }
                         operateConf.setUpdateAt(new Date());
-                        confMapper.updateByPrimaryKey(operateConf);
+                        if (operateConf.getIceId() == null) {
+                            operateConf.setIceId(iceId);
+                            updateMapper.insertSelectiveWithId(operateConf);
+                        } else {
+                            updateMapper.updateByPrimaryKey(operateConf);
+                        }
+//                        confMapper.updateByPrimaryKey(operateConf);
                     }
                 }
                 break;
             case 2://编辑
                 if (confVo.getOperateNodeId() != null) {
-                    IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getOperateNodeId());
+                    IceConf operateConf = iceServerService.getMixConfById(app, confVo.getOperateNodeId());
                     if (operateConf != null) {
                         operateConf.setDebug(confVo.getDebug() ? (byte) 1 : (byte) 0);
                         operateConf.setTimeType(confVo.getTimeType());
@@ -284,14 +297,20 @@ public class IceEditServiceImpl implements IceEditService {
                             operateConf.setConfField(confVo.getConfField());
                         }
                         operateConf.setUpdateAt(new Date());
-                        confMapper.updateByPrimaryKey(operateConf);
+                        if (operateConf.getIceId() == null) {
+                            operateConf.setIceId(iceId);
+                            updateMapper.insertSelectiveWithId(operateConf);
+                        } else {
+                            updateMapper.updateByPrimaryKey(operateConf);
+                        }
+//                        confMapper.updateByPrimaryKey(operateConf);
                     }
                 }
                 break;
             case 3://删除
                 if (confVo.getOperateNodeId() != null) {
                     if (confVo.getParentId() != null) {
-                        IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getParentId());
+                        IceConf operateConf = iceServerService.getMixConfById(app, confVo.getParentId());
                         if (operateConf != null) {
                             String sonIdStr = operateConf.getSonIds();
                             if (StringUtils.hasLength(sonIdStr)) {
@@ -311,11 +330,17 @@ public class IceEditServiceImpl implements IceEditService {
                                 result.setNodeId(confVo.getParentId());
                                 result.setUnLinkId(confVo.getOperateNodeId());
                                 operateConf.setUpdateAt(new Date());
-                                confMapper.updateByPrimaryKey(operateConf);
+                                if (operateConf.getIceId() == null) {
+                                    operateConf.setIceId(iceId);
+                                    updateMapper.insertSelectiveWithId(operateConf);
+                                } else {
+                                    updateMapper.updateByPrimaryKey(operateConf);
+                                }
+//                                confMapper.updateByPrimaryKey(operateConf);
                             }
                         }
                     } else if (confVo.getNextId() != null) {
-                        IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getNextId());
+                        IceConf operateConf = iceServerService.getMixConfById(app, confVo.getNextId());
                         if (operateConf != null) {
                             /*多校验一步*/
                             if (operateConf.getForwardId() != null && operateConf.getForwardId().equals(confVo.getOperateNodeId())) {
@@ -323,7 +348,13 @@ public class IceEditServiceImpl implements IceEditService {
                                 operateConf.setUpdateAt(new Date());
                                 result.setNodeId(confVo.getNextId());
                                 result.setUnLinkId(confVo.getOperateNodeId());
-                                confMapper.updateByPrimaryKey(operateConf);
+                                if (operateConf.getIceId() == null) {
+                                    operateConf.setIceId(iceId);
+                                    updateMapper.insertSelectiveWithId(operateConf);
+                                } else {
+                                    updateMapper.updateByPrimaryKey(operateConf);
+                                }
+//                                confMapper.updateByPrimaryKey(operateConf);
                             }
                         }
                     } /*else {
@@ -345,7 +376,7 @@ public class IceEditServiceImpl implements IceEditService {
                 break;
             case 4://新增前置
                 if (confVo.getOperateNodeId() != null) {
-                    IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getOperateNodeId());
+                    IceConf operateConf = iceServerService.getMixConfById(app, confVo.getOperateNodeId());
                     if (operateConf != null) {
                         if (operateConf.getForwardId() != null) {
                             result.setCode(-1);
@@ -360,7 +391,7 @@ public class IceEditServiceImpl implements IceEditService {
                                 result.setMsg("have circle");
                                 return result;
                             }
-                            IceConf forward = confMapper.selectByPrimaryKey(forwardId);
+                            IceConf forward = iceServerService.getMixConfById(app, forwardId);
                             if (forward == null) {
                                 result.setCode(-1);
                                 result.setMsg("id not exist:" + confVo.getNodeId());
@@ -399,13 +430,23 @@ public class IceEditServiceImpl implements IceEditService {
                                 createConf.setConfField(confVo.getConfField());
                             }
                             createConf.setUpdateAt(new Date());
+                            createConf.setStatus(StatusEnum.OFFLINE.getStatus());
                             confMapper.insertSelective(createConf);
+                            createConf.setIceId(iceId);
+                            createConf.setStatus(StatusEnum.ONLINE.getStatus());
+                            updateMapper.insertSelectiveWithId(createConf);
                             operateConf.setForwardId(createConf.getId());
                             result.setNodeId(operateConf.getId());
                             result.setLinkId(createConf.getId());
                         }
                         operateConf.setUpdateAt(new Date());
-                        confMapper.updateByPrimaryKey(operateConf);
+                        if (operateConf.getIceId() == null) {
+                            operateConf.setIceId(iceId);
+                            updateMapper.insertSelectiveWithId(operateConf);
+                        } else {
+                            updateMapper.updateByPrimaryKey(operateConf);
+                        }
+//                        confMapper.updateByPrimaryKey(operateConf);
                     }
                 }
                 break;
@@ -429,7 +470,7 @@ public class IceEditServiceImpl implements IceEditService {
 //                                baseMapper.updateByExampleSelective(base, baseExample);
 //                            }
                         } else if (confVo.getParentId() != null) {
-                            IceConf conf = confMapper.selectByPrimaryKey(confVo.getParentId());
+                            IceConf conf = iceServerService.getMixConfById(app, confVo.getParentId());
                             if (conf != null) {
                                 String[] sonIdStrs = confVo.getNodeId().split(",");
                                 List<Long> sonIdList = new ArrayList<>(sonIdStrs.length);
@@ -460,11 +501,17 @@ public class IceEditServiceImpl implements IceEditService {
                                 result.setLinkIds(sonIdList);
                                 conf.setSonIds(sb.substring(0, sb.length() - 1));
                                 conf.setUpdateAt(new Date());
-                                confMapper.updateByPrimaryKey(conf);
+                                if (conf.getIceId() == null) {
+                                    conf.setIceId(iceId);
+                                    updateMapper.insertSelectiveWithId(conf);
+                                } else {
+                                    updateMapper.updateByPrimaryKey(conf);
+                                }
+//                                confMapper.updateByPrimaryKey(conf);
                             }
                         } else if (confVo.getNextId() != null) {
                             /*更换前置节点*/
-                            IceConf conf = confMapper.selectByPrimaryKey(confVo.getNextId());
+                            IceConf conf = iceServerService.getMixConfById(app, confVo.getNextId());
                             if (conf != null) {
                                 Long forwardId = conf.getId();
                                 if (forwardId == null) {
@@ -483,12 +530,18 @@ public class IceEditServiceImpl implements IceEditService {
                                 result.setLinkId(exchangeForwardId);
                                 conf.setForwardId(exchangeForwardId);
                                 conf.setUpdateAt(new Date());
-                                confMapper.updateByPrimaryKey(conf);
+                                if (conf.getIceId() == null) {
+                                    conf.setIceId(iceId);
+                                    updateMapper.insertSelectiveWithId(conf);
+                                } else {
+                                    updateMapper.updateByPrimaryKey(conf);
+                                }
+//                                confMapper.updateByPrimaryKey(conf);
                             }
                         }
                     } else {
                         /*正常的更换,把所有参数换一遍*/
-                        IceConf operateConf = confMapper.selectByPrimaryKey(confVo.getOperateNodeId());
+                        IceConf operateConf = iceServerService.getMixConfById(app, confVo.getOperateNodeId());
                         if (operateConf != null) {
                             operateConf.setDebug(confVo.getDebug() ? (byte) 1 : (byte) 0);
                             operateConf.setInverse(confVo.getInverse() ? (byte) 1 : (byte) 0);
@@ -524,7 +577,13 @@ public class IceEditServiceImpl implements IceEditService {
                                 operateConf.setConfField(null);
                             }
                             operateConf.setUpdateAt(new Date());
-                            confMapper.updateByPrimaryKey(operateConf);
+                            if (operateConf.getIceId() == null) {
+                                operateConf.setIceId(iceId);
+                                updateMapper.insertSelectiveWithId(operateConf);
+                            } else {
+                                updateMapper.updateByPrimaryKey(operateConf);
+                            }
+//                            confMapper.updateByPrimaryKey(operateConf);
                         }
                     }
                 }
@@ -534,7 +593,7 @@ public class IceEditServiceImpl implements IceEditService {
                 if (confVo.getOperateNodeId() != null) {
                     if (confVo.getParentId() != null) {
                         if (confVo.getParentId() != null) {
-                            IceConf conf = confMapper.selectByPrimaryKey(confVo.getParentId());
+                            IceConf conf = iceServerService.getMixConfById(app, confVo.getParentId());
                             if (conf != null) {
                                 if (StringUtils.hasLength(conf.getSonIds())) {
                                     String[] sonIds = conf.getSonIds().split(",");
@@ -559,7 +618,13 @@ public class IceEditServiceImpl implements IceEditService {
                                     }
                                     conf.setSonIds(sb.substring(0, sb.length() - 1));
                                     conf.setUpdateAt(new Date());
-                                    confMapper.updateByPrimaryKey(conf);
+                                    if (conf.getIceId() == null) {
+                                        conf.setIceId(iceId);
+                                        updateMapper.insertSelectiveWithId(conf);
+                                    } else {
+                                        updateMapper.updateByPrimaryKey(conf);
+                                    }
+//                                    confMapper.updateByPrimaryKey(conf);
                                 }
                             }
                         }
@@ -571,7 +636,7 @@ public class IceEditServiceImpl implements IceEditService {
                 if (confVo.getOperateNodeId() != null) {
                     if (confVo.getParentId() != null) {
                         if (confVo.getParentId() != null) {
-                            IceConf conf = confMapper.selectByPrimaryKey(confVo.getParentId());
+                            IceConf conf = iceServerService.getMixConfById(app, confVo.getParentId());
                             if (conf != null) {
                                 if (StringUtils.hasLength(conf.getSonIds())) {
                                     String[] sonIds = conf.getSonIds().split(",");
@@ -596,7 +661,13 @@ public class IceEditServiceImpl implements IceEditService {
                                     }
                                     conf.setSonIds(sb.substring(0, sb.length() - 1));
                                     conf.setUpdateAt(new Date());
-                                    confMapper.updateByPrimaryKey(conf);
+                                    if (conf.getIceId() == null) {
+                                        conf.setIceId(iceId);
+                                        updateMapper.insertSelectiveWithId(conf);
+                                    } else {
+                                        updateMapper.updateByPrimaryKey(conf);
+                                    }
+//                                    confMapper.updateByPrimaryKey(conf);
                                 }
                             }
                         }

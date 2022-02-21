@@ -2,7 +2,7 @@ package com.ice.server.rmi;
 
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.exception.IceException;
-import com.ice.common.model.IceClientConf;
+import com.ice.common.model.IceShowConf;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
 import com.ice.rmi.common.client.IceRmiClientService;
@@ -129,7 +129,7 @@ public final class IceRmiClientManager implements InitializingBean {
     }
 
     @SneakyThrows
-    public static IceClientConf getConf(int app, Long confId) {
+    public static IceShowConf getConf(int app, Long confId) {
         List<IceRmiClientService> clientList = rmiAppServiceMap.get(app);
         if (CollectionUtils.isEmpty(clientList)) {
             throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);

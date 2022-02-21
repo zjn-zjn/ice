@@ -1,6 +1,6 @@
 package com.ice.server.service;
 
-import com.ice.common.model.IceClientConf;
+import com.ice.common.model.IceShowConf;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.model.IceLeafClass;
 
@@ -32,5 +32,5 @@ public interface IceConfService {
 
     String leafClassCheck(Integer app, String clazz, Byte type);
 
-    IceClientConf confDetail(Integer app, Long confId);
+    IceShowConf confDetail(Integer app, Long confId);
 }

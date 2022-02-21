@@ -5,10 +5,10 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class IceClientNode {
+public class IceShowNode {
 
     //info in remote client
-    private String id;
+    private Long id;
 
     private Byte timeType;
 
@@ -20,11 +20,12 @@ public class IceClientNode {
 
     private Boolean inverse;
 
-    private IceClientNode forward;
+    private IceShowNode forward;
 
-    private List<IceClientNode> children;
+    private List<IceShowNode> children;
 
-    //info in server
+    private Long forwardId;
+
     private Byte nodeType;
 
     private Long parentId;
