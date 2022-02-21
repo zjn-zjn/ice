@@ -24,7 +24,8 @@ public class IceClientProperties {
     @Data
     @NoArgsConstructor
     public static class IceClientRmiProperties {
-        private int port = 9099;
+        private int port = 8210;
+        private int communicatePort = 0;
         private String server;
         private String serverHost;
         private int serverPort;

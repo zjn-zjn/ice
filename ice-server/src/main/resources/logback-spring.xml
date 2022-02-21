@@ -9,14 +9,9 @@
                     <pattern>%d{HH:mm:ss.SSS} %contextName [%thread] %-5level %logger{36} - %msg%n</pattern>
                 </pattern>
             </layout>
-            <!--
-            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-                 <level>ERROR</level>
-            </filter>
-             -->
         </appender>
         <root level="INFO">
-            <!--appender将会添加到这个loger-->
+            <!--appender将会添加到这个logger-->
             <appender-ref ref="consoleLog"/>
         </root>
     </springProfile>
@@ -31,7 +26,7 @@
                 <!--只保留最近15天的日志-->
                 <maxHistory>15</maxHistory>
                 <!--用来指定日志文件的上限大小，那么到了这个值，就会删除旧的日志-->
-                <!--<totalSizeCap>1GB</totalSizeCap>-->
+                <totalSizeCap>1GB</totalSizeCap>
             </rollingPolicy>
             <!--日志输出编码格式化-->
             <encoder>
@@ -47,7 +42,7 @@
 
     </springProfile>
 
-    <springProfile name="product">
+    <springProfile name="prod">
         <appender name="fileInfoLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <File>./logs/ice-server.log</File>
             <!--滚动策略，按照时间滚动 TimeBasedRollingPolicy-->
@@ -57,7 +52,7 @@
                 <!--只保留最近30天的日志-->
                 <maxHistory>30</maxHistory>
                 <!--用来指定日志文件的上限大小，那么到了这个值，就会删除旧的日志-->
-                <!--<totalSizeCap>1GB</totalSizeCap>-->
+                <totalSizeCap>1GB</totalSizeCap>
             </rollingPolicy>
             <!--日志输出编码格式化-->
             <encoder>

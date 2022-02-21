@@ -11,7 +11,7 @@ import com.ice.server.service.IceAppService;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceEditService;
 import com.ice.server.service.IceServerService;
-import com.ice.server.trans.IceRmiClientManager;
+import com.ice.server.rmi.IceRmiClientManager;
 import org.jetbrains.annotations.Contract;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;

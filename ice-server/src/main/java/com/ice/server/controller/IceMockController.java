@@ -3,7 +3,7 @@ package com.ice.server.controller;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
 import com.ice.server.model.WebResult;
-import com.ice.server.trans.IceRmiClientManager;
+import com.ice.server.rmi.IceRmiClientManager;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;

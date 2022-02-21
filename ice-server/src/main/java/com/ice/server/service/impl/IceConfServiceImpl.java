@@ -15,7 +15,7 @@ import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceLeafClass;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
-import com.ice.server.trans.IceRmiClientManager;
+import com.ice.server.rmi.IceRmiClientManager;
 import javafx.util.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

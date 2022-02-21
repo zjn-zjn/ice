@@ -1,4 +1,4 @@
-package com.ice.server.trans;
+package com.ice.server.rmi;
 
 import com.ice.common.dto.IceTransferDto;
 import com.ice.rmi.common.server.IceRmiServerService;
@@ -26,8 +26,11 @@ public class IceRmiServerServiceImpl implements IceRmiServerService, Initializin
     @Resource
     private IceRmiServerService remoteServerService;
 
-    @Value("${ice.rmi.port:8088}")
-    private int rmiPort;
+    @Value("${ice.rmi.port:8212}")
+    private int rmiRegisterPort;
+
+    @Value("${ice.rmi.communicatePort:0}")
+    private int rmiCommunicatePort;
 
     private static Registry registry;
 
@@ -52,8 +55,8 @@ public class IceRmiServerServiceImpl implements IceRmiServerService, Initializin
     @Override
     public void afterPropertiesSet() throws Exception {
         log.info("create ice rmi server service...");
-        IceRmiServerService serverService = (IceRmiServerService) UnicastRemoteObject.exportObject(remoteServerService, 0);
-        registry = LocateRegistry.createRegistry(rmiPort);
+        IceRmiServerService serverService = (IceRmiServerService) UnicastRemoteObject.exportObject(remoteServerService, rmiCommunicatePort);
+        registry = LocateRegistry.createRegistry(rmiRegisterPort);
         registry.rebind("IceRemoteServerService", serverService);
         log.info("create ice rmi server service...success");
     }

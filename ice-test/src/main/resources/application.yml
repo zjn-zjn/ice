@@ -8,8 +8,9 @@ spring:
 ice:
   app: 1
   rmi:
-    port: 9099
-    server: 127.0.0.1:8088
+    port: 8210
+    communicatePort: 18210
+    server: 127.0.0.1:8212
   pool:
     coreSize: 4
     maxSize: 4

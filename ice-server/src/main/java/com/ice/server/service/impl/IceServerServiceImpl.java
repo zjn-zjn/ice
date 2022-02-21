@@ -17,7 +17,7 @@ import com.ice.server.dao.model.IceConfExample;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.service.IceServerService;
-import com.ice.server.trans.IceRmiClientManager;
+import com.ice.server.rmi.IceRmiClientManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -48,6 +48,9 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
      * key:app value conf
      */
     private final Map<Integer, Map<Long, IceConf>> confActiveMap = new HashMap<>();
+
+    private final Map<Integer, Map<Long, IceConf>> confUpdateMap = new HashMap<>();
+
     private final Map<Integer, Map<Byte, Map<String, Integer>>> leafClassMap = new HashMap<>();
     /*
      * last update base

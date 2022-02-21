@@ -1,4 +1,4 @@
-package com.ice.server.trans;
+package com.ice.server.rmi;
 
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.exception.IceException;
@@ -30,18 +30,18 @@ public final class IceRmiClientManager implements InitializingBean {
 
     private final static Random random = ThreadLocalRandom.current();
 
-    private static Map<String, Pair<Long, IceRmiClientService>> map = new ConcurrentHashMap<>();
+    private static final Map<String, Pair<Long, IceRmiClientService>> rmiHostServiceMap = new ConcurrentHashMap<>();
 
-    private static Map<Integer, List<IceRmiClientService>> mapList = new ConcurrentHashMap<>();
+    private static final Map<Integer, List<IceRmiClientService>> rmiAppServiceMap = new ConcurrentHashMap<>();
 
     @Resource
     private IceRmiMapper iceRmiMapper;
 
-    public synchronized void registerClient(int app, String host, int port) {
-        List<IceRmiClientService> clientList = mapList.computeIfAbsent(app, k -> new ArrayList<>());
+    public void registerClient(int app, String host, int port) {
+        List<IceRmiClientService> clientList = rmiAppServiceMap.computeIfAbsent(app, k -> new ArrayList<>());
         String address = host + ":" + port;
         try {
-            Pair<Long, IceRmiClientService> oldPair = map.get(address);
+            Pair<Long, IceRmiClientService> oldPair = rmiHostServiceMap.get(address);
             if (oldPair != null) {
                 iceRmiMapper.deleteByPrimaryKey(oldPair.getKey());
                 clientList.remove(oldPair.getValue());
@@ -51,20 +51,20 @@ public final class IceRmiClientManager implements InitializingBean {
             IceRmi iceRmi = new IceRmi(app, host, port);
             iceRmiMapper.insertSelective(iceRmi);
             clientList.add(clientService);
-            map.put(address, new Pair<>(iceRmi.getId(), clientService));
+            rmiHostServiceMap.put(address, new Pair<>(iceRmi.getId(), clientService));
         } catch (Exception e) {
             throw new IceException("server connect client error " + host + ":" + port, e);
         }
     }
 
-    public synchronized void registerClientInit(IceRmi rmi) {
-        List<IceRmiClientService> clientList = mapList.computeIfAbsent(rmi.getApp(), k -> new ArrayList<>());
+    public void registerClientInit(IceRmi rmi) {
+        List<IceRmiClientService> clientList = rmiAppServiceMap.computeIfAbsent(rmi.getApp(), k -> new ArrayList<>());
         String address = rmi.getHost() + ":" + rmi.getPort();
         try {
             IceRmiClientService clientService = (IceRmiClientService) LocateRegistry.getRegistry(rmi.getHost(), rmi.getPort()).lookup("IceRemoteClientService");
             clientService.ping();
             clientList.add(clientService);
-            map.put(address, new Pair<>(rmi.getId(), clientService));
+            rmiHostServiceMap.put(address, new Pair<>(rmi.getId(), clientService));
         } catch (Exception e) {
             log.warn("client connect failed app:{} address:{}", rmi.getApp(), (rmi.getHost() + ":" + rmi.getPort()));
             iceRmiMapper.deleteByPrimaryKey(rmi.getId());
@@ -73,11 +73,11 @@ public final class IceRmiClientManager implements InitializingBean {
 
     public void unRegisterClient(int app, String host, int port) {
         String address = host + ":" + port;
-        Pair<Long, IceRmiClientService> pair = map.get(address);
+        Pair<Long, IceRmiClientService> pair = rmiHostServiceMap.get(address);
         if (pair != null) {
             iceRmiMapper.deleteByPrimaryKey(pair.getKey());
-            map.remove(address);
-            List<IceRmiClientService> clientList = mapList.get(app);
+            rmiHostServiceMap.remove(address);
+            List<IceRmiClientService> clientList = rmiAppServiceMap.get(app);
             if (!CollectionUtils.isEmpty(clientList)) {
                 clientList.remove(pair.getValue());
             }
@@ -86,7 +86,7 @@ public final class IceRmiClientManager implements InitializingBean {
 
     @SneakyThrows
     public static Set<Long> getAllConfId(int app, long iceId) {
-        List<IceRmiClientService> clientList = mapList.get(app);
+        List<IceRmiClientService> clientList = rmiAppServiceMap.get(app);
         if (CollectionUtils.isEmpty(clientList)) {
             throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
         }
@@ -96,7 +96,7 @@ public final class IceRmiClientManager implements InitializingBean {
 
     @SneakyThrows
     public static Pair<Integer, String> confClazzCheck(int app, String clazz, byte type) {
-        List<IceRmiClientService> clientList = mapList.get(app);
+        List<IceRmiClientService> clientList = rmiAppServiceMap.get(app);
         if (CollectionUtils.isEmpty(clientList)) {
             throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
         }
@@ -106,7 +106,7 @@ public final class IceRmiClientManager implements InitializingBean {
 
     @SneakyThrows
     public static List<String> update(int app, IceTransferDto dto) {
-        List<IceRmiClientService> clientList = mapList.get(app);
+        List<IceRmiClientService> clientList = rmiAppServiceMap.get(app);
         if (CollectionUtils.isEmpty(clientList)) {
             throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
         }
@@ -120,7 +120,7 @@ public final class IceRmiClientManager implements InitializingBean {
 
     @SneakyThrows
     public static Map<String, Object> getShowConf(int app, Long iceId) {
-        List<IceRmiClientService> clientList = mapList.get(app);
+        List<IceRmiClientService> clientList = rmiAppServiceMap.get(app);
         if (CollectionUtils.isEmpty(clientList)) {
             throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
         }
@@ -130,7 +130,7 @@ public final class IceRmiClientManager implements InitializingBean {
 
     @SneakyThrows
     public static IceClientConf getConf(int app, Long confId) {
-        List<IceRmiClientService> clientList = mapList.get(app);
+        List<IceRmiClientService> clientList = rmiAppServiceMap.get(app);
         if (CollectionUtils.isEmpty(clientList)) {
             throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
         }
@@ -140,7 +140,7 @@ public final class IceRmiClientManager implements InitializingBean {
 
     @SneakyThrows
     public static List<IceContext> mock(int app, IcePack pack) {
-        List<IceRmiClientService> clientList = mapList.get(app);
+        List<IceRmiClientService> clientList = rmiAppServiceMap.get(app);
         if (CollectionUtils.isEmpty(clientList)) {
             throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
         }

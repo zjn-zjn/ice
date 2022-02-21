@@ -7,5 +7,6 @@ spring:
     password: zjnzjn
 ice:
   rmi:
-    port: 8088
-environment: product
+    port: 8212
+    communicatePort: 18212
+environment: prod

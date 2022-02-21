@@ -1,9 +1,9 @@
 CREATE DATABASE IF NOT EXISTS ice Character Set utf8mb4;
 
 -- ----------------------------
--- Table structure for ice.ice_app
+-- Table structure for ice_app
 -- ----------------------------
-CREATE TABLE IF NOT EXISTS `ice`.`ice_app` (
+CREATE TABLE IF NOT EXISTS `ice_app` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `name` varchar(200) COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'application name',
   `info` varchar(500) COLLATE utf8mb4_bin DEFAULT '',
@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS `ice`.`ice_app` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ----------------------------
--- Table structure for ice.ice_base
+-- Table structure for ice_base
 -- ----------------------------
-CREATE TABLE IF NOT EXISTS `ice`.`ice_base` (
+CREATE TABLE IF NOT EXISTS `ice_base` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(200) COLLATE utf8mb4_bin DEFAULT NULL,
   `app` int(11) NOT NULL COMMENT 'remote application id',
@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS `ice`.`ice_base` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ----------------------------
--- Table structure for ice.ice_conf
+-- Table structure for ice_conf
 -- ----------------------------
-CREATE TABLE IF NOT EXISTS `ice`.`ice_conf` (
+CREATE TABLE IF NOT EXISTS `ice_conf` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `app` int(11) NOT NULL COMMENT 'remote application id',
   `name` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL,
@@ -59,9 +59,9 @@ CREATE TABLE IF NOT EXISTS `ice`.`ice_conf` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ----------------------------
--- Table structure for ice.ice_push_history
+-- Table structure for ice_push_history
 -- ----------------------------
-CREATE TABLE IF NOT EXISTS `ice`.`ice_push_history` (
+CREATE TABLE IF NOT EXISTS `ice_push_history` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `app` int(11) NOT NULL,
   `ice_id` bigint(20) DEFAULT NULL,
@@ -71,3 +71,14 @@ CREATE TABLE IF NOT EXISTS `ice`.`ice_push_history` (
   `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+-- ----------------------------
+-- Table structure for ice_rmi
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `ice_rmi` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `app` int(12) NOT NULL,
+  `host` varchar(255) COLLATE utf8mb4_bin NOT NULL,
+  `port` int(12) NOT NULL,
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;

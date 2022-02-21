@@ -18,7 +18,7 @@ import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceServerService;
-import com.ice.server.trans.IceRmiClientManager;
+import com.ice.server.rmi.IceRmiClientManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

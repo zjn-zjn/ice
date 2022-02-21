@@ -8,7 +8,7 @@ import java.net.InetAddress;
 /**
  * @author zjn
  */
-@Component("addressUtils")
+@Component("iceAddressUtils")
 public final class AddressUtils {
 
     private static volatile String address;

@@ -5,7 +5,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.Resource;
-import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
@@ -20,7 +19,7 @@ public class IceClientConfig {
     private IceClientProperties properties;
 
     @Bean
-    public Registry iceServerRegistry() throws RemoteException {
+    public Registry iceServerRegistry() throws Exception {
         return LocateRegistry.getRegistry(properties.getRmi().getServerHost(), properties.getRmi().getServerPort());
     }
 }

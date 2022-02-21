@@ -2,7 +2,7 @@ package com.ice.client.change;
 
 import com.alibaba.fastjson.JSON;
 import com.ice.client.config.IceClientProperties;
-import com.ice.client.trans.IceRmiClientServiceImpl;
+import com.ice.client.rmi.IceRmiClientServiceImpl;
 import com.ice.client.utils.AddressUtils;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.exception.IceException;
@@ -20,7 +20,7 @@ import java.rmi.registry.Registry;
  */
 @Slf4j
 @Service
-@DependsOn("iceRemoteClientServiceImpl")
+@DependsOn({"iceRmiClientServiceImpl", "iceBeanFactory", "iceAddressUtils"})
 public final class IceClientInit implements InitializingBean {
 
     @Resource

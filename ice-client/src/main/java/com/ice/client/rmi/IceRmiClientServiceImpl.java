@@ -1,9 +1,9 @@
-package com.ice.client.trans;
+package com.ice.client.rmi;
 
 import com.alibaba.fastjson.JSON;
 import com.ice.client.IceClient;
-import com.ice.client.config.IceClientProperties;
 import com.ice.client.change.IceUpdate;
+import com.ice.client.config.IceClientProperties;
 import com.ice.client.utils.AddressUtils;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
@@ -250,7 +250,6 @@ public class IceRmiClientServiceImpl implements IceRmiClientService, Initializin
 
     @Override
     public void ping() throws RemoteException {
-        log.info("got ping from server");
     }
 
     private void findAllConfIds(BaseNode node, Set<Long> ids) {
@@ -318,7 +317,7 @@ public class IceRmiClientServiceImpl implements IceRmiClientService, Initializin
     @Override
     public void afterPropertiesSet() throws Exception {
         log.info("create ice rmi client service...");
-        IceRmiClientService clientService = (IceRmiClientService) UnicastRemoteObject.exportObject(remoteClientService, 0);
+        IceRmiClientService clientService = (IceRmiClientService) UnicastRemoteObject.exportObject(remoteClientService, properties.getRmi().getCommunicatePort());
         registry = LocateRegistry.createRegistry(properties.getRmi().getPort());
         registry.rebind("IceRemoteClientService", clientService);
         log.info("create ice rmi client service...success");
