@@ -22,36 +22,21 @@ import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.core.relation.*;
 import com.ice.core.utils.IceLinkedList;
 import com.ice.rmi.common.client.IceRmiClientService;
-import com.ice.rmi.common.server.IceRmiServerService;
 import javafx.util.Pair;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
-import javax.rmi.PortableRemoteObject;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
 @Slf4j
 @Service
-public class IceRmiClientServiceImpl implements IceRmiClientService, InitializingBean, DisposableBean {
-
-    @Resource
-    private IceRmiClientService remoteClientService;
+public class IceRmiClientServiceImpl implements IceRmiClientService {
 
     @Resource
     private IceClientProperties properties;
-
-    private static Registry registry;
-
-    @Resource
-    private Registry iceServerRegistry;
 
     private static volatile boolean waitInit = true;
 
@@ -64,19 +49,19 @@ public class IceRmiClientServiceImpl implements IceRmiClientService, Initializin
         initVersion = version;
     }
 
-    @Override
-    public Set<Long> getAllConfId(Long iceId) throws RemoteException {
-        IceHandler handler = IceHandlerCache.getHandlerById(iceId);
-        if (handler != null) {
-            BaseNode root = handler.getRoot();
-            if (root != null) {
-                Set<Long> allIdSet = new HashSet<>();
-                findAllConfIds(root, allIdSet);
-                return allIdSet;
-            }
-        }
-        return null;
-    }
+//    @Override
+//    public Set<Long> getAllConfId(Long iceId) throws RemoteException {
+//        IceHandler handler = IceHandlerCache.getHandlerById(iceId);
+//        if (handler != null) {
+//            BaseNode root = handler.getRoot();
+//            if (root != null) {
+//                Set<Long> allIdSet = new HashSet<>();
+//                findAllConfIds(root, allIdSet);
+//                return allIdSet;
+//            }
+//        }
+//        return null;
+//    }
 
     @Override
     public Pair<Integer, String> confClazzCheck(String clazz, byte type) throws RemoteException {
@@ -160,47 +145,14 @@ public class IceRmiClientServiceImpl implements IceRmiClientService, Initializin
     }
 
     @Override
-    public Map<String, Object> getShowConf(Long iceId) throws RemoteException {
-        Map<String, Object> resMap = new HashMap<>();
-        resMap.put("ip", AddressUtils.getAddress());
-        resMap.put("iceId", iceId);
-        resMap.put("app", properties.getApp());
-        if (iceId <= 0) {
-            resMap.put("handlerMap", IceHandlerCache.getIdHandlerMap());
-            resMap.put("confMap", IceConfCache.getConfMap());
-        } else {
-            IceHandler handler = IceHandlerCache.getHandlerById(iceId);
-            if (handler != null) {
-                Map<String, Object> handlerMap = new HashMap<>();
-                handlerMap.put("iceId", handler.findIceId());
-                handlerMap.put("scenes", handler.getScenes());
-                handlerMap.put("debug", handler.getDebug());
-                if (handler.getStart() != 0) {
-                    handlerMap.put("start", handler.getStart());
-                }
-                if (handler.getEnd() != 0) {
-                    handlerMap.put("end", handler.getEnd());
-                }
-                handlerMap.put("timeType", handler.getTimeTypeEnum().getType());
-                BaseNode root = handler.getRoot();
-                if (root != null) {
-                    handlerMap.put("root", assembleNode(root));
-                }
-                resMap.put("handler", handlerMap);
-            }
-        }
-        return resMap;
-    }
-
-    @Override
-    public IceShowConf getConf(Long confId) throws RemoteException {
+    public IceShowConf getShowConf(Long confId) throws RemoteException {
         IceShowConf clientConf = new IceShowConf();
-        clientConf.setIp(AddressUtils.getAddress());
+        clientConf.setAddress(AddressUtils.getAddress());
         clientConf.setApp(properties.getApp());
         clientConf.setConfId(confId);
         BaseNode node = IceConfCache.getConfById(confId);
         if (node != null) {
-            clientConf.setNode(assembleShowNode(node));
+            clientConf.setRoot(assembleShowNode(node));
         }
         return clientConf;
     }
@@ -234,12 +186,14 @@ public class IceRmiClientServiceImpl implements IceRmiClientService, Initializin
                 clientNode.setForward(forwardNode);
             }
         }
-        clientNode.setId(node.getIceNodeId());
+        IceShowNode.NodeConf showConf = new IceShowNode.NodeConf();
+        clientNode.setShowConf(showConf);
+        showConf.setNodeId(node.getIceNodeId());
         clientNode.setTimeType(node.getIceTimeTypeEnum().getType());
         clientNode.setStart(node.getIceStart() == 0 ? null : node.getIceStart());
         clientNode.setEnd(node.getIceEnd() == 0 ? null : node.getIceEnd());
-        clientNode.setDebug(node.isIceNodeDebug() ? null : node.isIceNodeDebug());
-        clientNode.setInverse(node.isIceInverse() ? node.isIceInverse() : null);
+        showConf.setDebug(node.isIceNodeDebug() ? null : node.isIceNodeDebug());
+        showConf.setInverse(node.isIceInverse() ? node.isIceInverse() : null);
         return clientNode;
     }
 
@@ -252,85 +206,23 @@ public class IceRmiClientServiceImpl implements IceRmiClientService, Initializin
     public void ping() throws RemoteException {
     }
 
-    private void findAllConfIds(BaseNode node, Set<Long> ids) {
-        Long nodeId = node.getIceNodeId();
-        ids.add(nodeId);
-        BaseNode forward = node.getIceForward();
-        if (forward != null) {
-            findAllConfIds(forward, ids);
-        }
-        if (node instanceof BaseRelation) {
-            IceLinkedList<BaseNode> children = ((BaseRelation) node).getChildren();
-            if (children == null || children.isEmpty()) {
-                return;
-            }
-            for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();
-                 listNode != null; listNode = listNode.next) {
-                BaseNode child = listNode.item;
-                findAllConfIds(child, ids);
-            }
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map assembleNode(BaseNode node) {
-        if (node == null) {
-            return null;
-        }
-        Map map = new HashMap<>();
-        if (node instanceof BaseRelation) {
-            BaseRelation relation = (BaseRelation) node;
-            IceLinkedList<BaseNode> children = relation.getChildren();
-            if (children != null && !children.isEmpty()) {
-                List<Map> showChildren = new ArrayList<>(children.getSize());
-                for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();
-                     listNode != null; listNode = listNode.next) {
-                    BaseNode child = listNode.item;
-                    Map childMap = assembleNode(child);
-                    if (childMap != null) {
-                        showChildren.add(childMap);
-                    }
-                }
-                map.put("children", showChildren);
-            }
-        }
-        BaseNode forward = node.getIceForward();
-        if (forward != null) {
-            Map forwardMap = assembleNode(forward);
-            if (forwardMap != null) {
-                map.put("forward", forwardMap);
-            }
-        }
-        map.put("nodeId", node.getIceNodeId());
-        map.put("timeType", node.getIceTimeTypeEnum().getType());
-        if (node.getIceStart() != 0) {
-            map.put("start", node.getIceStart());
-        }
-        if (node.getIceEnd() != 0) {
-            map.put("end", node.getIceEnd());
-        }
-        map.put("debug", node.isIceNodeDebug());
-        map.put("inverse", node.isIceInverse());
-        return map;
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        log.info("create ice rmi client service...");
-        IceRmiClientService clientService = (IceRmiClientService) UnicastRemoteObject.exportObject(remoteClientService, properties.getRmi().getCommunicatePort());
-        registry = LocateRegistry.createRegistry(properties.getRmi().getPort());
-        registry.rebind("IceRemoteClientService", clientService);
-        log.info("create ice rmi client service...success");
-    }
-
-    @Override
-    public void destroy() throws Exception {
-        if (registry != null) {
-            registry.unbind("IceRemoteClientService");
-            UnicastRemoteObject.unexportObject(remoteClientService, true);
-            PortableRemoteObject.unexportObject(registry);
-            IceRmiServerService serverService = (IceRmiServerService) iceServerRegistry.lookup("IceRemoteServerService");
-            serverService.unRegister(properties.getApp(), AddressUtils.getHost(), properties.getRmi().getPort());
-        }
-    }
+//    private void findAllConfIds(BaseNode node, Set<Long> ids) {
+//        Long nodeId = node.getIceNodeId();
+//        ids.add(nodeId);
+//        BaseNode forward = node.getIceForward();
+//        if (forward != null) {
+//            findAllConfIds(forward, ids);
+//        }
+//        if (node instanceof BaseRelation) {
+//            IceLinkedList<BaseNode> children = ((BaseRelation) node).getChildren();
+//            if (children == null || children.isEmpty()) {
+//                return;
+//            }
+//            for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();
+//                 listNode != null; listNode = listNode.next) {
+//                BaseNode child = listNode.item;
+//                findAllConfIds(child, ids);
+//            }
+//        }
+//    }
 }

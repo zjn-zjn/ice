@@ -1,6 +1,5 @@
 package com.ice.server.service.impl;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONValidator;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.StatusEnum;
@@ -13,9 +12,9 @@ import com.ice.server.dao.model.IceConfExample;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceLeafClass;
+import com.ice.server.rmi.IceRmiClientManager;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
-import com.ice.server.rmi.IceRmiClientManager;
 import javafx.util.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,16 +35,19 @@ public class IceConfServiceImpl implements IceConfService {
     @Resource
     private IceServerService iceServerService;
 
+    @Resource
+    private IceRmiClientManager rmiClientManager;
+
     @Override
     @Transactional
     public Long confEdit(Integer app, IceConf conf) {
-        if (app == null || conf.getId() == null) {
+        if (app == null || conf.getMixId() == null) {
             throw new ErrorCodeException(ErrorCode.CAN_NOT_NULL, "app|conf.id");
         }
         conf.setApp(app);
         paramHandle(conf);
         iceConfMapper.updateByPrimaryKey(conf);
-        return conf.getId();
+        return conf.getMixId();
     }
 
     @Override
@@ -59,7 +61,7 @@ public class IceConfServiceImpl implements IceConfService {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
         }
         iceConfMapper.insertSelective(conf);
-        Long id = conf.getId();
+        Long id = conf.getMixId();
         if (!StringUtils.hasLength(parent.getSonIds())) {
             parent.setSonIds(id + "");
         } else {
@@ -118,10 +120,10 @@ public class IceConfServiceImpl implements IceConfService {
             throw new ErrorCodeException(ErrorCode.ALREADY_EXIST, "forward");
         }
         iceConfMapper.insertSelective(conf);
-        next.setForwardId(conf.getId());
+        next.setForwardId(conf.getMixId());
         next.setUpdateAt(new Date());
         iceConfMapper.updateByPrimaryKey(next);
-        return conf.getId();
+        return conf.getMixId();
     }
 
     @Override
@@ -297,14 +299,14 @@ public class IceConfServiceImpl implements IceConfService {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
             }
         }
-        if (conf.getId() == null) {
+        if (conf.getMixId() == null) {
             if (NodeTypeEnum.isLeaf(conf.getType())) {
                 leafClassCheck(conf.getApp(), conf.getConfName(), conf.getType());
             }
         } else {
-            IceConf oldConf = iceConfMapper.selectByPrimaryKey(conf.getId());
+            IceConf oldConf = iceConfMapper.selectByPrimaryKey(conf.getMixId());
             if (oldConf == null || StatusEnum.OFFLINE.getStatus() == oldConf.getStatus() || !oldConf.getApp().equals(conf.getApp())) {
-                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "confId", conf.getId());
+                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "confId", conf.getMixId());
             }
             /*can not edit sonIds in here*/
             conf.setSonIds(oldConf.getSonIds());
@@ -377,7 +379,7 @@ public class IceConfServiceImpl implements IceConfService {
         if (app == null || !StringUtils.hasLength(clazz) || typeEnum == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|clazz|type");
         }
-        Pair<Integer, String> res = IceRmiClientManager.confClazzCheck(app, clazz, type);
+        Pair<Integer, String> res = rmiClientManager.confClazzCheck(app, clazz, type);
         if (res.getKey() == 1) {
             iceServerService.addLeafClass(app, type, clazz);
             return null;
@@ -387,11 +389,22 @@ public class IceConfServiceImpl implements IceConfService {
     }
 
     @Override
-    public IceShowConf confDetail(Integer app, Long confId) {
-        IceShowConf clientConf = IceRmiClientManager.getConf(app, confId);
-        IceShowNode node = clientConf.getNode();
+    public IceShowConf confDetail(int app, long confId, String address, long iceId) {
+        if (address == null) {
+            //server
+            IceShowNode root = iceServerService.getConfMixById(app, confId, iceId);
+            if (root == null) {
+                throw new ErrorCodeException(ErrorCode.CONF_NOT_FOUND, app, "confId", confId);
+            }
+            IceShowConf showConf = new IceShowConf();
+            showConf.setApp(app);
+            showConf.setRoot(root);
+            return showConf;
+        }
+        IceShowConf clientConf = rmiClientManager.getClientShowConf(app, confId, address);
+        IceShowNode node = clientConf.getRoot();
         if (node == null) {
-            throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, JSON.toJSONString(clientConf));
+            throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, address);
         }
         assemble(app, node);
         return clientConf;
@@ -401,7 +414,7 @@ public class IceConfServiceImpl implements IceConfService {
         if (clientNode == null) {
             return;
         }
-        Long nodeId = clientNode.getId();
+        Long nodeId = clientNode.getShowConf().getNodeId();
         IceShowNode forward = clientNode.getForward();
         if (forward != null) {
             forward.setNextId(nodeId);
@@ -421,24 +434,24 @@ public class IceConfServiceImpl implements IceConfService {
     }
 
     private void assembleInfoInServer(Integer app, IceShowNode clientNode) {
-        Long nodeId = clientNode.getId();
+        Long nodeId = clientNode.getShowConf().getNodeId();
         IceConf iceConf = iceServerService.getActiveConfById(app, nodeId);
         if (iceConf != null) {
             if (NodeTypeEnum.isRelation(iceConf.getType())) {
-                clientNode.setLabelName(nodeId + "-" + NodeTypeEnum.getEnum(iceConf.getType()).name() + (StringUtils.hasLength(iceConf.getConfName()) ? ("-" + iceConf.getName()) : ""));
+                clientNode.getShowConf().setLabelName(nodeId + "-" + NodeTypeEnum.getEnum(iceConf.getType()).name() + (StringUtils.hasLength(iceConf.getConfName()) ? ("-" + iceConf.getName()) : ""));
             } else {
-                clientNode.setLabelName(nodeId + "-" + (StringUtils.hasLength(iceConf.getConfName()) ? iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(iceConf.getConfName()) ? ("-" + iceConf.getName()) : ""));
+                clientNode.getShowConf().setLabelName(nodeId + "-" + (StringUtils.hasLength(iceConf.getConfName()) ? iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(iceConf.getConfName()) ? ("-" + iceConf.getName()) : ""));
             }
             if (StringUtils.hasLength(iceConf.getName())) {
-                clientNode.setName(iceConf.getName());
+                clientNode.getShowConf().setNodeName(iceConf.getName());
             }
             if (StringUtils.hasLength(iceConf.getConfField())) {
-                clientNode.setConfField(iceConf.getConfField());
+                clientNode.getShowConf().setConfField(iceConf.getConfField());
             }
             if (StringUtils.hasLength(iceConf.getConfName())) {
-                clientNode.setConfName(iceConf.getConfName());
+                clientNode.getShowConf().setConfName(iceConf.getConfName());
             }
-            clientNode.setNodeType(iceConf.getType());
+            clientNode.getShowConf().setNodeType(iceConf.getType());
         }
     }
 }

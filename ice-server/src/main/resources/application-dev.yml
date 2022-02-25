@@ -9,4 +9,9 @@ ice:
   rmi:
     port: 8212
     communicatePort: 18212
+  pool:
+    coreSize: 4
+    maxSize: 4
+    keepAliveSeconds: 60
+    queueCapacity: 60000
 environment: dev

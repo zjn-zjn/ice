@@ -1,8 +1,6 @@
 package com.ice.client.config;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Data
@@ -22,7 +20,6 @@ public class IceClientProperties {
     private IceClientThreadPoolProperties pool = new IceClientThreadPoolProperties();
 
     @Data
-    @NoArgsConstructor
     public static class IceClientRmiProperties {
         private int port = 8210;
         private int communicatePort = 0;
@@ -43,11 +40,10 @@ public class IceClientProperties {
     }
 
     @Data
-    @NoArgsConstructor
     public static class IceClientThreadPoolProperties {
         private int coreSize = 4;
         private int maxSize = 4;
-        private int keepAliveSeconds = 10;
+        private int keepAliveSeconds = 60;
         private int queueCapacity = 60000;
     }
 }

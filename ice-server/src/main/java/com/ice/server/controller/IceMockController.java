@@ -8,6 +8,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +19,9 @@ import java.util.List;
 @RestController
 public class IceMockController {
 
+    @Resource
+    private IceRmiClientManager rmiClientManager;
+
     @RequestMapping(value = "/ice/rmi/mock", method = RequestMethod.POST)
     public WebResult<List<IceContext>> rmiMock(@RequestParam Integer app, @RequestBody IcePack pack) {
         if (app <= 0 || pack == null) {
@@ -26,7 +30,7 @@ public class IceMockController {
         if (pack.getIceId() <= 0 && !StringUtils.hasLength(pack.getScene()) && pack.getConfId() <= 0) {
             return new WebResult<>(-1, "IceId,Scene和ConfId不能同时为空", null);
         }
-        return WebResult.success(IceRmiClientManager.mock(app, pack));
+        return WebResult.success(rmiClientManager.mock(app, pack));
     }
 
     @RequestMapping(value = "/ice/rmi/mocks", method = RequestMethod.POST)
@@ -36,7 +40,7 @@ public class IceMockController {
         }
         List<IceContext> result = new ArrayList<>();
         for (IcePack pack : packs) {
-            result.addAll(IceRmiClientManager.mock(app, pack));
+            result.addAll(rmiClientManager.mock(app, pack));
         }
         return WebResult.success(result);
     }

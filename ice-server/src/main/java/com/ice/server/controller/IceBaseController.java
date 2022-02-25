@@ -47,7 +47,7 @@ public class IceBaseController {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "base");
         }
         Long id = iceBaseService.baseEdit(base);
-        iceServerService.updateByEdit();
+//        iceServerService.updateByEdit();
         return id;
     }
 

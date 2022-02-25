@@ -9,8 +9,11 @@ public enum ErrorCode implements IErrorCode {
     CAN_NOT_NULL(-4, "{0} can not be null"),
     ALREADY_EXIST(-5, "{0} already exist"),
     REMOTE_CONF_NOT_FOUND(-6, "app:{0} {1}:{2} remote conf not found remote {3}"),
+    CONF_NOT_FOUND(-6, "app:{0} {1}:{2} conf not found"),
     REMOTE_ERROR(-7, "Remote Error app:{0} msg:{1}"),
-    NO_AVAILABLE_CLIENT(-8, "no available client app:{0}");
+    NO_AVAILABLE_CLIENT(-8, "no available client app:{0}"),
+    CLIENT_NOT_AVAILABLE(-9, "client not available app:{0} address:{1}"),
+    REMOTE_RUN_ERROR(-10, "client run error app:{0} address:{1}");
     private final int code;
     private final String msgTemplate;
 

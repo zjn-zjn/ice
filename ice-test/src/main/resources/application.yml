@@ -14,7 +14,7 @@ ice:
   pool:
     coreSize: 4
     maxSize: 4
-    keepAliveSeconds: 10
+    keepAliveSeconds: 60
     queueCapacity: 60000
 test:
   value: 123

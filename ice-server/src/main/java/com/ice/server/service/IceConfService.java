@@ -32,5 +32,5 @@ public interface IceConfService {
 
     String leafClassCheck(Integer app, String clazz, Byte type);
 
-    IceShowConf confDetail(Integer app, Long confId);
+    IceShowConf confDetail(int app, long confId, String address, long iceId);
 }

@@ -46,9 +46,7 @@ public class IceEditController {
     @RequestMapping(value = "/ice/edit", method = RequestMethod.POST)
     public WebResult editBase(@RequestBody IceBaseVo baseVo) {
         baseVo.setStatus((byte) 1);
-        WebResult result = editService.editBase(baseVo);
-        iceServerService.updateByEdit();
-        return result;
+        return editService.editBase(baseVo);
     }
 
     /*
@@ -58,7 +56,6 @@ public class IceEditController {
     @RequestMapping(value = "/ice/conf/edit", method = RequestMethod.POST)
     public WebResult editConf(@RequestBody IceConfVo confVo) {
         EditResult editResult = editService.editConf(confVo.getApp(), confVo.getType(), confVo.getIceId(), confVo);
-        iceServerService.updateByEdit();
         if (editResult.getCode() == null) {
             if (editResult.getNodeId() != null) {
                 if (editResult.getUnLinkId() != null) {

@@ -17,4 +17,6 @@ public class PushData {
     private IceBaseDto base;
 
     private Collection<IceConfDto> confs;
+
+    private Collection<IceConfDto> confUpdates;
 }

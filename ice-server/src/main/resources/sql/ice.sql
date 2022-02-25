@@ -59,6 +59,32 @@ CREATE TABLE IF NOT EXISTS `ice_conf` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- ----------------------------
+-- Table structure for ice_conf_update
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS `ice_conf_update` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `app` int(11) NOT NULL COMMENT 'remote application id',
+  `ice_id` bigint(20) NOT NULL,
+  `conf_id` bigint(20) NOT NULL,
+  `name` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL,
+  `son_ids` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,
+  `type` tinyint(4) NOT NULL DEFAULT '6' COMMENT 'see NodeTypeEnum',
+  `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '1 online 0 offline',
+  `inverse` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'make true->false false->true',
+  `conf_name` varchar(1000) COLLATE utf8mb4_bin DEFAULT '' COMMENT 'leaf node class name',
+  `conf_field` varchar(5000) COLLATE utf8mb4_bin DEFAULT '' COMMENT 'leaf node json config',
+  `forward_id` bigint(20) DEFAULT NULL,
+  `time_type` tinyint(11) NOT NULL DEFAULT '1' COMMENT 'see TimeTypeEnum',
+  `start` datetime(3) DEFAULT NULL,
+  `end` datetime(3) DEFAULT NULL,
+  `debug` tinyint(4) NOT NULL DEFAULT '1',
+  `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_at` datetime(3) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `update_index` (`update_at`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+-- ----------------------------
 -- Table structure for ice_push_history
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS `ice_push_history` (

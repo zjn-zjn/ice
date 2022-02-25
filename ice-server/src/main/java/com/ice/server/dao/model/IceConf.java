@@ -9,8 +9,6 @@ public class IceConf {
     private Long id;
 
     private Integer app;
-    //only in ice_conf_update
-    private Long iceId;
 
     private String name;
 
@@ -39,4 +37,19 @@ public class IceConf {
     private Date createAt;
 
     private Date updateAt;
+
+    public Long getMixId() {
+        if (confId != null) {
+            return confId;
+        }
+        return id;
+    }
+
+    public boolean isUpdate() {
+        return confId != null;
+    }
+
+    //only in ice_conf_update
+    private Long iceId;
+    private Long confId;
 }

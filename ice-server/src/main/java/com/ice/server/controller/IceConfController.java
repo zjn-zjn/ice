@@ -1,5 +1,7 @@
 package com.ice.server.controller;
 
+import com.ice.common.dto.IceConfDto;
+import com.ice.common.dto.IceTransferDto;
 import com.ice.common.model.IceShowConf;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceConf;
@@ -7,6 +9,7 @@ import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceLeafClass;
 import com.ice.server.model.WebResult;
+import com.ice.server.rmi.IceRmiClientManager;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +30,9 @@ public class IceConfController {
 
     @Resource
     private IceServerService iceServerService;
+
+    @Resource
+    private IceRmiClientManager rmiClientManager;
 
     @RequestMapping(value = "/ice-server/conf/add/son", method = RequestMethod.POST)
     public Long confAddSon(@RequestParam Integer app,
@@ -137,11 +143,21 @@ public class IceConfController {
     }
 
     @RequestMapping(value = "/ice-server/conf/detail", method = RequestMethod.GET)
-    public IceShowConf confDetail(@RequestParam Integer app, @RequestParam Long iceId) {
+    public IceShowConf confDetail(@RequestParam Integer app, @RequestParam Long iceId, @RequestParam(required = false) String address) {
         IceBase base = iceServerService.getActiveBaseById(app, iceId);
         if (base == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|iceId");
         }
-        return iceConfService.confDetail(app, base.getConfId());
+        IceShowConf showConf = iceConfService.confDetail(app, base.getConfId(), address, iceId);
+        showConf.setIceId(iceId);
+        showConf.setRegisterClients(rmiClientManager.getRegisterClients(app));
+        return showConf;
+    }
+
+    @RequestMapping(value = "/ice-server/conf/release", method = RequestMethod.POST)
+    public List<String> release(@RequestParam Integer app,
+                         @RequestBody Long iceId) {
+        IceTransferDto transferDto = iceServerService.release(app, iceId);
+        return rmiClientManager.update(app, transferDto);
     }
 }

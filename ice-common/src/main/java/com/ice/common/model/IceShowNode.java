@@ -2,45 +2,50 @@ package com.ice.common.model;
 
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.List;
 
 @Data
-public class IceShowNode {
+public class IceShowNode implements Serializable {
 
-    //info in remote client
-    private Long id;
-
-    private Byte timeType;
-
-    private Long start;
-
-    private Long end;
-
-    private Boolean debug;
-
-    private Boolean inverse;
+    private NodeConf showConf;
 
     private IceShowNode forward;
 
     private List<IceShowNode> children;
 
-    private Long forwardId;
+    private Long start;
 
-    private Byte nodeType;
+    private Long end;
 
     private Long parentId;
 
-    private Integer index;
-
     private Long nextId;
+
+    private Integer index;
 
     private String sonIds;
 
-    private String name;
+    private Long forwardId;
 
-    private String labelName;
+    private Byte timeType;
 
-    private String confName;
+    @Data
+    public static final class NodeConf implements Serializable {
+        private Long nodeId;
 
-    private String confField;
+        private Boolean debug;
+
+        private Boolean inverse;
+
+        private Byte nodeType;
+
+        private String nodeName;
+
+        private String labelName;
+
+        private String confName;
+
+        private String confField;
+    }
 }

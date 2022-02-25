@@ -35,4 +35,8 @@ public final class IceConfDto implements Serializable {
     private String name;
 
     private Integer app;
+
+    //only in ice_conf_update
+    private Long iceId;
+    private Long confId;
 }

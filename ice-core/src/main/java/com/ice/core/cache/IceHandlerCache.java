@@ -82,11 +82,11 @@ public final class IceHandlerCache {
         return errors;
     }
 
-    public static void updateHandlerRoot(BaseNode updateConfNode) {
-        Map<Long, IceHandler> handlerMap = confIdHandlersMap.get(updateConfNode.getIceNodeId());
+    public static void updateHandlerRoot(BaseNode confUpdateNode) {
+        Map<Long, IceHandler> handlerMap = confIdHandlersMap.get(confUpdateNode.getIceNodeId());
         if (handlerMap != null) {
             for (IceHandler handler : handlerMap.values()) {
-                handler.setRoot(updateConfNode);
+                handler.setRoot(confUpdateNode);
             }
         }
     }

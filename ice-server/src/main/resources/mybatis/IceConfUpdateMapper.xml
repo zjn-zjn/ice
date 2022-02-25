@@ -5,6 +5,7 @@
         <id column="id" jdbcType="BIGINT" property="id"/>
         <result column="app" jdbcType="INTEGER" property="app"/>
         <result column="ice_id" jdbcType="BIGINT" property="iceId"/>
+        <result column="conf_id" jdbcType="BIGINT" property="confId"/>
         <result column="name" jdbcType="VARCHAR" property="name"/>
         <result column="son_ids" jdbcType="VARCHAR" property="sonIds"/>
         <result column="type" jdbcType="TINYINT" property="type"/>
@@ -81,7 +82,7 @@
         </where>
     </sql>
     <sql id="Base_Column_List">
-        id, app, ice_id, name, son_ids, type, status, inverse, conf_name, conf_field, forward_id,
+        id, app, ice_id,conf_id, name, son_ids, type, status, inverse, conf_name, conf_field, forward_id,
         time_type, start, end, debug, create_at, update_at
     </sql>
     <select id="selectByExample" parameterType="com.ice.server.dao.model.IceConfExample" resultMap="BaseResultMap">
@@ -90,7 +91,7 @@
             distinct
         </if>
         <include refid="Base_Column_List"/>
-        from ice_conf
+        from ice_conf_update
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
@@ -101,15 +102,15 @@
     <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
         select
         <include refid="Base_Column_List"/>
-        from ice_conf
+        from ice_conf_update
         where id = #{id,jdbcType=BIGINT}
     </select>
     <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
-        delete from ice_conf
+        delete from ice_conf_update
         where id = #{id,jdbcType=BIGINT}
     </delete>
     <delete id="deleteByExample" parameterType="com.ice.server.dao.model.IceConfExample">
-        delete from ice_conf
+        delete from ice_conf_update
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
@@ -118,12 +119,12 @@
         <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
             SELECT LAST_INSERT_ID()
         </selectKey>
-        insert into ice_conf (app, ice_id, name, son_ids,
+        insert into ice_conf_update (app, ice_id, conf_id,name, son_ids,
         type, status, inverse,
         conf_name, conf_field, forward_id,
         time_type, start, end, debug, create_at,
         update_at)
-        values (#{app,jdbcType=INTEGER},#{iceId,jdbcType=BIGINT}, #{name,jdbcType=VARCHAR}, #{sonIds,jdbcType=VARCHAR},
+        values (#{app,jdbcType=INTEGER},#{iceId,jdbcType=BIGINT}, #{confId,jdbcType=BIGINT},#{name,jdbcType=VARCHAR}, #{sonIds,jdbcType=VARCHAR},
         #{type,jdbcType=TINYINT}, #{status,jdbcType=TINYINT}, #{inverse,jdbcType=TINYINT},
         #{confName,jdbcType=VARCHAR}, #{confField,jdbcType=VARCHAR}, #{forwardId,jdbcType=BIGINT},
         #{timeType,jdbcType=TINYINT}, #{start,jdbcType=TIMESTAMP}, #{end,jdbcType=TIMESTAMP},
@@ -132,12 +133,12 @@
     </insert>
 
     <insert id="insertWithId" parameterType="com.ice.server.dao.model.IceConf">
-        insert into ice_conf (id, app, ice_id, name, son_ids,
+        insert into ice_conf_update (id, app, ice_id, conf_id,name, son_ids,
         type, status, inverse,
         conf_name, conf_field, forward_id,
         time_type, start, end, debug,
         update_at)
-        values (#{id,jdbcType=BIGINT}, #{app,jdbcType=INTEGER}, #{iceId,jdbcType=BIGINT}, #{name,jdbcType=VARCHAR},
+        values (#{id,jdbcType=BIGINT}, #{app,jdbcType=INTEGER}, #{iceId,jdbcType=BIGINT}, #{confId,jdbcType=BIGINT},#{name,jdbcType=VARCHAR},
         #{sonIds,jdbcType=VARCHAR},
         #{type,jdbcType=TINYINT}, #{status,jdbcType=TINYINT}, #{inverse,jdbcType=TINYINT},
         #{confName,jdbcType=VARCHAR}, #{confField,jdbcType=VARCHAR}, #{forwardId,jdbcType=BIGINT},
@@ -148,13 +149,16 @@
         <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
             SELECT LAST_INSERT_ID()
         </selectKey>
-        insert into ice_conf
+        insert into ice_conf_update
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="app != null">
                 app,
             </if>
             <if test="iceId != null">
                 ice_id,
+            </if>
+            <if test="confId != null">
+                conf_id,
             </if>
             <if test="name != null">
                 name,
@@ -200,11 +204,14 @@
             </if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="app != null">
+                #{app,jdbcType=INTEGER},
+            </if>
             <if test="iceId != null">
                 #{iceId,jdbcType=BIGINT},
             </if>
-            <if test="app != null">
-                #{app,jdbcType=INTEGER},
+            <if test="confId != null">
+                #{confId,jdbcType=BIGINT},
             </if>
             <if test="name != null">
                 #{name,jdbcType=VARCHAR},
@@ -251,7 +258,7 @@
         </trim>
     </insert>
     <insert id="insertSelectiveWithId" parameterType="com.ice.server.dao.model.IceConf">
-        insert into ice_conf
+        insert into ice_conf_update
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">
                 id,
@@ -261,6 +268,9 @@
             </if>
             <if test="iceId != null">
                 ice_id,
+            </if>
+            <if test="confId != null">
+                conf_id,
             </if>
             <if test="name != null">
                 name,
@@ -315,6 +325,9 @@
             <if test="iceId != null">
                 #{iceId,jdbcType=BIGINT},
             </if>
+            <if test="confId != null">
+                #{confId,jdbcType=BIGINT},
+            </if>
             <if test="name != null">
                 #{name,jdbcType=VARCHAR},
             </if>
@@ -360,13 +373,13 @@
         </trim>
     </insert>
     <select id="countByExample" parameterType="com.ice.server.dao.model.IceConfExample" resultType="java.lang.Long">
-        select count(*) from ice_conf
+        select count(*) from ice_conf_update
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
     </select>
     <update id="updateByExampleSelective" parameterType="map">
-        update ice_conf
+        update ice_conf_update
         <set>
             <if test="record.id != null">
                 id = #{record.id,jdbcType=BIGINT},
@@ -375,7 +388,10 @@
                 app = #{record.app,jdbcType=INTEGER},
             </if>
             <if test="record.iceId != null">
-                app = #{record.iceId,jdbcType=BIGINT},
+                ice_id = #{record.iceId,jdbcType=BIGINT},
+            </if>
+            <if test="record.confId != null">
+                conf_id = #{record.confId,jdbcType=BIGINT},
             </if>
             <if test="record.name != null">
                 name = #{record.name,jdbcType=VARCHAR},
@@ -425,10 +441,11 @@
         </if>
     </update>
     <update id="updateByExample" parameterType="map">
-        update ice_conf
+        update ice_conf_update
         set id = #{record.id,jdbcType=BIGINT},
         app = #{record.app,jdbcType=INTEGER},
         ice_id = #{record.iceId,jdbcType=BIGINT},
+        conf_id = #{record.confId,jdbcType=BIGINT},
         name = #{record.name,jdbcType=VARCHAR},
         son_ids = #{record.sonIds,jdbcType=VARCHAR},
         type = #{record.type,jdbcType=TINYINT},
@@ -448,13 +465,16 @@
         </if>
     </update>
     <update id="updateByPrimaryKeySelective" parameterType="com.ice.server.dao.model.IceConf">
-        update ice_conf
+        update ice_conf_update
         <set>
             <if test="app != null">
                 app = #{app,jdbcType=INTEGER},
             </if>
             <if test="iceId != null">
                 ice_id = #{iceId,jdbcType=BIGINT},
+            </if>
+            <if test="confId != null">
+                conf_id = #{confId,jdbcType=BIGINT},
             </if>
             <if test="name != null">
                 name = #{name,jdbcType=VARCHAR},
@@ -502,9 +522,10 @@
         where id = #{id,jdbcType=BIGINT}
     </update>
     <update id="updateByPrimaryKey" parameterType="com.ice.server.dao.model.IceConf">
-        update ice_conf
+        update ice_conf_update
         set app = #{app,jdbcType=INTEGER},
         ice_id = #{iceId,jdbcType=BIGINT},
+        conf_id = #{confId,jdbcType=BIGINT},
         name = #{name,jdbcType=VARCHAR},
         son_ids = #{sonIds,jdbcType=VARCHAR},
         type = #{type,jdbcType=TINYINT},

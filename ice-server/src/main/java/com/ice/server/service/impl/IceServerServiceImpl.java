@@ -1,6 +1,5 @@
 package com.ice.server.service.impl;
 
-import com.alibaba.fastjson.JSON;
 import com.ice.common.dto.IceBaseDto;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.dto.IceTransferDto;
@@ -18,12 +17,11 @@ import com.ice.server.dao.model.IceConf;
 import com.ice.server.dao.model.IceConfExample;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
-import com.ice.server.rmi.IceRmiClientManager;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -37,9 +35,7 @@ import java.util.*;
 @Service
 public class IceServerServiceImpl implements IceServerService, InitializingBean {
 
-    private static final Set<Integer> appSet = new HashSet<>();
-
-    private static final Object LOCK = new Object();
+    private static final Object CHANGE_LOCK = new Object();
     /*
      * key:app value baseList
      */
@@ -51,21 +47,10 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
      */
     private final Map<Integer, Map<Long, IceConf>> confActiveMap = new HashMap<>();
 
-    private final Map<Integer, Map<Long, IceConf>> confUpdateMap = new HashMap<>();
-
-    private final Map<Integer, Map<Long, IceShowNode>> mixConfShowMap = new HashMap<>();
-
-    private final Map<Integer, Map<Long, List<IceConf>>> iceIdConfUpdatesMap = new HashMap<>();
+    private final Map<Integer, Map<Long, Map<Long, IceConf>>> confUpdateMap = new HashMap<>();
 
     private final Map<Integer, Map<Byte, Map<String, Integer>>> leafClassMap = new HashMap<>();
-    /*
-     * last update base
-     */
-    private Date lastBaseUpdateTime;
-    /*
-     * last update conf
-     */
-    private Date lastConfUpdateTime;
+
     private volatile long version;
     @Resource
     private IceBaseMapper baseMapper;
@@ -156,6 +141,96 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
+    public long getVersion() {
+        synchronized (CHANGE_LOCK) {
+            return this.version++;
+        }
+    }
+
+    @Override
+    @Transactional
+    public IceTransferDto release(int app, long iceId) {
+        synchronized (CHANGE_LOCK) {
+            Map<Long, Map<Long, IceConf>> iceUpdateMap = confUpdateMap.get(app);
+            if (CollectionUtils.isEmpty(iceUpdateMap)) {
+                return null;
+            }
+            Map<Long, IceConf> confUpdateMap = iceUpdateMap.get(iceId);
+            if (CollectionUtils.isEmpty(confUpdateMap)) {
+                return null;
+            }
+            Collection<IceConf> confUpdates = confUpdateMap.values();
+            for (IceConf conf : confUpdates) {
+                IceConf oldConf = confMapper.selectByPrimaryKey(conf.getConfId());
+                conf.setUpdateAt(new Date());
+                if (oldConf == null) {
+                    confMapper.insertWithId(conf);
+                } else {
+                    confMapper.updateByPrimaryKey(conf);
+                }
+                confUpdateMapper.deleteByPrimaryKey(conf.getId());
+            }
+            List<IceConfDto> confUpdateDtos = new ArrayList<>(confUpdates.size());
+            for (IceConf conf : confUpdates) {
+                confUpdateMap.remove(conf.getMixId());
+                conf.setId(conf.getConfId());
+                conf.setConfId(null);
+                conf.setIceId(null);
+                confUpdateDtos.add(Constant.confToDto(conf));
+                updateLocalConfActiveCache(conf);
+            }
+            IceTransferDto transferDto = new IceTransferDto();
+            transferDto.setInsertOrUpdateConfs(confUpdateDtos);
+            transferDto.setVersion(++version);
+            return transferDto;
+        }
+    }
+
+    @Override
+    public Collection<IceConf> getAllUpdateConfList(int app, long iceId) {
+        Map<Long, Map<Long, IceConf>> iceUpdateMap = confUpdateMap.get(app);
+        if (CollectionUtils.isEmpty(iceUpdateMap)) {
+            return null;
+        }
+        Map<Long, IceConf> confUpdateMap = iceUpdateMap.get(iceId);
+        if (CollectionUtils.isEmpty(confUpdateMap)) {
+            return null;
+        }
+        return confUpdateMap.values();
+    }
+
+    @Override
+    public Set<IceConf> getAllActiveConfSet(int app, long rootId) {
+        Map<Long, IceConf> confMap = confActiveMap.get(app);
+        if (CollectionUtils.isEmpty(confMap)) {
+            return null;
+        }
+        Set<IceConf> resultSet = new HashSet<>();
+        assembleActiveConf(confMap, resultSet, rootId);
+        return resultSet;
+    }
+
+    private void assembleActiveConf(Map<Long, IceConf> map, Set<IceConf> confSet, long nodeId) {
+        IceConf conf = map.get(nodeId);
+        if (conf == null) {
+            return;
+        }
+        confSet.add(conf);
+        if (NodeTypeEnum.isRelation(conf.getType())) {
+            if (StringUtils.hasLength(conf.getSonIds())) {
+                String[] sonIdStrs = conf.getSonIds().split(",");
+                for (String sonIdStr : sonIdStrs) {
+                    long sonId = Long.parseLong(sonIdStr);
+                    assembleActiveConf(map, confSet, sonId);
+                }
+            }
+        }
+        if (conf.getForwardId() != null) {
+            assembleActiveConf(map, confSet, conf.getForwardId());
+        }
+    }
+
+    @Override
     public IceConf getActiveConfById(Integer app, Long confId) {
         Map<Long, IceConf> confMap = confActiveMap.get(app);
         if (!CollectionUtils.isEmpty(confMap)) {
@@ -165,13 +240,13 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public List<IceConf> getMixConfListByIds(Integer app, Set<Long> confSet) {
+    public List<IceConf> getMixConfListByIds(Integer app, Set<Long> confSet, long iceId) {
         if (CollectionUtils.isEmpty(confSet)) {
             return null;
         }
         List<IceConf> confList = new ArrayList<>(confSet.size());
         for (Long confId : confSet) {
-            IceConf conf = this.getMixConfById(app, confId);
+            IceConf conf = this.getMixConfById(app, confId, iceId);
             if (conf == null) {
                 /*one of confId not exist return null*/
                 return null;
@@ -182,28 +257,105 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public IceConf getMixConfById(Integer app, Long confId) {
-        Map<Long, IceConf> updateMap = confUpdateMap.get(app);
+    public IceConf getMixConfById(int app, long confId, long iceId) {
+        Map<Long, Map<Long, IceConf>> updateMap = confUpdateMap.get(app);
         if (!CollectionUtils.isEmpty(updateMap)) {
-            IceConf updateConf = updateMap.get(confId);
-            if (updateConf != null) {
-                return updateConf;
+            Map<Long, IceConf> confUpdateMap = updateMap.get(iceId);
+            if (!CollectionUtils.isEmpty(confUpdateMap)) {
+                IceConf conf = confUpdateMap.get(confId);
+                if (conf != null) {
+                    return conf;
+                }
             }
         }
         Map<Long, IceConf> activeMap = confActiveMap.get(app);
+        if (!CollectionUtils.isEmpty(activeMap)) {
+            return newConf(activeMap.get(confId));
+        }
+        return null;
+    }
+
+    private IceConf newConf(IceConf conf) {
+        if (conf == null) {
+            return null;
+        }
+        IceConf newConf = new IceConf();
+        newConf.setId(conf.getId());
+        newConf.setConfName(conf.getConfName());
+        newConf.setDebug(conf.getDebug());
+        newConf.setInverse(conf.getInverse());
+        newConf.setStatus(conf.getStatus());
+        newConf.setTimeType(conf.getTimeType());
+        newConf.setSonIds(conf.getSonIds());
+        newConf.setForwardId(conf.getForwardId());
+        newConf.setStart(conf.getStart());
+        newConf.setEnd(conf.getEnd());
+        newConf.setApp(conf.getApp());
+        newConf.setUpdateAt(conf.getUpdateAt());
+        newConf.setCreateAt(conf.getCreateAt());
+        newConf.setConfField(conf.getConfField());
+        newConf.setName(conf.getName());
+        newConf.setType(conf.getType());
+        return newConf;
+    }
+
+    @Override
+    public IceShowNode getConfMixById(int app, long confId, long iceId) {
+        Map<Long, Map<Long, IceConf>> updateShowMap = confUpdateMap.get(app);
+        Map<Long, IceConf> updateMap = null;
+        if (!CollectionUtils.isEmpty(updateShowMap)) {
+            updateMap = updateShowMap.get(iceId);
+        }
+        Map<Long, IceConf> activeMap = confActiveMap.get(app);
+        IceConf root = getConf(confId, updateMap, activeMap);
+        return assembleShowNode(root, updateMap, activeMap);
+    }
+
+    private IceConf getConf(Long confId, Map<Long, IceConf> updateMap, Map<Long, IceConf> activeMap) {
+        if (!CollectionUtils.isEmpty(updateMap)) {
+            IceConf confUpdate = updateMap.get(confId);
+            if (confUpdate != null) {
+                return confUpdate;
+            }
+        }
         if (!CollectionUtils.isEmpty(activeMap)) {
             return activeMap.get(confId);
         }
         return null;
     }
 
-    @Override
-    public IceShowNode getConfMixById(Integer app, Long confId) {
-        Map<Long, IceShowNode> mixMap = mixConfShowMap.get(app);
-        if (!CollectionUtils.isEmpty(mixMap)) {
-            return mixMap.get(confId);
+    private IceShowNode assembleShowNode(IceConf node, Map<Long, IceConf> updateMap, Map<Long, IceConf> activeMap) {
+        if (node == null) {
+            return null;
         }
-        return null;
+        IceShowNode showNode = Constant.confToShow(node);
+        if (NodeTypeEnum.isRelation(node.getType()) && StringUtils.hasLength(showNode.getSonIds())) {
+            String[] sonIdStrs = showNode.getSonIds().split(",");
+            List<Long> sonIds = new ArrayList<>(sonIdStrs.length);
+            for (String sonStr : sonIdStrs) {
+                sonIds.add(Long.valueOf(sonStr));
+            }
+            List<IceShowNode> children = new ArrayList<>(sonIdStrs.length);
+            for (int i = 0; i < sonIds.size(); i++) {
+                IceConf child = getConf(sonIds.get(i), updateMap, activeMap);
+                if (child != null) {
+                    IceShowNode showChild = assembleShowNode(child, updateMap, activeMap);
+                    showChild.setParentId(node.getMixId());
+                    showChild.setIndex(i);
+                    children.add(showChild);
+                }
+            }
+            showNode.setChildren(children);
+        }
+
+        if (showNode.getForwardId() != null) {
+            IceShowNode forwardNode = assembleShowNode(getConf(showNode.getForwardId(), updateMap, activeMap), updateMap, activeMap);
+            if (forwardNode != null) {
+                forwardNode.setNextId(node.getMixId());
+                showNode.setForward(forwardNode);
+            }
+        }
+        return showNode;
     }
 
     @Override
@@ -213,6 +365,34 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             return confMap.get(iceId);
         }
         return null;
+    }
+
+    @Override
+    public void updateLocalConfUpdateCache(IceConf conf) {
+        confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
+    }
+
+    @Override
+    public void updateLocalConfUpdateCaches(Collection<IceConf> confs) {
+        for(IceConf conf:confs){
+            updateLocalConfUpdateCache(conf);
+        }
+    }
+
+    public void updateLocalConfActiveCache(IceConf conf) {
+        confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
+    }
+
+    @Override
+    public void updateLocalConfActiveCaches(Collection<IceConf> confs) {
+        for(IceConf conf:confs){
+            updateLocalConfActiveCache(conf);
+        }
+    }
+
+    @Override
+    public void updateLocalBaseActiveCache(IceBase base) {
+        baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
     }
 
     @Override
@@ -260,161 +440,11 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
 
     @Override
     public void updateByEdit() {
-        update();
-    }
-
-    /*
-     * update by schedule
-     */
-    @Scheduled(fixedDelay = 20000)
-    private void update() {
-        Date now = new Date();
-        Date lastMaxBaseDate = lastBaseUpdateTime;
-        Date lastMaxConfDate = lastConfUpdateTime;
-        Map<Integer, Set<Long>> deleteConfMap = new HashMap<>(appSet.size());
-        Map<Integer, Set<Long>> deleteBaseMap = new HashMap<>(appSet.size());
-
-        Map<Integer, Map<Long, IceConf>> activeChangeConfMap = new HashMap<>(appSet.size());
-        Map<Integer, Map<Long, IceBase>> activeChangeBaseMap = new HashMap<>(appSet.size());
-
-        /*find change in db*/
-        IceConfExample confExample = new IceConfExample();
-        confExample.createCriteria().andUpdateAtGreaterThan(lastConfUpdateTime).andUpdateAtLessThanOrEqualTo(now);
-        List<IceConf> confList = confMapper.selectByExample(confExample);
-        if (!CollectionUtils.isEmpty(confList)) {
-            for (IceConf conf : confList) {
-                if (conf.getUpdateAt().after(lastMaxConfDate)) {
-                    lastMaxConfDate = conf.getUpdateAt();
-                }
-                appSet.add(conf.getApp());
-                if (conf.getStatus() == StatusEnum.OFFLINE.getStatus()) {
-                    /*update offline in db by hand*/
-                    deleteConfMap.computeIfAbsent(conf.getApp(), k -> new HashSet<>()).add(conf.getId());
-                    continue;
-                }
-                activeChangeConfMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getId(), conf);
-            }
-        }
-        IceBaseExample baseExample = new IceBaseExample();
-        baseExample.createCriteria().andUpdateAtGreaterThan(lastBaseUpdateTime).andUpdateAtLessThanOrEqualTo(now);
-        List<IceBase> baseList = baseMapper.selectByExample(baseExample);
-        if (!CollectionUtils.isEmpty(baseList)) {
-            for (IceBase base : baseList) {
-                if (base.getUpdateAt().after(lastMaxBaseDate)) {
-                    lastMaxBaseDate = base.getUpdateAt();
-                }
-                appSet.add(base.getApp());
-                if (base.getStatus() == StatusEnum.OFFLINE.getStatus()) {
-                    /*update offline in db by hand*/
-                    deleteBaseMap.computeIfAbsent(base.getApp(), k -> new HashSet<>()).add(base.getId());
-                    continue;
-                }
-                activeChangeBaseMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
-            }
-        }
-        /*update local cache*/
-        long updateVersion = updateLocal(deleteBaseMap, deleteConfMap, activeChangeBaseMap,
-                activeChangeConfMap);
-        /*send update msg to remote client*/
-        sendChange(deleteConfMap, deleteBaseMap, activeChangeConfMap, activeChangeBaseMap, updateVersion);
-        /*update time (why not update to now? to avoid timeline conflict)*/
-        lastBaseUpdateTime = lastMaxBaseDate;
-        lastConfUpdateTime = lastMaxConfDate;
-    }
-
-    private void sendChange(Map<Integer, Set<Long>> deleteConfMap,
-                            Map<Integer, Set<Long>> deleteBaseMap,
-                            Map<Integer, Map<Long, IceConf>> activeChangeConfMap,
-                            Map<Integer, Map<Long, IceBase>> activeChangeBaseMap,
-                            long updateVersion) {
-        for (Integer app : appSet) {
-            IceTransferDto transferDto = null;
-            Map<Long, IceConf> insertOrUpdateConfMap = activeChangeConfMap.get(app);
-            if (!CollectionUtils.isEmpty(insertOrUpdateConfMap)) {
-                transferDto = new IceTransferDto();
-                Collection<IceConfDto> confDtoList = new ArrayList<>(insertOrUpdateConfMap.values().size());
-                for (IceConf conf : insertOrUpdateConfMap.values()) {
-                    confDtoList.add(Constant.confToDto(conf));
-                }
-                transferDto.setInsertOrUpdateConfs(confDtoList);
-            }
-            Map<Long, IceBase> insertOrUpdateBaseMap = activeChangeBaseMap.get(app);
-            if (!CollectionUtils.isEmpty(insertOrUpdateBaseMap)) {
-                if (transferDto == null) {
-                    transferDto = new IceTransferDto();
-                }
-                Collection<IceBaseDto> baseDtoList = new ArrayList<>(insertOrUpdateBaseMap.values().size());
-                for (IceBase base : insertOrUpdateBaseMap.values()) {
-                    baseDtoList.add(Constant.baseToDto(base));
-                }
-                transferDto.setInsertOrUpdateBases(baseDtoList);
-            }
-            Set<Long> deleteConfIds = deleteConfMap.get(app);
-            if (!CollectionUtils.isEmpty(deleteConfMap)) {
-                if (transferDto == null) {
-                    transferDto = new IceTransferDto();
-                }
-                transferDto.setDeleteConfIds(deleteConfIds);
-            }
-            Set<Long> deleteBases = deleteBaseMap.get(app);
-            if (!CollectionUtils.isEmpty(deleteBases)) {
-                if (transferDto == null) {
-                    transferDto = new IceTransferDto();
-                }
-                transferDto.setDeleteBaseIds(deleteBases);
-            }
-            /*send update msg to remote client while has change*/
-            if (transferDto != null) {
-                transferDto.setVersion(updateVersion);
-                IceRmiClientManager.update(app, transferDto);
-                log.info("ice update app:{}, content:{}", app, JSON.toJSONString(transferDto));
-            }
-        }
-    }
-
-    /*
-     * update local cache
-     * first handle delete,then insert&update
-     */
-    private long updateLocal(Map<Integer, Set<Long>> deleteBaseMap,
-                             Map<Integer, Set<Long>> deleteConfMap,
-                             Map<Integer, Map<Long, IceBase>> activeChangeBaseMap,
-                             Map<Integer, Map<Long, IceConf>> activeChangeConfMap) {
-        synchronized (LOCK) {
-            for (Map.Entry<Integer, Set<Long>> entry : deleteConfMap.entrySet()) {
-                for (Long id : entry.getValue()) {
-                    Map<Long, IceConf> tmpActiveMap = confActiveMap.get(entry.getKey());
-                    if (tmpActiveMap != null) {
-                        confActiveMap.get(entry.getKey()).remove(id);
-                    }
-                }
-            }
-            for (Map.Entry<Integer, Set<Long>> entry : deleteBaseMap.entrySet()) {
-                for (Long id : entry.getValue()) {
-                    Map<Long, IceBase> tmpActiveMap = baseActiveMap.get(entry.getKey());
-                    if (tmpActiveMap != null) {
-                        baseActiveMap.get(entry.getKey()).remove(id);
-                    }
-                }
-            }
-            for (Map.Entry<Integer, Map<Long, IceBase>> appEntry : activeChangeBaseMap.entrySet()) {
-                for (Map.Entry<Long, IceBase> entry : appEntry.getValue().entrySet()) {
-                    baseActiveMap.computeIfAbsent(appEntry.getKey(), k -> new HashMap<>()).put(entry.getKey(), entry.getValue());
-                }
-            }
-            for (Map.Entry<Integer, Map<Long, IceConf>> appEntry : activeChangeConfMap.entrySet()) {
-                for (Map.Entry<Long, IceConf> entry : appEntry.getValue().entrySet()) {
-                    confActiveMap.computeIfAbsent(appEntry.getKey(), k -> new HashMap<>()).put(entry.getKey(), entry.getValue());
-                }
-            }
-            version++;
-            return version;
-        }
+//        update();
     }
 
     @Override
     public void afterPropertiesSet() {
-//        Date now = new Date();
         /*baseList*/
         IceBaseExample baseExample = new IceBaseExample();
         baseExample.createCriteria().andStatusEqualTo(StatusEnum.ONLINE.getStatus());
@@ -422,7 +452,6 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
 
         if (!CollectionUtils.isEmpty(baseList)) {
             for (IceBase base : baseList) {
-                appSet.add(base.getApp());
                 baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
             }
         }
@@ -430,15 +459,11 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         IceConfExample confUpdateExample = new IceConfExample();
         confUpdateExample.createCriteria().andStatusEqualTo(StatusEnum.ONLINE.getStatus());
         List<IceConf> confUpdateList = confUpdateMapper.selectByExample(confUpdateExample);
-        Map<Long, IceShowNode> showNodeMap = new HashMap<>();
+        Set<Long> updateIdSet = new HashSet<>();
         if (!CollectionUtils.isEmpty(confUpdateList)) {
             for (IceConf conf : confUpdateList) {
-                appSet.add(conf.getApp());
-                IceShowNode showNode = Constant.confToShow(conf, true);
-                showNodeMap.put(conf.getId(), showNode);
-                confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getId(), conf);
-                mixConfShowMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getId(), showNode);
-                iceIdConfUpdatesMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new ArrayList<>()).add(conf);
+                updateIdSet.add(conf.getMixId());
+                confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
                 assembleAtlas(conf);
                 assembleLeafClass(conf);
             }
@@ -449,35 +474,11 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         List<IceConf> confList = confMapper.selectByExample(confExample);
         if (!CollectionUtils.isEmpty(confList)) {
             for (IceConf conf : confList) {
-                appSet.add(conf.getApp());
-                confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getId(), conf);
-                if (!showNodeMap.containsKey(conf.getId())) {
+                confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
+                if (!updateIdSet.contains(conf.getMixId())) {
                     assembleAtlas(conf);
-                    showNodeMap.put(conf.getId(), Constant.confToShow(conf, false));
                 }
                 assembleLeafClass(conf);
-            }
-        }
-        for (IceShowNode showNode : showNodeMap.values()) {
-            if (NodeTypeEnum.isRelation(showNode.getNodeType())) {
-                if (StringUtils.hasLength(showNode.getSonIds())) {
-                    String[] sonIdStrs = showNode.getSonIds().split(",");
-                    List<Long> sonIds = new ArrayList<>(sonIdStrs.length);
-                    for (String sonStr : sonIdStrs) {
-                        sonIds.add(Long.valueOf(sonStr));
-                    }
-                    List<IceShowNode> children = new ArrayList<>(sonIdStrs.length);
-                    for (Long sonId : sonIds) {
-                        IceShowNode node = showNodeMap.get(sonId);
-                        if (node != null) {
-                            children.add(showNodeMap.get(sonId));
-                        }
-                    }
-                    showNode.setChildren(children);
-                }
-            }
-            if (showNode.getForwardId() != null) {
-                showNode.setForward(showNodeMap.get(showNode.getForwardId()));
             }
         }
     }
@@ -487,14 +488,14 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             String[] sonIdStrs = conf.getSonIds().split(",");
             for (String sonIdStr : sonIdStrs) {
                 Long sonId = Long.parseLong(sonIdStr);
-                Map<Long, Integer> nextMap = atlasMap.computeIfAbsent(conf.getId(), k -> new HashMap<>());
+                Map<Long, Integer> nextMap = atlasMap.computeIfAbsent(conf.getMixId(), k -> new HashMap<>());
                 int nextCount = nextMap.computeIfAbsent(sonId, k -> 0);
                 nextCount += 1;
                 nextMap.put(sonId, nextCount);
             }
         }
         if (conf.getForwardId() != null) {
-            Map<Long, Integer> nextMap = atlasMap.computeIfAbsent(conf.getId(), k -> new HashMap<>());
+            Map<Long, Integer> nextMap = atlasMap.computeIfAbsent(conf.getMixId(), k -> new HashMap<>());
             int nextCount = nextMap.computeIfAbsent(conf.getForwardId(), k -> 0);
             nextCount += 1;
             nextMap.put(conf.getForwardId(), nextCount);
@@ -543,7 +544,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
 
     @Override
     public IceTransferDto getInitConfig(Integer app) {
-        synchronized (LOCK) {
+        synchronized (CHANGE_LOCK) {
             IceTransferDto transferDto = new IceTransferDto();
             transferDto.setInsertOrUpdateBases(this.getActiveBasesByApp(app));
             transferDto.setInsertOrUpdateConfs(this.getActiveConfsByApp(app));

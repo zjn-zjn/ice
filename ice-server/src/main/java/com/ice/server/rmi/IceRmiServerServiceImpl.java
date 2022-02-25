@@ -4,38 +4,20 @@ import com.ice.common.dto.IceTransferDto;
 import com.ice.rmi.common.server.IceRmiServerService;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import javax.rmi.PortableRemoteObject;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
 
 @Service
 @Slf4j
-public class IceRmiServerServiceImpl implements IceRmiServerService, InitializingBean, DisposableBean {
+public class IceRmiServerServiceImpl implements IceRmiServerService {
 
     @Resource
     private IceServerService iceServerService;
 
     @Resource
-    private IceRmiServerService remoteServerService;
-
-    @Value("${ice.rmi.port:8212}")
-    private int rmiRegisterPort;
-
-    @Value("${ice.rmi.communicatePort:0}")
-    private int rmiCommunicatePort;
-
-    private static Registry registry;
-
-    @Resource
-    private IceRmiClientManager clientManage;
+    private IceRmiClientManager rmiClientManager;
 
     @Override
     public IceTransferDto getInitConfig(int app) throws RemoteException {
@@ -44,29 +26,11 @@ public class IceRmiServerServiceImpl implements IceRmiServerService, Initializin
 
     @Override
     public void register(int app, String host, int port) throws RemoteException {
-        clientManage.registerClient(app, host, port);
+        rmiClientManager.registerClient(app, host, port);
     }
 
     @Override
     public void unRegister(int app, String host, int port) throws RemoteException {
-        clientManage.unRegisterClient(app, host, port);
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        log.info("create ice rmi server service...");
-        IceRmiServerService serverService = (IceRmiServerService) UnicastRemoteObject.exportObject(remoteServerService, rmiCommunicatePort);
-        registry = LocateRegistry.createRegistry(rmiRegisterPort);
-        registry.rebind("IceRemoteServerService", serverService);
-        log.info("create ice rmi server service...success");
-    }
-
-    @Override
-    public void destroy() throws Exception {
-        if (registry != null) {
-            registry.unbind("IceRemoteServerService");
-            UnicastRemoteObject.unexportObject(remoteServerService, true);
-            PortableRemoteObject.unexportObject(registry);
-        }
+        rmiClientManager.unRegisterClient(app, host, port);
     }
 }

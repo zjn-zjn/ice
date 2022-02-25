@@ -21,7 +21,7 @@ import java.util.concurrent.Future;
 @AllArgsConstructor
 public final class IceExecutor {
 
-    private static ExecutorService executor = Executors.newFixedThreadPool(4);
+    private static ExecutorService executor;
 
     public static void setExecutor(ExecutorService executor) {
         if (executor == null) {
