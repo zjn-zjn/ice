@@ -163,27 +163,46 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             for (IceConf conf : confUpdates) {
                 IceConf oldConf = confMapper.selectByPrimaryKey(conf.getConfId());
                 conf.setUpdateAt(new Date());
+                long updateId = conf.getId();
+                conf.setId(conf.getConfId());
                 if (oldConf == null) {
                     confMapper.insertWithId(conf);
                 } else {
                     confMapper.updateByPrimaryKey(conf);
                 }
-                confUpdateMapper.deleteByPrimaryKey(conf.getId());
+                confUpdateMapper.deleteByPrimaryKey(updateId);
             }
             List<IceConfDto> confUpdateDtos = new ArrayList<>(confUpdates.size());
             for (IceConf conf : confUpdates) {
-                confUpdateMap.remove(conf.getMixId());
                 conf.setId(conf.getConfId());
                 conf.setConfId(null);
                 conf.setIceId(null);
                 confUpdateDtos.add(Constant.confToDto(conf));
                 updateLocalConfActiveCache(conf);
             }
+            iceUpdateMap.remove(iceId);
             IceTransferDto transferDto = new IceTransferDto();
             transferDto.setInsertOrUpdateConfs(confUpdateDtos);
             transferDto.setVersion(++version);
             return transferDto;
         }
+    }
+
+    @Override
+    public void updateClean(int app, long iceId) {
+        Map<Long, Map<Long, IceConf>> iceUpdateMap = confUpdateMap.get(app);
+        if (CollectionUtils.isEmpty(iceUpdateMap)) {
+            return;
+        }
+        Map<Long, IceConf> confUpdateMap = iceUpdateMap.get(iceId);
+        if (CollectionUtils.isEmpty(confUpdateMap)) {
+            return;
+        }
+        Collection<IceConf> confUpdates = confUpdateMap.values();
+        for (IceConf conf : confUpdates) {
+            confUpdateMapper.deleteByPrimaryKey(conf.getId());
+        }
+        iceUpdateMap.remove(iceId);
     }
 
     @Override

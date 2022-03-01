@@ -86,14 +86,14 @@ public class IceBaseController {
     @RequestMapping(value = "/ice-server/base/rollback", method = RequestMethod.GET)
     public WebResult<Void> rollback(@RequestParam Long pushId) {
         iceBaseService.rollback(pushId);
-        iceServerService.updateByEdit();
+//        iceServerService.updateByEdit();
         return WebResult.success();
     }
 
     @RequestMapping(value = "/ice-server/base/import", method = RequestMethod.POST)
     public WebResult<Void> importData(@RequestBody PushData data) {
         iceBaseService.importData(data);
-        iceServerService.updateByEdit();
+//        iceServerService.updateByEdit();
         return WebResult.success();
     }
 }

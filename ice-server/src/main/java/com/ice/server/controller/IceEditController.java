@@ -143,7 +143,7 @@ public class IceEditController {
     @RequestMapping(value = "/ice/conf/rollback", method = RequestMethod.GET)
     public WebResult exportData(@RequestParam Long pushId) {
         iceBaseService.rollback(pushId);
-        iceServerService.updateByEdit();
+//        iceServerService.updateByEdit();
         return WebResult.success();
     }
 
@@ -159,7 +159,7 @@ public class IceEditController {
         } catch (Exception e) {
             return WebResult.fail(-1, "import error");
         }
-        iceServerService.updateByEdit();
+//        iceServerService.updateByEdit();
         return WebResult.success();
     }
 }

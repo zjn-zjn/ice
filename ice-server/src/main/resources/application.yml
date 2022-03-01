@@ -9,7 +9,7 @@ spring:
     static-locations: classpath:static/
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    type: com.alibaba.druid.pool.DruidDataSource
+    type: com.zaxxer.hikari.HikariDataSource
     initialization-mode: always
     schema:
       - classpath:sql/ice.sql
@@ -17,9 +17,6 @@ spring:
     platform: mysql
     sql-script-encoding: UTF-8
     separator: ;
-druid:
-  mysql:
-    usePingMethod: false
 mybatis:
   config-location: classpath:mybatis/mybatis-config.xml
 pagehelper:

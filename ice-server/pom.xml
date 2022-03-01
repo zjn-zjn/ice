@@ -14,56 +14,49 @@
 
     <name>ice-server</name>
     <properties>
-        <mybatis.version>3.5.7</mybatis.version>
+
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-            <version>4.1.74.Final</version>
-        </dependency>
-        <dependency>
             <groupId>com.github.kevinsawicki</groupId>
             <artifactId>http-request</artifactId>
-            <version>6.0</version>
+            <version>${kevinsawicki.http.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.7</version>
+            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>com.waitmoon.ice</groupId>
             <artifactId>ice-core</artifactId>
-            <version>0.0.7</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.waitmoon.ice</groupId>
             <artifactId>ice-rmi-common</artifactId>
-            <version>0.0.7</version>
+            <version>${project.version}</version>
         </dependency>
         <!--web-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <!-- 分页插件 -->
+        <!-- page helper -->
         <dependency>
             <groupId>com.github.pagehelper</groupId>
             <artifactId>pagehelper-spring-boot-starter</artifactId>
-            <version>1.4.1</version>
+            <version>${pagehelper.version}</version>
         </dependency>
-        <!-- alibaba&druid -->
         <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>druid-spring-boot-starter</artifactId>
-            <version>1.2.8</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.mybatis.spring.boot</groupId>
             <artifactId>mybatis-spring-boot-starter</artifactId>
-            <version>2.2.0</version>
+            <version>${mybatis.version}</version>
         </dependency>
         <dependency>
             <groupId>mysql</groupId>
@@ -73,17 +66,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains</groupId>
-            <artifactId>annotations</artifactId>
-            <version>23.0.0</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mybatis</groupId>
-            <artifactId>mybatis</artifactId>
-            <version>${mybatis.version}</version>
         </dependency>
     </dependencies>
 

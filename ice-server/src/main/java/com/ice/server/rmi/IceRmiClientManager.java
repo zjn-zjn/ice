@@ -107,26 +107,6 @@ public final class IceRmiClientManager implements InitializingBean {
         }
     }
 
-//    public Set<Long> getAllConfId(int app, long iceId) {
-//        Map<String, RmiClientInfo> clientMap = clientRmiMap.get(app);
-//        if (CollectionUtils.isEmpty(clientMap)) {
-//            throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
-//        }
-//        Collection<RmiClientInfo> clientInfoList = clientMap.values();
-//        if (CollectionUtils.isEmpty(clientInfoList)) {
-//            throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
-//        }
-//        RmiClientInfo clientInfo = clientInfoList.iterator().next();
-//        Set<Long> result;
-//        try {
-//            result = clientInfo.clientService.getAllConfId(iceId);
-//        } catch (Exception e) {
-//            errorHandle(clientMap, clientInfo);
-//            throw new ErrorCodeException(ErrorCode.REMOTE_RUN_ERROR, app, clientInfo.address);
-//        }
-//        return result;
-//    }
-
     public Pair<Integer, String> confClazzCheck(int app, String clazz, byte type) {
         Map<String, RmiClientInfo> clientMap = clientRmiMap.get(app);
         if (CollectionUtils.isEmpty(clientMap)) {

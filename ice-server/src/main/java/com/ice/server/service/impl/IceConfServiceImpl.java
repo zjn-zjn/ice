@@ -390,7 +390,7 @@ public class IceConfServiceImpl implements IceConfService {
 
     @Override
     public IceShowConf confDetail(int app, long confId, String address, long iceId) {
-        if (address == null) {
+        if (address == null || address.equals("server")) {
             //server
             IceShowNode root = iceServerService.getConfMixById(app, confId, iceId);
             if (root == null) {
@@ -440,7 +440,7 @@ public class IceConfServiceImpl implements IceConfService {
             if (NodeTypeEnum.isRelation(iceConf.getType())) {
                 clientNode.getShowConf().setLabelName(nodeId + "-" + NodeTypeEnum.getEnum(iceConf.getType()).name() + (StringUtils.hasLength(iceConf.getConfName()) ? ("-" + iceConf.getName()) : ""));
             } else {
-                clientNode.getShowConf().setLabelName(nodeId + "-" + (StringUtils.hasLength(iceConf.getConfName()) ? iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(iceConf.getConfName()) ? ("-" + iceConf.getName()) : ""));
+                clientNode.getShowConf().setLabelName(nodeId + "-" + (StringUtils.hasLength(iceConf.getConfName()) ? iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(iceConf.getName()) ? ("-" + iceConf.getName()) : ""));
             }
             if (StringUtils.hasLength(iceConf.getName())) {
                 clientNode.getShowConf().setNodeName(iceConf.getName());

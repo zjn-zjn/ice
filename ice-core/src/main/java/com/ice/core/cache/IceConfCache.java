@@ -146,6 +146,7 @@ public final class IceConfCache {
         confMap.putAll(tmpConfMap);
         for (IceConfDto confInfo : iceConfDtos) {
             Set<Long> parentIds = parentIdsMap.get(confInfo.getId());
+            Set<Long> removeParentIds = new HashSet<>();
             if (parentIds != null && !parentIds.isEmpty()) {
                 for (Long parentId : parentIds) {
                     BaseNode tmpParentNode = confMap.get(parentId);
@@ -154,20 +155,25 @@ public final class IceConfCache {
                         errors.add("parentId:" + parentId + " not exist conf:" + errorModeStr);
                         log.error("parentId:{} not exist please check! conf:{}", parentId, errorModeStr);
                     } else {
-                        BaseRelation relation = (BaseRelation) tmpParentNode;
-                        IceLinkedList<BaseNode> children = relation.getChildren();
-                        if (children != null && !children.isEmpty()) {
-                            IceLinkedList.Node<BaseNode> listNode = children.getFirst();
-                            while (listNode != null) {
-                                BaseNode node = listNode.item;
-                                if (node != null && node.findIceNodeId() == confInfo.getId()) {
-                                    listNode.item = confMap.get(confInfo.getId());
+                        if (tmpParentNode instanceof BaseRelation) {
+                            BaseRelation relation = (BaseRelation) tmpParentNode;
+                            IceLinkedList<BaseNode> children = relation.getChildren();
+                            if (children != null && !children.isEmpty()) {
+                                IceLinkedList.Node<BaseNode> listNode = children.getFirst();
+                                while (listNode != null) {
+                                    BaseNode node = listNode.item;
+                                    if (node != null && node.findIceNodeId() == confInfo.getId()) {
+                                        listNode.item = confMap.get(confInfo.getId());
+                                    }
+                                    listNode = listNode.next;
                                 }
-                                listNode = listNode.next;
                             }
+                        }else {
+                            removeParentIds.add(parentId);
                         }
                     }
                 }
+                parentIds.removeAll(removeParentIds);
             }
             Set<Long> forwardUseIds = forwardUseIdsMap.get(confInfo.getId());
             if (forwardUseIds != null && !forwardUseIds.isEmpty()) {

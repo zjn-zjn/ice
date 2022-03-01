@@ -63,6 +63,8 @@ public interface IceServerService {
 
     IceTransferDto release(int app, long iceId);
 
+    void updateClean(int app, long iceId);
+
     Collection<IceConf> getAllUpdateConfList(int app, long iceId);
 
     Set<IceConf> getAllActiveConfSet(int app, long rootId);

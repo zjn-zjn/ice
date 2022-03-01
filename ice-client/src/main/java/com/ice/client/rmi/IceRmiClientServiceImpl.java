@@ -12,10 +12,8 @@ import com.ice.common.model.IceShowNode;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
 import com.ice.core.cache.IceConfCache;
-import com.ice.core.cache.IceHandlerCache;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
-import com.ice.core.handler.IceHandler;
 import com.ice.core.leaf.base.BaseLeafFlow;
 import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;
@@ -29,7 +27,9 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.rmi.RemoteException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -48,20 +48,6 @@ public class IceRmiClientServiceImpl implements IceRmiClientService {
         waitInit = false;
         initVersion = version;
     }
-
-//    @Override
-//    public Set<Long> getAllConfId(Long iceId) throws RemoteException {
-//        IceHandler handler = IceHandlerCache.getHandlerById(iceId);
-//        if (handler != null) {
-//            BaseNode root = handler.getRoot();
-//            if (root != null) {
-//                Set<Long> allIdSet = new HashSet<>();
-//                findAllConfIds(root, allIdSet);
-//                return allIdSet;
-//            }
-//        }
-//        return null;
-//    }
 
     @Override
     public Pair<Integer, String> confClazzCheck(String clazz, byte type) throws RemoteException {
@@ -205,24 +191,4 @@ public class IceRmiClientServiceImpl implements IceRmiClientService {
     @Override
     public void ping() throws RemoteException {
     }
-
-//    private void findAllConfIds(BaseNode node, Set<Long> ids) {
-//        Long nodeId = node.getIceNodeId();
-//        ids.add(nodeId);
-//        BaseNode forward = node.getIceForward();
-//        if (forward != null) {
-//            findAllConfIds(forward, ids);
-//        }
-//        if (node instanceof BaseRelation) {
-//            IceLinkedList<BaseNode> children = ((BaseRelation) node).getChildren();
-//            if (children == null || children.isEmpty()) {
-//                return;
-//            }
-//            for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();
-//                 listNode != null; listNode = listNode.next) {
-//                BaseNode child = listNode.item;
-//                findAllConfIds(child, ids);
-//            }
-//        }
-//    }
 }

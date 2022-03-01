@@ -16,12 +16,12 @@
         <dependency>
             <groupId>com.waitmoon.ice</groupId>
             <artifactId>ice-common</artifactId>
-            <version>0.0.7</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.32</version>
+            <version>${slf4j.version}</version>
         </dependency>
     </dependencies>
 </project>

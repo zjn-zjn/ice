@@ -7,7 +7,6 @@ import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.WebResult;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -32,18 +31,18 @@ public class WebAbstractResponseAdapter implements ResponseBodyAdvice<Object> {
     }
 
     @Override
-    public boolean supports(@NotNull MethodParameter methodParameter,
-                            @NotNull Class<? extends HttpMessageConverter<?>> converterType) {
+    public boolean supports(MethodParameter methodParameter,
+                            Class<? extends HttpMessageConverter<?>> converterType) {
         return true;
     }
 
     @Override
     public Object beforeBodyWrite(Object o,
-                                  @NotNull MethodParameter methodParameter,
-                                  @NotNull MediaType mediaType,
-                                  @NotNull Class<? extends HttpMessageConverter<?>> aClass,
-                                  @NotNull ServerHttpRequest serverHttpRequest,
-                                  @NotNull ServerHttpResponse serverHttpResponse) {
+                                  MethodParameter methodParameter,
+                                  MediaType mediaType,
+                                  Class<? extends HttpMessageConverter<?>> aClass,
+                                  ServerHttpRequest serverHttpRequest,
+                                  ServerHttpResponse serverHttpResponse) {
 
         if (o instanceof WebResult) {
             return o;
