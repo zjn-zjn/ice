@@ -9,13 +9,13 @@ ice:
   app: 1
   rmi:
     port: 8210
-    communicatePort: 18210
     server: 127.0.0.1:8212
+    communicate-port: 18210
   pool:
-    coreSize: 4
-    maxSize: 4
-    keepAliveSeconds: 60
-    queueCapacity: 60000
+    core-size: 4
+    max-size: 4
+    keep-alive-seconds: 60
+    queue-capacity: 60000
 test:
   value: 123
 environment: dev
