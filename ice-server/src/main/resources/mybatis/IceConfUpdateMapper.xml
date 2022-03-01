@@ -124,7 +124,8 @@
         conf_name, conf_field, forward_id,
         time_type, start, end, debug, create_at,
         update_at)
-        values (#{app,jdbcType=INTEGER},#{iceId,jdbcType=BIGINT}, #{confId,jdbcType=BIGINT},#{name,jdbcType=VARCHAR}, #{sonIds,jdbcType=VARCHAR},
+        values (#{app,jdbcType=INTEGER},#{iceId,jdbcType=BIGINT}, #{confId,jdbcType=BIGINT},#{name,jdbcType=VARCHAR},
+        #{sonIds,jdbcType=VARCHAR},
         #{type,jdbcType=TINYINT}, #{status,jdbcType=TINYINT}, #{inverse,jdbcType=TINYINT},
         #{confName,jdbcType=VARCHAR}, #{confField,jdbcType=VARCHAR}, #{forwardId,jdbcType=BIGINT},
         #{timeType,jdbcType=TINYINT}, #{start,jdbcType=TIMESTAMP}, #{end,jdbcType=TIMESTAMP},
@@ -138,7 +139,8 @@
         conf_name, conf_field, forward_id,
         time_type, start, end, debug,
         update_at)
-        values (#{id,jdbcType=BIGINT}, #{app,jdbcType=INTEGER}, #{iceId,jdbcType=BIGINT}, #{confId,jdbcType=BIGINT},#{name,jdbcType=VARCHAR},
+        values (#{id,jdbcType=BIGINT}, #{app,jdbcType=INTEGER}, #{iceId,jdbcType=BIGINT},
+        #{confId,jdbcType=BIGINT},#{name,jdbcType=VARCHAR},
         #{sonIds,jdbcType=VARCHAR},
         #{type,jdbcType=TINYINT}, #{status,jdbcType=TINYINT}, #{inverse,jdbcType=TINYINT},
         #{confName,jdbcType=VARCHAR}, #{confField,jdbcType=VARCHAR}, #{forwardId,jdbcType=BIGINT},

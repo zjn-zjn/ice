@@ -1,6 +1,5 @@
 package com.ice.server.controller;
 
-import com.ice.common.dto.IceConfDto;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.model.IceShowConf;
 import com.ice.server.dao.model.IceBase;
@@ -156,14 +155,14 @@ public class IceConfController {
 
     @RequestMapping(value = "/ice-server/conf/release", method = RequestMethod.GET)
     public List<String> release(@RequestParam Integer app,
-                         @RequestParam Long iceId) {
+                                @RequestParam Long iceId) {
         IceTransferDto transferDto = iceServerService.release(app, iceId);
         return rmiClientManager.update(app, transferDto);
     }
 
     @RequestMapping(value = "/ice-server/conf/update_clean", method = RequestMethod.GET)
     public Void updateClean(@RequestParam Integer app,
-                                @RequestParam Long iceId) {
+                            @RequestParam Long iceId) {
         iceServerService.updateClean(app, iceId);
         return null;
     }

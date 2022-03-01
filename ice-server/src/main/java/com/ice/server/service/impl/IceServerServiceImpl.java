@@ -393,7 +393,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
 
     @Override
     public void updateLocalConfUpdateCaches(Collection<IceConf> confs) {
-        for(IceConf conf:confs){
+        for (IceConf conf : confs) {
             updateLocalConfUpdateCache(conf);
         }
     }
@@ -404,7 +404,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
 
     @Override
     public void updateLocalConfActiveCaches(Collection<IceConf> confs) {
-        for(IceConf conf:confs){
+        for (IceConf conf : confs) {
             updateLocalConfActiveCache(conf);
         }
     }

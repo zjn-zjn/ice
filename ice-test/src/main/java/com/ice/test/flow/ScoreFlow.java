@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author zjn

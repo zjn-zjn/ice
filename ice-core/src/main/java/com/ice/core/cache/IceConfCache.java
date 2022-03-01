@@ -168,7 +168,7 @@ public final class IceConfCache {
                                     listNode = listNode.next;
                                 }
                             }
-                        }else {
+                        } else {
                             removeParentIds.add(parentId);
                         }
                     }

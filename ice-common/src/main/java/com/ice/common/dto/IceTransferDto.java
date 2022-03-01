@@ -1,7 +1,6 @@
 package com.ice.common.dto;
 
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.Collection;
