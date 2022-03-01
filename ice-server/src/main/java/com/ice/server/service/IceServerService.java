@@ -43,8 +43,6 @@ public interface IceServerService {
 
     void removeLeafClass(Integer app, Byte type, String clazz);
 
-    void updateByEdit();
-
     boolean haveCircle(Long nodeId, Long linkId);
 
     boolean haveCircle(Long nodeId, List<Long> linkIds);

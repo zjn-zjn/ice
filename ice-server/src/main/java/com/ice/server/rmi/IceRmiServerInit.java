@@ -5,6 +5,7 @@ import com.ice.server.config.IceServerProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -15,6 +16,7 @@ import java.rmi.server.UnicastRemoteObject;
 
 @Slf4j
 @Service
+@DependsOn({"iceServerServiceImpl", "iceRmiClientManager"})
 public class IceRmiServerInit implements InitializingBean, DisposableBean {
 
     @Resource
