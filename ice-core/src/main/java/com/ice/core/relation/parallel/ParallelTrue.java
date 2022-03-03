@@ -7,7 +7,7 @@ import com.ice.core.base.BaseRelation;
 import com.ice.core.context.IceContext;
 import com.ice.core.utils.IceExecutor;
 import com.ice.core.utils.IceLinkedList;
-import javafx.util.Pair;
+import com.ice.common.model.Pair;
 
 import java.util.LinkedList;
 import java.util.List;

@@ -4,7 +4,7 @@ import com.ice.common.dto.IceTransferDto;
 import com.ice.common.model.IceShowConf;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
-import javafx.util.Pair;
+import com.ice.common.model.Pair;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

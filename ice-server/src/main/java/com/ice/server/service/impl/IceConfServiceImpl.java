@@ -15,7 +15,7 @@ import com.ice.server.model.IceLeafClass;
 import com.ice.server.rmi.IceRmiClientManager;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
-import javafx.util.Pair;
+import com.ice.common.model.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

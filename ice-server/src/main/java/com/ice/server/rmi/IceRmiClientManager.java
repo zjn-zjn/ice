@@ -12,7 +12,7 @@ import com.ice.server.dao.model.IceRmi;
 import com.ice.server.dao.model.IceRmiExample;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
-import javafx.util.Pair;
+import com.ice.common.model.Pair;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
