@@ -1,6 +1,5 @@
 package com.ice.server.controller;
 
-import com.github.kevinsawicki.http.HttpRequest;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IcePushHistory;
 import com.ice.server.exception.ErrorCode;
@@ -56,18 +55,18 @@ public class IceBaseController {
         return iceBaseService.push(app, iceId, reason);
     }
 
-    @RequestMapping(value = "/ice-server/base/pro", method = RequestMethod.POST)
-    public int pro(@RequestBody String json) {
-        if (!"product".equals(environment)) {
-            return HttpRequest.post(productImportUrl)
-                    .connectTimeout(5000)
-                    .readTimeout(5000)
-                    .header("Content-Type", "application/json; charset=utf-8")
-                    .send(json)
-                    .code();
-        }
-        return 0;
-    }
+//    @RequestMapping(value = "/ice-server/base/pro", method = RequestMethod.POST)
+//    public int pro(@RequestBody String json) {
+//        if (!"product".equals(environment)) {
+//            return HttpRequest.post(productImportUrl)
+//                    .connectTimeout(5000)
+//                    .readTimeout(5000)
+//                    .header("Content-Type", "application/json; charset=utf-8")
+//                    .send(json)
+//                    .code();
+//        }
+//        return 0;
+//    }
 
     @RequestMapping(value = "/ice-server/base/push/history", method = RequestMethod.GET)
     public PageResult<IcePushHistory> history(@RequestParam Integer app,

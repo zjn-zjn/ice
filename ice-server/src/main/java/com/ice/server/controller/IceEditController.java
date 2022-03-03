@@ -2,7 +2,6 @@ package com.ice.server.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONException;
-import com.github.kevinsawicki.http.HttpRequest;
 import com.ice.server.model.*;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceEditService;
@@ -90,24 +89,24 @@ public class IceEditController {
         return WebResult.success(iceBaseService.push((Integer) map.get("app"), Long.parseLong(map.get("iceId").toString()), (String) map.get("reason")));
     }
 
-    /*
-     * 发布到线上
-     */
-    @Deprecated
-    @RequestMapping(value = "/ice/topro", method = RequestMethod.POST)
-    public WebResult toPro(@RequestBody Map map) {
-        WebResult result = new WebResult();
-        if (!"product".equals(environment)) {
-            int code = HttpRequest.post(productImportUrl)
-                    .connectTimeout(5000)
-                    .readTimeout(5000)
-                    .header("Content-Type", "application/json; charset=utf-8")
-                    .send(JSON.toJSONString(map))
-                    .code();
-            result.setMsg(String.valueOf(code));
-        }
-        return result;
-    }
+//    /*
+//     * 发布到线上
+//     */
+//    @Deprecated
+//    @RequestMapping(value = "/ice/topro", method = RequestMethod.POST)
+//    public WebResult toPro(@RequestBody Map map) {
+//        WebResult result = new WebResult();
+//        if (!"product".equals(environment)) {
+//            int code = HttpRequest.post(productImportUrl)
+//                    .connectTimeout(5000)
+//                    .readTimeout(5000)
+//                    .header("Content-Type", "application/json; charset=utf-8")
+//                    .send(JSON.toJSONString(map))
+//                    .code();
+//            result.setMsg(String.valueOf(code));
+//        }
+//        return result;
+//    }
 
     /*
      * 发布历史

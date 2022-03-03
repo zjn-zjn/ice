@@ -20,7 +20,7 @@ import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.core.relation.*;
 import com.ice.core.utils.IceLinkedList;
 import com.ice.rmi.common.client.IceRmiClientService;
-import javafx.util.Pair;
+import com.ice.common.model.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
