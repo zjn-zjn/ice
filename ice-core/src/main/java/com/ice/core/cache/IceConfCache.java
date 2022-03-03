@@ -111,6 +111,25 @@ public final class IceConfCache {
                         }
                     }
                 }
+            } else {
+                //origin is relation node now not
+                if (origin instanceof BaseRelation) {
+                    BaseRelation originRelation = (BaseRelation) origin;
+                    if (originRelation.getChildren() != null && !originRelation.getChildren().isEmpty()) {
+                        IceLinkedList<BaseNode> children = originRelation.getChildren();
+                        IceLinkedList.Node<BaseNode> listNode = children.getFirst();
+                        while (listNode != null) {
+                            BaseNode sonNode = listNode.item;
+                            if (sonNode != null) {
+                                Set<Long> parentIds = parentIdsMap.get(sonNode.findIceNodeId());
+                                if (parentIds != null) {
+                                    parentIds.remove(originRelation.findIceNodeId());
+                                }
+                            }
+                            listNode = listNode.next;
+                        }
+                    }
+                }
             }
             if (origin != null && origin.getIceForward() != null) {
                 if (confInfo.getForwardId() == null || confInfo.getForwardId() != origin.getIceForward()
@@ -169,6 +188,7 @@ public final class IceConfCache {
                                 }
                             }
                         } else {
+                            //parent are not relation node
                             removeParentIds.add(parentId);
                         }
                     }
