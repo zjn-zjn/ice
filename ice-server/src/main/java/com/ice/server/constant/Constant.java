@@ -152,7 +152,7 @@ public final class Constant {
             if (StringUtils.hasLength(conf.getSonIds())) {
                 show.setSonIds(conf.getSonIds());
             }
-            showConf.setLabelName(conf.getMixId() + (conf.isUpdate() ? "^" : "") + "-" + NodeTypeEnum.getEnum(conf.getType()).name() + (StringUtils.hasLength(conf.getConfName()) ? ("-" + conf.getName()) : ""));
+            showConf.setLabelName(conf.getMixId() + (conf.isUpdate() ? "^" : "") + "-" + NodeTypeEnum.getEnum(conf.getType()).name() + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
         } else {
             showConf.setConfName(conf.getConfName());
             if (StringUtils.hasLength(conf.getConfField()) && !conf.getConfField().equals("{}")) {

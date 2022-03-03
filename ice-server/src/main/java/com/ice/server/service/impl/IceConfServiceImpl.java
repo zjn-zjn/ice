@@ -438,7 +438,7 @@ public class IceConfServiceImpl implements IceConfService {
         IceConf iceConf = iceServerService.getActiveConfById(app, nodeId);
         if (iceConf != null) {
             if (NodeTypeEnum.isRelation(iceConf.getType())) {
-                clientNode.getShowConf().setLabelName(nodeId + "-" + NodeTypeEnum.getEnum(iceConf.getType()).name() + (StringUtils.hasLength(iceConf.getConfName()) ? ("-" + iceConf.getName()) : ""));
+                clientNode.getShowConf().setLabelName(nodeId + "-" + NodeTypeEnum.getEnum(iceConf.getType()).name() + (StringUtils.hasLength(iceConf.getName()) ? ("-" + iceConf.getName()) : ""));
             } else {
                 clientNode.getShowConf().setLabelName(nodeId + "-" + (StringUtils.hasLength(iceConf.getConfName()) ? iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(iceConf.getName()) ? ("-" + iceConf.getName()) : ""));
             }
