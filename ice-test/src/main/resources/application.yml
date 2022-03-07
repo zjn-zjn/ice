@@ -8,12 +8,11 @@ spring:
 ice:
   app: 1
   rmi:
-    port: 8210
     server: 127.0.0.1:8212
-    communicate-port: 18210
+    communicate-port: 0
   pool:
-    core-size: 4
-    max-size: 4
+    core-size: 2
+    max-size: 2
     keep-alive-seconds: 60
     queue-capacity: 60000
 test:

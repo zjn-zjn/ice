@@ -8,14 +8,20 @@ import com.ice.common.dto.IceTransferDto;
 import com.ice.common.exception.IceException;
 import com.ice.core.utils.IceExecutor;
 import com.ice.rmi.common.client.IceRmiClientService;
+import com.ice.rmi.common.model.RegisterInfo;
 import com.ice.rmi.common.server.IceRmiServerService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -25,17 +31,17 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Service
-@DependsOn({"iceRmiClientInit", "iceBeanFactory", "iceAddressUtils"})
-public final class IceClientInit implements InitializingBean {
+@DependsOn({"iceBeanFactory", "iceAddressUtils"})
+public final class IceClientInit implements InitializingBean, DisposableBean {
 
     @Resource
     private IceClientProperties properties;
 
     @Resource
-    private Registry iceRegistry;
+    private Registry iceServerRegistry;
 
     @Resource
-    private IceRmiClientService clientService;
+    private IceRmiClientService iceRmiClientService;
 
     /*
      * to avoid loss update msg in init,make init first
@@ -48,15 +54,28 @@ public final class IceClientInit implements InitializingBean {
         log.info("ice client init iceStart");
         IceRmiServerService remoteServerService;
         try {
-            remoteServerService = (IceRmiServerService) iceRegistry.lookup("IceRemoteServerService");
+            remoteServerService = (IceRmiServerService) iceServerRegistry.lookup("IceRmiServerService");
         } catch (Exception e) {
             throw new IceException("ice client connect server error, maybe server is down app:" + properties.getApp(), e);
         }
+        RegisterInfo registerInfo = new RegisterInfo(properties.getApp(), AddressUtils.getAddress(), iceRmiClientService);
         try {
-            remoteServerService.register(properties.getApp(), AddressUtils.getHost(), properties.getRmi().getPort(), clientService);
+            remoteServerService.register(registerInfo);
         } catch (Exception e) {
             throw new IceException("ice client register error app:" + properties.getApp(), e);
         }
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    //when server restart, can register immediately
+                    IceRmiServerService remoteServer = (IceRmiServerService) iceServerRegistry.lookup("IceRmiServerService");
+                    remoteServer.register(registerInfo);
+                } catch (RemoteException | NotBoundException e) {
+                    //ignore
+                }
+            }
+        }, 2000, 2000);
         IceTransferDto dto;
         try {
             dto = remoteServerService.getInitConfig(properties.getApp());
@@ -68,6 +87,16 @@ public final class IceClientInit implements InitializingBean {
             IceUpdate.update(dto);
             log.info("ice client init iceEnd success");
             IceRmiClientServiceImpl.initEnd(dto.getVersion());
+        }
+    }
+
+    @Override
+    public void destroy() {
+        try {
+            IceRmiServerService serverService = (IceRmiServerService) iceServerRegistry.lookup("IceRmiServerService");
+            serverService.unRegister(new RegisterInfo(properties.getApp(), AddressUtils.getAddress()));
+        } catch (RemoteException | NotBoundException e) {
+            log.warn("unregister ice client failed", e);
         }
     }
 }

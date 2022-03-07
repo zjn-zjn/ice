@@ -10,21 +10,23 @@ import java.io.Serializable;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Pair<K,V> implements Serializable{
-   private K key;
+public class Pair<K, V> implements Serializable {
+    private K key;
 
-   public K getKey() { return key; }
+    public K getKey() {
+        return key;
+    }
 
-   private V value;
+    private V value;
 
-   @Override
-   public String toString() {
-       return key + "=" + value;
-   }
+    @Override
+    public String toString() {
+        return key + "=" + value;
+    }
 
-   @Override
-   public int hashCode() {
-       return key.hashCode() * 13 + (value == null ? 0 : value.hashCode());
-   }
+    @Override
+    public int hashCode() {
+        return key.hashCode() * 13 + (value == null ? 0 : value.hashCode());
+    }
 }
 
