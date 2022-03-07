@@ -1,6 +1,7 @@
 package com.ice.server.rmi;
 
 import com.ice.common.dto.IceTransferDto;
+import com.ice.rmi.common.client.IceRmiClientService;
 import com.ice.rmi.common.server.IceRmiServerService;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +26,8 @@ public class IceRmiServerServiceImpl implements IceRmiServerService {
     }
 
     @Override
-    public void register(int app, String host, int port) throws RemoteException {
-        rmiClientManager.registerClient(app, host, port);
+    public void register(int app, String host, int port, IceRmiClientService clientService) throws RemoteException {
+        rmiClientManager.registerClient(app, host, port, clientService);
     }
 
     @Override

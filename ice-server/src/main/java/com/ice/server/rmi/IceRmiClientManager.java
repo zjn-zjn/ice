@@ -49,7 +49,7 @@ public final class IceRmiClientManager implements InitializingBean {
         return clientInfoMap.keySet();
     }
 
-    public void registerClient(int app, String host, int port) {
+    public void registerClient(int app, String host, int port, IceRmiClientService clientService) {
         Map<String, RmiClientInfo> clientMap = clientRmiMap.computeIfAbsent(app, k -> new HashMap<>());
         String address = host + ":" + port;
         try {
@@ -60,8 +60,8 @@ public final class IceRmiClientManager implements InitializingBean {
                 }
                 clientMap.remove(address);
             }
-            IceRmiClientService clientService = (IceRmiClientService) LocateRegistry.getRegistry(host, port).lookup("IceRemoteClientService");
-            clientService.ping();
+//            IceRmiClientService clientService = (IceRmiClientService) LocateRegistry.getRegistry(host, port).lookup("IceRemoteClientService");
+//            clientService.ping();
             IceRmi iceRmi = new IceRmi(app, host, port);
             iceRmiMapper.insertSelective(iceRmi);
             RmiClientInfo clientInfo = new RmiClientInfo();

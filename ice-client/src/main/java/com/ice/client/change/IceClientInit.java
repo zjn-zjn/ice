@@ -7,6 +7,7 @@ import com.ice.client.utils.AddressUtils;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.exception.IceException;
 import com.ice.core.utils.IceExecutor;
+import com.ice.rmi.common.client.IceRmiClientService;
 import com.ice.rmi.common.server.IceRmiServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
@@ -33,6 +34,9 @@ public final class IceClientInit implements InitializingBean {
     @Resource
     private Registry iceRegistry;
 
+    @Resource
+    private IceRmiClientService clientService;
+
     /*
      * to avoid loss update msg in init,make init first
      */
@@ -49,7 +53,7 @@ public final class IceClientInit implements InitializingBean {
             throw new IceException("ice client connect server error, maybe server is down app:" + properties.getApp(), e);
         }
         try {
-            remoteServerService.register(properties.getApp(), AddressUtils.getHost(), properties.getRmi().getPort());
+            remoteServerService.register(properties.getApp(), AddressUtils.getHost(), properties.getRmi().getPort(), clientService);
         } catch (Exception e) {
             throw new IceException("ice client register error app:" + properties.getApp(), e);
         }
