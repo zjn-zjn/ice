@@ -46,6 +46,10 @@ public final class AddressUtils {
             }
             try {
                 host = InetAddress.getLocalHost().getHostAddress();
+                if ("127.0.0.1".equals(host)) {
+                    host = InetAddress.getLocalHost().getHostName();
+                    return host;
+                }
             } catch (Exception e) {
                 throw new RuntimeException("get host failed", e);
             }

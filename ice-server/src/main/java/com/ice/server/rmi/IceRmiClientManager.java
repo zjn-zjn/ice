@@ -1,35 +1,31 @@
 package com.ice.server.rmi;
 
 import com.ice.common.dto.IceTransferDto;
-import com.ice.common.exception.IceException;
 import com.ice.common.model.IceShowConf;
+import com.ice.common.model.Pair;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
 import com.ice.rmi.common.client.IceRmiClientService;
+import com.ice.rmi.common.model.RegisterInfo;
 import com.ice.server.config.IceServerProperties;
-import com.ice.server.dao.mapper.IceRmiMapper;
-import com.ice.server.dao.model.IceRmi;
-import com.ice.server.dao.model.IceRmiExample;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
-import com.ice.common.model.Pair;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 
 @Slf4j
 @Service
-public final class IceRmiClientManager implements InitializingBean {
+public final class IceRmiClientManager {
 
     private static final Map<Integer, Map<String, RmiClientInfo>> clientRmiMap = new ConcurrentHashMap<>();
 
@@ -37,9 +33,6 @@ public final class IceRmiClientManager implements InitializingBean {
     private IceServerProperties properties;
 
     private static ExecutorService executor;
-
-    @Resource
-    private IceRmiMapper iceRmiMapper;
 
     public Set<String> getRegisterClients(int app) {
         Map<String, RmiClientInfo> clientInfoMap = clientRmiMap.get(app);
@@ -49,62 +42,18 @@ public final class IceRmiClientManager implements InitializingBean {
         return clientInfoMap.keySet();
     }
 
-    public void registerClient(int app, String host, int port) {
-        Map<String, RmiClientInfo> clientMap = clientRmiMap.computeIfAbsent(app, k -> new HashMap<>());
-        String address = host + ":" + port;
-        try {
-            RmiClientInfo oldClientInfo = clientMap.get(address);
-            if (oldClientInfo != null) {
-                if (oldClientInfo.getId() != null) {
-                    iceRmiMapper.deleteByPrimaryKey(oldClientInfo.getId());
-                }
-                clientMap.remove(address);
-            }
-            IceRmiClientService clientService = (IceRmiClientService) LocateRegistry.getRegistry(host, port).lookup("IceRemoteClientService");
-            clientService.ping();
-            IceRmi iceRmi = new IceRmi(app, host, port);
-            iceRmiMapper.insertSelective(iceRmi);
-            RmiClientInfo clientInfo = new RmiClientInfo();
-            clientInfo.setAddress(address);
-            clientInfo.setHost(host);
-            clientInfo.setPort(port);
-            clientInfo.setApp(app);
-            clientInfo.setId(iceRmi.getId());
-            clientInfo.setClientService(clientService);
-            clientMap.put(address, clientInfo);
-        } catch (Exception e) {
-            throw new IceException("server connect client error app:" + app + "address:" + address, e);
-        }
+    public void register(RegisterInfo register, IceRmiClientService clientService) {
+//        register.setClientService(clientService);
+        clientRmiMap.computeIfAbsent(register.getApp(), k -> new HashMap<>()).put(register.getAddress(), new RmiClientInfo(register.getApp(), register.getAddress(), clientService));
+        log.info("client register success app:{} address:{}", register.getApp(), register.getAddress());
     }
 
-    public void registerClientInit(IceRmi rmi) {
-        String address = rmi.getHost() + ":" + rmi.getPort();
-        try {
-            IceRmiClientService clientService = (IceRmiClientService) LocateRegistry.getRegistry(rmi.getHost(), rmi.getPort()).lookup("IceRemoteClientService");
-            clientService.ping();
-            clientRmiMap.computeIfAbsent(rmi.getApp(), k -> new HashMap<>()).put(address, new RmiClientInfo(rmi.getApp(), rmi.getId(), clientService, address, rmi.getHost(), rmi.getPort()));
-        } catch (Exception e) {
-            log.warn("server connect client failed app:{} address:{}", rmi.getApp(), address);
-            iceRmiMapper.deleteByPrimaryKey(rmi.getId());
-        }
-    }
-
-    public void unRegisterClient(int app, String host, int port) {
-        String address = host + ":" + port;
-        Map<String, RmiClientInfo> clientMap = clientRmiMap.get(app);
+    public void unRegister(RegisterInfo unRegister) {
+        Map<String, RmiClientInfo> clientMap = clientRmiMap.get(unRegister.getApp());
         if (CollectionUtils.isEmpty(clientMap)) {
             return;
         }
-        errorHandle(clientMap, clientMap.get(address));
-    }
-
-    private void errorHandle(Map<String, RmiClientInfo> clientMap, RmiClientInfo clientInfo) {
-        if (clientInfo != null) {
-            if (clientInfo.getId() != null) {
-                iceRmiMapper.deleteByPrimaryKey(clientInfo.getId());
-            }
-            clientMap.remove(clientInfo.address);
-        }
+        clientMap.remove(unRegister.getAddress());
     }
 
     public Pair<Integer, String> confClazzCheck(int app, String clazz, byte type) {
@@ -119,10 +68,10 @@ public final class IceRmiClientManager implements InitializingBean {
         RmiClientInfo clientInfo = clientInfoList.iterator().next();
         Pair<Integer, String> result;
         try {
-            result = clientInfo.clientService.confClazzCheck(clazz, type);
+            result = clientInfo.getClientService().confClazzCheck(clazz, type);
         } catch (Exception e) {
-            errorHandle(clientMap, clientInfo);
-            throw new ErrorCodeException(ErrorCode.REMOTE_RUN_ERROR, app, clientInfo.address);
+            clientMap.remove(clientInfo.getAddress());
+            throw new ErrorCodeException(ErrorCode.REMOTE_RUN_ERROR, app, clientInfo.getAddress());
         }
         return result;
     }
@@ -145,10 +94,10 @@ public final class IceRmiClientManager implements InitializingBean {
     private void submitRelease(Map<String, RmiClientInfo> clientMap, RmiClientInfo clientInfo, IceTransferDto dto) {
         executor.submit(() -> {
             try {
-                clientInfo.clientService.update(dto);
+                clientInfo.getClientService().update(dto);
             } catch (RemoteException e) {
-                errorHandle(clientMap, clientInfo);
-                log.warn("remote client may down app:{} address:{}", clientInfo.app, clientInfo.address);
+                clientMap.remove(clientInfo.getAddress());
+                log.warn("remote client may down app:{} address:{}", clientInfo.getApp(), clientInfo.getAddress());
             }
         });
     }
@@ -164,10 +113,11 @@ public final class IceRmiClientManager implements InitializingBean {
         }
         IceShowConf result;
         try {
-            result = clientInfo.clientService.getShowConf(confId);
+            result = clientInfo.getClientService().getShowConf(confId);
+            result.setApp(app);
         } catch (Exception e) {
-            errorHandle(clientMap, clientInfo);
-            throw new ErrorCodeException(ErrorCode.REMOTE_RUN_ERROR, app, clientInfo.address);
+            clientMap.remove(clientInfo.getAddress());
+            throw new ErrorCodeException(ErrorCode.REMOTE_RUN_ERROR, app, clientInfo.getAddress());
         }
         return result;
     }
@@ -184,25 +134,12 @@ public final class IceRmiClientManager implements InitializingBean {
         RmiClientInfo clientInfo = clientInfoList.iterator().next();
         List<IceContext> result;
         try {
-            result = clientInfo.clientService.mock(pack);
+            result = clientInfo.getClientService().mock(pack);
         } catch (Exception e) {
-            errorHandle(clientMap, clientInfo);
-            throw new ErrorCodeException(ErrorCode.REMOTE_RUN_ERROR, app, clientInfo.address);
+            clientMap.remove(clientInfo.getAddress());
+            throw new ErrorCodeException(ErrorCode.REMOTE_RUN_ERROR, app, clientInfo.getAddress());
         }
         return result;
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        executor = new ThreadPoolExecutor(properties.getPool().getCoreSize(), properties.getPool().getMaxSize(),
-                properties.getPool().getKeepAliveSeconds(), TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(properties.getPool().getQueueCapacity()), new ThreadPoolExecutor.CallerRunsPolicy());
-        List<IceRmi> iceRmiList = iceRmiMapper.selectByExample(new IceRmiExample());
-        if (!CollectionUtils.isEmpty(iceRmiList)) {
-            for (IceRmi rmi : iceRmiList) {
-                this.registerClientInit(rmi);
-            }
-        }
     }
 
     @Data
@@ -210,10 +147,7 @@ public final class IceRmiClientManager implements InitializingBean {
     @NoArgsConstructor
     private static class RmiClientInfo {
         private int app;
-        private Long id;
-        private IceRmiClientService clientService;
         private String address;
-        private String host;
-        private int port;
+        private IceRmiClientService clientService;
     }
 }

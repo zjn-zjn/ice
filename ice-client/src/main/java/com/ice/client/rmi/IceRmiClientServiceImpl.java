@@ -3,12 +3,12 @@ package com.ice.client.rmi;
 import com.alibaba.fastjson.JSON;
 import com.ice.client.IceClient;
 import com.ice.client.change.IceUpdate;
-import com.ice.client.config.IceClientProperties;
 import com.ice.client.utils.AddressUtils;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
+import com.ice.common.model.Pair;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
 import com.ice.core.cache.IceConfCache;
@@ -20,12 +20,11 @@ import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.core.relation.*;
 import com.ice.core.utils.IceLinkedList;
 import com.ice.rmi.common.client.IceRmiClientService;
-import com.ice.common.model.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import javax.annotation.Resource;
+import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,10 +32,7 @@ import java.util.List;
 
 @Slf4j
 @Service
-public class IceRmiClientServiceImpl implements IceRmiClientService {
-
-    @Resource
-    private IceClientProperties properties;
+public class IceRmiClientServiceImpl implements IceRmiClientService, Serializable {
 
     private static volatile boolean waitInit = true;
 
@@ -134,7 +130,6 @@ public class IceRmiClientServiceImpl implements IceRmiClientService {
     public IceShowConf getShowConf(Long confId) throws RemoteException {
         IceShowConf clientConf = new IceShowConf();
         clientConf.setAddress(AddressUtils.getAddress());
-        clientConf.setApp(properties.getApp());
         clientConf.setConfId(confId);
         BaseNode node = IceConfCache.getConfById(confId);
         if (node != null) {
