@@ -20,6 +20,7 @@ import javax.annotation.Resource;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -39,7 +40,7 @@ public final class IceClientInit implements InitializingBean, DisposableBean {
     private Registry iceServerRegistry;
 
     @Resource
-    private IceRmiClientService clientService;
+    private IceRmiClientService iceRmiClientService;
 
     /*
      * to avoid loss update msg in init,make init first
@@ -57,7 +58,7 @@ public final class IceClientInit implements InitializingBean, DisposableBean {
             throw new IceException("ice client connect server error, maybe server is down app:" + properties.getApp(), e);
         }
         try {
-            remoteServerService.register(new RegisterInfo(properties.getApp(), AddressUtils.getAddress()), clientService);
+            remoteServerService.register(new RegisterInfo(properties.getApp(), AddressUtils.getAddress(), iceRmiClientService));
         } catch (Exception e) {
             throw new IceException("ice client register error app:" + properties.getApp(), e);
         }
@@ -78,6 +79,7 @@ public final class IceClientInit implements InitializingBean, DisposableBean {
     @Override
     public void destroy() {
         try {
+            UnicastRemoteObject.unexportObject(iceRmiClientService, true);
             IceRmiServerService serverService = (IceRmiServerService) iceServerRegistry.lookup("IceRmiServerService");
             serverService.unRegister(new RegisterInfo(properties.getApp(), AddressUtils.getAddress()));
         } catch (RemoteException | NotBoundException e) {

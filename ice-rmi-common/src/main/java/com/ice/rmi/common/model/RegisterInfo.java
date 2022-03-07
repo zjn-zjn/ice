@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 
 @Data
-//@AllArgsConstructor
+@AllArgsConstructor
 @NoArgsConstructor
 public class RegisterInfo implements Serializable {
 
@@ -19,5 +19,5 @@ public class RegisterInfo implements Serializable {
 
     private int app;
     private String address;
-//    private IceRmiClientService clientService;
+    private IceRmiClientService clientService;
 }

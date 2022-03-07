@@ -21,18 +21,15 @@ import com.ice.core.relation.*;
 import com.ice.core.utils.IceLinkedList;
 import com.ice.rmi.common.client.IceRmiClientService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 @Slf4j
-@Service
-public class IceRmiClientServiceImpl implements IceRmiClientService, Serializable {
+public class IceRmiClientServiceImpl implements IceRmiClientService {
 
     private static volatile boolean waitInit = true;
 

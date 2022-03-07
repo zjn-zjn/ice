@@ -28,9 +28,8 @@ public class IceRmiServerServiceImpl implements IceRmiServerService {
     }
 
     @Override
-    public void register(RegisterInfo register, IceRmiClientService clientService) throws RemoteException {
-        log.info("=============" + JSON.toJSONString(clientService));
-        rmiClientManager.register(register, clientService);
+    public void register(RegisterInfo register) throws RemoteException {
+        rmiClientManager.register(register);
     }
 
     @Override

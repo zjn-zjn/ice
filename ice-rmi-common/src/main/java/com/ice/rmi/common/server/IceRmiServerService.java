@@ -11,7 +11,7 @@ public interface IceRmiServerService extends Remote {
 
     IceTransferDto getInitConfig(int app) throws RemoteException;
 
-    void register(RegisterInfo register, IceRmiClientService clientService) throws RemoteException;
+    void register(RegisterInfo register) throws RemoteException;
 
     void unRegister(RegisterInfo unRegister) throws RemoteException;
 }
