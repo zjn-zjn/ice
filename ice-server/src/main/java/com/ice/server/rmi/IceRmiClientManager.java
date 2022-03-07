@@ -10,18 +10,18 @@ import com.ice.server.config.IceServerProperties;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.rmi.RemoteException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.*;
 
 @Slf4j
 @Service
-public final class IceRmiClientManager {
+public final class IceRmiClientManager implements InitializingBean {
 
     private static final Map<Integer, Map<String, RegisterInfo>> clientRmiMap = new ConcurrentHashMap<>();
 
@@ -40,7 +40,6 @@ public final class IceRmiClientManager {
 
     public void register(RegisterInfo register) {
         clientRmiMap.computeIfAbsent(register.getApp(), k -> new HashMap<>()).put(register.getAddress(), register);
-        log.info("client register success app:{} address:{}", register.getApp(), register.getAddress());
     }
 
     public void unRegister(RegisterInfo unRegister) {
@@ -49,6 +48,7 @@ public final class IceRmiClientManager {
             return;
         }
         clientMap.remove(unRegister.getAddress());
+        log.info("client unregister success app:{} address:{}", unRegister.getApp(), unRegister.getAddress());
     }
 
     public Pair<Integer, String> confClazzCheck(int app, String clazz, byte type) {
@@ -135,5 +135,12 @@ public final class IceRmiClientManager {
             throw new ErrorCodeException(ErrorCode.REMOTE_RUN_ERROR, app, clientInfo.getAddress());
         }
         return result;
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        executor = new ThreadPoolExecutor(properties.getPool().getCoreSize(), properties.getPool().getMaxSize(),
+                properties.getPool().getKeepAliveSeconds(), TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(properties.getPool().getQueueCapacity()), new ThreadPoolExecutor.CallerRunsPolicy());
     }
 }

@@ -33,6 +33,8 @@ public class IceRmiServerInit implements InitializingBean, DisposableBean {
         IceRmiServerService serverService = (IceRmiServerService) UnicastRemoteObject.exportObject(remoteServerService, properties.getRmi().getCommunicatePort());
         registry = LocateRegistry.createRegistry(properties.getRmi().getPort());
         registry.rebind("IceRmiServerService", serverService);
+        //waiting for client register
+        Thread.sleep(2500);
         log.info("create ice rmi server service...success");
     }
 

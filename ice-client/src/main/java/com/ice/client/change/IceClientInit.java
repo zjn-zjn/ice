@@ -20,7 +20,8 @@ import javax.annotation.Resource;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -57,11 +58,24 @@ public final class IceClientInit implements InitializingBean, DisposableBean {
         } catch (Exception e) {
             throw new IceException("ice client connect server error, maybe server is down app:" + properties.getApp(), e);
         }
+        RegisterInfo registerInfo = new RegisterInfo(properties.getApp(), AddressUtils.getAddress(), iceRmiClientService);
         try {
-            remoteServerService.register(new RegisterInfo(properties.getApp(), AddressUtils.getAddress(), iceRmiClientService));
+            remoteServerService.register(registerInfo);
         } catch (Exception e) {
             throw new IceException("ice client register error app:" + properties.getApp(), e);
         }
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    //when server restart, can register immediately
+                    IceRmiServerService remoteServer = (IceRmiServerService) iceServerRegistry.lookup("IceRmiServerService");
+                    remoteServer.register(registerInfo);
+                } catch (RemoteException | NotBoundException e) {
+                    //ignore
+                }
+            }
+        }, 2000, 2000);
         IceTransferDto dto;
         try {
             dto = remoteServerService.getInitConfig(properties.getApp());
@@ -79,7 +93,6 @@ public final class IceClientInit implements InitializingBean, DisposableBean {
     @Override
     public void destroy() {
         try {
-            UnicastRemoteObject.unexportObject(iceRmiClientService, true);
             IceRmiServerService serverService = (IceRmiServerService) iceServerRegistry.lookup("IceRmiServerService");
             serverService.unRegister(new RegisterInfo(properties.getApp(), AddressUtils.getAddress()));
         } catch (RemoteException | NotBoundException e) {

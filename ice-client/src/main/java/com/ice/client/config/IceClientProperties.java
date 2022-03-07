@@ -25,6 +25,7 @@ public class IceClientProperties {
         private int communicatePort = 0;
         private String serverHost;
         private int serverPort;
+
         public void setServer(String server) {
             this.server = server;
             String[] serverHostPort = server.split(":");

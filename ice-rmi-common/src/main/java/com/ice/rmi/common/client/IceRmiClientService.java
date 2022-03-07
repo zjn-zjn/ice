@@ -2,9 +2,9 @@ package com.ice.rmi.common.client;
 
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.model.IceShowConf;
+import com.ice.common.model.Pair;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
-import com.ice.common.model.Pair;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

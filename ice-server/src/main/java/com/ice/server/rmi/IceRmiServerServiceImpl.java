@@ -1,8 +1,6 @@
 package com.ice.server.rmi;
 
-import com.alibaba.fastjson.JSON;
 import com.ice.common.dto.IceTransferDto;
-import com.ice.rmi.common.client.IceRmiClientService;
 import com.ice.rmi.common.model.RegisterInfo;
 import com.ice.rmi.common.server.IceRmiServerService;
 import com.ice.server.service.IceServerService;

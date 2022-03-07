@@ -90,7 +90,7 @@ public class IceRmiClientServiceImpl implements IceRmiClientService {
     public List<String> update(IceTransferDto dto) throws RemoteException {
         try {
             if (waitInit) {
-                log.info("wait init message:{}", JSON.toJSONString(dto));
+                log.info("wait init dto:{}", JSON.toJSONString(dto));
                 waitMessageList.add(dto);
                 return null;
             }
@@ -102,25 +102,25 @@ public class IceRmiClientServiceImpl implements IceRmiClientService {
             }
             handleMessage(dto);
         } catch (Exception e) {
-            log.error("ice listener update error message:{} e:", JSON.toJSONString(dto), e);
+            log.error("ice update error dto:{} e:", JSON.toJSONString(dto), e);
         }
         return Collections.emptyList();
     }
 
     private void handleBeforeInitMessage(IceTransferDto dto) {
         if (dto.getVersion() > initVersion) {
-            log.info("ice listener update wait msg iceStart iceInfo:{}", dto);
+            log.info("ice update wait msg iceStart iceInfo:{}", dto);
             IceUpdate.update(dto);
-            log.info("ice listener update wait msg iceEnd success");
+            log.info("ice update wait msg iceEnd success");
             return;
         }
-        log.info("ice listener msg version low then init version:{}, msg:{}", initVersion, JSON.toJSONString(dto));
+        log.info("ice update version low then init version:{}, msg:{}", initVersion, JSON.toJSONString(dto));
     }
 
     private void handleMessage(IceTransferDto dto) {
-        log.info("ice listener update msg iceStart dto:{}", JSON.toJSONString(dto));
+        log.info("ice update start dto:{}", JSON.toJSONString(dto));
         IceUpdate.update(dto);
-        log.info("ice listener update msg iceEnd success");
+        log.info("ice update end success");
     }
 
     @Override
