@@ -8,7 +8,6 @@ spring:
 ice:
   rmi:
     port: 8212
-    communicate-port: 18212
   pool:
     core-size: 4
     max-size: 4

@@ -112,6 +112,7 @@ public final class IceRmiClientManager implements InitializingBean {
             result.setApp(app);
         } catch (Exception e) {
             clientMap.remove(clientInfo.getAddress());
+            log.error("=========e", e);
             throw new ErrorCodeException(ErrorCode.REMOTE_RUN_ERROR, app, clientInfo.getAddress());
         }
         return result;

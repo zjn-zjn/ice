@@ -23,19 +23,25 @@ import com.ice.rmi.common.client.IceRmiClientService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.CollectionUtils;
 
+import java.io.Serializable;
 import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 @Slf4j
-public class IceRmiClientServiceImpl implements IceRmiClientService {
+public class IceRmiClientServiceImpl extends UnicastRemoteObject implements IceRmiClientService, Serializable {
 
     private static volatile boolean waitInit = true;
 
     private static volatile long initVersion;
 
     private List<IceTransferDto> waitMessageList = new ArrayList<>();
+
+    public IceRmiClientServiceImpl(int port) throws RemoteException {
+        super(port);
+    }
 
     public static void initEnd(long version) {
         waitInit = false;

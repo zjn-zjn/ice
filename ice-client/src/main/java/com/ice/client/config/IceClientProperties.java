@@ -22,7 +22,7 @@ public class IceClientProperties {
     @Data
     public static class IceClientRmiProperties {
         private String server;
-        private int communicatePort = 0;
+        private int port = 0;
         private String serverHost;
         private int serverPort;
 

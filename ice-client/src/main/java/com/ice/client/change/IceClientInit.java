@@ -7,7 +7,6 @@ import com.ice.client.utils.AddressUtils;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.exception.IceException;
 import com.ice.core.utils.IceExecutor;
-import com.ice.rmi.common.client.IceRmiClientService;
 import com.ice.rmi.common.model.RegisterInfo;
 import com.ice.rmi.common.server.IceRmiServerService;
 import lombok.extern.slf4j.Slf4j;
@@ -40,29 +39,26 @@ public final class IceClientInit implements InitializingBean, DisposableBean {
     @Resource
     private Registry iceServerRegistry;
 
-    @Resource
-    private IceRmiClientService iceRmiClientService;
-
     /*
      * to avoid loss update msg in init,make init first
      */
     @Override
-    public void afterPropertiesSet() {
+    public void afterPropertiesSet() throws Exception {
         IceExecutor.setExecutor(new ThreadPoolExecutor(properties.getPool().getCoreSize(), properties.getPool().getMaxSize(),
                 properties.getPool().getKeepAliveSeconds(), TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(properties.getPool().getQueueCapacity()), new ThreadPoolExecutor.CallerRunsPolicy()));
-        log.info("ice client init iceStart");
+        log.info("ice client init start");
         IceRmiServerService remoteServerService;
         try {
             remoteServerService = (IceRmiServerService) iceServerRegistry.lookup("IceRmiServerService");
         } catch (Exception e) {
             throw new IceException("ice client connect server error, maybe server is down app:" + properties.getApp(), e);
         }
-        RegisterInfo registerInfo = new RegisterInfo(properties.getApp(), AddressUtils.getAddress(), iceRmiClientService);
+        RegisterInfo registerInfo = new RegisterInfo(properties.getApp(), AddressUtils.getAddress(), new IceRmiClientServiceImpl(properties.getRmi().getPort()));
         try {
             remoteServerService.register(registerInfo);
         } catch (Exception e) {
-            throw new IceException("ice client register error app:" + properties.getApp(), e);
+            throw new IceException("ice client register error app:" + properties.getApp() + " maybe firewall", e);
         }
         new Timer().schedule(new TimerTask() {
             @Override

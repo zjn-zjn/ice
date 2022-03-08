@@ -9,7 +9,6 @@ ice:
   app: 1
   rmi:
     server: 127.0.0.1:8212
-    communicate-port: 0
   pool:
     core-size: 2
     max-size: 2
