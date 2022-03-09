@@ -9,11 +9,9 @@ ice:
   app: 1
   rmi:
     server: 127.0.0.1:8212
+    mode: ONE_WAY
   pool:
-    core-size: 2
-    max-size: 2
-    keep-alive-seconds: 60
-    queue-capacity: 60000
+    parallelism: -1
 test:
   value: 123
 environment: dev

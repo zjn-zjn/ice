@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 
 /**
@@ -20,9 +21,10 @@ import java.util.concurrent.Future;
 @AllArgsConstructor
 public final class IceExecutor {
 
-    private static ExecutorService executor;
+    //used fork join pool to handle the tree model ice parallel execute
+    private static ForkJoinPool executor;
 
-    public static void setExecutor(ExecutorService executor) {
+    public static void setExecutor(ForkJoinPool executor) {
         if (executor == null) {
             throw new NullPointerException("ice executor can not null");
         }

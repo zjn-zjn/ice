@@ -97,14 +97,3 @@ CREATE TABLE IF NOT EXISTS `ice_push_history` (
   `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
--- ----------------------------
--- Table structure for ice_rmi
--- ----------------------------
-CREATE TABLE IF NOT EXISTS `ice_rmi` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `app` int(12) NOT NULL,
-  `host` varchar(255) COLLATE utf8mb4_bin NOT NULL,
-  `port` int(12) NOT NULL,
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;

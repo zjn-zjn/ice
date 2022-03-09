@@ -402,11 +402,10 @@ public class IceConfServiceImpl implements IceConfService {
             return showConf;
         }
         IceShowConf clientConf = rmiClientManager.getClientShowConf(app, confId, address);
-        IceShowNode node = clientConf.getRoot();
-        if (node == null) {
+        if (clientConf == null || clientConf.getRoot() == null) {
             throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, address);
         }
-        assemble(app, node);
+        assemble(app, clientConf.getRoot());
         return clientConf;
     }
 

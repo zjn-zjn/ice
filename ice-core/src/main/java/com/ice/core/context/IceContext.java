@@ -3,13 +3,15 @@ package com.ice.core.context;
 import lombok.Data;
 import lombok.ToString;
 
+import java.io.Serializable;
+
 /**
  * @author zjn
  * Ice process context
  */
 @Data
 @ToString
-public final class IceContext {
+public final class IceContext implements Serializable {
 
     /*
      * in ice process time (cxt init time)
