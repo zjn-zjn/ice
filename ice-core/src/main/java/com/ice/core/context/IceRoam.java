@@ -1,14 +1,14 @@
 package com.ice.core.context;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author zjn
  * based on HashMap extend
  */
-public final class IceRoam extends HashMap<String, Object> implements Serializable {
+public final class IceRoam extends ConcurrentHashMap<String, Object> implements Serializable {
 
     private static final long serialVersionUID = 2241673818101234922L;
 
@@ -36,7 +36,7 @@ public final class IceRoam extends HashMap<String, Object> implements Serializab
     @SuppressWarnings("unchecked")
     public <T> T putMulti(String multiKey, T value) {
         if (multiKey == null) {
-            return (T) put(null, value);
+            return null;
         }
         String[] keys = multiKey.split("\\.");
         if (keys.length == 1) {
@@ -51,7 +51,7 @@ public final class IceRoam extends HashMap<String, Object> implements Serializab
             if (endMap == null) {
                 int j = i;
                 for (; j < keys.length - 1; j++) {
-                    endMap = new HashMap<>();
+                    endMap = new ConcurrentHashMap<>();
                     forwardMap.put(keys[j], endMap);
                     forwardMap = endMap;
                 }
