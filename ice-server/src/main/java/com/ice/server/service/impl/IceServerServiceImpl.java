@@ -310,6 +310,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         }
         IceConf newConf = new IceConf();
         newConf.setId(conf.getId());
+        newConf.setConfId(conf.getConfId());
+        newConf.setIceId(conf.getIceId());
         newConf.setConfName(conf.getConfName());
         newConf.setDebug(conf.getDebug());
         newConf.setInverse(conf.getInverse());
