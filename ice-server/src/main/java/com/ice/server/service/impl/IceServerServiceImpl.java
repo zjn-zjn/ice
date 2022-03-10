@@ -292,7 +292,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
                 if (!CollectionUtils.isEmpty(confUpdateMap)) {
                     IceConf conf = confUpdateMap.get(confId);
                     if (conf != null) {
-                        return conf;
+                        return newConf(conf);
                     }
                 }
             }

@@ -5,13 +5,15 @@ import com.ice.common.utils.UUIDUtils;
 import lombok.Data;
 import lombok.ToString;
 
+import java.io.Serializable;
+
 /**
  * @author zjn
  * process ice input
  */
 @Data
 @ToString
-public final class IcePack {
+public final class IcePack implements Serializable {
 
     /*
      * process iceId (db-base_id)

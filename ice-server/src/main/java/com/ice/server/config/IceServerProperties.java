@@ -18,7 +18,6 @@ public class IceServerProperties {
     @Data
     public static class IceServerRmiProperties {
         private int port = 8212;
-        private int communicatePort = 0;
     }
 
     @Data

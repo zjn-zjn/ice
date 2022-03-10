@@ -2,12 +2,12 @@ package com.ice.core.relation.parallel;
 
 import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.exception.NodeException;
+import com.ice.common.model.Pair;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
 import com.ice.core.context.IceContext;
 import com.ice.core.utils.IceExecutor;
 import com.ice.core.utils.IceLinkedList;
-import com.ice.common.model.Pair;
 
 import java.util.ArrayList;
 import java.util.LinkedList;

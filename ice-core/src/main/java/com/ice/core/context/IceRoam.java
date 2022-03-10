@@ -1,5 +1,6 @@
 package com.ice.core.context;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -7,7 +8,7 @@ import java.util.Map;
  * @author zjn
  * based on HashMap extend
  */
-public final class IceRoam extends HashMap<String, Object> {
+public final class IceRoam extends HashMap<String, Object> implements Serializable {
 
     private static final long serialVersionUID = 2241673818101234922L;
 

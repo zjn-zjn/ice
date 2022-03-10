@@ -6,6 +6,7 @@ import com.ice.common.enums.StatusEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
+import com.ice.common.model.Pair;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.dao.model.IceConfExample;
@@ -15,7 +16,6 @@ import com.ice.server.model.IceLeafClass;
 import com.ice.server.rmi.IceRmiClientManager;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
-import com.ice.common.model.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -402,11 +402,10 @@ public class IceConfServiceImpl implements IceConfService {
             return showConf;
         }
         IceShowConf clientConf = rmiClientManager.getClientShowConf(app, confId, address);
-        IceShowNode node = clientConf.getRoot();
-        if (node == null) {
+        if (clientConf == null || clientConf.getRoot() == null) {
             throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, address);
         }
-        assemble(app, node);
+        assemble(app, clientConf.getRoot());
         return clientConf;
     }
 

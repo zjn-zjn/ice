@@ -4,11 +4,10 @@ spring:
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/ice?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
     username: root
-    password: zjnzjn
+    password: ERcxF3&72#32q
 ice:
   rmi:
     port: 8212
-    communicate-port: 18212
   pool:
     core-size: 4
     max-size: 4

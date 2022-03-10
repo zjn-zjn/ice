@@ -1,5 +1,6 @@
 package com.ice.client.config;
 
+import com.ice.common.enums.RmiNetModeEnum;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -21,9 +22,9 @@ public class IceClientProperties {
 
     @Data
     public static class IceClientRmiProperties {
-        private int port = 8210;
-        private int communicatePort = 0;
         private String server;
+        private RmiNetModeEnum mode = RmiNetModeEnum.ONE_WAY;
+        private int port = 0;
         private String serverHost;
         private int serverPort;
 
@@ -41,9 +42,6 @@ public class IceClientProperties {
 
     @Data
     public static class IceClientThreadPoolProperties {
-        private int coreSize = 4;
-        private int maxSize = 4;
-        private int keepAliveSeconds = 60;
-        private int queueCapacity = 60000;
+        private int parallelism = -1;
     }
 }
