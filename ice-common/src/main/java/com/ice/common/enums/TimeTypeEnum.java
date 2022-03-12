@@ -39,7 +39,7 @@ public enum TimeTypeEnum {
         this.type = type;
     }
 
-    public static TimeTypeEnum getEnum(byte type) {
+    public static TimeTypeEnum getEnum(Byte type) {
         return MAP.get(type);
     }
 

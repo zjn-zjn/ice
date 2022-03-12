@@ -35,9 +35,14 @@ public class IceBaseController {
     @Value("${product.import.url:}")
     private String productImportUrl;
 
-    @RequestMapping(value = "/ice-server/base/list", method = RequestMethod.POST)
-    public PageResult<IceBase> baseList(@RequestBody IceBaseSearch search) {
-        return iceBaseService.baseList(search);
+    @RequestMapping(value = "/ice-server/base/list", method = RequestMethod.GET)
+    public PageResult<IceBase> baseList(@RequestParam Integer app,
+                                        @RequestParam(defaultValue = "1") Integer pageId,
+                                        @RequestParam(defaultValue = "100") Integer pageSize,
+                                        @RequestParam(defaultValue = "") Long id,
+                                        @RequestParam(defaultValue = "") String scene,
+                                        @RequestParam(defaultValue = "") String name) {
+        return iceBaseService.baseList(new IceBaseSearch(app, id, name, scene, pageId, pageSize));
     }
 
     @RequestMapping(value = "/ice-server/base/edit", method = RequestMethod.POST)
@@ -45,9 +50,7 @@ public class IceBaseController {
         if (base == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "base");
         }
-        Long id = iceBaseService.baseEdit(base);
-//        iceServerService.updateByEdit();
-        return id;
+        return iceBaseService.baseEdit(base);
     }
 
     @RequestMapping(value = "/ice-server/base/push", method = RequestMethod.GET)

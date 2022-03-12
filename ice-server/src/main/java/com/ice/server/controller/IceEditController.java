@@ -38,15 +38,15 @@ public class IceEditController {
     @Value("${product.import.url:}")
     private String productImportUrl;
 
-    /*
-     * 编辑ice
-     */
-    @Deprecated
-    @RequestMapping(value = "/ice/edit", method = RequestMethod.POST)
-    public WebResult editBase(@RequestBody IceBaseVo baseVo) {
-        baseVo.setStatus((byte) 1);
-        return editService.editBase(baseVo);
-    }
+//    /*
+//     * 编辑ice
+//     */
+//    @Deprecated
+//    @RequestMapping(value = "/ice/edit", method = RequestMethod.POST)
+//    public WebResult editBase(@RequestBody IceBaseVo baseVo) {
+//        baseVo.setStatus((byte) 1);
+//        return editService.editBase(baseVo);
+//    }
 
     /*
      * 编辑节点

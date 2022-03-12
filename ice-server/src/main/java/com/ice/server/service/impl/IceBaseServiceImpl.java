@@ -96,9 +96,15 @@ public class IceBaseServiceImpl implements IceBaseService {
     }
 
     @Override
-    @Transactional
+//    @Transactional
     public Long baseEdit(IceBase base) {
         timeHandle(base);
+        base.setDebug(base.getDebug() == null ? 0 : base.getDebug());
+        base.setScenes(base.getScenes() == null ? "" : base.getScenes());
+        base.setStatus(base.getStatus() == null ? 1 : base.getStatus());
+        base.setTimeType(base.getTimeType() == null ? 1 : base.getTimeType());
+        base.setPriority(1L);
+        IceTransferDto transferDto = new IceTransferDto();
         if (base.getId() == null) {
             /*for the new base, you need to create a new root in conf. the default root is none*/
             if (base.getConfId() == null) {
@@ -108,13 +114,26 @@ public class IceBaseServiceImpl implements IceBaseService {
                 createConf.setType(NodeTypeEnum.NONE.getType());
                 createConf.setUpdateAt(new Date());
                 iceConfMapper.insertSelective(createConf);
+                iceServerService.updateLocalConfActiveCache(createConf);
+                transferDto.setInsertOrUpdateConfs(Collections.singletonList(Constant.confToDto(createConf)));
                 base.setConfId(createConf.getMixId());
             }
             base.setConfId(base.getConfId());
             iceBaseMapper.insertSelective(base);
-            return base.getId();
+            iceServerService.updateLocalBaseActiveCache(base);
+            transferDto.setInsertOrUpdateBases(Collections.singletonList(Constant.baseToDto(base)));
+        } else {
+            IceBase origin = iceBaseMapper.selectByPrimaryKey(base.getId());
+            if (origin == null || origin.getStatus().equals(StatusEnum.OFFLINE.getStatus())) {
+                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", base.getId());
+            }
+            base.setConfId(origin.getConfId());
+            iceBaseMapper.updateByPrimaryKey(base);
+            iceServerService.updateLocalBaseActiveCache(base);
+            transferDto.setInsertOrUpdateBases(Collections.singletonList(Constant.baseToDto(base)));
         }
-        iceBaseMapper.updateByPrimaryKey(base);
+        transferDto.setVersion(iceServerService.getVersion());
+        rmiClientManager.update(base.getApp(), transferDto);
         return base.getId();
     }
 
