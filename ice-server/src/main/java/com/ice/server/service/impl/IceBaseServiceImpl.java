@@ -112,7 +112,10 @@ public class IceBaseServiceImpl implements IceBaseService {
                 createConf.setApp(base.getApp());
                 createConf.setStatus(StatusEnum.ONLINE.getStatus());
                 createConf.setType(NodeTypeEnum.NONE.getType());
+                createConf.setInverse((byte) 0);
+                createConf.setDebug((byte) 1);
                 createConf.setUpdateAt(new Date());
+                createConf.setTimeType(TimeTypeEnum.NONE.getType());
                 iceConfMapper.insertSelective(createConf);
                 iceServerService.updateLocalConfActiveCache(createConf);
                 transferDto.setInsertOrUpdateConfs(Collections.singletonList(Constant.confToDto(createConf)));
