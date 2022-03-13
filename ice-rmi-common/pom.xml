@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.waitmoon.ice</groupId>
         <artifactId>ice</artifactId>
-        <version>0.0.8</version>
+        <version>0.0.9</version>
     </parent>
 
     <artifactId>ice-rmi-common</artifactId>
@@ -18,7 +18,7 @@
         <dependency>
             <groupId>com.waitmoon.ice</groupId>
             <artifactId>ice-core</artifactId>
-            <version>${project.version}</version>
+            <version>0.0.9</version>
         </dependency>
     </dependencies>
 </project>

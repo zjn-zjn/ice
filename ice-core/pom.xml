@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.waitmoon.ice</groupId>
         <artifactId>ice</artifactId>
-        <version>0.0.8</version>
+        <version>0.0.9</version>
     </parent>
     <packaging>jar</packaging>
     <artifactId>ice-core</artifactId>
@@ -16,7 +16,7 @@
         <dependency>
             <groupId>com.waitmoon.ice</groupId>
             <artifactId>ice-common</artifactId>
-            <version>${project.version}</version>
+            <version>0.0.9</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
