@@ -1,7 +1,7 @@
 package com.ice.rmi.common.model;
 
-import com.ice.rmi.common.enums.RmiNetModeEnum;
 import com.ice.rmi.common.client.IceRmiClientService;
+import com.ice.rmi.common.enums.RmiNetModeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,6 +18,7 @@ public class ClientInfo implements Serializable {
         this.address = address;
         this.mode = mode;
     }
+
     private int app;
     private RmiNetModeEnum mode;
     private String address;

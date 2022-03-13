@@ -9,7 +9,6 @@ import com.ice.common.model.Pair;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IceConfUpdateMapper;
 import com.ice.server.dao.model.IceConf;
-import com.ice.server.dao.model.IceConfExample;
 import com.ice.server.enums.EditTypeEnum;
 import com.ice.server.enums.StatusEnum;
 import com.ice.server.exception.ErrorCode;
@@ -21,7 +20,6 @@ import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -184,7 +182,7 @@ public class IceConfServiceImpl implements IceConfService {
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
             if (StringUtils.hasLength(editNode.getConfField())) {
                 JSONValidator validator = JSONValidator.from(editNode.getConfField());
-                if (!validator.validate()) {
+                if (!validator.validate() || validator.getType() != JSONValidator.Type.Object) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
                 }
             }
@@ -233,7 +231,7 @@ public class IceConfServiceImpl implements IceConfService {
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
             if (StringUtils.hasLength(editNode.getConfField())) {
                 JSONValidator validator = JSONValidator.from(editNode.getConfField());
-                if (!validator.validate()) {
+                if (!validator.validate() || validator.getType() != JSONValidator.Type.Object) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
                 }
             }
@@ -319,11 +317,11 @@ public class IceConfServiceImpl implements IceConfService {
         operateConf.setStart(editNode.getStart() == null ? null : new Date(editNode.getStart()));
         operateConf.setEnd(editNode.getEnd() == null ? null : new Date(editNode.getEnd()));
         operateConf.setInverse(editNode.getInverse() ? (byte) 1 : (byte) 0);
-        operateConf.setName(StringUtils.isEmpty(editNode.getName()) ? "" : editNode.getName());
+        operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
             if (StringUtils.hasLength(editNode.getConfField())) {
                 JSONValidator validator = JSONValidator.from(editNode.getConfField());
-                if (!validator.validate()) {
+                if (!validator.validate() || validator.getType() != JSONValidator.Type.Object) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
                 }
             }
@@ -340,7 +338,7 @@ public class IceConfServiceImpl implements IceConfService {
         if (operateConf == null) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "selectId", editNode.getSelectId());
         }
-        if (NodeTypeEnum.isRelation(operateConf.getType())) {
+        if (!NodeTypeEnum.isRelation(operateConf.getType())) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "only relation can have son id:" + editNode.getSelectId());
         }
         if (StringUtils.hasLength(editNode.getMultiplexIds())) {
@@ -379,7 +377,7 @@ public class IceConfServiceImpl implements IceConfService {
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
             if (StringUtils.hasLength(editNode.getConfField())) {
                 JSONValidator validator = JSONValidator.from(editNode.getConfField());
-                if (!validator.validate()) {
+                if (!validator.validate() || validator.getType() != JSONValidator.Type.Object) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
                 }
             }
@@ -413,245 +411,6 @@ public class IceConfServiceImpl implements IceConfService {
             confUpdateMapper.updateByPrimaryKey(operateConf);
         }
         iceServerService.updateLocalConfUpdateCache(operateConf);
-    }
-
-
-    @Override
-    @Transactional
-    public Long confAddSon(Integer app, IceConf conf, Long parentId) {
-        conf.setId(null);
-        conf.setApp(app);
-        paramHandle(conf);
-        IceConf parent = confMapper.selectByPrimaryKey(parentId);
-        if (parent == null || !parent.getApp().equals(app)) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
-        }
-        confMapper.insertSelective(conf);
-        Long id = conf.getMixId();
-        if (!StringUtils.hasLength(parent.getSonIds())) {
-            parent.setSonIds(id + "");
-        } else {
-            parent.setSonIds(parent.getSonIds() + "," + id);
-        }
-        parent.setUpdateAt(new Date());
-        confMapper.updateByPrimaryKeySelective(parent);
-        return id;
-    }
-
-    @Override
-    @Transactional
-    public List<Long> confAddSonIds(Integer app, String sonIds, Long parentId) {
-        String[] sonIdStrs = sonIds.split(",");
-        Set<Long> sonIdSet = new HashSet<>(sonIdStrs.length);
-        List<Long> sonIdList = new ArrayList<>(sonIdStrs.length);
-        for (String sonIdStr : sonIdStrs) {
-            Long sonId = Long.valueOf(sonIdStr);
-            sonIdSet.add(sonId);
-            sonIdList.add(sonId);
-        }
-        if (iceServerService.haveCircle(parentId, sonIdList)) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check sonIds");
-        }
-        IceConfExample example = new IceConfExample();
-        example.createCriteria().andAppEqualTo(app).andIdIn(sonIdSet);
-        List<IceConf> children = confMapper.selectByExample(example);
-        if (CollectionUtils.isEmpty(children) || children.size() != sonIdSet.size()) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "sonIds", sonIds);
-        }
-        IceConf parent = confMapper.selectByPrimaryKey(parentId);
-        if (parent == null || !parent.getApp().equals(app)) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
-        }
-        if (!StringUtils.hasLength(parent.getSonIds())) {
-            parent.setSonIds(sonIds);
-        } else {
-            parent.setSonIds(parent.getSonIds() + "," + sonIds);
-        }
-        parent.setUpdateAt(new Date());
-        confMapper.updateByPrimaryKey(parent);
-        return sonIdList;
-    }
-
-    @Override
-    @Transactional
-    public Long confAddForward(Integer app, IceConf conf, Long nextId) {
-        conf.setId(null);
-        conf.setApp(app);
-        paramHandle(conf);
-        IceConf next = confMapper.selectByPrimaryKey(nextId);
-        if (next == null || !next.getApp().equals(app)) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", nextId);
-        }
-        if (next.getForwardId() != null) {
-            throw new ErrorCodeException(ErrorCode.ALREADY_EXIST, "forward");
-        }
-        confMapper.insertSelective(conf);
-        next.setForwardId(conf.getMixId());
-        next.setUpdateAt(new Date());
-        confMapper.updateByPrimaryKey(next);
-        return conf.getMixId();
-    }
-
-    @Override
-    @Transactional
-    public Long confAddForwardId(Integer app, Long forwardId, Long nextId) {
-        if (iceServerService.haveCircle(nextId, forwardId)) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check forwardId");
-        }
-        IceConf forward = confMapper.selectByPrimaryKey(forwardId);
-        if (forward == null || !forward.getApp().equals(app)) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "forwardId", forwardId);
-        }
-        IceConf next = confMapper.selectByPrimaryKey(nextId);
-        if (next == null || !next.getApp().equals(app)) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", nextId);
-        }
-        if (next.getForwardId() != null) {
-            throw new ErrorCodeException(ErrorCode.ALREADY_EXIST, "forward");
-        }
-        next.setForwardId(forwardId);
-        next.setUpdateAt(new Date());
-        confMapper.updateByPrimaryKey(next);
-        return nextId;
-    }
-
-    @Override
-    @Transactional
-    public Long confEditId(Integer app, Long nodeId, Long exchangeId, Long parentId, Long nextId, Integer index) {
-        IceConf exchange = confMapper.selectByPrimaryKey(exchangeId);
-        if (exchange == null || !exchange.getApp().equals(app)) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "exchangeId", exchangeId);
-        }
-        if (parentId != null) {
-            if (iceServerService.haveCircle(parentId, exchangeId)) {
-                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check exchangeId");
-            }
-            IceConf parent = confMapper.selectByPrimaryKey(parentId);
-            if (parent == null || !parent.getApp().equals(app)) {
-                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
-            }
-            if (!StringUtils.hasLength(parent.getSonIds())) {
-                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son");
-            }
-            String[] sonIdStrs = parent.getSonIds().split(",");
-            if (index == null || index < 0 || index >= sonIdStrs.length || !sonIdStrs[index].equals(nodeId + "")) {
-                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son with input index");
-            }
-            sonIdStrs[index] = exchangeId + "";
-            StringBuilder sb = new StringBuilder();
-            for (String idStr : sonIdStrs) {
-                sb.append(idStr).append(",");
-            }
-            String str = sb.toString();
-            parent.setSonIds(str.substring(0, str.length() - 1));
-            parent.setUpdateAt(new Date());
-            confMapper.updateByPrimaryKey(parent);
-            return parentId;
-        }
-        if (nextId != null) {
-            if (iceServerService.haveCircle(nextId, exchangeId)) {
-                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check exchangeId");
-            }
-            IceConf next = confMapper.selectByPrimaryKey(nextId);
-            if (next == null || !next.getApp().equals(app)) {
-                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", nextId);
-            }
-            if (!nodeId.equals(next.getForwardId())) {
-                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "node is not the next forward");
-            }
-            next.setForwardId(exchangeId);
-            next.setUpdateAt(new Date());
-            confMapper.updateByPrimaryKey(next);
-            return nextId;
-        }
-        throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "root can not change id");
-    }
-
-    @Override
-    @Transactional
-    public Long confForwardDelete(Integer app, Long forwardId, Long nextId) {
-        IceConf next = confMapper.selectByPrimaryKey(nextId);
-        if (next == null || !next.getApp().equals(app)) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", nextId);
-        }
-        if (!forwardId.equals(next.getForwardId())) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "node is not the next forward");
-        }
-        next.setForwardId(null);
-        next.setUpdateAt(new Date());
-        confMapper.updateByPrimaryKey(next);
-        return nextId;
-    }
-
-    @Override
-    @Transactional
-    public Long confSonDelete(Integer app, Long sonId, Long parentId, Integer index) {
-        IceConf parent = confMapper.selectByPrimaryKey(parentId);
-        if (parent == null || !parent.getApp().equals(app)) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
-        }
-        if (!StringUtils.hasLength(parent.getSonIds())) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son");
-        }
-        String[] sonIdStrs = parent.getSonIds().split(",");
-        if (index == null || index < 0 || index >= sonIdStrs.length || !sonIdStrs[index].equals(sonId + "")) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son with input index");
-        }
-        sonIdStrs[index] = null;
-        StringBuilder sb = new StringBuilder();
-        for (String idStr : sonIdStrs) {
-            if (idStr != null) {
-                sb.append(idStr).append(",");
-            }
-        }
-        String str = sb.toString();
-        if (StringUtils.hasLength(str)) {
-            parent.setSonIds(str.substring(0, str.length() - 1));
-        } else {
-            parent.setSonIds(null);
-        }
-        parent.setUpdateAt(new Date());
-        confMapper.updateByPrimaryKey(parent);
-        return parentId;
-    }
-
-    @Override
-    @Transactional
-    public Long confSonMove(Integer app, Long parentId, Long sonId, Integer originIndex, Integer toIndex) {
-        if (originIndex == null || toIndex == null) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "originIndex|toIndex");
-        }
-        if (originIndex.equals(toIndex)) {
-            return parentId;
-        }
-        IceConf parent = confMapper.selectByPrimaryKey(parentId);
-        if (parent == null || !parent.getApp().equals(app)) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
-        }
-        if (!StringUtils.hasLength(parent.getSonIds())) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son");
-        }
-        String[] sonIdStrs = parent.getSonIds().split(",");
-        String sonIdStr = sonId + "";
-        if (originIndex < 0 || originIndex >= sonIdStrs.length || !sonIdStrs[originIndex].equals(sonIdStr)) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son with input origin index");
-        }
-        if (toIndex < 0 || toIndex >= sonIdStrs.length) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "input to index illegal");
-        }
-        sonIdStrs[originIndex] = sonIdStrs[toIndex];
-        sonIdStrs[toIndex] = sonIdStr;
-        StringBuilder sb = new StringBuilder();
-        for (String idStr : sonIdStrs) {
-            if (idStr != null) {
-                sb.append(idStr).append(",");
-            }
-        }
-        String str = sb.toString();
-        parent.setSonIds(str.substring(0, str.length() - 1));
-        parent.setUpdateAt(new Date());
-        confMapper.updateByPrimaryKey(parent);
-        return parentId;
     }
 
     private void paramHandle(IceEditNode editNode) {
@@ -693,74 +452,6 @@ public class IceConfServiceImpl implements IceConfService {
         editNode.setDebug(editNode.getDebug() == null || editNode.getDebug());
         editNode.setInverse(editNode.getInverse() != null && editNode.getInverse());
         editNode.setTimeType(editNode.getTimeType() == null ? TimeTypeEnum.NONE.getType() : editNode.getTimeType());
-    }
-
-    private void paramHandle(IceConf conf) {
-        conf.setStatus((byte) 1);
-        if (conf.getApp() == null || conf.getType() == null || NodeTypeEnum.getEnum(conf.getType()) == null) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app or type");
-        }
-        if (StringUtils.hasLength(conf.getConfField())) {
-            JSONValidator validator = JSONValidator.from(conf.getConfField());
-            if (!validator.validate()) {
-                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
-            }
-        }
-        if (conf.getMixId() == null) {
-            if (NodeTypeEnum.isLeaf(conf.getType())) {
-                leafClassCheck(conf.getApp(), conf.getConfName(), conf.getType());
-            }
-        } else {
-            IceConf oldConf = confMapper.selectByPrimaryKey(conf.getMixId());
-            if (oldConf == null || StatusEnum.OFFLINE.getStatus() == oldConf.getStatus() || !oldConf.getApp().equals(conf.getApp())) {
-                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "confId", conf.getMixId());
-            }
-            /*can not edit sonIds in here*/
-            conf.setSonIds(oldConf.getSonIds());
-            Byte type = conf.getType();
-            if (NodeTypeEnum.isLeaf(type)) {
-                String clazz = conf.getConfName();
-                if (!(type.equals(oldConf.getType()) && clazz.equals(oldConf.getConfName()))) {
-                    leafClassCheck(oldConf.getApp(), clazz, type);
-                }
-            }
-        }
-        conf.setUpdateAt(new Date());
-        TimeTypeEnum typeEnum = TimeTypeEnum.getEnum(conf.getTimeType());
-        if (typeEnum == null) {
-            conf.setTimeType(TimeTypeEnum.NONE.getType());
-            typeEnum = TimeTypeEnum.NONE;
-        }
-        switch (typeEnum) {
-            case NONE:
-                conf.setStart(null);
-                conf.setEnd(null);
-                break;
-            case AFTER_START:
-                if (conf.getStart() == null) {
-                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "start null");
-                }
-                conf.setEnd(null);
-                break;
-            case BEFORE_END:
-                if (conf.getEnd() == null) {
-                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "end null");
-                }
-                conf.setStart(null);
-                break;
-            case BETWEEN:
-                if (conf.getStart() == null || conf.getEnd() == null) {
-                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "start|end null");
-                }
-                break;
-        }
-        if (NodeTypeEnum.isLeaf(conf.getType())) {
-            conf.setSonIds(null);
-        }
-        if (NodeTypeEnum.isRelation(conf.getType())) {
-            conf.setConfName(null);
-            conf.setConfField(null);
-        }
     }
 
     @Override

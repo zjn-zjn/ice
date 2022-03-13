@@ -155,9 +155,7 @@ public final class Constant {
             showConf.setLabelName(conf.getMixId() + (conf.isUpdate() ? "^" : "") + "-" + NodeTypeEnum.getEnum(conf.getType()).name() + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
         } else {
             showConf.setConfName(conf.getConfName());
-            if (StringUtils.hasLength(conf.getConfField()) && !conf.getConfField().equals("{}")) {
-                showConf.setConfField(conf.getConfField());
-            }
+            showConf.setConfField(conf.getConfField());
             showConf.setLabelName(conf.getMixId() + (conf.isUpdate() ? "^" : "") + "-" + (StringUtils.hasLength(conf.getConfName()) ? conf.getConfName().substring(conf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
         }
         showConf.setInverse(conf.getInverse() != null && conf.getInverse() == 1);

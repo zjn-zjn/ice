@@ -2,6 +2,7 @@ package com.ice.rmi.common.enums;
 
 /**
  * client and server communicate mode
+ *
  * @author zjn
  */
 public enum RmiNetModeEnum {
