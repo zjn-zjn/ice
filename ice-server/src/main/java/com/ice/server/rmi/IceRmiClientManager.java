@@ -152,7 +152,7 @@ public final class IceRmiClientManager implements InitializingBean {
             Collection<Pair<Object, ClientOneWayRequest>> list = workMap.computeIfAbsent(address, k -> Collections.synchronizedCollection(new LinkedList<>()));
             list.add(work);
             try {
-                lock.wait(1800);
+                lock.wait(5800);
             } catch (InterruptedException e) {
                 //ignore
             }

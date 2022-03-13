@@ -10,8 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class IceRoam extends ConcurrentHashMap<String, Object> implements Serializable {
 
-    private static final long serialVersionUID = 2241673818101234922L;
-
     public IceRoam(int initialCapacity, float loadFactor) {
         super(initialCapacity, loadFactor);
     }
