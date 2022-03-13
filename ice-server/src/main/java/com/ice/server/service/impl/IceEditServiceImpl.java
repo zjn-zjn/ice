@@ -296,10 +296,10 @@ public class IceEditServiceImpl implements IceEditService {
                             operateConf.setIceId(iceId);
                             operateConf.setConfId(operateConf.getId());
                             confUpdateMapper.insertSelective(operateConf);
-                            iceServerService.updateLocalConfUpdateCache(operateConf);
                         } else {
                             confUpdateMapper.updateByPrimaryKey(operateConf);
                         }
+                        iceServerService.updateLocalConfUpdateCache(operateConf);
                     }
                 }
                 break;
@@ -329,10 +329,10 @@ public class IceEditServiceImpl implements IceEditService {
                             operateConf.setIceId(iceId);
                             operateConf.setConfId(operateConf.getId());
                             confUpdateMapper.insertSelective(operateConf);
-                            iceServerService.updateLocalConfUpdateCache(operateConf);
                         } else {
                             confUpdateMapper.updateByPrimaryKey(operateConf);
                         }
+                        iceServerService.updateLocalConfUpdateCache(operateConf);
                     }
                 }
                 break;
@@ -363,10 +363,10 @@ public class IceEditServiceImpl implements IceEditService {
                                     operateConf.setIceId(iceId);
                                     operateConf.setConfId(operateConf.getId());
                                     confUpdateMapper.insertSelective(operateConf);
-                                    iceServerService.updateLocalConfUpdateCache(operateConf);
                                 } else {
                                     confUpdateMapper.updateByPrimaryKey(operateConf);
                                 }
+                                iceServerService.updateLocalConfUpdateCache(operateConf);
                             }
                         }
                     } else if (confVo.getNextId() != null) {
@@ -382,10 +382,10 @@ public class IceEditServiceImpl implements IceEditService {
                                     operateConf.setIceId(iceId);
                                     operateConf.setConfId(operateConf.getId());
                                     confUpdateMapper.insertSelective(operateConf);
-                                    iceServerService.updateLocalConfUpdateCache(operateConf);
                                 } else {
                                     confUpdateMapper.updateByPrimaryKey(operateConf);
                                 }
+                                iceServerService.updateLocalConfUpdateCache(operateConf);
                             }
                         }
                     } /*else {
@@ -477,10 +477,10 @@ public class IceEditServiceImpl implements IceEditService {
                             operateConf.setIceId(iceId);
                             operateConf.setConfId(operateConf.getId());
                             confUpdateMapper.insertSelective(operateConf);
-                            iceServerService.updateLocalConfUpdateCache(operateConf);
                         } else {
                             confUpdateMapper.updateByPrimaryKey(operateConf);
                         }
+                        iceServerService.updateLocalConfUpdateCache(operateConf);
                     }
                 }
                 break;
@@ -539,10 +539,10 @@ public class IceEditServiceImpl implements IceEditService {
                                     conf.setIceId(iceId);
                                     conf.setConfId(conf.getId());
                                     confUpdateMapper.insertSelective(conf);
-                                    iceServerService.updateLocalConfUpdateCache(conf);
                                 } else {
                                     confUpdateMapper.updateByPrimaryKey(conf);
                                 }
+                                iceServerService.updateLocalConfUpdateCache(conf);
                             }
                         } else if (confVo.getNextId() != null) {
                             /*更换前置节点*/
@@ -569,10 +569,10 @@ public class IceEditServiceImpl implements IceEditService {
                                     conf.setIceId(iceId);
                                     conf.setConfId(conf.getId());
                                     confUpdateMapper.insertSelective(conf);
-                                    iceServerService.updateLocalConfUpdateCache(conf);
                                 } else {
                                     confUpdateMapper.updateByPrimaryKey(conf);
                                 }
+                                iceServerService.updateLocalConfUpdateCache(conf);
                             }
                         }
                     } else {
@@ -617,10 +617,10 @@ public class IceEditServiceImpl implements IceEditService {
                                 operateConf.setIceId(iceId);
                                 operateConf.setConfId(operateConf.getId());
                                 confUpdateMapper.insertSelective(operateConf);
-                                iceServerService.updateLocalConfUpdateCache(operateConf);
                             } else {
                                 confUpdateMapper.updateByPrimaryKey(operateConf);
                             }
+                            iceServerService.updateLocalConfUpdateCache(operateConf);
                         }
                     }
                 }
@@ -659,10 +659,10 @@ public class IceEditServiceImpl implements IceEditService {
                                         conf.setIceId(iceId);
                                         conf.setConfId(conf.getId());
                                         confUpdateMapper.insertSelective(conf);
-                                        iceServerService.updateLocalConfUpdateCache(conf);
                                     } else {
                                         confUpdateMapper.updateByPrimaryKey(conf);
                                     }
+                                    iceServerService.updateLocalConfUpdateCache(conf);
                                 }
                             }
                         }
@@ -703,10 +703,10 @@ public class IceEditServiceImpl implements IceEditService {
                                         conf.setIceId(iceId);
                                         conf.setConfId(conf.getId());
                                         confUpdateMapper.insertSelective(conf);
-                                        iceServerService.updateLocalConfUpdateCache(conf);
                                     } else {
                                         confUpdateMapper.updateByPrimaryKey(conf);
                                     }
+                                    iceServerService.updateLocalConfUpdateCache(conf);
                                 }
                             }
                         }
