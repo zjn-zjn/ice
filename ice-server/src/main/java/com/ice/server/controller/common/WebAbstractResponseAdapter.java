@@ -3,6 +3,7 @@ package com.ice.server.controller.common;
 import com.ice.server.controller.IceAppController;
 import com.ice.server.controller.IceBaseController;
 import com.ice.server.controller.IceConfController;
+import com.ice.server.controller.IceMockController;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.WebResult;
@@ -17,7 +18,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 @Slf4j
-@RestControllerAdvice(basePackageClasses = {IceConfController.class, IceBaseController.class, IceAppController.class})
+@RestControllerAdvice(basePackageClasses = {IceConfController.class, IceBaseController.class, IceAppController.class, IceMockController.class})
 public class WebAbstractResponseAdapter implements ResponseBodyAdvice<Object> {
 
     @ExceptionHandler(value = Throwable.class)

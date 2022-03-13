@@ -13,7 +13,8 @@ public enum ErrorCode implements IErrorCode {
     REMOTE_ERROR(-7, "Remote Error app:{0} msg:{1}"),
     NO_AVAILABLE_CLIENT(-8, "no available client app:{0}"),
     CLIENT_NOT_AVAILABLE(-9, "client not available app:{0} address:{1}"),
-    REMOTE_RUN_ERROR(-10, "client run error app:{0} address:{1}");
+    REMOTE_RUN_ERROR(-10, "client run error app:{0} address:{1}"),
+    CUSTOM(-11, "{0}");
     private final int code;
     private final String msgTemplate;
 

@@ -1,6 +1,6 @@
 package com.ice.client.config;
 
-import com.ice.common.enums.RmiNetModeEnum;
+import com.ice.rmi.common.enums.RmiNetModeEnum;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

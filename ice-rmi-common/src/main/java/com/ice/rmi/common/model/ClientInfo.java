@@ -1,6 +1,6 @@
 package com.ice.rmi.common.model;
 
-import com.ice.common.enums.RmiNetModeEnum;
+import com.ice.rmi.common.enums.RmiNetModeEnum;
 import com.ice.rmi.common.client.IceRmiClientService;
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -45,13 +45,15 @@ public interface IceServerService {
 
     boolean haveCircle(Long nodeId, Long linkId);
 
-    boolean haveCircle(Long nodeId, List<Long> linkIds);
+    boolean haveCircle(Long nodeId, Collection<Long> linkIds);
 
     void link(Long nodeId, Long linkId);
 
     void link(Long nodeId, List<Long> linkIds);
 
     void unlink(Long nodeId, Long linkId);
+
+    void exchangeLink(Long nodeId, Long originId, List<Long> exchangeIds);
 
     void exchangeLink(Long nodeId, Long originId, Long exchangeId);
 

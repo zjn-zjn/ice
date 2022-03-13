@@ -1,7 +1,7 @@
 package com.ice.server.rmi;
 
 import com.ice.common.dto.IceTransferDto;
-import com.ice.common.enums.RmiNetModeEnum;
+import com.ice.rmi.common.enums.RmiNetModeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.Pair;
 import com.ice.core.context.IceContext;

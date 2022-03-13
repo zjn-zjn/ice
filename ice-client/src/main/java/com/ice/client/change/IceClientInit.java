@@ -5,7 +5,7 @@ import com.ice.client.config.IceClientProperties;
 import com.ice.client.rmi.IceRmiClientServiceImpl;
 import com.ice.client.utils.AddressUtils;
 import com.ice.common.dto.IceTransferDto;
-import com.ice.common.enums.RmiNetModeEnum;
+import com.ice.rmi.common.enums.RmiNetModeEnum;
 import com.ice.common.exception.IceException;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.Pair;

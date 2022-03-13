@@ -2,6 +2,7 @@ package com.ice.server.service;
 
 import com.ice.common.model.IceShowConf;
 import com.ice.server.dao.model.IceConf;
+import com.ice.server.model.IceEditNode;
 import com.ice.server.model.IceLeafClass;
 
 import java.util.List;
@@ -10,7 +11,7 @@ import java.util.List;
  * @author zjn
  */
 public interface IceConfService {
-    Long confEdit(Integer app, IceConf conf);
+    Long confEdit(IceEditNode editNode);
 
     Long confAddSon(Integer app, IceConf conf, Long parentId);
 

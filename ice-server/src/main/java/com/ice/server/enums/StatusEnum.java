@@ -1,4 +1,4 @@
-package com.ice.common.enums;
+package com.ice.server.enums;
 
 import java.util.HashMap;
 import java.util.Map;

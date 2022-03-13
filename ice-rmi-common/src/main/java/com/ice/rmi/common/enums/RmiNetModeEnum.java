@@ -1,4 +1,4 @@
-package com.ice.common.enums;
+package com.ice.rmi.common.enums;
 
 /**
  * client and server communicate mode

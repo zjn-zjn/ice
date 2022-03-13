@@ -24,4 +24,6 @@ public interface IceBaseService {
     void rollback(Long pushId);
 
     void importData(PushData data);
+
+    void delete(Long pushId);
 }

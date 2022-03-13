@@ -1,5 +1,6 @@
 package com.ice.server.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IcePushHistory;
 import com.ice.server.exception.ErrorCode;
@@ -7,13 +8,13 @@ import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceBaseSearch;
 import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
-import com.ice.server.model.WebResult;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceServerService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.util.Map;
 
 /**
  * base crud
@@ -53,7 +54,7 @@ public class IceBaseController {
         return iceBaseService.baseEdit(base);
     }
 
-    @RequestMapping(value = "/ice-server/base/push", method = RequestMethod.GET)
+    @RequestMapping(value = "/ice-server/base/backup", method = RequestMethod.GET)
     public Long basePush(@RequestParam Integer app, @RequestParam Long iceId, @RequestParam(required = false) String reason) {
         return iceBaseService.push(app, iceId, reason);
     }
@@ -71,31 +72,32 @@ public class IceBaseController {
 //        return 0;
 //    }
 
-    @RequestMapping(value = "/ice-server/base/push/history", method = RequestMethod.GET)
+    @RequestMapping(value = "/ice-server/base/backup/history", method = RequestMethod.GET)
     public PageResult<IcePushHistory> history(@RequestParam Integer app,
                                               @RequestParam Long iceId,
                                               @RequestParam(defaultValue = "1") Integer pageNum,
-                                              @RequestParam(defaultValue = "20") Integer pageSize) {
+                                              @RequestParam(defaultValue = "1000") Integer pageSize) {
         return iceBaseService.history(app, iceId, pageNum, pageSize);
     }
 
+    @RequestMapping(value = "/ice-server/base/backup/delete", method = RequestMethod.GET)
+    public void delete(@RequestParam Long pushId) {
+        iceBaseService.delete(pushId);
+    }
+
     @RequestMapping(value = "/ice-server/base/export", method = RequestMethod.GET)
-    public WebResult<String> export(@RequestParam Long iceId,
-                                    @RequestParam(required = false) Long pushId) {
-        return WebResult.success(iceBaseService.exportData(iceId, pushId));
+    public String export(@RequestParam Long iceId,
+                         @RequestParam(required = false) Long pushId) {
+        return iceBaseService.exportData(iceId, pushId);
     }
 
     @RequestMapping(value = "/ice-server/base/rollback", method = RequestMethod.GET)
-    public WebResult<Void> rollback(@RequestParam Long pushId) {
+    public void rollback(@RequestParam Long pushId) {
         iceBaseService.rollback(pushId);
-//        iceServerService.updateByEdit();
-        return WebResult.success();
     }
 
     @RequestMapping(value = "/ice-server/base/import", method = RequestMethod.POST)
-    public WebResult<Void> importData(@RequestBody PushData data) {
-        iceBaseService.importData(data);
-//        iceServerService.updateByEdit();
-        return WebResult.success();
+    public void importData(@RequestBody Map<String, String> map) {
+        iceBaseService.importData(JSON.parseObject(map.get("json"), PushData.class));
     }
 }

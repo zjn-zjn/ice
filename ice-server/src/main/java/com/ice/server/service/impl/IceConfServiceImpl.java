@@ -2,16 +2,19 @@ package com.ice.server.service.impl;
 
 import com.alibaba.fastjson.JSONValidator;
 import com.ice.common.enums.NodeTypeEnum;
-import com.ice.common.enums.StatusEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
 import com.ice.common.model.Pair;
 import com.ice.server.dao.mapper.IceConfMapper;
+import com.ice.server.dao.mapper.IceConfUpdateMapper;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.dao.model.IceConfExample;
+import com.ice.server.enums.EditTypeEnum;
+import com.ice.server.enums.StatusEnum;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
+import com.ice.server.model.IceEditNode;
 import com.ice.server.model.IceLeafClass;
 import com.ice.server.rmi.IceRmiClientManager;
 import com.ice.server.service.IceConfService;
@@ -30,7 +33,7 @@ import java.util.*;
 public class IceConfServiceImpl implements IceConfService {
 
     @Resource
-    private IceConfMapper iceConfMapper;
+    private IceConfMapper confMapper;
 
     @Resource
     private IceServerService iceServerService;
@@ -38,17 +41,380 @@ public class IceConfServiceImpl implements IceConfService {
     @Resource
     private IceRmiClientManager rmiClientManager;
 
+    @Resource
+    private IceConfUpdateMapper confUpdateMapper;
+
     @Override
-    @Transactional
-    public Long confEdit(Integer app, IceConf conf) {
-        if (app == null || conf.getMixId() == null) {
-            throw new ErrorCodeException(ErrorCode.CAN_NOT_NULL, "app|conf.id");
+    public Long confEdit(IceEditNode editNode) {
+        paramHandle(editNode);
+        EditTypeEnum editTypeEnum = EditTypeEnum.getEnum(editNode.getEditType());
+        switch (editTypeEnum) {
+            case ADD_SON:
+                return addSon(editNode);
+            case EDIT:
+                return edit(editNode);
+            case DELETE:
+                return delete(editNode);
+            case ADD_FORWARD:
+                return addForward(editNode);
+            case EXCHANGE:
+                return exchange(editNode);
+            case MOVE:
+                return move(editNode);
         }
-        conf.setApp(app);
-        paramHandle(conf);
-        iceConfMapper.updateByPrimaryKey(conf);
+        return null;
+    }
+
+    private Long move(IceEditNode editNode) {
+        if (editNode.getParentId() == null || editNode.getIndex() == null || editNode.getMoveTo() == null) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parentId|index");
+        }
+        if (editNode.getMoveTo() < 0) {
+            throw new ErrorCodeException(ErrorCode.CUSTOM, "can not move");
+        }
+        int app = editNode.getApp();
+        long iceId = editNode.getIceId();
+        IceConf conf = iceServerService.getMixConfById(app, editNode.getParentId(), iceId);
+        if (conf == null) {
+            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", editNode.getParentId());
+        }
+        if (!StringUtils.hasLength(conf.getSonIds())) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent no child");
+        }
+        String[] sonIds = conf.getSonIds().split(",");
+        if (sonIds.length <= 1 || editNode.getMoveTo() >= sonIds.length) {
+            throw new ErrorCodeException(ErrorCode.CUSTOM, "can not move");
+        }
+        int index = editNode.getIndex();
+        if (index < 0 || index >= sonIds.length || !sonIds[index].equals(editNode.getSelectId() + "")) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son with input index");
+        }
+        String tmp = sonIds[index];
+        sonIds[index] = sonIds[editNode.getMoveTo()];
+        sonIds[editNode.getMoveTo()] = tmp;
+        StringBuilder sb = new StringBuilder();
+        for (String sonIdStr : sonIds) {
+            sb.append(sonIdStr).append(",");
+        }
+        conf.setSonIds(sb.substring(0, sb.length() - 1));
+        update(conf, iceId);
         return conf.getMixId();
     }
+
+    private Long exchange(IceEditNode editNode) {
+        int app = editNode.getApp();
+        long iceId = editNode.getIceId();
+        if (StringUtils.hasLength(editNode.getMultiplexIds())) {
+            /*exchange to another id*/
+            if (editNode.getParentId() == null && editNode.getNextId() == null) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "root not support exchange by id");
+            }
+            if (editNode.getParentId() != null) {
+                //exchange son
+                IceConf conf = iceServerService.getMixConfById(app, editNode.getParentId(), iceId);
+                if (conf == null) {
+                    throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", editNode.getParentId());
+                }
+                String[] sonIdStrs = editNode.getMultiplexIds().split(",");
+                Set<Long> sonIdSet = new HashSet<>(sonIdStrs.length);
+                List<Long> sonIdList = new ArrayList<>(sonIdStrs.length);
+                for (String sonIdStr : sonIdStrs) {
+                    Long sonId = Long.valueOf(sonIdStr);
+                    sonIdSet.add(sonId);
+                    sonIdList.add(sonId);
+                }
+                List<IceConf> children = iceServerService.getMixConfListByIds(app, sonIdSet, iceId);
+                if (CollectionUtils.isEmpty(children) || children.size() != sonIdSet.size()) {
+                    throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "sonIds", editNode.getMultiplexIds());
+                }
+                if (iceServerService.haveCircle(editNode.getParentId(), sonIdSet)) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check input sonIds");
+                }
+                String[] sonIds = conf.getSonIds().split(",");
+                StringBuilder sb = new StringBuilder();
+                Integer index = editNode.getIndex();
+                if (index == null || index < 0 || index >= sonIds.length || !sonIds[index].equals(editNode.getSelectId() + "")) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son with input index");
+                }
+                sonIds[index] = editNode.getMultiplexIds();
+                for (String sonIdStr : sonIds) {
+                    sb.append(sonIdStr).append(",");
+                }
+                conf.setSonIds(sb.substring(0, sb.length() - 1));
+                update(conf, iceId);
+                iceServerService.exchangeLink(editNode.getParentId(), editNode.getSelectId(), sonIdList);
+                return conf.getMixId();
+            }
+            if (editNode.getNextId() != null) {
+                /*exchange forward*/
+                IceConf conf = iceServerService.getMixConfById(app, editNode.getNextId(), iceId);
+                if (conf == null) {
+                    throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", editNode.getNextId());
+                }
+                Long forwardId = conf.getMixId();
+                if (forwardId == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "nextId:" + editNode.getNextId() + " no forward");
+                }
+                Long exchangeForwardId = Long.parseLong(editNode.getMultiplexIds());
+                if (iceServerService.haveCircle(editNode.getNextId(), exchangeForwardId)) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check exchangeForwardId");
+                }
+                conf.setForwardId(exchangeForwardId);
+                update(conf, iceId);
+                iceServerService.exchangeLink(editNode.getNextId(), editNode.getSelectId(), exchangeForwardId);
+                return conf.getMixId();
+            }
+        }
+        /*replace all parameters normally*/
+        IceConf operateConf = iceServerService.getMixConfById(app, editNode.getSelectId(), iceId);
+        if (operateConf == null) {
+            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "selectId", editNode.getSelectId());
+        }
+        operateConf.setDebug(editNode.getDebug() ? (byte) 1 : (byte) 0);
+        operateConf.setInverse(editNode.getInverse() ? (byte) 1 : (byte) 0);
+        operateConf.setTimeType(editNode.getTimeType());
+        operateConf.setStart(editNode.getStart() == null ? null : new Date(editNode.getStart()));
+        operateConf.setEnd(editNode.getEnd() == null ? null : new Date(editNode.getEnd()));
+        operateConf.setType(editNode.getNodeType());
+        if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+            operateConf.setSonIds(null);
+        }
+        operateConf.setApp(app);
+        operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
+        if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+            if (StringUtils.hasLength(editNode.getConfField())) {
+                JSONValidator validator = JSONValidator.from(editNode.getConfField());
+                if (!validator.validate()) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
+                }
+            }
+            leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
+            operateConf.setConfName(editNode.getConfName());
+            operateConf.setConfField(editNode.getConfField());
+        }
+        update(operateConf, iceId);
+        return operateConf.getMixId();
+    }
+
+    private Long addForward(IceEditNode editNode) {
+        int app = editNode.getApp();
+        long iceId = editNode.getIceId();
+        IceConf operateConf = iceServerService.getMixConfById(app, editNode.getSelectId(), iceId);
+        if (operateConf == null) {
+            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "selectId", editNode.getSelectId());
+        }
+        if (operateConf.getForwardId() != null) {
+            throw new ErrorCodeException(ErrorCode.ALREADY_EXIST, "forward");
+        }
+        if (StringUtils.hasLength(editNode.getMultiplexIds())) {
+            /*add from exist node id*/
+            Long forwardId = Long.valueOf(editNode.getMultiplexIds());
+            if (iceServerService.haveCircle(operateConf.getMixId(), forwardId)) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check forwardIds");
+            }
+            IceConf forward = iceServerService.getMixConfById(app, forwardId, iceId);
+            if (forward == null) {
+                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "forwardId", forwardId);
+            }
+            operateConf.setForwardId(forwardId);
+            update(operateConf, iceId);
+            iceServerService.link(operateConf.getMixId(), forwardId);
+            return operateConf.getMixId();
+        }
+        IceConf createConf = new IceConf();
+        createConf.setDebug(editNode.getDebug() ? (byte) 1 : (byte) 0);
+        createConf.setInverse(editNode.getInverse() ? (byte) 1 : (byte) 0);
+        createConf.setTimeType(editNode.getTimeType());
+        createConf.setStart(editNode.getStart() == null ? null : new Date(editNode.getStart()));
+        createConf.setEnd(editNode.getEnd() == null ? null : new Date(editNode.getEnd()));
+        createConf.setType(editNode.getNodeType());
+        createConf.setApp(app);
+        createConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
+        if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+            if (StringUtils.hasLength(editNode.getConfField())) {
+                JSONValidator validator = JSONValidator.from(editNode.getConfField());
+                if (!validator.validate()) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
+                }
+            }
+            leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
+            createConf.setConfName(editNode.getConfName());
+            createConf.setConfField(editNode.getConfField());
+        }
+        createConf.setUpdateAt(new Date());
+        createConf.setStatus(StatusEnum.OFFLINE.getStatus());
+        confMapper.insertSelective(createConf);
+        operateConf.setForwardId(createConf.getMixId());
+        createConf.setIceId(iceId);
+        createConf.setConfId(createConf.getId());
+        createConf.setStatus(StatusEnum.ONLINE.getStatus());
+        confUpdateMapper.insertSelective(createConf);
+        iceServerService.updateLocalConfUpdateCache(createConf);
+        update(operateConf, iceId);
+        iceServerService.link(operateConf.getMixId(), createConf.getMixId());
+        return operateConf.getMixId();
+    }
+
+    private Long delete(IceEditNode editNode) {
+        int app = editNode.getApp();
+        long iceId = editNode.getIceId();
+        if (editNode.getParentId() != null) {
+            //delete son
+            IceConf operateConf = iceServerService.getMixConfById(app, editNode.getParentId(), iceId);
+            if (operateConf == null) {
+                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", editNode.getParentId());
+            }
+            String sonIdStr = operateConf.getSonIds();
+            if (!StringUtils.hasLength(sonIdStr)) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent no children", editNode.getParentId());
+            }
+            String[] sonIdStrs = operateConf.getSonIds().split(",");
+            Integer index = editNode.getIndex();
+            if (index == null || index < 0 || index >= sonIdStrs.length || !sonIdStrs[index].equals(editNode.getSelectId() + "")) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son with input index");
+            }
+            sonIdStrs[index] = null;
+            StringBuilder sb = new StringBuilder();
+            for (String idStr : sonIdStrs) {
+                if (idStr != null) {
+                    sb.append(idStr).append(",");
+                }
+            }
+            String str = sb.toString();
+            if (StringUtils.hasLength(str)) {
+                operateConf.setSonIds(str.substring(0, str.length() - 1));
+            } else {
+                operateConf.setSonIds(null);
+            }
+            update(operateConf, iceId);
+            iceServerService.unlink(editNode.getParentId(), editNode.getSelectId());
+            return operateConf.getMixId();
+        }
+        if (editNode.getNextId() != null) {
+            //delete forward
+            IceConf operateConf = iceServerService.getMixConfById(app, editNode.getNextId(), iceId);
+            if (operateConf == null) {
+                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", editNode.getNextId());
+            }
+            if (operateConf.getForwardId() == null || !operateConf.getForwardId().equals(editNode.getSelectId())) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "nextId:" + editNode.getNextId() + " not have this forward:" + editNode.getSelectId());
+            }
+            operateConf.setForwardId(null);
+            update(operateConf, iceId);
+            iceServerService.unlink(editNode.getNextId(), editNode.getSelectId());
+            return operateConf.getMixId();
+        }
+        throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "root not support delete");
+    }
+
+    private Long edit(IceEditNode editNode) {
+        int app = editNode.getApp();
+        long iceId = editNode.getIceId();
+        IceConf operateConf = iceServerService.getMixConfById(app, editNode.getSelectId(), iceId);
+        if (operateConf == null) {
+            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "selectId", editNode.getSelectId());
+        }
+        operateConf.setDebug(editNode.getDebug() ? (byte) 1 : (byte) 0);
+        operateConf.setTimeType(editNode.getTimeType());
+        operateConf.setStart(editNode.getStart() == null ? null : new Date(editNode.getStart()));
+        operateConf.setEnd(editNode.getEnd() == null ? null : new Date(editNode.getEnd()));
+        operateConf.setInverse(editNode.getInverse() ? (byte) 1 : (byte) 0);
+        operateConf.setName(StringUtils.isEmpty(editNode.getName()) ? "" : editNode.getName());
+        if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+            if (StringUtils.hasLength(editNode.getConfField())) {
+                JSONValidator validator = JSONValidator.from(editNode.getConfField());
+                if (!validator.validate()) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
+                }
+            }
+            operateConf.setConfField(editNode.getConfField());
+        }
+        update(operateConf, iceId);
+        return operateConf.getMixId();
+    }
+
+    private Long addSon(IceEditNode editNode) {
+        int app = editNode.getApp();
+        long iceId = editNode.getIceId();
+        IceConf operateConf = iceServerService.getMixConfById(app, editNode.getSelectId(), iceId);
+        if (operateConf == null) {
+            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "selectId", editNode.getSelectId());
+        }
+        if (NodeTypeEnum.isRelation(operateConf.getType())) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "only relation can have son id:" + editNode.getSelectId());
+        }
+        if (StringUtils.hasLength(editNode.getMultiplexIds())) {
+            /*add from known node id*/
+            String[] sonIdStrs = editNode.getMultiplexIds().split(",");
+            List<Long> sonIdList = new ArrayList<>(sonIdStrs.length);
+            Set<Long> sonIdSet = new HashSet<>(sonIdStrs.length);
+            for (String sonIdStr : sonIdStrs) {
+                Long sonId = Long.valueOf(sonIdStr);
+                sonIdList.add(sonId);
+                sonIdSet.add(sonId);
+            }
+            if (iceServerService.haveCircle(operateConf.getMixId(), sonIdList)) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check sonIds");
+            }
+            List<IceConf> children = iceServerService.getMixConfListByIds(app, sonIdSet, iceId);
+            if (CollectionUtils.isEmpty(children) || children.size() != sonIdSet.size()) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "one of son id not exist:" + editNode.getMultiplexIds());
+            }
+            operateConf.setSonIds(!StringUtils.hasLength(operateConf.getSonIds()) ?
+                    String.valueOf(editNode.getMultiplexIds()) :
+                    operateConf.getSonIds() + "," + editNode.getMultiplexIds());
+            update(operateConf, iceId);
+            iceServerService.link(operateConf.getMixId(), sonIdList);
+            return operateConf.getMixId();
+        }
+        IceConf createConf = new IceConf();
+        createConf.setDebug(editNode.getDebug() ? (byte) 1 : (byte) 0);
+        createConf.setInverse(editNode.getInverse() ? (byte) 1 : (byte) 0);
+        createConf.setTimeType(editNode.getTimeType());
+        createConf.setStart(editNode.getStart() == null ? null : new Date(editNode.getStart()));
+        createConf.setEnd(editNode.getEnd() == null ? null : new Date(editNode.getEnd()));
+        createConf.setApp(app);
+        createConf.setType(editNode.getNodeType());
+        createConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
+        if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+            if (StringUtils.hasLength(editNode.getConfField())) {
+                JSONValidator validator = JSONValidator.from(editNode.getConfField());
+                if (!validator.validate()) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
+                }
+            }
+            leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
+            createConf.setConfName(editNode.getConfName());
+            createConf.setConfField(editNode.getConfField());
+        }
+        createConf.setUpdateAt(new Date());
+        createConf.setStatus(StatusEnum.OFFLINE.getStatus());
+        confMapper.insertSelective(createConf);
+        operateConf.setSonIds(!StringUtils.hasLength(operateConf.getSonIds()) ?
+                String.valueOf(createConf.getMixId()) :
+                operateConf.getSonIds() + "," + createConf.getMixId());
+        createConf.setIceId(iceId);
+        createConf.setConfId(createConf.getId());
+        createConf.setStatus(StatusEnum.ONLINE.getStatus());
+        confUpdateMapper.insertSelective(createConf);
+        iceServerService.updateLocalConfUpdateCache(createConf);
+        update(operateConf, iceId);
+        iceServerService.link(operateConf.getMixId(), createConf.getMixId());
+        return operateConf.getMixId();
+    }
+
+    private void update(IceConf operateConf, long iceId) {
+        operateConf.setUpdateAt(new Date());
+        if (!operateConf.isUpdate()) {
+            operateConf.setIceId(iceId);
+            operateConf.setConfId(operateConf.getId());
+            confUpdateMapper.insertSelective(operateConf);
+        } else {
+            confUpdateMapper.updateByPrimaryKey(operateConf);
+        }
+        iceServerService.updateLocalConfUpdateCache(operateConf);
+    }
+
 
     @Override
     @Transactional
@@ -56,11 +422,11 @@ public class IceConfServiceImpl implements IceConfService {
         conf.setId(null);
         conf.setApp(app);
         paramHandle(conf);
-        IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
+        IceConf parent = confMapper.selectByPrimaryKey(parentId);
         if (parent == null || !parent.getApp().equals(app)) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
         }
-        iceConfMapper.insertSelective(conf);
+        confMapper.insertSelective(conf);
         Long id = conf.getMixId();
         if (!StringUtils.hasLength(parent.getSonIds())) {
             parent.setSonIds(id + "");
@@ -68,7 +434,7 @@ public class IceConfServiceImpl implements IceConfService {
             parent.setSonIds(parent.getSonIds() + "," + id);
         }
         parent.setUpdateAt(new Date());
-        iceConfMapper.updateByPrimaryKeySelective(parent);
+        confMapper.updateByPrimaryKeySelective(parent);
         return id;
     }
 
@@ -88,11 +454,11 @@ public class IceConfServiceImpl implements IceConfService {
         }
         IceConfExample example = new IceConfExample();
         example.createCriteria().andAppEqualTo(app).andIdIn(sonIdSet);
-        List<IceConf> children = iceConfMapper.selectByExample(example);
+        List<IceConf> children = confMapper.selectByExample(example);
         if (CollectionUtils.isEmpty(children) || children.size() != sonIdSet.size()) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "sonIds", sonIds);
         }
-        IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
+        IceConf parent = confMapper.selectByPrimaryKey(parentId);
         if (parent == null || !parent.getApp().equals(app)) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
         }
@@ -102,7 +468,7 @@ public class IceConfServiceImpl implements IceConfService {
             parent.setSonIds(parent.getSonIds() + "," + sonIds);
         }
         parent.setUpdateAt(new Date());
-        iceConfMapper.updateByPrimaryKey(parent);
+        confMapper.updateByPrimaryKey(parent);
         return sonIdList;
     }
 
@@ -112,17 +478,17 @@ public class IceConfServiceImpl implements IceConfService {
         conf.setId(null);
         conf.setApp(app);
         paramHandle(conf);
-        IceConf next = iceConfMapper.selectByPrimaryKey(nextId);
+        IceConf next = confMapper.selectByPrimaryKey(nextId);
         if (next == null || !next.getApp().equals(app)) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", nextId);
         }
         if (next.getForwardId() != null) {
             throw new ErrorCodeException(ErrorCode.ALREADY_EXIST, "forward");
         }
-        iceConfMapper.insertSelective(conf);
+        confMapper.insertSelective(conf);
         next.setForwardId(conf.getMixId());
         next.setUpdateAt(new Date());
-        iceConfMapper.updateByPrimaryKey(next);
+        confMapper.updateByPrimaryKey(next);
         return conf.getMixId();
     }
 
@@ -132,11 +498,11 @@ public class IceConfServiceImpl implements IceConfService {
         if (iceServerService.haveCircle(nextId, forwardId)) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check forwardId");
         }
-        IceConf forward = iceConfMapper.selectByPrimaryKey(forwardId);
+        IceConf forward = confMapper.selectByPrimaryKey(forwardId);
         if (forward == null || !forward.getApp().equals(app)) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "forwardId", forwardId);
         }
-        IceConf next = iceConfMapper.selectByPrimaryKey(nextId);
+        IceConf next = confMapper.selectByPrimaryKey(nextId);
         if (next == null || !next.getApp().equals(app)) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", nextId);
         }
@@ -145,14 +511,14 @@ public class IceConfServiceImpl implements IceConfService {
         }
         next.setForwardId(forwardId);
         next.setUpdateAt(new Date());
-        iceConfMapper.updateByPrimaryKey(next);
+        confMapper.updateByPrimaryKey(next);
         return nextId;
     }
 
     @Override
     @Transactional
     public Long confEditId(Integer app, Long nodeId, Long exchangeId, Long parentId, Long nextId, Integer index) {
-        IceConf exchange = iceConfMapper.selectByPrimaryKey(exchangeId);
+        IceConf exchange = confMapper.selectByPrimaryKey(exchangeId);
         if (exchange == null || !exchange.getApp().equals(app)) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "exchangeId", exchangeId);
         }
@@ -160,7 +526,7 @@ public class IceConfServiceImpl implements IceConfService {
             if (iceServerService.haveCircle(parentId, exchangeId)) {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check exchangeId");
             }
-            IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
+            IceConf parent = confMapper.selectByPrimaryKey(parentId);
             if (parent == null || !parent.getApp().equals(app)) {
                 throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
             }
@@ -179,14 +545,14 @@ public class IceConfServiceImpl implements IceConfService {
             String str = sb.toString();
             parent.setSonIds(str.substring(0, str.length() - 1));
             parent.setUpdateAt(new Date());
-            iceConfMapper.updateByPrimaryKey(parent);
+            confMapper.updateByPrimaryKey(parent);
             return parentId;
         }
         if (nextId != null) {
             if (iceServerService.haveCircle(nextId, exchangeId)) {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check exchangeId");
             }
-            IceConf next = iceConfMapper.selectByPrimaryKey(nextId);
+            IceConf next = confMapper.selectByPrimaryKey(nextId);
             if (next == null || !next.getApp().equals(app)) {
                 throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", nextId);
             }
@@ -195,7 +561,7 @@ public class IceConfServiceImpl implements IceConfService {
             }
             next.setForwardId(exchangeId);
             next.setUpdateAt(new Date());
-            iceConfMapper.updateByPrimaryKey(next);
+            confMapper.updateByPrimaryKey(next);
             return nextId;
         }
         throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "root can not change id");
@@ -204,7 +570,7 @@ public class IceConfServiceImpl implements IceConfService {
     @Override
     @Transactional
     public Long confForwardDelete(Integer app, Long forwardId, Long nextId) {
-        IceConf next = iceConfMapper.selectByPrimaryKey(nextId);
+        IceConf next = confMapper.selectByPrimaryKey(nextId);
         if (next == null || !next.getApp().equals(app)) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", nextId);
         }
@@ -213,14 +579,14 @@ public class IceConfServiceImpl implements IceConfService {
         }
         next.setForwardId(null);
         next.setUpdateAt(new Date());
-        iceConfMapper.updateByPrimaryKey(next);
+        confMapper.updateByPrimaryKey(next);
         return nextId;
     }
 
     @Override
     @Transactional
     public Long confSonDelete(Integer app, Long sonId, Long parentId, Integer index) {
-        IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
+        IceConf parent = confMapper.selectByPrimaryKey(parentId);
         if (parent == null || !parent.getApp().equals(app)) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
         }
@@ -245,7 +611,7 @@ public class IceConfServiceImpl implements IceConfService {
             parent.setSonIds(null);
         }
         parent.setUpdateAt(new Date());
-        iceConfMapper.updateByPrimaryKey(parent);
+        confMapper.updateByPrimaryKey(parent);
         return parentId;
     }
 
@@ -258,7 +624,7 @@ public class IceConfServiceImpl implements IceConfService {
         if (originIndex.equals(toIndex)) {
             return parentId;
         }
-        IceConf parent = iceConfMapper.selectByPrimaryKey(parentId);
+        IceConf parent = confMapper.selectByPrimaryKey(parentId);
         if (parent == null || !parent.getApp().equals(app)) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", parentId);
         }
@@ -284,8 +650,49 @@ public class IceConfServiceImpl implements IceConfService {
         String str = sb.toString();
         parent.setSonIds(str.substring(0, str.length() - 1));
         parent.setUpdateAt(new Date());
-        iceConfMapper.updateByPrimaryKey(parent);
+        confMapper.updateByPrimaryKey(parent);
         return parentId;
+    }
+
+    private void paramHandle(IceEditNode editNode) {
+        if (editNode.getApp() == null || editNode.getIceId() == null || editNode.getSelectId() == null || editNode.getEditType() == null || EditTypeEnum.getEnum(editNode.getEditType()) == null) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|iceId|selectId|editType");
+        }
+        TimeTypeEnum typeEnum = TimeTypeEnum.getEnum(editNode.getTimeType());
+        if (typeEnum == null) {
+            editNode.setTimeType(TimeTypeEnum.NONE.getType());
+            typeEnum = TimeTypeEnum.NONE;
+        }
+        switch (typeEnum) {
+            case NONE:
+                editNode.setStart(null);
+                editNode.setEnd(null);
+                break;
+            case AFTER_START:
+                if (editNode.getStart() == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "start null");
+                }
+                editNode.setEnd(null);
+                break;
+            case BEFORE_END:
+                if (editNode.getEnd() == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "end null");
+                }
+                editNode.setStart(null);
+                break;
+            case BETWEEN:
+                if (editNode.getStart() == null || editNode.getEnd() == null) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "start|end null");
+                }
+                break;
+        }
+        if (editNode.getNodeType() != null && NodeTypeEnum.isRelation(editNode.getNodeType())) {
+            editNode.setConfName(null);
+            editNode.setConfField(null);
+        }
+        editNode.setDebug(editNode.getDebug() == null || editNode.getDebug());
+        editNode.setInverse(editNode.getInverse() != null && editNode.getInverse());
+        editNode.setTimeType(editNode.getTimeType() == null ? TimeTypeEnum.NONE.getType() : editNode.getTimeType());
     }
 
     private void paramHandle(IceConf conf) {
@@ -304,7 +711,7 @@ public class IceConfServiceImpl implements IceConfService {
                 leafClassCheck(conf.getApp(), conf.getConfName(), conf.getType());
             }
         } else {
-            IceConf oldConf = iceConfMapper.selectByPrimaryKey(conf.getMixId());
+            IceConf oldConf = confMapper.selectByPrimaryKey(conf.getMixId());
             if (oldConf == null || StatusEnum.OFFLINE.getStatus() == oldConf.getStatus() || !oldConf.getApp().equals(conf.getApp())) {
                 throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "confId", conf.getMixId());
             }

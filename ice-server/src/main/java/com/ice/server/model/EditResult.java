@@ -2,6 +2,7 @@ package com.ice.server.model;
 
 import lombok.Data;
 
+import java.util.Collection;
 import java.util.List;
 
 /**

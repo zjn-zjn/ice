@@ -4,7 +4,7 @@ import com.ice.common.dto.IceBaseDto;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
-import com.ice.common.enums.StatusEnum;
+import com.ice.server.enums.StatusEnum;
 import com.ice.common.model.IceShowNode;
 import com.ice.server.constant.Constant;
 import com.ice.server.dao.mapper.IceAppMapper;
@@ -82,7 +82,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public synchronized boolean haveCircle(Long nodeId, List<Long> linkIds) {
+    public synchronized boolean haveCircle(Long nodeId, Collection<Long> linkIds) {
         if (!CollectionUtils.isEmpty(linkIds)) {
             for (Long linkId : linkIds) {
                 if (haveCircle(nodeId, linkId)) {
@@ -132,6 +132,12 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
                 }
             }
         }
+    }
+
+    @Override
+    public synchronized void exchangeLink(Long nodeId, Long originId, List<Long> exchangeIds) {
+        unlink(nodeId, originId);
+        link(nodeId, exchangeIds);
     }
 
     @Override

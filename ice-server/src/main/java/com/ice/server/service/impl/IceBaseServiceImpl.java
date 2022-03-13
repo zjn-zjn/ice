@@ -5,7 +5,6 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.page.PageMethod;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
-import com.ice.common.enums.StatusEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.server.constant.Constant;
 import com.ice.server.dao.mapper.IceBaseMapper;
@@ -13,6 +12,7 @@ import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IceConfUpdateMapper;
 import com.ice.server.dao.mapper.IcePushHistoryMapper;
 import com.ice.server.dao.model.*;
+import com.ice.server.enums.StatusEnum;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceBaseSearch;
@@ -173,7 +173,7 @@ public class IceBaseServiceImpl implements IceBaseService {
     @Transactional
     public Long push(Integer app, Long iceId, String reason) {
         IceBase base = iceBaseMapper.selectByPrimaryKey(iceId);
-        if (base == null) {
+        if (base == null || !base.getApp().equals(app)) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", iceId);
         }
         IcePushHistory history = new IcePushHistory();
@@ -247,7 +247,7 @@ public class IceBaseServiceImpl implements IceBaseService {
     }
 
     @Override
-    @Transactional
+//    @Transactional
     public void importData(PushData data) {
         Collection<IceConf> confUpdates = Constant.dtoListToConfList(data.getConfUpdates(), data.getApp());
         if (!CollectionUtils.isEmpty(confUpdates)) {
@@ -297,5 +297,10 @@ public class IceBaseServiceImpl implements IceBaseService {
             transferDto.setInsertOrUpdateBases(Collections.singletonList(Constant.baseToDto(base)));
         }
         iceRmiClientManager.update(data.getApp(), transferDto);
+    }
+
+    @Override
+    public void delete(Long pushId) {
+        pushHistoryMapper.deleteByPrimaryKey(pushId);
     }
 }
