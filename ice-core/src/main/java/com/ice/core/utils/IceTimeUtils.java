@@ -14,11 +14,11 @@ public final class IceTimeUtils {
     /*
      * time check
      * all closed interval
-     * default true
+     * default false
      */
-    public static boolean timeEnable(TimeTypeEnum typeEnum, long requestTime, long start, long end) {
+    public static boolean timeDisable(TimeTypeEnum typeEnum, long requestTime, long start, long end) {
         if (typeEnum == null) {
-            return true;
+            return false;
         }
         switch (typeEnum) {
             case NONE:
@@ -32,6 +32,6 @@ public final class IceTimeUtils {
             default:
                 break;
         }
-        return true;
+        return false;
     }
 }

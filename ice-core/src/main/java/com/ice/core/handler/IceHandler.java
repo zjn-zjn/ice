@@ -54,7 +54,7 @@ public final class IceHandler {
         if (DebugEnum.filter(DebugEnum.IN_PACK, debug)) {
             log.info("handle id:{} in pack:{}", this.iceId, JSON.toJSONString(cxt.getPack()));
         }
-        if (IceTimeUtils.timeEnable(timeTypeEnum, cxt.getPack().getRequestTime(), start, end)) {
+        if (IceTimeUtils.timeDisable(timeTypeEnum, cxt.getPack().getRequestTime(), start, end)) {
             return;
         }
         try {

@@ -62,7 +62,7 @@ public abstract class BaseNode {
      * @return NodeRunStateEnum
      */
     public NodeRunStateEnum process(IceContext cxt) {
-        if (IceTimeUtils.timeEnable(iceTimeTypeEnum, cxt.getPack().getRequestTime(), iceStart, iceEnd)) {
+        if (IceTimeUtils.timeDisable(iceTimeTypeEnum, cxt.getPack().getRequestTime(), iceStart, iceEnd)) {
             ProcessUtils.collectInfo(cxt.getProcessInfo(), this, 'O');
             return NodeRunStateEnum.NONE;
         }
