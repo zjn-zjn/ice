@@ -21,7 +21,11 @@ public enum NodeRunStateEnum {
     /*
      * none
      */
-    NONE((byte) 2);
+    NONE((byte) 2),
+    /*
+     * shutdown
+     */
+    SHUT_DOWN((byte) 3);
 
     private static final Map<Byte, NodeRunStateEnum> MAP = new HashMap<>();
 

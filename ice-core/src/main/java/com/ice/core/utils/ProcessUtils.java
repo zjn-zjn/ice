@@ -19,6 +19,7 @@ public final class ProcessUtils {
      * T true F false
      * R reject(the forward return false)
      * N None
+     * S shutdown
      * [iceNodeId:process class name:process return:time used]
      * remarks:
      * 1.-I inverse active
@@ -35,6 +36,9 @@ public final class ProcessUtils {
                     break;
                 case NONE:
                     state = 'N';
+                    break;
+                case SHUT_DOWN:
+                    state = 'S';
                     break;
                 default:
                     state = '?';

@@ -1,6 +1,5 @@
 package com.ice.core.builder;
 
-import com.ice.common.enums.ErrorHandleEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.core.base.BaseLeaf;
 import com.ice.core.base.BaseNode;
@@ -12,9 +11,6 @@ public class LeafBuilder extends BaseBuilder {
 
     public LeafBuilder(BaseLeaf leaf) {
         super(leaf);
-        if (leaf.getIceErrorHandleEnum() == null) {
-            leaf.setIceErrorHandleEnum(ErrorHandleEnum.SHUT_DOWN);
-        }
     }
 
     public static LeafBuilder leaf(BaseLeaf leaf) {
@@ -44,10 +40,5 @@ public class LeafBuilder extends BaseBuilder {
     @Override
     public LeafBuilder timeType(TimeTypeEnum typeEnum) {
         return (LeafBuilder) super.timeType(typeEnum);
-    }
-
-    public LeafBuilder errorHandle(ErrorHandleEnum handleEnum) {
-        ((BaseLeaf) this.getNode()).setIceErrorHandleEnum(handleEnum);
-        return this;
     }
 }

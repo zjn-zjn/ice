@@ -3,14 +3,15 @@ package com.ice.core.base;
 import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.core.context.IceContext;
+import com.ice.core.utils.IceErrorHandle;
 import com.ice.core.utils.IceTimeUtils;
 import com.ice.core.utils.ProcessUtils;
 import lombok.Data;
 
 /**
  * @author zjn
- * 基础Node
- * 注意:开发时应避免与基础字段一致
+ * ice base node
+ * Note: it should be avoided to be consistent with the basic field during development
  */
 @Data
 public abstract class BaseNode {
@@ -56,6 +57,11 @@ public abstract class BaseNode {
     private boolean iceTransaction;
 
     private String iceLogName;
+    /*
+     * node error handle res from config
+     * this config is high priority than custom error handle method
+     */
+    private NodeRunStateEnum iceErrorStateEnum;
 
     /*
      * process
@@ -82,7 +88,25 @@ public abstract class BaseNode {
             ProcessUtils.collectRejectInfo(cxt.getProcessInfo(), this);
             return NodeRunStateEnum.FALSE;
         }
-        NodeRunStateEnum res = processNode(cxt);
+        NodeRunStateEnum res;
+        try {
+            res = processNode(cxt);
+        } catch (Exception e) {
+            /*error occur use error handle method*/
+            NodeRunStateEnum errorRunState = errorHandle(cxt);
+            if (this.iceErrorStateEnum != null) {
+                /*error handle in config is high priority then error method return*/
+                errorRunState = this.iceErrorStateEnum;
+            }
+            if (errorRunState == null || errorRunState == NodeRunStateEnum.SHUT_DOWN) {
+                /*shutdown process and throw e*/
+                ProcessUtils.collectInfo(cxt.getProcessInfo(), this, start, NodeRunStateEnum.SHUT_DOWN);
+                throw e;
+            } else {
+                /*error but continue*/
+                res = errorRunState;
+            }
+        }
         ProcessUtils.collectInfo(cxt.getProcessInfo(), this, start, res);
         return iceInverse ?
                 res == NodeRunStateEnum.TRUE ?
@@ -95,6 +119,10 @@ public abstract class BaseNode {
      * process node
      */
     protected abstract NodeRunStateEnum processNode(IceContext cxt);
+
+    public NodeRunStateEnum errorHandle(IceContext cxt) {
+        return IceErrorHandle.handleError(this, cxt);
+    }
 
     public Long getIceNodeId() {
         return iceNodeId;

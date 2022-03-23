@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author zjn
  * based on HashMap extend
  */
-public final class IceRoam extends ConcurrentHashMap<String, Object> implements Serializable {
+public class IceRoam extends ConcurrentHashMap<String, Object> implements Serializable {
 
     public IceRoam(int initialCapacity, float loadFactor) {
         super(initialCapacity, loadFactor);
@@ -89,11 +89,6 @@ public final class IceRoam extends ConcurrentHashMap<String, Object> implements 
         return (T) endMap.get(keys[i]);
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T getValue(Object key) {
-        return (T) get(key);
-    }
-
     /*
      * Multi source find value value
      * prefix with '@' string directing to roam value
@@ -119,5 +114,30 @@ public final class IceRoam extends ConcurrentHashMap<String, Object> implements 
     @SuppressWarnings("unchecked")
     public <T> T putValue(String key, T value) {
         return (T) put(key, value);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T getValue(Object key) {
+        return (T) get(key);
+    }
+
+    public <T> T getUnion(Object union, T defaultValue) {
+        T res = getUnion(union);
+        return res == null ? defaultValue : res;
+    }
+
+    public <T> T getValue(Object key, T defaultValue) {
+        T res = getValue(key);
+        return res == null ? defaultValue : res;
+    }
+
+    public <T> T getMulti(String multiKey, T defaultValue) {
+        T res = getMulti(multiKey);
+        return res == null ? defaultValue : res;
+    }
+
+    public Object get(String key, Object defaultValue) {
+        Object res = get(key);
+        return res == null ? defaultValue : res;
     }
 }

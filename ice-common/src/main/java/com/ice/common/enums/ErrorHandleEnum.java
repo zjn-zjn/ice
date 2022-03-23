@@ -5,8 +5,7 @@ import java.util.Map;
 
 /**
  * @author zjn
- * leaf error handle method
- * default shutdown and not store
+ * node error handle enum
  */
 public enum ErrorHandleEnum {
     /*
@@ -27,12 +26,7 @@ public enum ErrorHandleEnum {
     /*
      * shut down process
      */
-    SHUT_DOWN((byte) 3),
-
-    /*
-     * shut down process with store
-     */
-    SHUT_DOWN_STORE((byte) 4);
+    SHUT_DOWN((byte) 3);
 
     private static final Map<Byte, ErrorHandleEnum> MAP = new HashMap<>();
 
