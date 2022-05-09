@@ -84,6 +84,7 @@ public final class IceDispatcher {
             handler.setDebug(pack.getDebug());
             handler.setRoot(root);
             handler.setConfId(confId);
+            handler.handle(cxt);
             return Collections.singletonList(cxt);
         }
         return Collections.emptyList();
