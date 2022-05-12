@@ -250,7 +250,7 @@ public class IceConfServiceImpl implements IceConfService {
         iceServerService.updateLocalConfUpdateCache(createConf);
         update(operateConf, iceId);
         iceServerService.link(operateConf.getMixId(), createConf.getMixId());
-        return operateConf.getMixId();
+        return createConf.getMixId();
     }
 
     private Long delete(IceEditNode editNode) {
@@ -398,7 +398,7 @@ public class IceConfServiceImpl implements IceConfService {
         iceServerService.updateLocalConfUpdateCache(createConf);
         update(operateConf, iceId);
         iceServerService.link(operateConf.getMixId(), createConf.getMixId());
-        return operateConf.getMixId();
+        return createConf.getMixId();
     }
 
     private void update(IceConf operateConf, long iceId) {
