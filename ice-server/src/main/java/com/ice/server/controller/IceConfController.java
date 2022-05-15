@@ -48,12 +48,12 @@ public class IceConfController {
     }
 
     @RequestMapping(value = "/ice-server/conf/detail", method = RequestMethod.GET)
-    public IceShowConf confDetail(@RequestParam Integer app, @RequestParam Long iceId, @RequestParam(defaultValue = "server") String address) {
+    public IceShowConf confDetail(@RequestParam Integer app, @RequestParam Long iceId, @RequestParam(required = false) Long confId, @RequestParam(defaultValue = "server") String address) {
         IceBase base = iceServerService.getActiveBaseById(app, iceId);
         if (base == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|iceId");
         }
-        IceShowConf showConf = iceConfService.confDetail(app, base.getConfId(), address, iceId);
+        IceShowConf showConf = iceConfService.confDetail(app, confId == null ? base.getConfId() : confId, address, iceId);
         showConf.setIceId(iceId);
         showConf.setRegisterClients(rmiClientManager.getRegisterClients(app));
         return showConf;
