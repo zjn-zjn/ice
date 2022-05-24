@@ -147,8 +147,6 @@ public final class IceConfCache {
                     forwardUseIdsMap.put(confInfo.getForwardId(), forwardUseIds);
                 }
                 forwardUseIds.add(confInfo.getId());
-            }
-            if (confInfo.getForwardId() != null) {
                 BaseNode tmpForwardNode = tmpConfMap.get(confInfo.getForwardId());
                 if (tmpForwardNode == null) {
                     tmpForwardNode = confMap.get(confInfo.getForwardId());
