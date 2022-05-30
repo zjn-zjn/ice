@@ -8,6 +8,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 /**
@@ -21,8 +22,8 @@ public final class IceClient {
     /*
      * careless result async exec handler
      */
-    public static void process(IcePack pack) {
-        IceDispatcher.asyncDispatcher(pack);
+    public static List<Future<IceContext>> process(IcePack pack) {
+        return IceDispatcher.asyncDispatcher(pack);
     }
 
     /*

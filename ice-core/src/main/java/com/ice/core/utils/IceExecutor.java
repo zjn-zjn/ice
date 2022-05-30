@@ -49,9 +49,10 @@ public final class IceExecutor {
         });
     }
 
-    public static Future<?> submitHandler(IceHandler handler, IceContext cxt) {
+    public static Future<IceContext> submitHandler(IceHandler handler, IceContext cxt) {
         return executor.submit(() -> {
             handler.handle(cxt);
+            return cxt;
         });
     }
 }
