@@ -7,18 +7,18 @@
 # ice
 
 - **文档链接**
-    - [**首页**](http://waitmoon.com/docs/#/)
-    - [**快速开始**](http://waitmoon.com/docs/#/?id=ice使用)
-    - [**介绍**](http://waitmoon.com/docs/#/?id=ice介绍)
-    - [**交流群**](http://waitmoon.com/docs/#/?id=交流探讨)
+    - [**首页**](http://waitmoon.com/docs/zh/)
+    - [**快速开始**](http://waitmoon.com/docs/zh/guide/getting-started.html)
+    - [**介绍**](http://waitmoon.com/docs/zh/guide/)
+    - [**交流群**](http://waitmoon.com/docs/zh/guide/#%E4%BA%A4%E6%B5%81%E6%8E%A2%E8%AE%A8)
     - [**视频介绍**](https://www.bilibili.com/video/BV1hg411A7jx)
     - [**开发&配置视频**](https://www.bilibili.com/video/BV1Q34y1R7KF)
     - [**配置体验(ice-test&ice-server真实部署)**](http://waitmoon.com/)
 
 
 - **Doc links**
-    - [**Home Page**](http://waitmoon.com/docs/#/en/)
-    - [**Quick start**](http://waitmoon.com/docs/#/en/?id=ice-use)
-    - [**Introduction**](http://waitmoon.com/docs/#/en/?id=ice-introduction)
-    - [**Discussion**](http://waitmoon.com/docs/#/en/?id=exchange-discussion)
+    - [**Home Page**](http://waitmoon.com/docs)
+    - [**Quick start**](http://waitmoon.com/docs/guide/getting-started.html)
+    - [**Introduction**](http://waitmoon.com/docs/guide/)
+    - [**Discussion**](http://waitmoon.com/docs/guide/#exchange-discussion)
     - [**Configuration experience(ice-test&ice-server real deployment)**](http://waitmoon.com/)
