@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.waitmoon.ice</groupId>
         <artifactId>ice</artifactId>
-        <version>0.0.9</version>
+        <version>1.0.0</version>
     </parent>
     <packaging>jar</packaging>
     <artifactId>ice-client</artifactId>
@@ -16,12 +16,7 @@
         <dependency>
             <groupId>com.waitmoon.ice</groupId>
             <artifactId>ice-core</artifactId>
-            <version>0.0.9</version>
-        </dependency>
-        <dependency>
-            <groupId>com.waitmoon.ice</groupId>
-            <artifactId>ice-rmi-common</artifactId>
-            <version>0.0.9</version>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -13,6 +13,9 @@ public final class IceBeanUtils {
     }
 
     public static void autowireBean(Object existingBean) {
+        if (factory == null) {
+            return;
+        }
         factory.autowireBean(existingBean);
     }
 

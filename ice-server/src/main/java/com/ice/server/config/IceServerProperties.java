@@ -7,18 +7,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "ice")
 public class IceServerProperties {
     /*
-     * rmi config
+     * ice nio port
      */
-    private IceServerRmiProperties rmi = new IceServerRmiProperties();
+    private int port = 8212;
     /*
      * ice thread pool
      */
     private IceServerThreadPoolProperties pool = new IceServerThreadPoolProperties();
-
-    @Data
-    public static class IceServerRmiProperties {
-        private int port = 8212;
-    }
 
     @Data
     public static class IceServerThreadPoolProperties {

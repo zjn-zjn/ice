@@ -5,7 +5,7 @@
 
     <groupId>com.waitmoon.ice</groupId>
     <artifactId>ice</artifactId>
-    <version>0.0.9</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
     <description>Committed to solving flexible and complex hard-coded problems</description>
     <url>http://waitmoon.com/docs</url>
@@ -22,11 +22,11 @@
     <properties>
         <java.version>1.8</java.version>
         <lombok.version>1.18.22</lombok.version>
-        <fastjson.version>1.2.78</fastjson.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <mybatis.version>2.2.0</mybatis.version>
         <logback.version>1.2.7</logback.version>
         <pagehelper.version>1.4.1</pagehelper.version>
-        <slf4j.version>1.7.32</slf4j.version>
+        <slf4j.version>1.7.36</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
@@ -52,7 +52,6 @@
         <module>ice-server</module>
         <module>ice-test</module>
         <module>ice-core</module>
-        <module>ice-rmi-common</module>
         <module>ice-client-spring-boot-starter</module>
         <module>ice-client-spring-boot-autoconfigure</module>
     </modules>

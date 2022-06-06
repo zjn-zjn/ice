@@ -6,8 +6,7 @@ spring:
     username: zjn
     password: zjnzjn
 ice:
-  rmi:
-    port: 8212
+  port: 8218
   pool:
     core-size: 4
     max-size: 4

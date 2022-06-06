@@ -7,14 +7,10 @@ spring:
 
 ice:
   app: 1
-  rmi:
-    server: 127.0.0.1:8212
-    mode: ONE_WAY
+  server: 127.0.0.1:8218
   pool:
     parallelism: -1
 test:
   value: 123
 environment: dev
-
-
 

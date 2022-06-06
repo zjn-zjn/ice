@@ -18,7 +18,7 @@ import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceBaseSearch;
 import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
-import com.ice.server.rmi.IceRmiClientManager;
+import com.ice.server.nio.IceNioClientManager;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
@@ -53,13 +53,13 @@ public class IceBaseServiceImpl implements IceBaseService {
     private IceServerService iceServerService;
 
     @Resource
-    private IceRmiClientManager rmiClientManager;
+    private IceNioClientManager iceNioClientManager;
 
     @Resource
     private IceServerService serverService;
 
     @Resource
-    private IceRmiClientManager iceRmiClientManager;
+    private IceNioClientManager iceClientManager;
 
     @Override
     public PageResult<IceBase> baseList(IceBaseSearch search) {
@@ -136,7 +136,7 @@ public class IceBaseServiceImpl implements IceBaseService {
             transferDto.setInsertOrUpdateBases(Collections.singletonList(Constant.baseToDto(base)));
         }
         transferDto.setVersion(iceServerService.getVersion());
-        rmiClientManager.update(base.getApp(), transferDto);
+        iceNioClientManager.release(base.getApp(), transferDto);
         return base.getId();
     }
 
@@ -299,7 +299,7 @@ public class IceBaseServiceImpl implements IceBaseService {
             iceServerService.updateLocalBaseActiveCache(base);
             transferDto.setInsertOrUpdateBases(Collections.singletonList(Constant.baseToDto(base)));
         }
-        iceRmiClientManager.update(data.getApp(), transferDto);
+        iceClientManager.release(data.getApp(), transferDto);
     }
 
     @Override
