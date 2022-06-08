@@ -42,11 +42,11 @@ public class IceRoam extends ConcurrentHashMap<String, Object> implements Serial
             /*just one*/
             return (T) put(keys[0], value);
         }
-        IceRoam end = this;
-        IceRoam forward = this;
+        Map<String, Object> end = this;
+        Map<String, Object> forward = this;
         int i = 0;
         for (; i < keys.length - 1; i++) {
-            end = end.getValue(keys[i]);
+            end = (Map<String, Object>) end.get(keys[i]);
             if (end == null) {
                 int j = i;
                 for (; j < keys.length - 1; j++) {
@@ -82,10 +82,10 @@ public class IceRoam extends ConcurrentHashMap<String, Object> implements Serial
             /*只有一个*/
             return (T) get(keys[0]);
         }
-        IceRoam end = this;
+        Map<String, Object> end = this;
         int i = 0;
         for (; i < keys.length - 1; i++) {
-            end = (IceRoam) end.get(keys[i]);
+            end = (Map<String, Object>) end.get(keys[i]);
             if (end == null) {
                 return null;
             }
