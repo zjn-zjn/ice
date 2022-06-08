@@ -47,8 +47,4 @@ public class TestController {
         Ice.syncProcess(pack);
         return JSON.toJSONString(roam.get("result"));
     }
-
-    public static void main(String[] args) throws IOException {
-        IceNioClient client = IceNioClient.open(1, "waitmoon.com:8212");
-    }
 }

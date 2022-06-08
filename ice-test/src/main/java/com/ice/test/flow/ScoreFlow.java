@@ -26,11 +26,6 @@ public class ScoreFlow extends BaseLeafRoamFlow {
      */
     @Override
     protected boolean doRoamFlow(IceRoam roam) {
-        try {
-            Thread.sleep(new Random().nextInt(1000));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         Object value = roam.getMulti(key);
         if (value == null) {
             return false;
