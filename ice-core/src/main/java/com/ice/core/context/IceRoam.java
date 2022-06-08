@@ -33,7 +33,7 @@ public class IceRoam extends ConcurrentHashMap<String, Object> implements Serial
      * @param value value
      */
     @SuppressWarnings("unchecked")
-    public <T> T putMulti(String multiKey, T value) {
+    public <T> T putMulti(String multiKey, Object value) {
         if (multiKey == null || value == null) {
             return null;
         }
@@ -116,7 +116,7 @@ public class IceRoam extends ConcurrentHashMap<String, Object> implements Serial
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T putValue(String key, T value) {
+    public <T> T putValue(String key, Object value) {
         return (T) put(key, value);
     }
 
@@ -140,8 +140,9 @@ public class IceRoam extends ConcurrentHashMap<String, Object> implements Serial
         return res == null ? defaultValue : res;
     }
 
-    public Object get(String key, Object defaultValue) {
-        Object res = get(key);
+    @SuppressWarnings("unchecked")
+    public <T> T get(String key, T defaultValue) {
+        T res = (T) get(key);
         return res == null ? defaultValue : res;
     }
 
