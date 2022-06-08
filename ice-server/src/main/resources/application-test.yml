@@ -3,10 +3,10 @@ server:
 spring:
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/ice?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
-    username: root
-    password: rootroot
+    username: waitmoon
+    password: waitmoon
 ice:
-  port: 8218
+  port: 18121
   pool:
     core-size: 4
     max-size: 4

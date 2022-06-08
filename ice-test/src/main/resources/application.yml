@@ -7,7 +7,7 @@ spring:
 
 ice:
   app: 1
-  server: 127.0.0.1:8218
+  server: 127.0.0.1:18121
   pool:
     parallelism: -1
 test:

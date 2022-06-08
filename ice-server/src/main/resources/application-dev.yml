@@ -6,7 +6,7 @@ spring:
     username: root
     password: ERcxF3&72#32q
 ice:
-  port: 8218
+  port: 18121
   pool:
     core-size: 4
     max-size: 4

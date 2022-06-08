@@ -96,6 +96,7 @@ public final class IceNioClientManager implements InitializingBean {
         } else {
             appAddressScMap.computeIfAbsent(app, k -> new ConcurrentHashMap<>()).put(address, sc);
             scInfoMap.put(sc, new Pair<>(now, address));
+            log.info("ice nio app:{} client:{} online", app, address);
         }
         appScTimeTreeMap.computeIfAbsent(app, k -> new TreeMap<>()).computeIfAbsent(now, k -> new HashSet<>()).add(sc);
     }
