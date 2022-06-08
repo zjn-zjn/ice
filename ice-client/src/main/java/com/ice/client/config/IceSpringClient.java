@@ -11,7 +11,7 @@ import java.io.IOException;
 
 /**
  * @author zjn
- * for autowired spring beans for leaf node
+ * init the ice nio client
  */
 @Component
 @DependsOn("iceBeanFactory")

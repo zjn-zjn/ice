@@ -9,14 +9,17 @@ import lombok.Data;
 
 import java.util.List;
 
+/**
+ * @author zjn
+ * client and server transport model
+ */
 @Data
 public class IceNioModel {
 
     private String id;
 
-    //see NioType
     private NioType type;
-    //see NioOps
+
     private NioOps ops;
 
     private int app;

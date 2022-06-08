@@ -23,9 +23,19 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 
+
+/**
+ * @author zjn
+ */
 @Slf4j
 public final class IceNioClientService {
 
+    /**
+     * when server add new leaf node, check the node exist on client
+     * @param clazz server add new leaf class
+     * @param type leaf type
+     * @return result of check
+     */
     public static Pair<Integer, String> confClazzCheck(String clazz, byte type) {
         try {
             Class<?> clientClazz = Class.forName(clazz);
@@ -69,6 +79,11 @@ public final class IceNioClientService {
         }
     }
 
+    /**
+     * update when server release new config
+     * @param dto update info
+     * @return errors of base/node on instantiate
+     */
     public static List<String> update(IceTransferDto dto) {
         List<String> results = new ArrayList<>();
         try {
@@ -84,6 +99,11 @@ public final class IceNioClientService {
         return results;
     }
 
+    /**
+     * get the real instantiated client
+     * @param confId the root node id
+     * @return result of config
+     */
     public static IceShowConf getShowConf(Long confId) {
         IceShowConf clientConf = new IceShowConf();
         clientConf.setAddress(IceAddressUtils.getAddress());
@@ -135,6 +155,11 @@ public final class IceNioClientService {
         return clientNode;
     }
 
+    /**
+     * mock data when you need
+     * @param pack request pack
+     * @return result of client process cxt
+     */
     public static List<IceContext> mock(IcePack pack) {
         return Ice.processCxt(pack);
     }

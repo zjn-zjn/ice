@@ -60,14 +60,14 @@ public class IceNioServer implements InitializingBean, DisposableBean {
                     if (Thread.interrupted()) {
                         return;
                     }
-                    int readyChannels = selector.select(5000);
+                    int readyChannels = selector.select(10000);
                     if (Thread.interrupted()) {
                         return;
                     }
                     long now = System.currentTimeMillis();
-                    if (now - lastClientScCleanTime > 5000) {
-                        //5 seconds to clean client socket channel
-                        iceNioClientManager.cleanClientSc(now - 5000);
+                    if (now - lastClientScCleanTime > 10000) {
+                        //10000 seconds to clean client socket channel(client may offline without destroy)
+                        iceNioClientManager.cleanClientSc(now - 10000);
                         lastClientScCleanTime = now;
                     }
                     if (readyChannels == 0) {
@@ -105,6 +105,7 @@ public class IceNioServer implements InitializingBean, DisposableBean {
                                             break;
                                     }
                                 } else if (nioModel.getType() == NioType.RSP) {
+                                    //handle the response of client
                                     String id = nioModel.getId();
                                     if (id != null) {
                                         Object lock = lockMap.get(id);
@@ -132,6 +133,10 @@ public class IceNioServer implements InitializingBean, DisposableBean {
         log.info("create ice nio server service...success");
     }
 
+    /**
+     * destroy when server offline
+     * release resources
+     */
     @Override
     public void destroy() {
         if (nioThread != null) {

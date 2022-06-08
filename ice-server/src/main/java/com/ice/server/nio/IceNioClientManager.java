@@ -13,7 +13,6 @@ import com.ice.core.utils.IceNioUtils;
 import com.ice.server.config.IceServerProperties;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
@@ -25,6 +24,14 @@ import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.*;
 
+/**
+ * @author zjn
+ * manager ice nio clients
+ * 1.get real config from client
+ * 2.mock to client
+ * 3.release the update to client
+ * 4.check class from client
+ */
 @Slf4j
 @Service
 public final class IceNioClientManager implements InitializingBean {
@@ -62,6 +69,10 @@ public final class IceNioClientManager implements InitializingBean {
         }
     }
 
+    /**
+     * clean client socket channel: slap before cleanTime
+     * @param cleanTime less time
+     */
     public synchronized void cleanClientSc(long cleanTime) {
         for (Map.Entry<Integer, TreeMap<Long, Set<SocketChannel>>> scTimeTreeEntry : appScTimeTreeMap.entrySet()) {
             SortedMap<Long, Set<SocketChannel>> cleanMap = scTimeTreeEntry.getValue().headMap(cleanTime);
@@ -128,7 +139,6 @@ public final class IceNioClientManager implements InitializingBean {
         return socketChannels.iterator().next();
     }
 
-    @SneakyThrows
     public Pair<Integer, String> confClazzCheck(int app, String clazz, byte type) {
         SocketChannel sc = getClientSocketChannel(app, null);
         if (sc == null) {
@@ -141,7 +151,6 @@ public final class IceNioClientManager implements InitializingBean {
         request.setId(UUIDUtils.generateMost22UUID());
         request.setType(NioType.REQ);
         request.setOps(NioOps.CLAZZ_CHECK);
-        IceNioUtils.writeNioModel(sc, request);
         IceNioModel response = getResult(sc, request);
         return response == null ? null : response.getClazzCheck();
     }
@@ -159,6 +168,14 @@ public final class IceNioClientManager implements InitializingBean {
         return null;
     }
 
+    /**
+     * submit release to update client config
+     *
+     * @param app     client app
+     * @param sc      client socket channel
+     * @param dto     update data
+     * @param address client address
+     */
     private void submitRelease(int app, SocketChannel sc, IceTransferDto dto, String address) {
         executor.submit(() -> {
             try {
@@ -170,7 +187,7 @@ public final class IceNioClientManager implements InitializingBean {
                 IceNioUtils.writeNioModel(sc, request);
             } catch (Exception e) {
                 unregister(app, sc);
-                log.warn("remote client update failed app:{} address:{}}", app, address);
+                log.warn("remote client update failed app:{} address:{}", app, address);
             }
         });
     }
@@ -197,11 +214,15 @@ public final class IceNioClientManager implements InitializingBean {
         try {
             IceNioUtils.writeNioModel(sc, request);
             synchronized (lock) {
+                //wait for response from client
                 lock.wait(2000);
             }
             result = IceNioServer.resultMap.get(id);
             IceNioServer.lockMap.remove(id);
             IceNioServer.resultMap.remove(id);
+            if (result == null) {
+                throw new ErrorCodeException(ErrorCode.TIMEOUT);
+            }
         } catch (IOException e) {
             synchronized (lock) {
                 IceNioServer.lockMap.remove(id);
@@ -214,12 +235,11 @@ public final class IceNioClientManager implements InitializingBean {
                 IceNioServer.lockMap.remove(id);
                 IceNioServer.resultMap.remove(id);
             }
-            throw new ErrorCodeException(ErrorCode.TIMEOUT);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR);
         }
         return result;
     }
 
-    @SneakyThrows
     public List<IceContext> mock(int app, IcePack pack) {
         SocketChannel sc = getClientSocketChannel(app, null);
         if (sc == null) {
@@ -231,7 +251,6 @@ public final class IceNioClientManager implements InitializingBean {
         request.setId(UUIDUtils.generateMost22UUID());
         request.setApp(app);
         request.setOps(NioOps.MOCK);
-        IceNioUtils.writeNioModel(sc, request);
         IceNioModel response = getResult(sc, request);
         return response == null ? null : response.getMockResults();
     }

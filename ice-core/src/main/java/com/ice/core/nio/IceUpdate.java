@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * @author zjn
- * update client local ice cache from ice-server`s init/update msg
+ * update client local ice cache from ice-server`s init/update
  */
 @Slf4j
 public final class IceUpdate {

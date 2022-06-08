@@ -16,10 +16,10 @@ import java.nio.charset.StandardCharsets;
 @Slf4j
 public final class IceNioUtils {
 
-    private static final int bufferSize = 2048;
-
+    private static final int bufferSize = 1024;
+    //nio data header length
     private static final int headLen = 4;
-    //16M
+    //16M, size bigger than this may dirty data
     private static final int maxSize = 16 * 1024 * 1024;
 
     public static IceNioModel getNioModel(SocketChannel sc) throws IOException {
@@ -31,6 +31,7 @@ public final class IceNioUtils {
     }
 
     public static void writeNioModel(SocketChannel sc, IceNioModel nioModel) throws IOException {
+        //write nio model to server/client
         writeNioModelBytes(sc, JSON.toJSONBytes(nioModel));
     }
 
@@ -54,11 +55,11 @@ public final class IceNioUtils {
         return result;
     }
 
-
     public static synchronized String getNioModelJson(SocketChannel sc) throws IOException {
         ByteBuffer headBuffer = ByteBuffer.allocate(headLen);
         int headRead;
         while (headBuffer.hasRemaining()) {
+            //get header
             headRead = sc.read(headBuffer);
             if (headRead == -1) {
                 log.warn("Close channel {}", sc.getRemoteAddress());
@@ -67,10 +68,11 @@ public final class IceNioUtils {
             }
         }
         headBuffer.flip();
+        //get body len from header
         int bodyLen = headBuffer.getInt();
         headBuffer.clear();
         if (bodyLen > maxSize) {
-            log.error("model size too big! or something went wrong, please contact with waitmoon!");
+            log.error("size too big! or something went wrong, please contact with waitmoon!");
             return null;
         }
         ByteBuffer buffer = ByteBuffer.allocate(Math.min(bufferSize, bodyLen));

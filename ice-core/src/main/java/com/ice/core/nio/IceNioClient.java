@@ -21,6 +21,8 @@ import java.util.concurrent.ForkJoinPool;
 
 /**
  * @author zjn
+ * nio client
+ * used to connect server pull config and recieve config update
  */
 @Slf4j
 public final class IceNioClient {
@@ -60,6 +62,15 @@ public final class IceNioClient {
         return open(app, server, -1);
     }
 
+    /**
+     * create connect with ice-server
+     * one services only can instantiate one ice-client
+     * @param app the app corresponding to the client(added in ice-server)
+     * @param server ice-server nio ip/host:port
+     * @param parallelism used for parallel on async process and parallel-relation
+     * @return connected client
+     * @throws IOException error
+     */
     public static IceNioClient open(int app, String server, int parallelism) throws IOException {
         if (client != null) {
             return client;
@@ -68,12 +79,12 @@ public final class IceNioClient {
             if (client != null) {
                 return client;
             }
-            client = getClient(app, server, parallelism);
+            client = openClient(app, server, parallelism);
             return client;
         }
     }
 
-    private static IceNioClient getClient(int app, String server, int parallelism) throws IOException {
+    private static IceNioClient openClient(int app, String server, int parallelism) throws IOException {
         if (app <= 0) {
             throw new IceException("invalid app:" + app);
         }
@@ -118,6 +129,11 @@ public final class IceNioClient {
         return client;
     }
 
+    /**
+     * destroy when services offline
+     * help to clean the connect in server
+     * release resources
+     */
     public void destroy() {
         if (thread != null) {
             thread.interrupt();
@@ -145,7 +161,10 @@ public final class IceNioClient {
         client = null;
     }
 
-    public final static class NioClientHandle implements Runnable {
+    /**
+     * handle the ops with ice-server
+     */
+    private final static class NioClientHandle implements Runnable {
 
         private final IceNioClient client;
 
@@ -162,6 +181,7 @@ public final class IceNioClient {
                         return;
                     }
                     if (readyChannels == 0) {
+                        //keep heartbeat with server
                         IceNioModel heartBeat = new IceNioModel();
                         heartBeat.setType(NioType.REQ);
                         heartBeat.setOps(NioOps.SLAP);
@@ -211,6 +231,7 @@ public final class IceNioClient {
                     }
                 } catch (Exception e) {
                     while (true) {
+                        //server may restart, just keep try connect server, broken by client destroy
                         if (Thread.interrupted()) {
                             return;
                         }

@@ -112,24 +112,24 @@ public final class IceHandler {
     }
 
     /*
-     * handler的debug枚举
-     * 控制着入参,出参与执行过程的打印
+     * handler`s debug enum
+     * controls the printing of the input and output parameters of the execution process
      */
     private enum DebugEnum {
         /*
-         * 入参PACK 1
+         * enter PACK 1
          */
         IN_PACK,
         /*
-         * 执行过程(和节点debug一并使用) 2
+         * execution process (used together with node debug) 2
          */
         PROCESS,
         /*
-         * 结局ROAM 4
+         * finale ROAM 4
          */
         OUT_ROAM,
         /*
-         * 结局PACK 8
+         * finale PACK 8
          */
         OUT_PACK;
 
