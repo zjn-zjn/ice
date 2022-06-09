@@ -65,8 +65,9 @@ public final class IceNioClient {
     /**
      * create connect with ice-server
      * one services only can instantiate one ice-client
-     * @param app the app corresponding to the client(added in ice-server)
-     * @param server ice-server nio ip/host:port
+     *
+     * @param app         the app corresponding to the client(added in ice-server)
+     * @param server      ice-server nio ip/host:port
      * @param parallelism used for parallel on async process and parallel-relation
      * @return connected client
      * @throws IOException error

@@ -71,16 +71,21 @@ public final class IceNioClientManager implements InitializingBean {
 
     /**
      * clean client socket channel: slap before cleanTime
+     *
      * @param cleanTime less time
      */
     public synchronized void cleanClientSc(long cleanTime) {
         for (Map.Entry<Integer, TreeMap<Long, Set<SocketChannel>>> scTimeTreeEntry : appScTimeTreeMap.entrySet()) {
-            SortedMap<Long, Set<SocketChannel>> cleanMap = scTimeTreeEntry.getValue().headMap(cleanTime);
-            if (!CollectionUtils.isEmpty(cleanMap)) {
-                for (Set<SocketChannel> cleanScSet : cleanMap.values()) {
-                    if (!CollectionUtils.isEmpty(cleanScSet)) {
-                        for (SocketChannel cleanSc : cleanScSet) {
-                            unregister(scTimeTreeEntry.getKey(), cleanSc);
+            TreeMap<Long, Set<SocketChannel>> treeMap = scTimeTreeEntry.getValue();
+            if (treeMap != null) {
+                SortedMap<Long, Set<SocketChannel>> cleanMap = treeMap.headMap(cleanTime);
+                if (!CollectionUtils.isEmpty(cleanMap)) {
+                    Collection<Set<SocketChannel>> cleanScSetList = cleanMap.values();
+                    for (Set<SocketChannel> cleanScSet : cleanScSetList) {
+                        if (!CollectionUtils.isEmpty(cleanScSet)) {
+                            for (SocketChannel cleanSc : cleanScSet) {
+                                unregister(scTimeTreeEntry.getKey(), cleanSc);
+                            }
                         }
                     }
                 }
