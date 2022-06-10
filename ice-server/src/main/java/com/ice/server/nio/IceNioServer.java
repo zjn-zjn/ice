@@ -1,160 +1,70 @@
 package com.ice.server.nio;
 
-import com.ice.core.nio.IceNioModel;
-import com.ice.core.nio.NioType;
-import com.ice.core.utils.IceNioUtils;
 import com.ice.server.config.IceServerProperties;
-import com.ice.server.service.IceServerService;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
-@Service
-public class IceNioServer implements InitializingBean, DisposableBean {
+public class IceNioServer {
 
-    public static Map<String, Object> lockMap = new ConcurrentHashMap<>();
+    private final IceServerProperties properties;
 
-    public static Map<String, IceNioModel> resultMap = new ConcurrentHashMap<>();
+    private EventLoopGroup bossEventLoop;
 
-    @Resource
-    private IceServerService serverService;
+    private EventLoopGroup workEventLoop;
 
-    @Resource
-    private IceServerProperties properties;
-
-    private ServerSocketChannel ssc;
-
-    @Resource
-    private IceNioClientManager iceNioClientManager;
-
-    private Thread nioThread;
-
-    private Selector selector;
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        log.info("create ice nio server service...");
-        ssc = ServerSocketChannel.open();
-        ssc.socket().bind(new InetSocketAddress(properties.getPort()));
-        ssc.configureBlocking(false);
-
-        selector = Selector.open();
-        ssc.register(selector, SelectionKey.OP_ACCEPT);
-        nioThread = new Thread(() -> {
-            long lastClientScCleanTime = System.currentTimeMillis();
-            while (true) {
-                try {
-                    if (Thread.interrupted()) {
-                        return;
-                    }
-                    int readyChannels = selector.select(10000);
-                    if (Thread.interrupted()) {
-                        return;
-                    }
-                    long now = System.currentTimeMillis();
-                    if (now - lastClientScCleanTime > 10000) {
-                        //10000 seconds to clean client socket channel(client may offline without destroy)
-                        iceNioClientManager.cleanClientSc(now - 10000);
-                        lastClientScCleanTime = now;
-                    }
-                    if (readyChannels == 0) {
-                        continue;
-                    }
-                    Iterator<SelectionKey> selectionKeyIterator = selector.selectedKeys().iterator();
-                    while (selectionKeyIterator.hasNext()) {
-                        SelectionKey key = selectionKeyIterator.next();
-                        selectionKeyIterator.remove();
-                        if (key.isValid() && key.isAcceptable()) {
-                            SocketChannel sc = ssc.accept();
-                            sc.configureBlocking(false);
-                            sc.register(selector, SelectionKey.OP_READ);
-                        } else if (key.isValid() && key.isReadable()) {
-                            SocketChannel sc = (SocketChannel) key.channel();
-                            IceNioModel nioModel = IceNioUtils.getNioModel(sc);
-                            if (nioModel != null) {
-                                if (nioModel.getType() == NioType.REQ) {
-                                    switch (nioModel.getOps()) {
-                                        case SLAP:
-                                            iceNioClientManager.register(nioModel.getApp(), sc, nioModel.getAddress());
-                                            break;
-                                        case DESTROY:
-                                            iceNioClientManager.unregister(nioModel.getApp(), sc);
-                                            sc.close();
-                                            break;
-                                        case INIT:
-                                            iceNioClientManager.register(nioModel.getApp(), sc, nioModel.getAddress());
-                                            IceNioModel response = new IceNioModel();
-                                            response.setType(NioType.RSP);
-                                            response.setInitDto(serverService.getInitConfig(nioModel.getApp()));
-                                            IceNioUtils.writeNioModel(sc, response);
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                } else if (nioModel.getType() == NioType.RSP) {
-                                    //handle the response of client
-                                    String id = nioModel.getId();
-                                    if (id != null) {
-                                        Object lock = lockMap.get(id);
-                                        if (lock != null) {
-                                            synchronized (lock) {
-                                                if (lockMap.containsKey(id)) {
-                                                    resultMap.put(id, nioModel);
-                                                    lock.notifyAll();
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("server socket channel run warn", e);
-                }
-            }
-        });
-        nioThread.start();
-        //waiting for client heartbeat after restart
-        Thread.sleep(3000);
-        log.info("create ice nio server service...success");
+    public IceNioServer(IceServerProperties properties) {
+        this.properties = properties;
     }
 
-    /**
-     * destroy when server offline
-     * release resources
-     */
-    @Override
+    public void run() {
+        try {
+            bossEventLoop = new NioEventLoopGroup();
+            workEventLoop = new NioEventLoopGroup();
+            ServerBootstrap serverBootstrap = new ServerBootstrap();
+            serverBootstrap.group(bossEventLoop, workEventLoop)
+                    .channel(NioServerSocketChannel.class)
+                    .childOption(ChannelOption.SO_KEEPALIVE, Boolean.TRUE)
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel socketChannel) {
+                            socketChannel.pipeline().addLast(new IdleStateHandler(properties.getReaderIdleTime(), 0, 0, TimeUnit.SECONDS));
+                            socketChannel.pipeline().addLast(new LengthFieldBasedFrameDecoder(properties.getMaxFrameLength(), 0, 4, 0, 4));
+                            socketChannel.pipeline().addLast(new IceNioServerHandler());
+                        }
+                    });
+            ChannelFuture channelFuture = serverBootstrap.bind(properties.getIp(), properties.getPort()).sync();
+            log.info("ice nio start success");
+            channelFuture.channel().closeFuture().sync();
+        } catch (Exception e) {
+            throw new RuntimeException("ice nio start error", e);
+        } finally {
+            if (bossEventLoop != null) {
+                bossEventLoop.shutdownGracefully();
+            }
+            if (workEventLoop != null) {
+                workEventLoop.shutdownGracefully();
+            }
+        }
+    }
+
     public void destroy() {
-        if (nioThread != null) {
-            nioThread.interrupt();
+        if (bossEventLoop != null) {
+            bossEventLoop.shutdownGracefully();
         }
-        if (selector != null) {
-            try {
-                selector.close();
-            } catch (IOException e) {
-                //ignore
-            }
-        }
-        if (ssc != null) {
-            try {
-                ssc.close();
-            } catch (Exception e) {
-                //ignore
-            }
+        if (workEventLoop != null) {
+            workEventLoop.shutdownGracefully();
         }
     }
 }

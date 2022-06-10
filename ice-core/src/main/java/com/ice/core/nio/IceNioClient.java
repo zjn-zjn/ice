@@ -1,259 +1,113 @@
 package com.ice.core.nio;
 
-import com.alibaba.fastjson.JSON;
-import com.ice.common.exception.IceException;
-import com.ice.common.model.IceShowConf;
-import com.ice.common.model.Pair;
-import com.ice.common.utils.IceAddressUtils;
-import com.ice.core.context.IceContext;
 import com.ice.core.utils.IceExecutor;
-import com.ice.core.utils.IceNioUtils;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
-import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
-/**
- * @author zjn
- * nio client
- * used to connect server pull config and recieve config update
- */
 @Slf4j
-public final class IceNioClient {
-
-    private static volatile IceNioClient client;
+public class IceNioClient {
 
     private final int app;
+    private String server;
+    private String host;
+    private int port;
+    private Bootstrap bootstrap;
+    private int maxFrameLength = 16 * 1024 * 1024;
+    private EventLoopGroup worker;
+    private int parallelism = -1;
 
-    private Thread thread;
-
-    private Selector selector;
-
-    private String address;
-
-    private String serverHost;
-
-    private int serverPort;
-
-    private SocketChannel sc;
-
-    private IceNioClient(int app, String server) {
+    public IceNioClient(int app, String server, int parallelism, int maxFrameLength) {
         this.app = app;
         this.setServer(server);
+        this.parallelism = parallelism;
+        this.maxFrameLength = maxFrameLength;
+        init();
+    }
+
+    public IceNioClient(int app, String server) {
+        this.app = app;
+        this.setServer(server);
+        init();
     }
 
     private void setServer(String server) {
         String[] serverHostPort = server.split(":");
         try {
-            this.serverHost = serverHostPort[0];
-            this.serverPort = Integer.parseInt(serverHostPort[1]);
+            this.host = serverHostPort[0];
+            this.port = Integer.parseInt(serverHostPort[1]);
         } catch (Exception e) {
             throw new RuntimeException("ice server config error conf:" + server);
         }
     }
 
-    public static IceNioClient open(int app, String server) throws IOException {
-        return open(app, server, -1);
-    }
-
-    /**
-     * create connect with ice-server
-     * one services only can instantiate one ice-client
-     *
-     * @param app         the app corresponding to the client(added in ice-server)
-     * @param server      ice-server nio ip/host:port
-     * @param parallelism used for parallel on async process and parallel-relation
-     * @return connected client
-     * @throws IOException error
-     */
-    public static IceNioClient open(int app, String server, int parallelism) throws IOException {
-        if (client != null) {
-            return client;
-        }
-        synchronized (IceNioClient.class) {
-            if (client != null) {
-                return client;
-            }
-            client = openClient(app, server, parallelism);
-            return client;
-        }
-    }
-
-    private static IceNioClient openClient(int app, String server, int parallelism) throws IOException {
-        if (app <= 0) {
-            throw new IceException("invalid app:" + app);
-        }
-        IceNioClient client = new IceNioClient(app, server);
+    private void init() {
+        bootstrap = new Bootstrap();
+        worker = new NioEventLoopGroup();
+        bootstrap.group(worker)
+                .channel(NioSocketChannel.class)
+                .handler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    protected void initChannel(SocketChannel ch) {
+                        ch.pipeline().addLast(new IdleStateHandler(5, 0, 0, TimeUnit.SECONDS));
+                        ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(maxFrameLength, 0, 4, 0, 4));
+                        ch.pipeline().addLast(new IceNioClientHandler(app, IceNioClient.this));
+                    }
+                });
         if (parallelism <= 0) {
             IceExecutor.setExecutor(new ForkJoinPool());
         } else {
             IceExecutor.setExecutor(new ForkJoinPool(parallelism));
         }
-        log.info("ice init start");
-        try {
-            client.sc = SocketChannel.open(new InetSocketAddress(client.serverHost, client.serverPort));
-        } catch (IOException e) {
-            throw new IceException("ice connect server error, server:" + server);
-        }
-        String initJson;
-        try {
-            //init ice client address
-            client.address = IceAddressUtils.getAddress(client.sc);
-            IceNioModel initRequest = new IceNioModel();
-            initRequest.setOps(NioOps.INIT);
-            initRequest.setType(NioType.REQ);
-            initRequest.setApp(app);
-            initRequest.setAddress(client.address);
-            IceNioUtils.writeNioModel(client.sc, initRequest);
-            initJson = IceNioUtils.getNioModelJson(client.sc);
-        } catch (IOException e) {
-            throw new IceException("ice init error, maybe server is down app:" + app + " " + server);
-        }
-        if (initJson == null) {
-            throw new IceException("ice init error, maybe server is down app:" + app + " " + server);
-        }
-        IceNioModel initResponse = JSON.parseObject(initJson, IceNioModel.class);
-        log.info("ice client init content:{}", initJson);
-        IceUpdate.update(initResponse.getInitDto());
-        log.info("ice client init iceEnd success");
-        client.selector = Selector.open();
-        client.sc.configureBlocking(false);
-        client.sc.register(client.selector, SelectionKey.OP_READ);
-        client.thread = new Thread(new NioClientHandle(client));
-        client.thread.start();
-        return client;
     }
 
-    /**
-     * destroy when services offline
-     * help to clean the connect in server
-     * release resources
-     */
     public void destroy() {
-        if (thread != null) {
-            thread.interrupt();
+        if (worker != null) {
+            worker.shutdownGracefully();
         }
-        if (sc != null) {
-            IceNioModel destroy = new IceNioModel();
-            destroy.setType(NioType.REQ);
-            destroy.setOps(NioOps.DESTROY);
-            destroy.setApp(app);
-            destroy.setAddress(address);
-            try {
-                IceNioUtils.writeNioModel(sc, destroy);
-                sc.close();
-            } catch (IOException e) {
-                //ignore
-            }
-        }
-        if (selector != null) {
-            try {
-                selector.close();
-            } catch (IOException e) {
-                //ignore
-            }
-        }
-        client = null;
     }
 
-    /**
-     * handle the ops with ice-server
-     */
-    private final static class NioClientHandle implements Runnable {
-
-        private final IceNioClient client;
-
-        public NioClientHandle(IceNioClient client) {
-            this.client = client;
-        }
-
-        @Override
-        public void run() {
-            while (true) {
-                try {
-                    int readyChannels = client.selector.select(2000);
-                    if (Thread.interrupted()) {
-                        return;
-                    }
-                    if (readyChannels == 0) {
-                        //keep heartbeat with server
-                        IceNioModel heartBeat = new IceNioModel();
-                        heartBeat.setType(NioType.REQ);
-                        heartBeat.setOps(NioOps.SLAP);
-                        heartBeat.setApp(client.app);
-                        heartBeat.setAddress(client.address);
-                        IceNioUtils.writeNioModel(client.sc, heartBeat);
-                        continue;
-                    }
-                    Iterator<SelectionKey> selectionKeyIterator = client.selector.selectedKeys().iterator();
-                    while (selectionKeyIterator.hasNext()) {
-                        SelectionKey key = selectionKeyIterator.next();
-                        selectionKeyIterator.remove();
-                        if (key.isValid() && key.isReadable()) {
-                            SocketChannel sc = (SocketChannel) key.channel();
-                            IceNioModel request = IceNioUtils.getNioModel(sc);
-                            if (request != null) {
-                                IceNioModel response = new IceNioModel();
-                                response.setType(NioType.RSP);
-                                response.setId(request.getId());
-                                switch (request.getOps()) {
-                                    case CLAZZ_CHECK:
-                                        Pair<Integer, String> checkResult = IceNioClientService.confClazzCheck(request.getClazz(), request.getNodeType());
-                                        response.setClazzCheck(checkResult);
-                                        break;
-                                    case UPDATE:
-                                        List<String> errors = IceNioClientService.update(request.getUpdateDto());
-                                        response.setUpdateErrors(errors);
-                                        break;
-                                    case SHOW_CONF:
-                                        IceShowConf conf = IceNioClientService.getShowConf(request.getConfId());
-                                        response.setShowConf(conf);
-                                        break;
-                                    case MOCK:
-                                        List<IceContext> mockResults = IceNioClientService.mock(request.getPack());
-                                        response.setMockResults(mockResults);
-                                        break;
-                                    case PING:
-                                        response.setApp(client.app);
-                                        response.setAddress(client.address);
-                                        break;
-                                    default:
-                                        break;
-                                }
-                                IceNioUtils.writeNioModel(sc, response);
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    while (true) {
-                        //server may restart, just keep try connect server, broken by client destroy
-                        if (Thread.interrupted()) {
-                            return;
-                        }
-                        try {
-                            client.sc = SocketChannel.open(new InetSocketAddress(client.serverHost, client.serverPort));
-                            client.sc.configureBlocking(false);
-                            client.sc.register(client.selector, SelectionKey.OP_READ);
-                            log.info("ice reconnected!");
-                            break;
-                        } catch (Exception ioe) {
-                            log.warn("ice reconnecting...");
-                        }
-                        try {
-                            Thread.sleep(1000);
-                        } catch (Exception se) {
-                            //ignore
-                        }
-                    }
+    public void connect() {
+        try {
+            bootstrap.connect(host, port).sync();
+        } catch (Exception e) {
+            if (!IceNioClientHandler.init) {
+                //ice client not init just shutdown it
+                if (worker != null) {
+                    worker.shutdownGracefully();
                 }
-
+                throw new RuntimeException("ice nio client start error:" + server, e);
             }
         }
+    }
+
+    public void reconnect() throws InterruptedException {
+        ChannelFuture cf = bootstrap.connect(host, port);
+        cf.addListener((ChannelFutureListener) future -> {
+            if (!future.isSuccess()) {
+                //the reconnection handed over by backend thread
+                future.channel().eventLoop().schedule(() -> {
+                    try {
+                        reconnect();
+                    } catch (Exception e) {
+                        log.warn("ice nio client connected error", e);
+                    }
+                }, 2000, TimeUnit.MILLISECONDS);
+            } else {
+                log.info("ice nio client reconnected");
+            }
+        });
+        cf.channel().closeFuture().sync();
     }
 }

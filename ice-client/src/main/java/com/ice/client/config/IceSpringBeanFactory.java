@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * use AutowireCapableBeanFactory
  * for autowired spring beans for leaf node
  */
-@Component("iceBeanFactory")
+@Component
 public class IceSpringBeanFactory implements IceBeanUtils.IceBeanFactory, ApplicationContextAware {
 
     private AutowireCapableBeanFactory beanFactory;

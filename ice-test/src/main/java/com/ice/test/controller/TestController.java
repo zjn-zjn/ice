@@ -4,11 +4,9 @@ import com.alibaba.fastjson.JSON;
 import com.ice.core.Ice;
 import com.ice.core.context.IcePack;
 import com.ice.core.context.IceRoam;
-import com.ice.core.nio.IceNioClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.Map;
 
 /**
