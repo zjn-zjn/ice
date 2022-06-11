@@ -14,7 +14,9 @@ public enum ErrorCode implements IErrorCode {
     NO_AVAILABLE_CLIENT(-8, "no available client app:{0}"),
     CLIENT_NOT_AVAILABLE(-9, "client not available app:{0} address:{1}"),
     REMOTE_RUN_ERROR(-10, "client run error app:{0} address:{1}"),
-    CUSTOM(-11, "{0}");
+    CLIENT_CLOSED(-11, "client closed"),
+    TIMEOUT(-12, "time out"),
+    CUSTOM(-13, "{0}");
     private final int code;
     private final String msgTemplate;
 

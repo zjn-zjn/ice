@@ -573,7 +573,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     public Collection<IceConfDto> getActiveConfsByApp(Integer app) {
         Map<Long, IceConf> map = confActiveMap.get(app);
         if (map == null) {
-            return Collections.emptyList();
+            return new ArrayList<>(1);
         }
         return Constant.confListToDtoList(map.values());
     }
@@ -581,7 +581,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     public Collection<IceBaseDto> getActiveBasesByApp(Integer app) {
         Map<Long, IceBase> map = baseActiveMap.get(app);
         if (map == null) {
-            return Collections.emptyList();
+            return new ArrayList<>(1);
         }
         return Constant.baseListToDtoList(map.values());
     }

@@ -147,8 +147,6 @@ public final class IceConfCache {
                     forwardUseIdsMap.put(confInfo.getForwardId(), forwardUseIds);
                 }
                 forwardUseIds.add(confInfo.getId());
-            }
-            if (confInfo.getForwardId() != null) {
                 BaseNode tmpForwardNode = tmpConfMap.get(confInfo.getForwardId());
                 if (tmpForwardNode == null) {
                     tmpForwardNode = confMap.get(confInfo.getForwardId());
@@ -158,7 +156,10 @@ public final class IceConfCache {
                     errors.add("forwardId:" + confInfo.getForwardId() + " not exist conf:" + errorModeStr);
                     log.error("forwardId:{} not exist please check! conf:{}", confInfo.getForwardId(), errorModeStr);
                 } else {
-                    tmpConfMap.get(confInfo.getId()).setIceForward(tmpForwardNode);
+                    BaseNode nextNode = tmpConfMap.get(confInfo.getId());
+                    if (nextNode != null) {
+                        nextNode.setIceForward(tmpForwardNode);
+                    }
                 }
             }
         }

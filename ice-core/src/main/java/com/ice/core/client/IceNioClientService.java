@@ -1,14 +1,12 @@
-package com.ice.client.rmi;
+package com.ice.core.client;
 
 import com.alibaba.fastjson.JSON;
-import com.ice.client.IceClient;
-import com.ice.client.change.IceUpdate;
-import com.ice.client.utils.AddressUtils;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
 import com.ice.common.model.Pair;
+import com.ice.core.Ice;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
 import com.ice.core.cache.IceConfCache;
@@ -19,32 +17,27 @@ import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.core.relation.*;
 import com.ice.core.utils.IceLinkedList;
-import com.ice.rmi.common.client.IceRmiClientService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.CollectionUtils;
 
-import java.io.Serializable;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
+
+/**
+ * @author zjn
+ */
 @Slf4j
-public class IceRmiClientServiceImpl implements IceRmiClientService, Serializable {
+public final class IceNioClientService {
 
-    private static volatile boolean waitInit = true;
-
-    private static volatile long initVersion;
-
-    private List<IceTransferDto> waitMessageList = new ArrayList<>();
-
-    public static void initEnd(long version) {
-        waitInit = false;
-        initVersion = version;
-    }
-
-    @Override
-    public Pair<Integer, String> confClazzCheck(String clazz, byte type) throws RemoteException {
+    /**
+     * when server add new leaf node, check the node exist on client
+     *
+     * @param clazz   server add new leaf class
+     * @param type    leaf type
+     * @param address address
+     * @return result of check
+     */
+    public static Pair<Integer, String> confClazzCheck(String clazz, byte type, String address) {
         try {
             Class<?> clientClazz = Class.forName(clazz);
             NodeTypeEnum typeEnum = NodeTypeEnum.getEnum(type);
@@ -78,56 +71,46 @@ public class IceRmiClientServiceImpl implements IceRmiClientService, Serializabl
             if (res) {
                 return new Pair<>(1, null);
             } else {
-                return new Pair<>(0, "type not match in " + AddressUtils.getAddress() + " input(" + clazz + "|" + type + ")");
+                return new Pair<>(0, "type not match in " + address + " input(" + clazz + "|" + type + ")");
             }
         } catch (ClassNotFoundException e) {
-            return new Pair<>(0, "class not found in " + AddressUtils.getAddress() + " input(" + clazz + "|" + type + ")");
+            return new Pair<>(0, "class not found in " + address + " input(" + clazz + "|" + type + ")");
         } catch (Exception e) {
-            return new Pair<>(0, AddressUtils.getAddress());
+            return new Pair<>(0, address);
         }
     }
 
-    @Override
-    public List<String> update(IceTransferDto dto) throws RemoteException {
+    /**
+     * update when server release new config
+     *
+     * @param dto update info
+     * @return errors of base/node on instantiate
+     */
+    public static List<String> update(IceTransferDto dto) {
+        List<String> results = new ArrayList<>();
         try {
-            if (waitInit) {
-                log.info("wait init dto:{}", JSON.toJSONString(dto));
-                waitMessageList.add(dto);
-                return null;
+            log.info("ice update start dto:{}", JSON.toJSONString(dto));
+            List<String> errors = IceUpdate.update(dto);
+            if (!errors.isEmpty()) {
+                results.addAll(errors);
             }
-            if (!CollectionUtils.isEmpty(waitMessageList)) {
-                for (IceTransferDto transferDto : waitMessageList) {
-                    handleBeforeInitMessage(transferDto);
-                }
-                waitMessageList = null;
-            }
-            handleMessage(dto);
+            log.info("ice update end success");
         } catch (Exception e) {
             log.error("ice update error dto:{} e:", JSON.toJSONString(dto), e);
         }
-        return Collections.emptyList();
+        return results;
     }
 
-    private void handleBeforeInitMessage(IceTransferDto dto) {
-        if (dto.getVersion() > initVersion) {
-            log.info("ice update wait msg iceStart iceInfo:{}", dto);
-            IceUpdate.update(dto);
-            log.info("ice update wait msg iceEnd success");
-            return;
-        }
-        log.info("ice update version low then init version:{}, msg:{}", initVersion, JSON.toJSONString(dto));
-    }
-
-    private void handleMessage(IceTransferDto dto) {
-        log.info("ice update start dto:{}", JSON.toJSONString(dto));
-        IceUpdate.update(dto);
-        log.info("ice update end success");
-    }
-
-    @Override
-    public IceShowConf getShowConf(Long confId) throws RemoteException {
+    /**
+     * get the real instantiated client
+     *
+     * @param confId  the root node id
+     * @param address address
+     * @return result of config
+     */
+    public static IceShowConf getShowConf(Long confId, String address) {
         IceShowConf clientConf = new IceShowConf();
-        clientConf.setAddress(AddressUtils.getAddress());
+        clientConf.setAddress(address);
         clientConf.setConfId(confId);
         BaseNode node = IceConfCache.getConfById(confId);
         if (node != null) {
@@ -136,7 +119,7 @@ public class IceRmiClientServiceImpl implements IceRmiClientService, Serializabl
         return clientConf;
     }
 
-    private IceShowNode assembleShowNode(BaseNode node) {
+    private static IceShowNode assembleShowNode(BaseNode node) {
         if (node == null) {
             return null;
         }
@@ -176,12 +159,13 @@ public class IceRmiClientServiceImpl implements IceRmiClientService, Serializabl
         return clientNode;
     }
 
-    @Override
-    public List<IceContext> mock(IcePack pack) throws RemoteException {
-        return IceClient.processCxt(pack);
-    }
-
-    @Override
-    public void ping() throws RemoteException {
+    /**
+     * mock data when you need
+     *
+     * @param pack request pack
+     * @return result of client process cxt
+     */
+    public static List<IceContext> mock(IcePack pack) {
+        return Ice.processCxt(pack);
     }
 }

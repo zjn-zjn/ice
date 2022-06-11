@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.waitmoon.ice</groupId>
         <artifactId>ice</artifactId>
-        <version>0.0.9</version>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>ice-server</artifactId>
@@ -26,12 +26,7 @@
         <dependency>
             <groupId>com.waitmoon.ice</groupId>
             <artifactId>ice-core</artifactId>
-            <version>0.0.9</version>
-        </dependency>
-        <dependency>
-            <groupId>com.waitmoon.ice</groupId>
-            <artifactId>ice-rmi-common</artifactId>
-            <version>0.0.9</version>
+            <version>1.0.0</version>
         </dependency>
         <!--web-->
         <dependency>
@@ -69,6 +64,9 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.ice.server.IceServerApplication</mainClass>
+                </configuration>
             </plugin>
         </plugins>
         <finalName>ice-server</finalName>

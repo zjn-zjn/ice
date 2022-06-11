@@ -15,7 +15,7 @@ import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceEditNode;
 import com.ice.server.model.IceLeafClass;
-import com.ice.server.rmi.IceRmiClientManager;
+import com.ice.server.nio.IceNioClientManager;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
@@ -37,10 +37,10 @@ public class IceConfServiceImpl implements IceConfService {
     private IceServerService iceServerService;
 
     @Resource
-    private IceRmiClientManager rmiClientManager;
+    private IceConfUpdateMapper confUpdateMapper;
 
     @Resource
-    private IceConfUpdateMapper confUpdateMapper;
+    private IceNioClientManager iceNioClientManager;
 
     @Override
     public Long confEdit(IceEditNode editNode) {
@@ -250,7 +250,7 @@ public class IceConfServiceImpl implements IceConfService {
         iceServerService.updateLocalConfUpdateCache(createConf);
         update(operateConf, iceId);
         iceServerService.link(operateConf.getMixId(), createConf.getMixId());
-        return operateConf.getMixId();
+        return createConf.getMixId();
     }
 
     private Long delete(IceEditNode editNode) {
@@ -398,7 +398,7 @@ public class IceConfServiceImpl implements IceConfService {
         iceServerService.updateLocalConfUpdateCache(createConf);
         update(operateConf, iceId);
         iceServerService.link(operateConf.getMixId(), createConf.getMixId());
-        return operateConf.getMixId();
+        return createConf.getMixId();
     }
 
     private void update(IceConf operateConf, long iceId) {
@@ -477,13 +477,13 @@ public class IceConfServiceImpl implements IceConfService {
         if (app == null || !StringUtils.hasLength(clazz) || typeEnum == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|clazz|type");
         }
-        Pair<Integer, String> res = rmiClientManager.confClazzCheck(app, clazz, type);
-        if (res.getKey() == 1) {
+        Pair<Integer, String> res = iceNioClientManager.confClazzCheck(app, clazz, type);
+        if (res != null && res.getKey() == 1) {
             iceServerService.addLeafClass(app, type, clazz);
             return null;
         }
         iceServerService.removeLeafClass(app, type, clazz);
-        throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, res.getValue());
+        throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, res == null ? null : res.getValue());
     }
 
     @Override
@@ -499,7 +499,7 @@ public class IceConfServiceImpl implements IceConfService {
             showConf.setRoot(root);
             return showConf;
         }
-        IceShowConf clientConf = rmiClientManager.getClientShowConf(app, confId, address);
+        IceShowConf clientConf = iceNioClientManager.getClientShowConf(app, confId, address);
         if (clientConf == null || clientConf.getRoot() == null) {
             throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, address);
         }

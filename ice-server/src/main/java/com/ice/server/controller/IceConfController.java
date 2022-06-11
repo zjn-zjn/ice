@@ -7,7 +7,7 @@ import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceEditNode;
 import com.ice.server.model.IceLeafClass;
-import com.ice.server.rmi.IceRmiClientManager;
+import com.ice.server.nio.IceNioClientManager;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
 import org.springframework.web.bind.annotation.*;
@@ -30,7 +30,7 @@ public class IceConfController {
     private IceServerService iceServerService;
 
     @Resource
-    private IceRmiClientManager rmiClientManager;
+    private IceNioClientManager iceNioClientManager;
 
     @RequestMapping(value = "/ice-server/conf/edit", method = RequestMethod.POST)
     public Long confEdit(@RequestBody IceEditNode editNode) {
@@ -48,14 +48,14 @@ public class IceConfController {
     }
 
     @RequestMapping(value = "/ice-server/conf/detail", method = RequestMethod.GET)
-    public IceShowConf confDetail(@RequestParam Integer app, @RequestParam Long iceId, @RequestParam(defaultValue = "server") String address) {
+    public IceShowConf confDetail(@RequestParam Integer app, @RequestParam Long iceId, @RequestParam(required = false) Long confId, @RequestParam(defaultValue = "server") String address) {
         IceBase base = iceServerService.getActiveBaseById(app, iceId);
         if (base == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|iceId");
         }
-        IceShowConf showConf = iceConfService.confDetail(app, base.getConfId(), address, iceId);
+        IceShowConf showConf = iceConfService.confDetail(app, confId == null ? base.getConfId() : confId, address, iceId);
         showConf.setIceId(iceId);
-        showConf.setRegisterClients(rmiClientManager.getRegisterClients(app));
+        showConf.setRegisterClients(iceNioClientManager.getRegisterClients(app));
         return showConf;
     }
 
@@ -63,7 +63,7 @@ public class IceConfController {
     public List<String> release(@RequestParam Integer app,
                                 @RequestParam Long iceId) {
         IceTransferDto transferDto = iceServerService.release(app, iceId);
-        return rmiClientManager.update(app, transferDto);
+        return iceNioClientManager.release(app, transferDto);
     }
 
     @RequestMapping(value = "/ice-server/conf/update_clean", method = RequestMethod.GET)

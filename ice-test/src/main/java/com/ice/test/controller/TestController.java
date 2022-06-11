@@ -1,7 +1,7 @@
 package com.ice.test.controller;
 
 import com.alibaba.fastjson.JSON;
-import com.ice.client.IceClient;
+import com.ice.core.Ice;
 import com.ice.core.context.IcePack;
 import com.ice.core.context.IceRoam;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +19,7 @@ public class TestController {
     @RequestMapping(value = "/test", method = RequestMethod.POST)
     public String test(@RequestBody Map<String, Object> map) {
         IcePack pack = JSON.parseObject(JSON.toJSONString(map), IcePack.class);
-        return JSON.toJSONString(IceClient.processCxt(pack));
+        return JSON.toJSONString(Ice.processCxt(pack));
     }
 
     @RequestMapping(value = "/recharge", method = RequestMethod.GET)
@@ -30,7 +30,7 @@ public class TestController {
         roam.put("cost", cost);
         roam.put("uid", uid);
         pack.setRoam(roam);
-        IceClient.process(pack);
+        Ice.syncProcess(pack);
         return JSON.toJSONString(roam.get("result"));
     }
 
@@ -42,7 +42,7 @@ public class TestController {
         roam.put("cost", cost);
         roam.put("uid", uid);
         pack.setRoam(roam);
-        IceClient.process(pack);
+        Ice.syncProcess(pack);
         return JSON.toJSONString(roam.get("result"));
     }
 }

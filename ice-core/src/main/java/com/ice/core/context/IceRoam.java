@@ -6,7 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author zjn
- * based on HashMap extend
+ * based on ConcurrentHashMap extend
+ * put/get return null while key/value is null (ignore key/value null)
  */
 public class IceRoam extends ConcurrentHashMap<String, Object> implements Serializable {
 
@@ -32,8 +33,8 @@ public class IceRoam extends ConcurrentHashMap<String, Object> implements Serial
      * @param value value
      */
     @SuppressWarnings("unchecked")
-    public <T> T putMulti(String multiKey, T value) {
-        if (multiKey == null) {
+    public <T> T putMulti(String multiKey, Object value) {
+        if (multiKey == null || value == null) {
             return null;
         }
         String[] keys = multiKey.split("\\.");
@@ -41,25 +42,28 @@ public class IceRoam extends ConcurrentHashMap<String, Object> implements Serial
             /*just one*/
             return (T) put(keys[0], value);
         }
-        Map<String, Object> endMap = this;
-        Map<String, Object> forwardMap = this;
+        Map<String, Object> end = this;
+        Map<String, Object> forward = this;
         int i = 0;
         for (; i < keys.length - 1; i++) {
-            endMap = (Map<String, Object>) endMap.get(keys[i]);
-            if (endMap == null) {
+            end = (Map<String, Object>) end.get(keys[i]);
+            if (end == null) {
                 int j = i;
                 for (; j < keys.length - 1; j++) {
-                    endMap = new ConcurrentHashMap<>();
-                    forwardMap.put(keys[j], endMap);
-                    forwardMap = endMap;
+                    end = new IceRoam();
+                    forward.put(keys[j], end);
+                    forward = end;
                 }
                 i = j;
                 break;
             } else {
-                forwardMap = endMap;
+                forward = end;
             }
         }
-        return (T) endMap.put(keys[i], value);
+        if (end == null) {
+            return null;
+        }
+        return (T) end.put(keys[i], value);
     }
 
     /*
@@ -71,22 +75,22 @@ public class IceRoam extends ConcurrentHashMap<String, Object> implements Serial
     @SuppressWarnings("unchecked")
     public <T> T getMulti(String multiKey) {
         if (multiKey == null) {
-            return (T) get(null);
+            return null;
         }
         String[] keys = multiKey.split("\\.");
         if (keys.length == 1) {
             /*只有一个*/
             return (T) get(keys[0]);
         }
-        Map<String, Object> endMap = this;
+        Map<String, Object> end = this;
         int i = 0;
         for (; i < keys.length - 1; i++) {
-            endMap = (Map<String, Object>) endMap.get(keys[i]);
-            if (endMap == null) {
+            end = (Map<String, Object>) end.get(keys[i]);
+            if (end == null) {
                 return null;
             }
         }
-        return (T) endMap.get(keys[i]);
+        return (T) end.get(keys[i]);
     }
 
     /*
@@ -112,12 +116,12 @@ public class IceRoam extends ConcurrentHashMap<String, Object> implements Serial
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T putValue(String key, T value) {
+    public <T> T putValue(String key, Object value) {
         return (T) put(key, value);
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getValue(Object key) {
+    public <T> T getValue(String key) {
         return (T) get(key);
     }
 
@@ -126,7 +130,7 @@ public class IceRoam extends ConcurrentHashMap<String, Object> implements Serial
         return res == null ? defaultValue : res;
     }
 
-    public <T> T getValue(Object key, T defaultValue) {
+    public <T> T getValue(String key, T defaultValue) {
         T res = getValue(key);
         return res == null ? defaultValue : res;
     }
@@ -136,8 +140,25 @@ public class IceRoam extends ConcurrentHashMap<String, Object> implements Serial
         return res == null ? defaultValue : res;
     }
 
-    public Object get(String key, Object defaultValue) {
-        Object res = get(key);
+    @SuppressWarnings("unchecked")
+    public <T> T get(String key, T defaultValue) {
+        T res = (T) get(key);
         return res == null ? defaultValue : res;
+    }
+
+    @Override
+    public Object put(String key, Object value) {
+        if (key == null || value == null) {
+            return null;
+        }
+        return super.put(key, value);
+    }
+
+    @Override
+    public Object get(Object key) {
+        if (key == null) {
+            return null;
+        }
+        return super.get(key);
     }
 }

@@ -5,7 +5,7 @@
 
     <groupId>com.waitmoon.ice</groupId>
     <artifactId>ice</artifactId>
-    <version>0.0.9</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
     <description>Committed to solving flexible and complex hard-coded problems</description>
     <url>http://waitmoon.com/docs</url>
@@ -15,18 +15,19 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.4.13</version>
+        <version>2.6.8</version>
         <relativePath/>
     </parent>
 
     <properties>
         <java.version>1.8</java.version>
-        <lombok.version>1.18.22</lombok.version>
-        <fastjson.version>1.2.78</fastjson.version>
-        <mybatis.version>2.2.0</mybatis.version>
-        <logback.version>1.2.7</logback.version>
-        <pagehelper.version>1.4.1</pagehelper.version>
-        <slf4j.version>1.7.32</slf4j.version>
+        <lombok.version>1.18.24</lombok.version>
+        <fastjson.version>1.2.83</fastjson.version>
+        <mybatis.version>2.2.2</mybatis.version>
+        <logback.version>1.2.11</logback.version>
+        <pagehelper.version>1.4.2</pagehelper.version>
+        <slf4j.version>1.7.36</slf4j.version>
+        <netty.version>4.1.77.Final</netty.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
@@ -52,7 +53,6 @@
         <module>ice-server</module>
         <module>ice-test</module>
         <module>ice-core</module>
-        <module>ice-rmi-common</module>
         <module>ice-client-spring-boot-starter</module>
         <module>ice-client-spring-boot-autoconfigure</module>
     </modules>
@@ -76,9 +76,9 @@
     <!--developer-->
     <developers>
         <developer>
-            <name>zjn</name>
-            <email>995517265@qq.com</email>
-            <url>http://waitmoon.com/</url>
+            <name>waitmoon</name>
+            <email>admin@waitmoon.com</email>
+            <url>http://waitmoon.com/docs/</url>
             <roles>
                 <role>Developer</role>
             </roles>
@@ -104,8 +104,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>2.2.1</version>
-
+                <version>3.2.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
@@ -120,7 +119,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.9.1</version>
+                <version>3.4.0</version>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -135,7 +134,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.6</version>
+                <version>3.0.1</version>
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>

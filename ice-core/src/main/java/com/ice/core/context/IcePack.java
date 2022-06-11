@@ -49,14 +49,14 @@ public final class IcePack implements Serializable {
     private byte debug;
 
     public IcePack() {
-        this.setTraceId(UUIDUtils.generateMost22UUID());
+        this.setTraceId(UUIDUtils.generateUUID22());
         this.requestTime = System.currentTimeMillis();
     }
 
     public IcePack(String traceId, long requestTime) {
         if (traceId == null || traceId.isEmpty()) {
             /*traceId null set default traceId*/
-            this.setTraceId(UUIDUtils.generateMost22UUID());
+            this.setTraceId(UUIDUtils.generateUUID22());
         } else {
             this.traceId = traceId;
         }
@@ -69,7 +69,7 @@ public final class IcePack implements Serializable {
 
     public IcePack(long requestTime) {
         /*traceId null set default traceId*/
-        this.setTraceId(UUIDUtils.generateMost22UUID());
+        this.setTraceId(UUIDUtils.generateUUID22());
         if (requestTime <= 0) {
             this.requestTime = System.currentTimeMillis();
         } else {
@@ -80,7 +80,7 @@ public final class IcePack implements Serializable {
     public IcePack(String traceId) {
         if (traceId == null || traceId.isEmpty()) {
             /*traceId null set default traceId*/
-            this.setTraceId(UUIDUtils.generateMost22UUID());
+            this.setTraceId(UUIDUtils.generateUUID22());
         } else {
             this.traceId = traceId;
         }

@@ -1,28 +1,28 @@
-package com.ice.client;
+package com.ice.core;
 
-import com.ice.core.IceDispatcher;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
 import com.ice.core.context.IceRoam;
-import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 /**
  * @author zjn
+ * ice execution entry
  */
-public final class IceClient {
+public final class Ice {
 
-    private IceClient() {
+    private Ice() {
     }
 
     /*
      * careless result async exec handler
      */
-    public static void process(IcePack pack) {
-        IceDispatcher.asyncDispatcher(pack);
+    public static List<Future<IceContext>> asyncProcess(IcePack pack) {
+        return IceDispatcher.asyncDispatcher(pack);
     }
 
     /*
@@ -48,7 +48,7 @@ public final class IceClient {
      */
     public static List<IceRoam> processRoam(IcePack pack) {
         List<IceContext> cxts = IceDispatcher.syncDispatcher(pack);
-        if (CollectionUtils.isEmpty(cxts)) {
+        if (cxts == null || cxts.isEmpty()) {
             return null;
         }
         return cxts.stream().map(cxt -> cxt.getPack().getRoam())
@@ -60,7 +60,7 @@ public final class IceClient {
      */
     public static IceContext processSingleCxt(IcePack pack) {
         List<IceContext> cxts = processCxt(pack);
-        if (CollectionUtils.isEmpty(cxts)) {
+        if (cxts == null || cxts.isEmpty()) {
             return null;
         }
         return cxts.get(0);
