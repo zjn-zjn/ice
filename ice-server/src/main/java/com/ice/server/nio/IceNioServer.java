@@ -1,6 +1,7 @@
 package com.ice.server.nio;
 
 import com.ice.server.config.IceServerProperties;
+import com.ice.server.service.IceServerService;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -24,8 +25,11 @@ public class IceNioServer {
 
     private EventLoopGroup workEventLoop;
 
-    public IceNioServer(IceServerProperties properties) {
+    private final IceServerService serverService;
+
+    public IceNioServer(IceServerProperties properties, IceServerService serverService) {
         this.properties = properties;
+        this.serverService = serverService;
     }
 
     public void run() {
@@ -41,14 +45,14 @@ public class IceNioServer {
                         protected void initChannel(SocketChannel socketChannel) {
                             socketChannel.pipeline().addLast(new IdleStateHandler(properties.getReaderIdleTime(), 0, 0, TimeUnit.SECONDS));
                             socketChannel.pipeline().addLast(new LengthFieldBasedFrameDecoder(properties.getMaxFrameLength(), 0, 4, 0, 4));
-                            socketChannel.pipeline().addLast(new IceNioServerHandler());
+                            socketChannel.pipeline().addLast(new IceNioServerHandler(serverService));
                         }
                     });
             ChannelFuture channelFuture = serverBootstrap.bind(properties.getIp(), properties.getPort()).sync();
-            log.info("ice nio start success");
+            log.info("ice nio server start success");
             channelFuture.channel().closeFuture().sync();
         } catch (Exception e) {
-            throw new RuntimeException("ice nio start error", e);
+            throw new RuntimeException("ice nio server start error", e);
         } finally {
             if (bossEventLoop != null) {
                 bossEventLoop.shutdownGracefully();

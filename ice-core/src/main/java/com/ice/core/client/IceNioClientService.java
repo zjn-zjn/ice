@@ -1,4 +1,4 @@
-package com.ice.core.nio;
+package com.ice.core.client;
 
 import com.alibaba.fastjson.JSON;
 import com.ice.common.dto.IceTransferDto;
@@ -16,7 +16,6 @@ import com.ice.core.leaf.base.BaseLeafFlow;
 import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.core.relation.*;
-import com.ice.core.utils.IceAddressUtils;
 import com.ice.core.utils.IceLinkedList;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,11 +32,12 @@ public final class IceNioClientService {
     /**
      * when server add new leaf node, check the node exist on client
      *
-     * @param clazz server add new leaf class
-     * @param type  leaf type
+     * @param clazz   server add new leaf class
+     * @param type    leaf type
+     * @param address address
      * @return result of check
      */
-    public static Pair<Integer, String> confClazzCheck(String clazz, byte type) {
+    public static Pair<Integer, String> confClazzCheck(String clazz, byte type, String address) {
         try {
             Class<?> clientClazz = Class.forName(clazz);
             NodeTypeEnum typeEnum = NodeTypeEnum.getEnum(type);
@@ -71,12 +71,12 @@ public final class IceNioClientService {
             if (res) {
                 return new Pair<>(1, null);
             } else {
-                return new Pair<>(0, "type not match in " + IceAddressUtils.getAddress() + " input(" + clazz + "|" + type + ")");
+                return new Pair<>(0, "type not match in " + address + " input(" + clazz + "|" + type + ")");
             }
         } catch (ClassNotFoundException e) {
-            return new Pair<>(0, "class not found in " + IceAddressUtils.getAddress() + " input(" + clazz + "|" + type + ")");
+            return new Pair<>(0, "class not found in " + address + " input(" + clazz + "|" + type + ")");
         } catch (Exception e) {
-            return new Pair<>(0, IceAddressUtils.getAddress());
+            return new Pair<>(0, address);
         }
     }
 
@@ -104,12 +104,13 @@ public final class IceNioClientService {
     /**
      * get the real instantiated client
      *
-     * @param confId the root node id
+     * @param confId  the root node id
+     * @param address address
      * @return result of config
      */
-    public static IceShowConf getShowConf(Long confId) {
+    public static IceShowConf getShowConf(Long confId, String address) {
         IceShowConf clientConf = new IceShowConf();
-        clientConf.setAddress(IceAddressUtils.getAddress());
+        clientConf.setAddress(address);
         clientConf.setConfId(confId);
         BaseNode node = IceConfCache.getConfById(confId);
         if (node != null) {

@@ -5,11 +5,11 @@ import com.ice.common.model.IceChannelInfo;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.Pair;
 import com.ice.common.utils.UUIDUtils;
+import com.ice.core.client.IceNioModel;
+import com.ice.core.client.NioOps;
+import com.ice.core.client.NioType;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
-import com.ice.core.nio.IceNioModel;
-import com.ice.core.nio.NioOps;
-import com.ice.core.nio.NioType;
 import com.ice.core.utils.IceNioUtils;
 import com.ice.server.config.IceServerProperties;
 import com.ice.server.exception.ErrorCode;
@@ -45,25 +45,31 @@ public final class IceNioClientManager implements InitializingBean {
 
     private static ExecutorService executor;
 
-    public static synchronized void unregister(Channel sc) {
-        IceChannelInfo info = channelInfoMap.get(sc);
+    public static synchronized void unregister(Channel channel) {
+        IceChannelInfo info = channelInfoMap.get(channel);
         if (info != null) {
             String address = info.getAddress();
             Long originTime = info.getLastUpdateTime();
             int app = info.getApp();
-            channelInfoMap.remove(sc);
+            channelInfoMap.remove(channel);
             Map<String, Channel> channelMap = appAddressChannelMap.get(app);
             if (!CollectionUtils.isEmpty(channelMap)) {
                 channelMap.remove(address);
+                if (CollectionUtils.isEmpty(channelMap)) {
+                    appAddressChannelMap.remove(app);
+                }
             }
             TreeMap<Long, Set<Channel>> treeMap = appChannelTimeTreeMap.get(app);
             if (!CollectionUtils.isEmpty(treeMap)) {
                 Set<Channel> channels = treeMap.get(originTime);
                 if (!CollectionUtils.isEmpty(channels)) {
-                    channels.remove(sc);
+                    channels.remove(channel);
                 }
                 if (CollectionUtils.isEmpty(channels)) {
                     treeMap.remove(originTime);
+                }
+                if (CollectionUtils.isEmpty(treeMap)) {
+                    appChannelTimeTreeMap.remove(app);
                 }
             }
             log.info("ice client app:{} client:{} offline", app, address);
@@ -75,17 +81,17 @@ public final class IceNioClientManager implements InitializingBean {
      *
      * @param expireTime less time
      */
-    public synchronized void cleanClientSc(long expireTime) {
-        for (Map.Entry<Integer, TreeMap<Long, Set<Channel>>> scTimeTreeEntry : appChannelTimeTreeMap.entrySet()) {
-            TreeMap<Long, Set<Channel>> treeMap = scTimeTreeEntry.getValue();
+    public synchronized void cleanClientChannel(long expireTime) {
+        for (Map.Entry<Integer, TreeMap<Long, Set<Channel>>> channelTimeTreeEntry : appChannelTimeTreeMap.entrySet()) {
+            TreeMap<Long, Set<Channel>> treeMap = channelTimeTreeEntry.getValue();
             if (treeMap != null) {
                 SortedMap<Long, Set<Channel>> cleanMap = treeMap.headMap(expireTime);
                 if (!CollectionUtils.isEmpty(cleanMap)) {
-                    Collection<Set<Channel>> cleanScSetList = cleanMap.values();
-                    for (Set<Channel> cleanScSet : cleanScSetList) {
-                        if (!CollectionUtils.isEmpty(cleanScSet)) {
-                            for (Channel cleanSc : cleanScSet) {
-                                unregister(cleanSc);
+                    Collection<Set<Channel>> cleanChannelSetList = cleanMap.values();
+                    for (Set<Channel> cleanChannelSet : cleanChannelSetList) {
+                        if (!CollectionUtils.isEmpty(cleanChannelSet)) {
+                            for (Channel cleanChannel : cleanChannelSet) {
+                                unregister(cleanChannel);
                             }
                         }
                     }
@@ -177,18 +183,18 @@ public final class IceNioClientManager implements InitializingBean {
     /**
      * submit release to update client config
      *
-     * @param app client app
-     * @param sc  client socket channel
-     * @param dto update data
+     * @param app     client app
+     * @param channel client socket channel
+     * @param dto     update data
      */
-    private void submitRelease(int app, Channel sc, IceTransferDto dto) {
+    private void submitRelease(int app, Channel channel, IceTransferDto dto) {
         executor.submit(() -> {
             IceNioModel request = new IceNioModel();
             request.setUpdateDto(dto);
             request.setApp(app);
             request.setOps(NioOps.UPDATE);
             request.setType(NioType.REQ);
-            IceNioUtils.writeNioModel(sc, request);
+            IceNioUtils.writeNioModel(channel, request);
         });
     }
 
@@ -234,8 +240,8 @@ public final class IceNioClientManager implements InitializingBean {
     }
 
     public List<IceContext> mock(int app, IcePack pack) {
-        Channel sc = getClientSocketChannel(app, null);
-        if (sc == null) {
+        Channel channel = getClientSocketChannel(app, null);
+        if (channel == null) {
             throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
         }
         IceNioModel request = new IceNioModel();
@@ -244,7 +250,7 @@ public final class IceNioClientManager implements InitializingBean {
         request.setId(UUIDUtils.generateUUID22());
         request.setApp(app);
         request.setOps(NioOps.MOCK);
-        IceNioModel response = getResult(sc, request);
+        IceNioModel response = getResult(channel, request);
         return response == null ? null : response.getMockResults();
     }
 

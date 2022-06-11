@@ -1,6 +1,6 @@
 package com.ice.client.config;
 
-import com.ice.core.nio.IceNioClient;
+import com.ice.core.client.IceNioClient;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

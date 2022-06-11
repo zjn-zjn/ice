@@ -1,9 +1,8 @@
-package com.ice.core.nio;
+package com.ice.core.client;
 
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.Pair;
 import com.ice.core.context.IceContext;
-import com.ice.core.utils.IceAddressUtils;
 import com.ice.core.utils.IceNioUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -21,8 +20,6 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     private final int app;
 
-    private String address;
-
     public static volatile boolean init = false;
 
     public IceNioClientHandler(int app, IceNioClient iceNioClient) {
@@ -36,12 +33,11 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         //init client
-        this.address = IceAddressUtils.getAddress(app);
         IceNioModel initRequest = new IceNioModel();
         initRequest.setOps(NioOps.INIT);
         initRequest.setType(NioType.REQ);
         initRequest.setApp(app);
-        initRequest.setAddress(address);
+        initRequest.setAddress(iceNioClient.getAddress());
         IceNioUtils.writeNioModel(ctx, initRequest);
     }
 
@@ -57,7 +53,7 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
                     response.setOps(nioModel.getOps());
                     switch (nioModel.getOps()) {
                         case CLAZZ_CHECK:
-                            Pair<Integer, String> checkResult = IceNioClientService.confClazzCheck(nioModel.getClazz(), nioModel.getNodeType());
+                            Pair<Integer, String> checkResult = IceNioClientService.confClazzCheck(nioModel.getClazz(), nioModel.getNodeType(), iceNioClient.getAddress());
                             response.setClazzCheck(checkResult);
                             break;
                         case UPDATE:
@@ -65,7 +61,7 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
                             response.setUpdateErrors(errors);
                             break;
                         case SHOW_CONF:
-                            IceShowConf conf = IceNioClientService.getShowConf(nioModel.getConfId());
+                            IceShowConf conf = IceNioClientService.getShowConf(nioModel.getConfId(), iceNioClient.getAddress());
                             response.setShowConf(conf);
                             break;
                         case MOCK:
@@ -77,10 +73,10 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
                     break;
                 case RSP:
                     if (nioModel.getOps() == NioOps.INIT) {
-                        log.info("ice client init app:{} address:{}", app, address);
+                        log.info("ice client init app:{} address:{}", app, iceNioClient.getAddress());
                         IceUpdate.update(nioModel.getInitDto());
                         init = true;
-                        log.info("ice client init iceEnd success app:{} address:{}", app, address);
+                        log.info("ice client init iceEnd success app:{} address:{}", app, iceNioClient.getAddress());
                     }
                     break;
             }
@@ -104,7 +100,7 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
                 IceNioModel nioModel = new IceNioModel();
                 nioModel.setOps(NioOps.SLAP);
                 nioModel.setType(NioType.REQ);
-                nioModel.setAddress(address);
+                nioModel.setAddress(iceNioClient.getAddress());
                 nioModel.setApp(app);
                 IceNioUtils.writeNioModel(ctx, nioModel);
             }

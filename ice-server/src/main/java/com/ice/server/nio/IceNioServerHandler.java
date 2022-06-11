@@ -1,8 +1,8 @@
 package com.ice.server.nio;
 
-import com.ice.core.nio.IceNioModel;
-import com.ice.core.nio.NioOps;
-import com.ice.core.nio.NioType;
+import com.ice.core.client.IceNioModel;
+import com.ice.core.client.NioOps;
+import com.ice.core.client.NioType;
 import com.ice.core.utils.IceNioUtils;
 import com.ice.server.service.IceServerService;
 import io.netty.buffer.ByteBuf;
@@ -12,32 +12,22 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
-@Component
 public class IceNioServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     public static Map<String, Object> lockMap = new ConcurrentHashMap<>();
 
     public static Map<String, IceNioModel> resultMap = new ConcurrentHashMap<>();
-    @Resource
-    private IceServerService serverService;
 
-    private static IceNioServerHandler nettyServerHandler;
+    private final IceServerService serverService;
 
-    public IceNioServerHandler() {
-    }
 
-    @PostConstruct
-    public void init() {
-        nettyServerHandler = this;
-        nettyServerHandler.serverService = this.serverService;
+    public IceNioServerHandler(IceServerService serverService) {
+        this.serverService = serverService;
     }
 
     /*
@@ -60,7 +50,7 @@ public class IceNioServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
                         IceNioModel response = new IceNioModel();
                         response.setType(NioType.RSP);
                         response.setOps(NioOps.INIT);
-                        response.setInitDto(nettyServerHandler.serverService.getInitConfig(nioModel.getApp()));
+                        response.setInitDto(serverService.getInitConfig(nioModel.getApp()));
                         IceNioUtils.writeNioModel(ctx, response);
                         IceNioClientManager.register(nioModel.getApp(), channel, nioModel.getAddress());
                     } else if (nioModel.getOps() == NioOps.SLAP) {

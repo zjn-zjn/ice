@@ -1,5 +1,6 @@
-package com.ice.core.nio;
+package com.ice.core.client;
 
+import com.ice.core.utils.IceAddressUtils;
 import com.ice.core.utils.IceExecutor;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
@@ -27,18 +28,21 @@ public class IceNioClient {
     private int maxFrameLength = 16 * 1024 * 1024;
     private EventLoopGroup worker;
     private int parallelism = -1;
+    private final String address;
 
     public IceNioClient(int app, String server, int parallelism, int maxFrameLength) {
         this.app = app;
         this.setServer(server);
         this.parallelism = parallelism;
         this.maxFrameLength = maxFrameLength;
+        this.address = IceAddressUtils.getAddress(app);
         init();
     }
 
     public IceNioClient(int app, String server) {
         this.app = app;
         this.setServer(server);
+        this.address = IceAddressUtils.getAddress(app);
         init();
     }
 
@@ -50,6 +54,7 @@ public class IceNioClient {
         } catch (Exception e) {
             throw new RuntimeException("ice server config error conf:" + server);
         }
+        this.server = server;
     }
 
     private void init() {
@@ -87,7 +92,7 @@ public class IceNioClient {
                 if (worker != null) {
                     worker.shutdownGracefully();
                 }
-                throw new RuntimeException("ice nio client start error:" + server, e);
+                throw new RuntimeException("ice connect server error server:" + server, e);
             }
         }
     }
@@ -109,5 +114,9 @@ public class IceNioClient {
             }
         });
         cf.channel().closeFuture().sync();
+    }
+
+    public String getAddress() {
+        return address;
     }
 }

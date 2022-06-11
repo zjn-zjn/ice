@@ -166,7 +166,7 @@ public final class Constant {
 
     public static Collection<IceConfDto> confListToDtoList(Collection<IceConf> confList) {
         if (CollectionUtils.isEmpty(confList)) {
-            return Collections.emptyList();
+            return new ArrayList<>(1);
         }
         Collection<IceConfDto> results = new ArrayList<>(confList.size());
         for (IceConf conf : confList) {
@@ -188,7 +188,7 @@ public final class Constant {
 
     public static Collection<IceBaseDto> baseListToDtoList(Collection<IceBase> baseList) {
         if (CollectionUtils.isEmpty(baseList)) {
-            return Collections.emptyList();
+            return new ArrayList<>(1);
         }
         Collection<IceBaseDto> results = new ArrayList<>(baseList.size());
         for (IceBase base : baseList) {

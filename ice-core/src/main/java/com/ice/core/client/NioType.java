@@ -1,4 +1,4 @@
-package com.ice.core.nio;
+package com.ice.core.client;
 
 public enum NioType {
     //request
