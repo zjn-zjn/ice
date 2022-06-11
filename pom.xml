@@ -5,7 +5,7 @@
 
     <groupId>com.waitmoon.ice</groupId>
     <artifactId>ice</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>pom</packaging>
     <description>Committed to solving flexible and complex hard-coded problems</description>
     <url>http://waitmoon.com/docs</url>
