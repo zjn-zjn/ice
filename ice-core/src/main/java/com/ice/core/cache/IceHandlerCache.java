@@ -107,7 +107,7 @@ public final class IceHandlerCache {
             originHandler = idHandlerMap.get(handler.findIceId());
             idHandlerMap.put(handler.findIceId(), handler);
         }
-        /*原有handler的新handler不存在的scene*/
+        /*the scene where the new handler of the original handler does not exist*/
         if (originHandler != null && originHandler.getScenes() != null && !originHandler.getScenes().isEmpty()) {
             if (handler.getScenes() == null || handler.getScenes().isEmpty()) {
                 for (String scene : originHandler.getScenes()) {
@@ -123,7 +123,7 @@ public final class IceHandlerCache {
             }
             for (String scene : originHandler.getScenes()) {
                 if (!handler.getScenes().contains(scene)) {
-                    /*新的不存在以前的scene*/
+                    /*new does not exist previous scene*/
                     Map<Long, IceHandler> handlerMap = sceneHandlersMap.get(scene);
                     if (handlerMap != null && !handlerMap.isEmpty()) {
                         handlerMap.remove(originHandler.findIceId());
@@ -167,7 +167,7 @@ public final class IceHandlerCache {
     }
 
     /*
-     * 下线一个scene下的所有handler
+     * offline all handlers under a scene
      *
      * @param scene
      */

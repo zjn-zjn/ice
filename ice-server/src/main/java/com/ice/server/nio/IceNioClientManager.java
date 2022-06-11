@@ -100,16 +100,16 @@ public final class IceNioClientManager implements InitializingBean {
         }
     }
 
-    public static synchronized void register(int app, Channel sc, String address) {
+    public static synchronized void register(int app, Channel channel, String address) {
         long now = System.currentTimeMillis();
-        IceChannelInfo info = channelInfoMap.get(sc);
+        IceChannelInfo info = channelInfoMap.get(channel);
         if (info != null) {
             Long originTime = info.getLastUpdateTime();
             TreeMap<Long, Set<Channel>> socketTimeTreeMap = appChannelTimeTreeMap.get(app);
             if (socketTimeTreeMap != null) {
                 Set<Channel> originTimeObject = socketTimeTreeMap.get(originTime);
                 if (originTimeObject != null) {
-                    originTimeObject.remove(sc);
+                    originTimeObject.remove(channel);
                 }
                 if (CollectionUtils.isEmpty(originTimeObject)) {
                     socketTimeTreeMap.remove(originTime);
@@ -117,11 +117,11 @@ public final class IceNioClientManager implements InitializingBean {
             }
             info.setLastUpdateTime(now);
         } else {
-            appAddressChannelMap.computeIfAbsent(app, k -> new ConcurrentHashMap<>()).put(address, sc);
-            channelInfoMap.put(sc, new IceChannelInfo(app, address, now));
+            appAddressChannelMap.computeIfAbsent(app, k -> new ConcurrentHashMap<>()).put(address, channel);
+            channelInfoMap.put(channel, new IceChannelInfo(app, address, now));
             log.info("ice client app:{} client:{} online", app, address);
         }
-        appChannelTimeTreeMap.computeIfAbsent(app, k -> new TreeMap<>()).computeIfAbsent(now, k -> new HashSet<>()).add(sc);
+        appChannelTimeTreeMap.computeIfAbsent(app, k -> new TreeMap<>()).computeIfAbsent(now, k -> new HashSet<>()).add(channel);
     }
 
     public synchronized Set<String> getRegisterClients(int app) {
