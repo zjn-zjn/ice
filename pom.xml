@@ -22,7 +22,7 @@
     <properties>
         <java.version>1.8</java.version>
         <lombok.version>1.18.24</lombok.version>
-        <fastjson.version>2.0.6</fastjson.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <mybatis.version>2.2.2</mybatis.version>
         <logback.version>1.2.11</logback.version>
         <pagehelper.version>1.4.2</pagehelper.version>
