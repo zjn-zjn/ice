@@ -1,8 +1,9 @@
 package com.ice.core.handler;
 
-import com.alibaba.fastjson.JSON;
+
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.exception.NodeException;
+import com.ice.common.utils.JacksonUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.context.IceContext;
 import com.ice.core.utils.IceTimeUtils;
@@ -52,7 +53,7 @@ public final class IceHandler {
 
     public void handle(IceContext cxt) {
         if (DebugEnum.filter(DebugEnum.IN_PACK, debug)) {
-            log.info("handle id:{} in pack:{}", this.iceId, JSON.toJSONString(cxt.getPack()));
+            log.info("handle id:{} in pack:{}", this.iceId, JacksonUtils.toJsonString(cxt.getPack()));
         }
         if (IceTimeUtils.timeDisable(timeTypeEnum, cxt.getPack().getRequestTime(), start, end)) {
             return;
@@ -64,25 +65,25 @@ public final class IceHandler {
                     log.info("handle id:{} process:{}", this.iceId, cxt.getProcessInfo().toString());
                 }
                 if (DebugEnum.filter(DebugEnum.OUT_PACK, debug)) {
-                    log.info("handle id:{} out pack:{}", this.iceId, JSON.toJSONString(cxt.getPack()));
+                    log.info("handle id:{} out pack:{}", this.iceId, JacksonUtils.toJsonString(cxt.getPack()));
                 } else {
                     if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
-                        log.info("handle id:{} out roam:{}", this.iceId, JSON.toJSONString(cxt.getPack().getRoam()));
+                        log.info("handle id:{} out roam:{}", this.iceId, JacksonUtils.toJsonString(cxt.getPack().getRoam()));
                     }
                 }
             } else {
                 log.error("root not exist please check! iceId:{}", this.iceId);
             }
         } catch (NodeException ne) {
-            log.error("error occur in node iceId:{} node:{} cxt:{}", this.iceId, ne.getNodeId(), JSON.toJSONString(cxt), ne);
+            log.error("error occur in node iceId:{} node:{} cxt:{}", this.iceId, ne.getNodeId(), JacksonUtils.toJsonString(cxt), ne);
         } catch (Exception e) {
-            log.error("error occur iceId:{} cxt:{}", this.iceId, JSON.toJSONString(cxt), e);
+            log.error("error occur iceId:{} cxt:{}", this.iceId, JacksonUtils.toJsonString(cxt), e);
         }
     }
 
     public void handleWithConfId(IceContext cxt) {
         if (DebugEnum.filter(DebugEnum.IN_PACK, debug)) {
-            log.info("handle confId:{} in pack:{}", this.confId, JSON.toJSONString(cxt.getPack()));
+            log.info("handle confId:{} in pack:{}", this.confId, JacksonUtils.toJsonString(cxt.getPack()));
         }
         try {
             root.process(cxt);
@@ -90,16 +91,16 @@ public final class IceHandler {
                 log.info("handle confId:{} process:{}", this.confId, cxt.getProcessInfo().toString());
             }
             if (DebugEnum.filter(DebugEnum.OUT_PACK, debug)) {
-                log.info("handle confId:{} out pack:{}", this.confId, JSON.toJSONString(cxt.getPack()));
+                log.info("handle confId:{} out pack:{}", this.confId, JacksonUtils.toJsonString(cxt.getPack()));
             } else {
                 if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
-                    log.info("handle confId:{} out roam:{}", this.confId, JSON.toJSONString(cxt.getPack().getRoam()));
+                    log.info("handle confId:{} out roam:{}", this.confId, JacksonUtils.toJsonString(cxt.getPack().getRoam()));
                 }
             }
         } catch (NodeException ne) {
-            log.error("error occur in node confId:{} node:{} cxt:{}", this.confId, ne.getNodeId(), JSON.toJSONString(cxt), ne);
+            log.error("error occur in node confId:{} node:{} cxt:{}", this.confId, ne.getNodeId(), JacksonUtils.toJsonString(cxt), ne);
         } catch (Exception e) {
-            log.error("error occur confId:{} cxt:{}", this.confId, JSON.toJSONString(cxt), e);
+            log.error("error occur confId:{} cxt:{}", this.confId, JacksonUtils.toJsonString(cxt), e);
         }
     }
 

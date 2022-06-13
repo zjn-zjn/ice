@@ -1,6 +1,8 @@
 package com.ice.test.controller;
 
-import com.alibaba.fastjson.JSON;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.ice.common.utils.JacksonUtils;
 import com.ice.core.Ice;
 import com.ice.core.context.IcePack;
 import com.ice.core.context.IceRoam;
@@ -17,9 +19,9 @@ import java.util.Map;
 public class TestController {
 
     @RequestMapping(value = "/test", method = RequestMethod.POST)
-    public String test(@RequestBody Map<String, Object> map) {
-        IcePack pack = JSON.parseObject(JSON.toJSONString(map), IcePack.class);
-        return JSON.toJSONString(Ice.processCxt(pack));
+    public String test(@RequestBody Map<String, Object> map) throws JsonProcessingException {
+        IcePack pack = JacksonUtils.readJson(JacksonUtils.toJsonString(map), IcePack.class);
+        return JacksonUtils.toJsonString(Ice.processCxt(pack));
     }
 
     @RequestMapping(value = "/recharge", method = RequestMethod.GET)
@@ -31,7 +33,7 @@ public class TestController {
         roam.put("uid", uid);
         pack.setRoam(roam);
         Ice.syncProcess(pack);
-        return JSON.toJSONString(roam.get("result"));
+        return JacksonUtils.toJsonString(roam.get("result"));
     }
 
     @RequestMapping(value = "/consume", method = RequestMethod.GET)
@@ -43,6 +45,6 @@ public class TestController {
         roam.put("uid", uid);
         pack.setRoam(roam);
         Ice.syncProcess(pack);
-        return JSON.toJSONString(roam.get("result"));
+        return JacksonUtils.toJsonString(roam.get("result"));
     }
 }

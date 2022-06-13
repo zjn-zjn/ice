@@ -1,6 +1,7 @@
 package com.ice.core;
 
-import com.alibaba.fastjson.JSON;
+
+import com.ice.common.utils.JacksonUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.cache.IceConfCache;
 import com.ice.core.cache.IceHandlerCache;
@@ -152,7 +153,7 @@ public final class IceDispatcher {
         if (pack.getConfId() > 0) {
             return true;
         }
-        log.error("invalid pack none iceId none scene none confId:{}", JSON.toJSONString(pack));
+        log.error("invalid pack none iceId none scene none confId:{}", JacksonUtils.toJsonString(pack));
         return false;
     }
 }

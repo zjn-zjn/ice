@@ -1,5 +1,6 @@
 package com.ice.test.none;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.ice.core.context.IcePack;
 import com.ice.core.leaf.pack.BaseLeafPackNone;
 import lombok.Data;
@@ -15,6 +16,7 @@ import java.util.Date;
 @EqualsAndHashCode(callSuper = true)
 public final class TimeChangeNone extends BaseLeafPackNone {
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date time;
 
     private long cursorMills;

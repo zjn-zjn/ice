@@ -1,14 +1,12 @@
 package com.ice.core.utils;
 
-import com.alibaba.fastjson.JSON;
+import com.ice.common.utils.JacksonUtils;
 import com.ice.core.client.IceNioModel;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
-
-import java.nio.charset.StandardCharsets;
 
 /**
  * @author zjn
@@ -20,7 +18,7 @@ public final class IceNioUtils {
     public static IceNioModel getNioModel(ByteBuf buf) {
         IceNioModel model;
         try {
-            model = JSON.parseObject(getNioModelJson(buf), IceNioModel.class);
+            model = JacksonUtils.readJsonBytes(getNioModelJsonBytes(buf), IceNioModel.class);
             return model;
         } catch (Exception e) {
             log.warn("ice nio error please check data", e);
@@ -35,16 +33,18 @@ public final class IceNioUtils {
 
     public static void writeNioModel(Channel channel, IceNioModel nioModel) {
         //write nio model to server/client
-        byte[] bytes = JSON.toJSONString(nioModel).getBytes(StandardCharsets.UTF_8);
-        ByteBuf buf = Unpooled.buffer(bytes.length);
-        buf.writeInt(bytes.length);
-        buf.writeBytes(bytes);
-        channel.writeAndFlush(buf);
+        byte[] bytes = JacksonUtils.toJsonBytes(nioModel);
+        if (bytes != null) {
+            ByteBuf buf = Unpooled.buffer(bytes.length);
+            buf.writeInt(bytes.length);
+            buf.writeBytes(bytes);
+            channel.writeAndFlush(buf);
+        }
     }
 
-    public static String getNioModelJson(ByteBuf buf) {
+    public static byte[] getNioModelJsonBytes(ByteBuf buf) {
         byte[] bytes = new byte[buf.readableBytes()];
         buf.readBytes(bytes);
-        return new String(bytes, StandardCharsets.UTF_8);
+        return bytes;
     }
 }

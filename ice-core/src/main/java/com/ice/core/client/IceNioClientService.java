@@ -1,11 +1,12 @@
 package com.ice.core.client;
 
-import com.alibaba.fastjson.JSON;
+
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
 import com.ice.common.model.Pair;
+import com.ice.common.utils.JacksonUtils;
 import com.ice.core.Ice;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
@@ -89,14 +90,14 @@ public final class IceNioClientService {
     public static List<String> update(IceTransferDto dto) {
         List<String> results = new ArrayList<>();
         try {
-            log.info("ice update start dto:{}", JSON.toJSONString(dto));
+            log.info("ice update start dto:{}", JacksonUtils.toJsonString(dto));
             List<String> errors = IceUpdate.update(dto);
             if (!errors.isEmpty()) {
                 results.addAll(errors);
             }
             log.info("ice update end success");
         } catch (Exception e) {
-            log.error("ice update error dto:{} e:", JSON.toJSONString(dto), e);
+            log.error("ice update error dto:{} e:", JacksonUtils.toJsonString(dto), e);
         }
         return results;
     }

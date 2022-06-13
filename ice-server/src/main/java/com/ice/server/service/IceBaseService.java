@@ -1,5 +1,6 @@
 package com.ice.server.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IcePushHistory;
 import com.ice.server.model.IceBaseSearch;
@@ -21,7 +22,7 @@ public interface IceBaseService {
 
     String exportData(Long iceId, Long pushId);
 
-    void rollback(Long pushId);
+    void rollback(Long pushId) throws JsonProcessingException;
 
     void importData(PushData data);
 

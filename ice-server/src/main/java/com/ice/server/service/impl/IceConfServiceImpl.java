@@ -1,11 +1,11 @@
 package com.ice.server.service.impl;
 
-import com.alibaba.fastjson.JSONValidator;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
 import com.ice.common.model.Pair;
+import com.ice.common.utils.JacksonUtils;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IceConfUpdateMapper;
 import com.ice.server.dao.model.IceConf;
@@ -181,8 +181,7 @@ public class IceConfServiceImpl implements IceConfService {
         operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
             if (StringUtils.hasLength(editNode.getConfField())) {
-                JSONValidator validator = JSONValidator.from(editNode.getConfField());
-                if (!validator.validate() || validator.getType() != JSONValidator.Type.Object) {
+                if (!JacksonUtils.isJsonObject(editNode.getConfField())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
                 }
             }
@@ -230,8 +229,7 @@ public class IceConfServiceImpl implements IceConfService {
         createConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
             if (StringUtils.hasLength(editNode.getConfField())) {
-                JSONValidator validator = JSONValidator.from(editNode.getConfField());
-                if (!validator.validate() || validator.getType() != JSONValidator.Type.Object) {
+                if (!JacksonUtils.isJsonObject(editNode.getConfField())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
                 }
             }
@@ -320,8 +318,7 @@ public class IceConfServiceImpl implements IceConfService {
         operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
             if (StringUtils.hasLength(editNode.getConfField())) {
-                JSONValidator validator = JSONValidator.from(editNode.getConfField());
-                if (!validator.validate() || validator.getType() != JSONValidator.Type.Object) {
+                if (!JacksonUtils.isJsonObject(editNode.getConfField())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
                 }
             }
@@ -376,8 +373,7 @@ public class IceConfServiceImpl implements IceConfService {
         createConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
             if (StringUtils.hasLength(editNode.getConfField())) {
-                JSONValidator validator = JSONValidator.from(editNode.getConfField());
-                if (!validator.validate() || validator.getType() != JSONValidator.Type.Object) {
+                if (!JacksonUtils.isJsonObject(editNode.getConfField())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
                 }
             }

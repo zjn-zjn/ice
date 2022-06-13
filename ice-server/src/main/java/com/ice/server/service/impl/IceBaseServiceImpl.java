@@ -1,11 +1,13 @@
 package com.ice.server.service.impl;
 
-import com.alibaba.fastjson.JSON;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.page.PageMethod;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
+import com.ice.common.utils.JacksonUtils;
 import com.ice.server.constant.Constant;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
@@ -190,7 +192,7 @@ public class IceBaseServiceImpl implements IceBaseService {
     }
 
     private String getPushDataJson(IceBase base) {
-        return JSON.toJSONString(getPushData(base));
+        return JacksonUtils.toJsonString(getPushData(base));
     }
 
     private PushData getPushData(IceBase base) {
@@ -241,12 +243,12 @@ public class IceBaseServiceImpl implements IceBaseService {
     }
 
     @Override
-    public void rollback(Long pushId) {
+    public void rollback(Long pushId) throws JsonProcessingException {
         IcePushHistory history = pushHistoryMapper.selectByPrimaryKey(pushId);
         if (history == null) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "pushId", pushId);
         }
-        importData(JSON.parseObject(history.getPushData(), PushData.class));
+        importData(JacksonUtils.readJson(history.getPushData(), PushData.class));
     }
 
     @Override

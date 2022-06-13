@@ -1,8 +1,9 @@
 package com.ice.core.cache;
 
-import com.alibaba.fastjson.JSON;
+
 import com.ice.common.dto.IceBaseDto;
 import com.ice.common.enums.TimeTypeEnum;
+import com.ice.common.utils.JacksonUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.handler.IceHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +59,7 @@ public final class IceHandlerCache {
                 /*confId等于空的情况不考虑处理,没配confId的handler是没有意义的*/
                 BaseNode root = IceConfCache.getConfById(confId);
                 if (root == null) {
-                    String errorModeStr = JSON.toJSONString(base);
+                    String errorModeStr = JacksonUtils.toJsonString(base);
                     errors.add("confId:" + confId + " not exist conf:" + errorModeStr);
                     log.error("confId:{} not exist please check! conf:{}", confId, errorModeStr);
                     continue;

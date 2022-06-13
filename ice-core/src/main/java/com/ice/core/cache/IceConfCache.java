@@ -1,9 +1,10 @@
 package com.ice.core.cache;
 
-import com.alibaba.fastjson.JSON;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
+import com.ice.common.utils.JacksonUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
 import com.ice.core.leaf.base.BaseLeafFlow;
@@ -56,7 +57,7 @@ public final class IceConfCache {
             try {
                 tmpConfMap.put(confDto.getId(), convert(confDto));
             } catch (Exception e) {
-                String errorNodeStr = JSON.toJSONString(confDto);
+                String errorNodeStr = JacksonUtils.toJsonString(confDto);
                 errors.add("error conf:" + errorNodeStr);
                 log.error("ice error conf:{} please check! e:", errorNodeStr, e);
             }
@@ -85,7 +86,7 @@ public final class IceConfCache {
                             tmpNode = confMap.get(sonId);
                         }
                         if (tmpNode == null) {
-                            String errorModeStr = JSON.toJSONString(confInfo);
+                            String errorModeStr = JacksonUtils.toJsonString(confInfo);
                             errors.add("sonId:" + sonId + " not exist conf:" + errorModeStr);
                             log.error("sonId:{} not exist please check! conf:{}", sonId, errorModeStr);
                         } else {
@@ -152,7 +153,7 @@ public final class IceConfCache {
                     tmpForwardNode = confMap.get(confInfo.getForwardId());
                 }
                 if (tmpForwardNode == null) {
-                    String errorModeStr = JSON.toJSONString(confInfo);
+                    String errorModeStr = JacksonUtils.toJsonString(confInfo);
                     errors.add("forwardId:" + confInfo.getForwardId() + " not exist conf:" + errorModeStr);
                     log.error("forwardId:{} not exist please check! conf:{}", confInfo.getForwardId(), errorModeStr);
                 } else {
@@ -171,7 +172,7 @@ public final class IceConfCache {
                 for (Long parentId : parentIds) {
                     BaseNode tmpParentNode = confMap.get(parentId);
                     if (tmpParentNode == null) {
-                        String errorModeStr = JSON.toJSONString(confInfo);
+                        String errorModeStr = JacksonUtils.toJsonString(confInfo);
                         errors.add("parentId:" + parentId + " not exist conf:" + errorModeStr);
                         log.error("parentId:{} not exist please check! conf:{}", parentId, errorModeStr);
                     } else {
@@ -201,7 +202,7 @@ public final class IceConfCache {
                 for (Long forwardUseId : forwardUseIds) {
                     BaseNode tmpNode = confMap.get(forwardUseId);
                     if (tmpNode == null) {
-                        String errorModeStr = JSON.toJSONString(confInfo);
+                        String errorModeStr = JacksonUtils.toJsonString(confInfo);
                         errors.add("forwardUseId:" + forwardUseId + " not exist conf:" + errorModeStr);
                         log.error("forwardUseId:{} not exist please check! conf:{}", forwardUseId, errorModeStr);
                     } else {
@@ -244,82 +245,82 @@ public final class IceConfCache {
         }
     }
 
-    private static BaseNode convert(IceConfDto confDto) throws ClassNotFoundException {
+    private static BaseNode convert(IceConfDto confDto) throws ClassNotFoundException, JsonProcessingException {
         BaseNode node;
         switch (NodeTypeEnum.getEnum(confDto.getType())) {
             case LEAF_FLOW:
                 String flowFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField();
-                node = (BaseLeafFlow) JSON.parseObject(flowFiled, Class.forName(confDto.getConfName()));
+                node = (BaseLeafFlow) JacksonUtils.readJson(flowFiled, Class.forName(confDto.getConfName()));
                 node.setIceLogName(node.getClass().getSimpleName());
                 IceBeanUtils.autowireBean(node);
                 break;
             case LEAF_RESULT:
                 String resultFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField();
-                node = (BaseLeafResult) JSON.parseObject(resultFiled, Class.forName(confDto.getConfName()));
+                node = (BaseLeafResult) JacksonUtils.readJson(resultFiled, Class.forName(confDto.getConfName()));
                 node.setIceLogName(node.getClass().getSimpleName());
                 IceBeanUtils.autowireBean(node);
                 break;
             case LEAF_NONE:
                 String noneFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField();
-                node = (BaseLeafNone) JSON.parseObject(noneFiled, Class.forName(confDto.getConfName()));
+                node = (BaseLeafNone) JacksonUtils.readJson(noneFiled, Class.forName(confDto.getConfName()));
                 node.setIceLogName(node.getClass().getSimpleName());
                 IceBeanUtils.autowireBean(node);
                 break;
             case NONE:
-                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), None.class);
                 node.setIceLogName("None");
                 break;
             case AND:
-                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), And.class);
                 node.setIceLogName("And");
                 break;
             case TRUE:
-                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), True.class);
                 node.setIceLogName("True");
                 break;
             case ALL:
-                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), All.class);
                 node.setIceLogName("All");
                 break;
             case ANY:
-                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), Any.class);
                 node.setIceLogName("Any");
                 break;
             case P_ALL:
-                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), ParallelAll.class);
                 node.setIceLogName("P-All");
                 break;
             case P_AND:
-                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), ParallelAnd.class);
                 node.setIceLogName("P-And");
                 break;
             case P_ANY:
-                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), ParallelAny.class);
                 node.setIceLogName("P-Any");
                 break;
             case P_NONE:
-                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), ParallelNone.class);
                 node.setIceLogName("P-None");
                 break;
             case P_TRUE:
-                node = JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), ParallelTrue.class);
                 node.setIceLogName("P-True");
                 break;
             default:
-                node = (BaseNode) JSON.parseObject(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
+                node = (BaseNode) JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), Class.forName(confDto.getConfName()));
                 if (node != null) {
                     node.setIceLogName(node.getClass().getSimpleName());

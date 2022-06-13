@@ -1,6 +1,8 @@
 package com.ice.server.controller;
 
-import com.alibaba.fastjson.JSON;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.ice.common.utils.JacksonUtils;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IcePushHistory;
 import com.ice.server.exception.ErrorCode;
@@ -92,12 +94,12 @@ public class IceBaseController {
     }
 
     @RequestMapping(value = "/ice-server/base/rollback", method = RequestMethod.GET)
-    public void rollback(@RequestParam Long pushId) {
+    public void rollback(@RequestParam Long pushId) throws JsonProcessingException {
         iceBaseService.rollback(pushId);
     }
 
     @RequestMapping(value = "/ice-server/base/import", method = RequestMethod.POST)
-    public void importData(@RequestBody Map<String, String> map) {
-        iceBaseService.importData(JSON.parseObject(map.get("json"), PushData.class));
+    public void importData(@RequestBody Map<String, String> map) throws JsonProcessingException {
+        iceBaseService.importData(JacksonUtils.readJson(map.get("json"), PushData.class));
     }
 }
