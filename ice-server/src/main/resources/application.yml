@@ -17,6 +17,8 @@ spring:
     platform: mysql
     sql-script-encoding: UTF-8
     separator: ;
+  jackson:
+    default-property-inclusion: non_null
 mybatis:
   config-location: classpath:mybatis/mybatis-config.xml
 pagehelper:
