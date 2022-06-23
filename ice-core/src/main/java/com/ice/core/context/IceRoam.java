@@ -42,28 +42,12 @@ public class IceRoam extends ConcurrentHashMap<String, Object> implements Serial
             /*just one*/
             return (T) put(keys[0], value);
         }
-        Map<String, Object> end = this;
-        Map<String, Object> forward = this;
+        Map<String, Object> endMap = this;
         int i = 0;
         for (; i < keys.length - 1; i++) {
-            end = (Map<String, Object>) end.get(keys[i]);
-            if (end == null) {
-                int j = i;
-                for (; j < keys.length - 1; j++) {
-                    end = new IceRoam();
-                    forward.put(keys[j], end);
-                    forward = end;
-                }
-                i = j;
-                break;
-            } else {
-                forward = end;
-            }
+            endMap = (Map<String, Object>) endMap.computeIfAbsent(keys[i], k -> new IceRoam());
         }
-        if (end == null) {
-            return null;
-        }
-        return (T) end.put(keys[i], value);
+        return (T) endMap.put(keys[i], value);
     }
 
     /*
