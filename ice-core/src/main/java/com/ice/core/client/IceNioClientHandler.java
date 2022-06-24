@@ -42,8 +42,8 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext channelHandlerContext, ByteBuf s) {
-        IceNioModel nioModel = IceNioUtils.getNioModel(s);
+    protected void channelRead0(ChannelHandlerContext channelHandlerContext, ByteBuf buf) {
+        IceNioModel nioModel = IceNioUtils.getNioModel(buf);
         if (nioModel != null && nioModel.getType() != null && nioModel.getOps() != null) {
             switch (nioModel.getType()) {
                 case REQ:

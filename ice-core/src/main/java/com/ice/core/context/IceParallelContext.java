@@ -2,8 +2,10 @@ package com.ice.core.context;
 
 import lombok.Data;
 
+import java.io.Serializable;
+
 @Data
-public final class IceParallelContext {
+public final class IceParallelContext implements Serializable {
 
     private volatile boolean isDone;
 

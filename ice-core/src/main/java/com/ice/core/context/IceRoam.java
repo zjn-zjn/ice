@@ -1,6 +1,5 @@
 package com.ice.core.context;
 
-import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -9,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * based on ConcurrentHashMap extend
  * put/get return null while key/value is null (ignore key/value null)
  */
-public class IceRoam extends ConcurrentHashMap<String, Object> implements Serializable {
+public class IceRoam extends ConcurrentHashMap<String, Object> {
 
     public IceRoam(int initialCapacity, float loadFactor) {
         super(initialCapacity, loadFactor);
