@@ -18,16 +18,9 @@ public class IceNioClientApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        System.out.println(deduceMainApplicationClass());
         IceNioClient iceNioClient = new IceNioClient(properties.getApp(), properties.getServer(), properties.getPool().getParallelism(), properties.getMaxFrameLength());
         Runtime.getRuntime().addShutdownHook(new Thread(iceNioClient::destroy));
         iceNioClient.connect();
     }
-
-    public static String deduceMainApplicationClass() {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        return stackTrace[stackTrace.length - 1].getClassName();
-    }
-
 }
  
