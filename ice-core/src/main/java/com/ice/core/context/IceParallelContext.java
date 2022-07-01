@@ -4,14 +4,17 @@ import lombok.Data;
 
 import java.io.Serializable;
 
+/**
+ * @author waitmoon
+ */
 @Data
 public final class IceParallelContext implements Serializable {
 
     private volatile boolean isDone;
 
-    private IceContext cxt;
+    private IceContext ctx;
 
-    public IceParallelContext(IceContext cxt) {
-        this.cxt = cxt;
+    public IceParallelContext(IceContext ctx) {
+        this.ctx = ctx;
     }
 }

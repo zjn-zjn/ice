@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 public interface IceServerService {
 

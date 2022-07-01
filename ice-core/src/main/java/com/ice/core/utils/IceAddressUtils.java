@@ -6,7 +6,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 public final class IceAddressUtils {
 

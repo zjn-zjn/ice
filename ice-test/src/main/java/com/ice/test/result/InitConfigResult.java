@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
+ * @author waitmoon
  * 初始化加载配置节点
  */
 @Data

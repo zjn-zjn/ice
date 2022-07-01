@@ -12,7 +12,7 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 
 /**
- * @author zjn
+ * @author waitmoon
  * IceExecutor
  * used on mutli handler and parallel relation
  */
@@ -30,29 +30,29 @@ public final class IceExecutor {
         IceExecutor.executor = executor;
     }
 
-    public static Future<NodeRunStateEnum> submitNodeCallable(BaseNode node, IceParallelContext cxt) {
+    public static Future<NodeRunStateEnum> submitNodeCallable(BaseNode node, IceParallelContext ctx) {
         return executor.submit(() -> {
-            if (!cxt.isDone()) {
-                return node.process(cxt.getCxt());
+            if (!ctx.isDone()) {
+                return node.process(ctx.getCtx());
             }
             return NodeRunStateEnum.NONE;
         });
     }
 
-    public static Future<NodeRunStateEnum> submitNodeCallable(BaseNode node, IceContext cxt) {
-        return executor.submit(() -> node.process(cxt));
+    public static Future<NodeRunStateEnum> submitNodeCallable(BaseNode node, IceContext ctx) {
+        return executor.submit(() -> node.process(ctx));
     }
 
-    public static Future<?> submitNodeRunnable(BaseNode node, IceContext cxt) {
+    public static Future<?> submitNodeRunnable(BaseNode node, IceContext ctx) {
         return executor.submit(() -> {
-            node.process(cxt);
+            node.process(ctx);
         });
     }
 
-    public static Future<IceContext> submitHandler(IceHandler handler, IceContext cxt) {
+    public static Future<IceContext> submitHandler(IceHandler handler, IceContext ctx) {
         return executor.submit(() -> {
-            handler.handle(cxt);
-            return cxt;
+            handler.handle(ctx);
+            return ctx;
         });
     }
 }

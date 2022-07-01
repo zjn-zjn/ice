@@ -6,7 +6,7 @@ import java.io.Serializable;
 import java.util.Collection;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Data
 public final class IceTransferDto implements Serializable {

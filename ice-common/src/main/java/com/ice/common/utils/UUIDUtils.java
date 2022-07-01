@@ -3,7 +3,7 @@ package com.ice.common.utils;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 public final class UUIDUtils {
 

@@ -1,20 +1,23 @@
 package com.ice.test.flow;
 
+import com.ice.core.annotation.IceField;
+import com.ice.core.annotation.IceNode;
 import com.ice.core.context.IceRoam;
 import com.ice.core.leaf.roam.BaseLeafRoamFlow;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * @author zjn
+ * @author waitmoon
  * 取出roam中的值比较大小
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
+@IceNode(name = "name of ScoreFlow2", desc = "desc of ScoreFlow2")
 public class ScoreFlow2 extends BaseLeafRoamFlow {
 
     private Object value1;
-
+    @IceField(name = "name of value2", desc = "desc of value2")
     private Object value2;
 
     @Override

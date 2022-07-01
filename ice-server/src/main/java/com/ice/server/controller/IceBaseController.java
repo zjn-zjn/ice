@@ -21,7 +21,7 @@ import java.util.Map;
 /**
  * base crud
  *
- * @author zjn
+ * @author waitmoon
  */
 @CrossOrigin
 @RestController

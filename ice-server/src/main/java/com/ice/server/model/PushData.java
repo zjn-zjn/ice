@@ -7,7 +7,7 @@ import lombok.Data;
 import java.util.Collection;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Data
 public class PushData {

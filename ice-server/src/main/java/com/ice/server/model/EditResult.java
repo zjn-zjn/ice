@@ -5,7 +5,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Data
 public class EditResult {

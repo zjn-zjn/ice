@@ -3,6 +3,7 @@ package com.ice.common.enums;
 /**
  * handler`s debug
  * control pack process print
+ * @author waitmoon
  */
 public enum DebugEnum {
     /*

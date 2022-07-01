@@ -5,6 +5,9 @@ import lombok.Data;
 import java.io.Serializable;
 import java.util.Set;
 
+/**
+ * @author waitmoon
+ */
 @Data
 public class IceShowConf implements Serializable {
     private String address;

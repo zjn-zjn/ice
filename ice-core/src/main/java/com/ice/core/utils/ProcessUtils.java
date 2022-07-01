@@ -4,7 +4,7 @@ import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.core.base.BaseNode;
 
 /**
- * @author zjn
+ * @author waitmoon
  * process info assemlby
  */
 public final class ProcessUtils {

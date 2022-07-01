@@ -7,7 +7,7 @@ import com.ice.core.context.IceContext;
 import com.ice.core.utils.IceLinkedList;
 
 /**
- * @author zjn
+ * @author waitmoon
  * relation NONE
  * all child will execute
  * return NONE
@@ -17,7 +17,7 @@ public final class None extends BaseRelation {
      * process relation none
      */
     @Override
-    protected NodeRunStateEnum processNode(IceContext cxt) {
+    protected NodeRunStateEnum processNode(IceContext ctx) {
         IceLinkedList<BaseNode> children = this.getChildren();
         if (children == null || children.isEmpty()) {
             return NodeRunStateEnum.NONE;
@@ -27,12 +27,12 @@ public final class None extends BaseRelation {
             if (node == null) {
                 return NodeRunStateEnum.NONE;
             }
-            return node.process(cxt);
+            return node.process(ctx);
         }
         for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
             BaseNode node = listNode.item;
             if (node != null) {
-                node.process(cxt);
+                node.process(ctx);
             }
         }
 

@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import java.util.Date;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

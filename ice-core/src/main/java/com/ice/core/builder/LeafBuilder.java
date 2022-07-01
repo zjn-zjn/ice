@@ -5,7 +5,7 @@ import com.ice.core.base.BaseLeaf;
 import com.ice.core.base.BaseNode;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 public class LeafBuilder extends BaseBuilder {
 

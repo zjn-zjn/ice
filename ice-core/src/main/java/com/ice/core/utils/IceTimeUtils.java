@@ -3,7 +3,7 @@ package com.ice.core.utils;
 import com.ice.common.enums.TimeTypeEnum;
 
 /**
- * @author zjn
+ * @author waitmoon
  * ice time operate
  */
 public final class IceTimeUtils {

@@ -4,7 +4,7 @@ import com.ice.server.exception.ErrorCodeException;
 import lombok.Data;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Data
 public class WebResult<T> {

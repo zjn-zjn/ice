@@ -8,6 +8,9 @@ import lombok.EqualsAndHashCode;
 
 import javax.annotation.Resource;
 
+/**
+ * @author waitmoon
+ */
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class PointResult extends BaseLeafRoamResult {

@@ -6,7 +6,7 @@ import com.ice.core.context.IceContext;
 import lombok.Data;
 
 /**
- * @author zjn
+ * @author waitmoon
  * IceErrorHandle
  * used on error occur in node
  */
@@ -19,16 +19,16 @@ public abstract class IceErrorHandle {
         handle = customHandle;
     }
 
-    public static NodeRunStateEnum handleError(BaseNode node, IceContext cxt) {
-        return handle.handle(node, cxt);
+    public static NodeRunStateEnum handleError(BaseNode node, IceContext ctx, Throwable t) {
+        return handle.handle(node, ctx, t);
     }
 
-    protected abstract NodeRunStateEnum handle(BaseNode node, IceContext cxt);
+    protected abstract NodeRunStateEnum handle(BaseNode node, IceContext ctx, Throwable t);
 
     private static class DefaultIceErrorHandle extends IceErrorHandle {
 
         @Override
-        protected NodeRunStateEnum handle(BaseNode node, IceContext cxt) {
+        protected NodeRunStateEnum handle(BaseNode node, IceContext ctx, Throwable t) {
             //default do noting and shutdown
             return NodeRunStateEnum.SHUT_DOWN;
         }

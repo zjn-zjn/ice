@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 public final class JacksonUtils {
 

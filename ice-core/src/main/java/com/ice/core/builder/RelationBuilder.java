@@ -8,7 +8,7 @@ import com.ice.core.relation.*;
 import java.util.Arrays;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 public class RelationBuilder extends BaseBuilder {
 

@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * @author zjn
+ * @author waitmoon
  * None leaf
  */
 @Data
@@ -18,13 +18,13 @@ public abstract class BaseLeafNone extends BaseLeaf {
      * process leaf none
      */
     @Override
-    protected NodeRunStateEnum doLeaf(IceContext cxt) {
-        doNone(cxt);
+    protected NodeRunStateEnum doLeaf(IceContext ctx) {
+        doNone(ctx);
         return NodeRunStateEnum.NONE;
     }
 
     /*
      * process leaf none
      */
-    protected abstract void doNone(IceContext cxt);
+    protected abstract void doNone(IceContext ctx);
 }

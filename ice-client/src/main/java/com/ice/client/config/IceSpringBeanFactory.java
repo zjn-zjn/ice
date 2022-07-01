@@ -7,9 +7,9 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 /**
- * @author zjn
  * use AutowireCapableBeanFactory
  * for autowired spring beans for leaf node
+ * @author waitmoon
  */
 @Component
 public class IceSpringBeanFactory implements IceBeanUtils.IceBeanFactory, ApplicationContextAware {

@@ -1,7 +1,7 @@
 package com.ice.core.utils;
 
 /**
- * @author zjn
+ * @author waitmoon
  * ice`s linkedList
  * different with jdk LinkedList:do not delete next link
  * to prove execute perfect on update

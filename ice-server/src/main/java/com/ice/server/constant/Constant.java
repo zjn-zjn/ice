@@ -15,6 +15,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 
+/**
+ * @author waitmoon
+ */
 public final class Constant {
 
     /**

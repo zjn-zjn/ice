@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * conf crud
  *
- * @author zjn
+ * @author waitmoon
  */
 @CrossOrigin
 @RestController
@@ -43,8 +43,8 @@ public class IceConfController {
     }
 
     @RequestMapping(value = "/ice-server/conf/class/check", method = RequestMethod.GET)
-    public String leafClassCheck(@RequestParam Integer app, @RequestParam String clazz, @RequestParam Byte type) {
-        return iceConfService.leafClassCheck(app, clazz, type);
+    public void leafClassCheck(@RequestParam Integer app, @RequestParam String clazz, @RequestParam Byte type) {
+        iceConfService.leafClassCheck(app, clazz, type);
     }
 
     @RequestMapping(value = "/ice-server/conf/detail", method = RequestMethod.GET)

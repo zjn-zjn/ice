@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Set;
 
 /**
- * @author zjn
+ * @author waitmoon
  * the handler find by scene/iceId
  */
 @Slf4j
@@ -51,56 +51,56 @@ public final class IceHandler {
      */
     private BaseNode root;
 
-    public void handle(IceContext cxt) {
+    public void handle(IceContext ctx) {
         if (DebugEnum.filter(DebugEnum.IN_PACK, debug)) {
-            log.info("handle id:{} in pack:{}", this.iceId, JacksonUtils.toJsonString(cxt.getPack()));
+            log.info("handle id:{} in pack:{}", this.iceId, JacksonUtils.toJsonString(ctx.getPack()));
         }
-        if (IceTimeUtils.timeDisable(timeTypeEnum, cxt.getPack().getRequestTime(), start, end)) {
+        if (IceTimeUtils.timeDisable(timeTypeEnum, ctx.getPack().getRequestTime(), start, end)) {
             return;
         }
         try {
             if (root != null) {
-                root.process(cxt);
+                root.process(ctx);
                 if (DebugEnum.filter(DebugEnum.PROCESS, debug)) {
-                    log.info("handle id:{} process:{}", this.iceId, cxt.getProcessInfo().toString());
+                    log.info("handle id:{} process:{}", this.iceId, ctx.getProcessInfo().toString());
                 }
                 if (DebugEnum.filter(DebugEnum.OUT_PACK, debug)) {
-                    log.info("handle id:{} out pack:{}", this.iceId, JacksonUtils.toJsonString(cxt.getPack()));
+                    log.info("handle id:{} out pack:{}", this.iceId, JacksonUtils.toJsonString(ctx.getPack()));
                 } else {
                     if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
-                        log.info("handle id:{} out roam:{}", this.iceId, JacksonUtils.toJsonString(cxt.getPack().getRoam()));
+                        log.info("handle id:{} out roam:{}", this.iceId, JacksonUtils.toJsonString(ctx.getPack().getRoam()));
                     }
                 }
             } else {
                 log.error("root not exist please check! iceId:{}", this.iceId);
             }
         } catch (NodeException ne) {
-            log.error("error occur in node iceId:{} node:{} cxt:{}", this.iceId, ne.getNodeId(), JacksonUtils.toJsonString(cxt), ne);
+            log.error("error occur in node iceId:{} node:{} ctx:{}", this.iceId, ne.getNodeId(), JacksonUtils.toJsonString(ctx), ne);
         } catch (Exception e) {
-            log.error("error occur iceId:{} cxt:{}", this.iceId, JacksonUtils.toJsonString(cxt), e);
+            log.error("error occur iceId:{} ctx:{}", this.iceId, JacksonUtils.toJsonString(ctx), e);
         }
     }
 
-    public void handleWithConfId(IceContext cxt) {
+    public void handleWithConfId(IceContext ctx) {
         if (DebugEnum.filter(DebugEnum.IN_PACK, debug)) {
-            log.info("handle confId:{} in pack:{}", this.confId, JacksonUtils.toJsonString(cxt.getPack()));
+            log.info("handle confId:{} in pack:{}", this.confId, JacksonUtils.toJsonString(ctx.getPack()));
         }
         try {
-            root.process(cxt);
+            root.process(ctx);
             if (DebugEnum.filter(DebugEnum.PROCESS, debug)) {
-                log.info("handle confId:{} process:{}", this.confId, cxt.getProcessInfo().toString());
+                log.info("handle confId:{} process:{}", this.confId, ctx.getProcessInfo().toString());
             }
             if (DebugEnum.filter(DebugEnum.OUT_PACK, debug)) {
-                log.info("handle confId:{} out pack:{}", this.confId, JacksonUtils.toJsonString(cxt.getPack()));
+                log.info("handle confId:{} out pack:{}", this.confId, JacksonUtils.toJsonString(ctx.getPack()));
             } else {
                 if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
-                    log.info("handle confId:{} out roam:{}", this.confId, JacksonUtils.toJsonString(cxt.getPack().getRoam()));
+                    log.info("handle confId:{} out roam:{}", this.confId, JacksonUtils.toJsonString(ctx.getPack().getRoam()));
                 }
             }
         } catch (NodeException ne) {
-            log.error("error occur in node confId:{} node:{} cxt:{}", this.confId, ne.getNodeId(), JacksonUtils.toJsonString(cxt), ne);
+            log.error("error occur in node confId:{} node:{} ctx:{}", this.confId, ne.getNodeId(), JacksonUtils.toJsonString(ctx), ne);
         } catch (Exception e) {
-            log.error("error occur confId:{} cxt:{}", this.confId, JacksonUtils.toJsonString(cxt), e);
+            log.error("error occur confId:{} ctx:{}", this.confId, JacksonUtils.toJsonString(ctx), e);
         }
     }
 

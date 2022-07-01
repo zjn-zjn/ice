@@ -8,7 +8,7 @@ import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 public interface IceBaseService {
 

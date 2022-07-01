@@ -9,17 +9,15 @@ import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author zjn
+ * @author waitmoon
  * ice nio operate
  */
 @Slf4j
 public final class IceNioUtils {
 
-    public static IceNioModel getNioModel(ByteBuf buf) {
-        IceNioModel model;
+    public static IceNioModel readNioModel(ByteBuf buf) {
         try {
-            model = JacksonUtils.readJsonBytes(getNioModelJsonBytes(buf), IceNioModel.class);
-            return model;
+            return JacksonUtils.readJsonBytes(getNioModelJsonBytes(buf), IceNioModel.class);
         } catch (Exception e) {
             log.warn("ice nio error please check data", e);
         }

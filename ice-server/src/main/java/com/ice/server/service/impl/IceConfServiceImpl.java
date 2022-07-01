@@ -4,7 +4,6 @@ import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
-import com.ice.common.model.Pair;
 import com.ice.common.utils.JacksonUtils;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IceConfUpdateMapper;
@@ -26,6 +25,9 @@ import org.springframework.util.StringUtils;
 import javax.annotation.Resource;
 import java.util.*;
 
+/**
+ * @author waitmoon
+ */
 @Slf4j
 @Service
 public class IceConfServiceImpl implements IceConfService {
@@ -451,35 +453,61 @@ public class IceConfServiceImpl implements IceConfService {
     }
 
     @Override
-    public List<IceLeafClass> getConfLeafClass(Integer app, Byte type) {
-        List<IceLeafClass> list = new ArrayList<>();
-        Map<String, Integer> leafClassMap = iceServerService.getLeafClassMap(app, type);
-        if (leafClassMap != null) {
-            for (Map.Entry<String, Integer> entry : leafClassMap.entrySet()) {
+    public synchronized List<IceLeafClass> getConfLeafClass(int app, byte type) {
+        List<IceLeafClass> result = new ArrayList<>();
+        Set<String> clientLeafClassSet = iceNioClientManager.getLeafTypeClasses(app, type);
+        if (CollectionUtils.isEmpty(clientLeafClassSet)) {
+            //no leaf class with type found in client
+            return result;
+        }
+        Map<String, Integer> leafClassDBMap = iceServerService.getLeafClassMap(app, type);
+        if (leafClassDBMap != null) {
+            for (String clientLeafClass : clientLeafClassSet) {
+                if (!leafClassDBMap.containsKey(clientLeafClass)) {
+                    //add not used leaf class
+                    IceLeafClass leafClass = new IceLeafClass();
+                    leafClass.setFullName(clientLeafClass);
+                    leafClass.setCount(0);
+                    leafClass.setShortName(clientLeafClass.substring(clientLeafClass.lastIndexOf('.') + 1));
+                    result.add(leafClass);
+                }
+            }
+            for (Map.Entry<String, Integer> entry : leafClassDBMap.entrySet()) {
+                if (clientLeafClassSet.contains(entry.getKey())) {
+                    //add only class found from client
+                    IceLeafClass leafClass = new IceLeafClass();
+                    leafClass.setFullName(entry.getKey());
+                    leafClass.setCount(entry.getValue());
+                    leafClass.setShortName(entry.getKey().substring(entry.getKey().lastIndexOf('.') + 1));
+                    result.add(leafClass);
+                }
+            }
+        } else {
+            for (String clientLeafClass : clientLeafClassSet) {
                 IceLeafClass leafClass = new IceLeafClass();
-                leafClass.setFullName(entry.getKey());
-                leafClass.setCount(entry.getValue());
-                leafClass.setShortName(entry.getKey().substring(entry.getKey().lastIndexOf('.') + 1));
-                list.add(leafClass);
+                leafClass.setFullName(clientLeafClass);
+                leafClass.setCount(1);
+                leafClass.setShortName(clientLeafClass.substring(clientLeafClass.lastIndexOf('.') + 1));
+                result.add(leafClass);
             }
         }
-        list.sort(Comparator.comparingInt(IceLeafClass::sortNegativeCount));
-        return list;
+        result.sort(Comparator.comparingInt(IceLeafClass::sortNegativeCount));
+        return result;
     }
 
     @Override
-    public String leafClassCheck(Integer app, String clazz, Byte type) {
+    public void leafClassCheck(int app, String clazz, byte type) {
         NodeTypeEnum typeEnum = NodeTypeEnum.getEnum(type);
-        if (app == null || !StringUtils.hasLength(clazz) || typeEnum == null) {
+        if (!StringUtils.hasLength(clazz) || typeEnum == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|clazz|type");
         }
-        Pair<Integer, String> res = iceNioClientManager.confClazzCheck(app, clazz, type);
-        if (res != null && res.getKey() == 1) {
+        try {
+            iceNioClientManager.confClazzCheck(app, clazz, type);
             iceServerService.addLeafClass(app, type, clazz);
-            return null;
+        } catch (Exception e) {
+            iceServerService.removeLeafClass(app, type, clazz);
+            throw e;
         }
-        iceServerService.removeLeafClass(app, type, clazz);
-        throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, res == null ? null : res.getValue());
     }
 
     @Override

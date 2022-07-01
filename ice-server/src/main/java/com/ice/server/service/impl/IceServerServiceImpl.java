@@ -29,7 +29,7 @@ import javax.annotation.Resource;
 import java.util.*;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Slf4j
 @Service
@@ -445,7 +445,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public Map<String, Integer> getLeafClassMap(Integer app, Byte type) {
+    public synchronized Map<String, Integer> getLeafClassMap(Integer app, Byte type) {
         Map<Byte, Map<String, Integer>> map = leafClassMap.get(app);
         if (map != null) {
             return map.get(type);
@@ -454,18 +454,21 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public void removeLeafClass(Integer app, Byte type, String clazz) {
+    public synchronized void removeLeafClass(Integer app, Byte type, String clazz) {
         Map<Byte, Map<String, Integer>> map = leafClassMap.get(app);
         if (!CollectionUtils.isEmpty(map)) {
             Map<String, Integer> typeMap = map.get(type);
             if (!CollectionUtils.isEmpty(typeMap)) {
                 typeMap.remove(clazz);
             }
+            if (CollectionUtils.isEmpty(typeMap)) {
+                map.remove(type);
+            }
         }
     }
 
     @Override
-    public void addLeafClass(Integer app, Byte type, String clazz) {
+    public synchronized void addLeafClass(Integer app, Byte type, String clazz) {
         Map<Byte, Map<String, Integer>> map = leafClassMap.get(app);
         Map<String, Integer> classMap;
         if (map == null) {

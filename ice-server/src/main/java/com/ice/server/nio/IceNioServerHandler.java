@@ -16,6 +16,9 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * @author waitmoon
+ */
 @Slf4j
 public class IceNioServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
@@ -42,7 +45,7 @@ public class IceNioServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, ByteBuf buf) {
         Channel channel = ctx.channel();
-        IceNioModel nioModel = IceNioUtils.getNioModel(buf);
+        IceNioModel nioModel = IceNioUtils.readNioModel(buf);
         if (nioModel != null && nioModel.getType() != null && nioModel.getOps() != null) {
             switch (nioModel.getType()) {
                 case REQ:
@@ -52,9 +55,9 @@ public class IceNioServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
                         response.setOps(NioOps.INIT);
                         response.setInitDto(serverService.getInitConfig(nioModel.getApp()));
                         IceNioUtils.writeNioModel(ctx, response);
-                        IceNioClientManager.register(nioModel.getApp(), channel, nioModel.getAddress());
+                        IceNioClientManager.register(nioModel.getApp(), channel, nioModel.getAddress(), nioModel.getNodeInfos());
                     } else if (nioModel.getOps() == NioOps.SLAP) {
-                        IceNioClientManager.register(nioModel.getApp(), channel, nioModel.getAddress());
+                        IceNioClientManager.register(nioModel.getApp(), channel, nioModel.getAddress(), null);
                     }
                     break;
                 case RSP:

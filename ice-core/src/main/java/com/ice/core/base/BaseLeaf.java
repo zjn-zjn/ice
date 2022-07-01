@@ -7,7 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Data
 @Slf4j
@@ -19,12 +19,12 @@ public abstract class BaseLeaf extends BaseNode {
      * @return process result
      */
     @Override
-    protected NodeRunStateEnum processNode(IceContext cxt) {
-        return doLeaf(cxt);
+    protected NodeRunStateEnum processNode(IceContext ctx) {
+        return doLeaf(ctx);
     }
 
     /*
      * process leaf
      */
-    protected abstract NodeRunStateEnum doLeaf(IceContext cxt);
+    protected abstract NodeRunStateEnum doLeaf(IceContext ctx);
 }

@@ -14,9 +14,14 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @author waitmoon
+ */
 @Slf4j
 public class IceNioClient {
 
@@ -25,25 +30,59 @@ public class IceNioClient {
     private String host;
     private int port;
     private Bootstrap bootstrap;
-    private int maxFrameLength = 16 * 1024 * 1024;
+    private final int maxFrameLength;
+    private static final int DEFAULT_MAX_FRAME_LENGTH = 16 * 1024 * 1024;
     private EventLoopGroup worker;
-    private int parallelism = -1;
+    private final int parallelism;
     private final String address;
+    //combine main package and config scan packages
+    private Set<String> scanPackages;
+    private static volatile Throwable initCause;
 
-    public IceNioClient(int app, String server, int parallelism, int maxFrameLength) {
+    public IceNioClient(int app, String server, int parallelism, int maxFrameLength, Set<String> scan) {
         this.app = app;
         this.setServer(server);
         this.parallelism = parallelism;
         this.maxFrameLength = maxFrameLength;
         this.address = IceAddressUtils.getAddress(app);
+        this.setScan(scan);
         init();
     }
 
+    public IceNioClient(int app, String server, Set<String> scan) {
+        this(app, server, -1, DEFAULT_MAX_FRAME_LENGTH, scan);
+    }
+
     public IceNioClient(int app, String server) {
-        this.app = app;
-        this.setServer(server);
-        this.address = IceAddressUtils.getAddress(app);
-        init();
+        this(app, server, -1, DEFAULT_MAX_FRAME_LENGTH, null);
+    }
+
+    private void setScan(Set<String> scan) {
+        this.scanPackages = new HashSet<>();
+        String mainClassPackage = getMainPackageName();
+        if (mainClassPackage != null && !mainClassPackage.isEmpty()) {
+            this.scanPackages.add(mainClassPackage);
+        }
+        if (scan != null && !scan.isEmpty()) {
+            this.scanPackages.addAll(scan);
+        }
+    }
+
+    private static String getMainPackageName() {
+        String mainCassName = System.getProperty("sun.java.command");
+        if (mainCassName != null && !mainCassName.isEmpty()) {
+            try {
+                return Class.forName(mainCassName).getPackage().getName();
+            } catch (ClassNotFoundException e) {
+                //ignore
+            }
+        }
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        StackTraceElement element = stackTrace[stackTrace.length - 1];
+        if ("main".equals(element.getMethodName())) {
+            return element.getClass().getPackage().getName();
+        }
+        return null;
     }
 
     private void setServer(String server) {
@@ -78,21 +117,38 @@ public class IceNioClient {
     }
 
     public void destroy() {
+        initCause = null;
         if (worker != null) {
             worker.shutdownGracefully();
         }
     }
 
+    /**
+     * connect to ice nio server
+     */
     public void connect() {
-        try {
-            bootstrap.connect(host, port).sync();
-        } catch (Exception e) {
-            if (!IceNioClientHandler.init) {
-                //ice client not init just shutdown it
-                if (worker != null) {
-                    worker.shutdownGracefully();
+        new Thread(() -> {
+            try {
+                bootstrap.connect(host, port).sync();
+            } catch (Throwable t) {
+                if (!IceNioClientHandler.init) {
+                    //ice client not init just shutdown it
+                    if (worker != null) {
+                        worker.shutdownGracefully();
+                    }
+                    initCause = t;
                 }
-                throw new RuntimeException("ice connect server error server:" + server, e);
+            }
+        }).start();
+        //waiting for client init
+        while (!IceNioClientHandler.init) {
+            if (initCause != null) {
+                throw new RuntimeException("ice connect server error server:" + server, initCause);
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                //
             }
         }
     }
@@ -118,5 +174,9 @@ public class IceNioClient {
 
     public String getAddress() {
         return address;
+    }
+
+    public Set<String> getScanPackages() {
+        return scanPackages;
     }
 }

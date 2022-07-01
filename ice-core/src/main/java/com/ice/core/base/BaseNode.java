@@ -9,7 +9,7 @@ import com.ice.core.utils.ProcessUtils;
 import lombok.Data;
 
 /**
- * @author zjn
+ * @author waitmoon
  * ice base node
  * Note: it should be avoided to be consistent with the basic field during development
  */
@@ -67,47 +67,47 @@ public abstract class BaseNode {
      * process
      * @return NodeRunStateEnum
      */
-    public NodeRunStateEnum process(IceContext cxt) {
-        if (IceTimeUtils.timeDisable(iceTimeTypeEnum, cxt.getPack().getRequestTime(), iceStart, iceEnd)) {
-            ProcessUtils.collectInfo(cxt.getProcessInfo(), this, 'O');
+    public NodeRunStateEnum process(IceContext ctx) {
+        if (IceTimeUtils.timeDisable(iceTimeTypeEnum, ctx.getPack().getRequestTime(), iceStart, iceEnd)) {
+            ProcessUtils.collectInfo(ctx.getProcessInfo(), this, 'O');
             return NodeRunStateEnum.NONE;
         }
         long start = System.currentTimeMillis();
         if (iceForward != null) {
-            NodeRunStateEnum forwardRes = iceForward.process(cxt);
+            NodeRunStateEnum forwardRes = iceForward.process(ctx);
             if (forwardRes != NodeRunStateEnum.FALSE) {
-                NodeRunStateEnum res = processNode(cxt);
+                NodeRunStateEnum res = processNode(ctx);
                 res = forwardRes == NodeRunStateEnum.NONE ? res : (res == NodeRunStateEnum.NONE ? NodeRunStateEnum.TRUE : res);
-                ProcessUtils.collectInfo(cxt.getProcessInfo(), this, start, res);
+                ProcessUtils.collectInfo(ctx.getProcessInfo(), this, start, res);
                 return iceInverse ?
                         res == NodeRunStateEnum.TRUE ?
                                 NodeRunStateEnum.FALSE :
                                 res == NodeRunStateEnum.FALSE ? NodeRunStateEnum.TRUE : res :
                         res;
             }
-            ProcessUtils.collectRejectInfo(cxt.getProcessInfo(), this);
+            ProcessUtils.collectRejectInfo(ctx.getProcessInfo(), this);
             return NodeRunStateEnum.FALSE;
         }
         NodeRunStateEnum res;
         try {
-            res = processNode(cxt);
-        } catch (Exception e) {
+            res = processNode(ctx);
+        } catch (Throwable t) {
             /*error occur use error handle method*/
-            NodeRunStateEnum errorRunState = errorHandle(cxt);
+            NodeRunStateEnum errorRunState = errorHandle(ctx, t);
             if (this.iceErrorStateEnum != null) {
                 /*error handle in config is high priority then error method return*/
                 errorRunState = this.iceErrorStateEnum;
             }
             if (errorRunState == null || errorRunState == NodeRunStateEnum.SHUT_DOWN) {
                 /*shutdown process and throw e*/
-                ProcessUtils.collectInfo(cxt.getProcessInfo(), this, start, NodeRunStateEnum.SHUT_DOWN);
-                throw e;
+                ProcessUtils.collectInfo(ctx.getProcessInfo(), this, start, NodeRunStateEnum.SHUT_DOWN);
+                throw t;
             } else {
                 /*error but continue*/
                 res = errorRunState;
             }
         }
-        ProcessUtils.collectInfo(cxt.getProcessInfo(), this, start, res);
+        ProcessUtils.collectInfo(ctx.getProcessInfo(), this, start, res);
         return iceInverse ?
                 res == NodeRunStateEnum.TRUE ?
                         NodeRunStateEnum.FALSE :
@@ -118,10 +118,10 @@ public abstract class BaseNode {
     /*
      * process node
      */
-    protected abstract NodeRunStateEnum processNode(IceContext cxt);
+    protected abstract NodeRunStateEnum processNode(IceContext ctx);
 
-    public NodeRunStateEnum errorHandle(IceContext cxt) {
-        return IceErrorHandle.handleError(this, cxt);
+    public NodeRunStateEnum errorHandle(IceContext ctx, Throwable t) {
+        return IceErrorHandle.handleError(this, ctx, t);
     }
 
     public Long getIceNodeId() {

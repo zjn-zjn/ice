@@ -2,10 +2,8 @@ package com.ice.core.client;
 
 
 import com.ice.common.dto.IceTransferDto;
-import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
-import com.ice.common.model.Pair;
 import com.ice.common.utils.JacksonUtils;
 import com.ice.core.Ice;
 import com.ice.core.base.BaseNode;
@@ -13,10 +11,6 @@ import com.ice.core.base.BaseRelation;
 import com.ice.core.cache.IceConfCache;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
-import com.ice.core.leaf.base.BaseLeafFlow;
-import com.ice.core.leaf.base.BaseLeafNone;
-import com.ice.core.leaf.base.BaseLeafResult;
-import com.ice.core.relation.*;
 import com.ice.core.utils.IceLinkedList;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,61 +19,10 @@ import java.util.List;
 
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Slf4j
 public final class IceNioClientService {
-
-    /**
-     * when server add new leaf node, check the node exist on client
-     *
-     * @param clazz   server add new leaf class
-     * @param type    leaf type
-     * @param address address
-     * @return result of check
-     */
-    public static Pair<Integer, String> confClazzCheck(String clazz, byte type, String address) {
-        try {
-            Class<?> clientClazz = Class.forName(clazz);
-            NodeTypeEnum typeEnum = NodeTypeEnum.getEnum(type);
-            boolean res = false;
-            switch (typeEnum) {
-                case ALL:
-                    res = All.class.isAssignableFrom(clientClazz);
-                    break;
-                case AND:
-                    res = And.class.isAssignableFrom(clientClazz);
-                    break;
-                case NONE:
-                    res = None.class.isAssignableFrom(clientClazz);
-                    break;
-                case TRUE:
-                    res = True.class.isAssignableFrom(clientClazz);
-                    break;
-                case ANY:
-                    res = Any.class.isAssignableFrom(clientClazz);
-                    break;
-                case LEAF_FLOW:
-                    res = BaseLeafFlow.class.isAssignableFrom(clientClazz);
-                    break;
-                case LEAF_NONE:
-                    res = BaseLeafNone.class.isAssignableFrom(clientClazz);
-                    break;
-                case LEAF_RESULT:
-                    res = BaseLeafResult.class.isAssignableFrom(clientClazz);
-                    break;
-            }
-            if (res) {
-                return new Pair<>(1, null);
-            } else {
-                return new Pair<>(0, "type not match in " + address + " input(" + clazz + "|" + type + ")");
-            }
-        } catch (ClassNotFoundException e) {
-            return new Pair<>(0, "class not found in " + address + " input(" + clazz + "|" + type + ")");
-        } catch (Exception e) {
-            return new Pair<>(0, address);
-        }
-    }
 
     /**
      * update when server release new config
@@ -164,9 +107,9 @@ public final class IceNioClientService {
      * mock data when you need
      *
      * @param pack request pack
-     * @return result of client process cxt
+     * @return result of client process ctx
      */
     public static List<IceContext> mock(IcePack pack) {
-        return Ice.processCxt(pack);
+        return Ice.processCtx(pack);
     }
 }

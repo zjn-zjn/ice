@@ -5,7 +5,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Data
 public final class IceConfDto implements Serializable {

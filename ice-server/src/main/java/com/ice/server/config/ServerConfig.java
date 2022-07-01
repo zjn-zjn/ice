@@ -8,6 +8,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 
+/**
+ * @author waitmoon
+ */
 @Configuration
 @EnableConfigurationProperties(IceServerProperties.class)
 public class ServerConfig {

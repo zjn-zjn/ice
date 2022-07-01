@@ -7,15 +7,15 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
 public abstract class BaseLeafPackNone extends BaseLeafNone {
 
     @Override
-    protected void doNone(IceContext cxt) {
-        doPackNone(cxt.getPack());
+    protected void doNone(IceContext ctx) {
+        doPackNone(ctx.getPack());
     }
 
     /*

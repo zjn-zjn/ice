@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @author zjn
+ * @author waitmoon
  * based on ConcurrentHashMap extend
  * put/get return null while key/value is null (ignore key/value null)
  */

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Slf4j
 @RestController
@@ -21,7 +21,7 @@ public class TestController {
     @RequestMapping(value = "/test", method = RequestMethod.POST)
     public String test(@RequestBody Map<String, Object> map) throws JsonProcessingException {
         IcePack pack = JacksonUtils.readJson(JacksonUtils.toJsonString(map), IcePack.class);
-        return JacksonUtils.toJsonString(Ice.processCxt(pack));
+        return JacksonUtils.toJsonString(Ice.processCtx(pack));
     }
 
     @RequestMapping(value = "/recharge", method = RequestMethod.GET)

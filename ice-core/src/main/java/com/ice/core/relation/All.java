@@ -7,7 +7,7 @@ import com.ice.core.context.IceContext;
 import com.ice.core.utils.IceLinkedList;
 
 /**
- * @author zjn
+ * @author waitmoon
  * relation ALL
  * all child will execute
  * have TRUE--TRUE
@@ -20,7 +20,7 @@ public final class All extends BaseRelation {
      * process relation all
      */
     @Override
-    protected NodeRunStateEnum processNode(IceContext cxt) {
+    protected NodeRunStateEnum processNode(IceContext ctx) {
         IceLinkedList<BaseNode> children = this.getChildren();
         if (children == null || children.isEmpty()) {
             return NodeRunStateEnum.NONE;
@@ -30,14 +30,14 @@ public final class All extends BaseRelation {
             if (node == null) {
                 return NodeRunStateEnum.NONE;
             }
-            return node.process(cxt);
+            return node.process(ctx);
         }
         boolean hasTrue = false;
         boolean hasFalse = false;
         for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
             BaseNode node = listNode.item;
             if (node != null) {
-                NodeRunStateEnum stateEnum = node.process(cxt);
+                NodeRunStateEnum stateEnum = node.process(ctx);
                 if (!hasTrue) {
                     hasTrue = stateEnum == NodeRunStateEnum.TRUE;
                 }

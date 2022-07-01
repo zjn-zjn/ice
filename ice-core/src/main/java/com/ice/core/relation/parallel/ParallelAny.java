@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 
 /**
- * @author zjn
+ * @author waitmoon
  * relation P_ANY(parallel execute)
  * return true on first true
  * have TRUE--TRUE
@@ -28,7 +28,7 @@ public final class ParallelAny extends BaseRelation {
      * process relation any
      */
     @Override
-    protected NodeRunStateEnum processNode(IceContext cxt) {
+    protected NodeRunStateEnum processNode(IceContext ctx) {
         IceLinkedList<BaseNode> children = this.getChildren();
         if (children == null || children.isEmpty()) {
             return NodeRunStateEnum.NONE;
@@ -38,13 +38,13 @@ public final class ParallelAny extends BaseRelation {
             if (node == null) {
                 return NodeRunStateEnum.NONE;
             }
-            return node.process(cxt);
+            return node.process(ctx);
         }
         LinkedList<Pair<Long, Future<NodeRunStateEnum>>> futurePairs = new LinkedList<>();
         for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
             BaseNode node = listNode.item;
             if (node != null) {
-                futurePairs.add(new Pair<>(node.findIceNodeId(), IceExecutor.submitNodeCallable(node, cxt)));
+                futurePairs.add(new Pair<>(node.findIceNodeId(), IceExecutor.submitNodeCallable(node, ctx)));
             }
         }
         boolean hasFalse = false;

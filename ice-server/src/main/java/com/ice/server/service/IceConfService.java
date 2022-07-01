@@ -7,14 +7,14 @@ import com.ice.server.model.IceLeafClass;
 import java.util.List;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 public interface IceConfService {
     Long confEdit(IceEditNode editNode);
 
-    List<IceLeafClass> getConfLeafClass(Integer app, Byte type);
+    List<IceLeafClass> getConfLeafClass(int app, byte type);
 
-    String leafClassCheck(Integer app, String clazz, Byte type);
+    void leafClassCheck(int app, String clazz, byte type);
 
     IceShowConf confDetail(int app, long confId, String address, long iceId);
 }

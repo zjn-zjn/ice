@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @author zjn
+ * @author waitmoon
  * update client local ice cache from ice-server`s init/update
  */
 @Slf4j

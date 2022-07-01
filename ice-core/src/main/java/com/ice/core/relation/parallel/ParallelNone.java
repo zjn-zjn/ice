@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 
 /**
- * @author zjn
+ * @author waitmoon
  * relation P_NONE(parallel execute)
  * all child will execute
  * return NONE
@@ -24,7 +24,7 @@ public final class ParallelNone extends BaseRelation {
      * process relation none
      */
     @Override
-    protected NodeRunStateEnum processNode(IceContext cxt) {
+    protected NodeRunStateEnum processNode(IceContext ctx) {
         IceLinkedList<BaseNode> children = this.getChildren();
         if (children == null || children.isEmpty()) {
             return NodeRunStateEnum.NONE;
@@ -34,13 +34,13 @@ public final class ParallelNone extends BaseRelation {
             if (node == null) {
                 return NodeRunStateEnum.NONE;
             }
-            return node.process(cxt);
+            return node.process(ctx);
         }
         List<Pair<Long, Future<?>>> futurePairs = new LinkedList<>();
         for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
             BaseNode node = listNode.item;
             if (node != null) {
-                futurePairs.add(new Pair<>(node.findIceNodeId(), IceExecutor.submitNodeRunnable(node, cxt)));
+                futurePairs.add(new Pair<>(node.findIceNodeId(), IceExecutor.submitNodeRunnable(node, ctx)));
             }
         }
         long nodeId = 0;

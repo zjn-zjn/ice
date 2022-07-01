@@ -3,7 +3,7 @@ package com.ice.server.model;
 import lombok.Data;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Data
 public class IceLeafClass {

@@ -1,7 +1,7 @@
 package com.ice.core.utils;
 
 /**
- * @author zjn
+ * @author waitmoon
  * IceBean tool class
  * init leaf node`s bean
  */

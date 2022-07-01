@@ -7,15 +7,15 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
 public abstract class BaseLeafPackResult extends BaseLeafResult {
 
     @Override
-    protected boolean doResult(IceContext cxt) {
-        return doPackResult(cxt.getPack());
+    protected boolean doResult(IceContext ctx) {
+        return doPackResult(ctx.getPack());
     }
 
     /*

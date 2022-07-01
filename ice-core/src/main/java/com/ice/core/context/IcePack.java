@@ -8,7 +8,7 @@ import lombok.ToString;
 import java.io.Serializable;
 
 /**
- * @author zjn
+ * @author waitmoon
  * process ice input
  */
 @Data

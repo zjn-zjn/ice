@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * @author zjn
+ * @author waitmoon
  * node type
  */
 public enum NodeTypeEnum {

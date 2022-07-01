@@ -14,6 +14,9 @@ import org.springframework.util.StringUtils;
 import javax.annotation.Resource;
 import java.util.Date;
 
+/**
+ * @author waitmoon
+ */
 @Slf4j
 @Service
 public class IceAppServiceImpl implements IceAppService {

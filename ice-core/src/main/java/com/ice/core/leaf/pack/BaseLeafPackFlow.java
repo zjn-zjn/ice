@@ -7,15 +7,15 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
 public abstract class BaseLeafPackFlow extends BaseLeafFlow {
 
     @Override
-    protected boolean doFlow(IceContext cxt) {
-        return doPackFlow(cxt.getPack());
+    protected boolean doFlow(IceContext ctx) {
+        return doPackFlow(ctx.getPack());
     }
 
     /*

@@ -3,6 +3,9 @@ package com.ice.server.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * @author waitmoon
+ */
 @Data
 @ConfigurationProperties(prefix = "ice")
 public class IceServerProperties {

@@ -2,7 +2,7 @@ package com.ice.core.client;
 
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.model.IceShowConf;
-import com.ice.common.model.Pair;
+import com.ice.common.model.NodeInfo;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
 import lombok.Data;
@@ -10,7 +10,7 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * @author zjn
+ * @author waitmoon
  * client and server transport model
  */
 @Data
@@ -24,9 +24,9 @@ public class IceNioModel {
 
     private int app;
 
-    private String address;
+    private List<NodeInfo> nodeInfos;
 
-    private String uniqueAddress;
+    private String address;
 
     private IceTransferDto updateDto;
 
@@ -39,8 +39,6 @@ public class IceNioModel {
     private IcePack pack;
 
     private IceTransferDto initDto;
-
-    private Pair<Integer, String> clazzCheck;
 
     private List<String> updateErrors;
 

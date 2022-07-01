@@ -5,6 +5,9 @@ import lombok.Data;
 import java.io.Serializable;
 import java.util.List;
 
+/**
+ * @author waitmoon
+ */
 @Data
 public class IceShowNode implements Serializable {
 
@@ -30,6 +33,9 @@ public class IceShowNode implements Serializable {
 
     private Byte timeType;
 
+    /**
+     * @author waitmoon
+     */
     @Data
     public static final class NodeConf implements Serializable {
         private Long nodeId;

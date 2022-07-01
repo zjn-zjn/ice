@@ -4,8 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @author zjn
  * node error handle enum
+ * @author waitmoon
  */
 public enum ErrorHandleEnum {
     /*

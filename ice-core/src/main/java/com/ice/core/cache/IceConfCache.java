@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @author zjn
+ * @author waitmoon
  * conf instance structure update
  */
 @Slf4j

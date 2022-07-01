@@ -5,7 +5,7 @@ import com.ice.core.base.BaseNode;
 import lombok.Data;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @Data
 public class BaseBuilder {

@@ -6,7 +6,7 @@ import lombok.ToString;
 import java.io.Serializable;
 
 /**
- * @author zjn
+ * @author waitmoon
  * Ice process context
  */
 @Data
@@ -14,7 +14,7 @@ import java.io.Serializable;
 public final class IceContext implements Serializable {
 
     /*
-     * in ice process time (cxt init time)
+     * in ice process time (ctx init time)
      */
     private final long iceTime = System.currentTimeMillis();
     /*

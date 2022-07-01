@@ -12,7 +12,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @author zjn
+ * @author waitmoon
  * base config local cache
  * base instance structure update
  */

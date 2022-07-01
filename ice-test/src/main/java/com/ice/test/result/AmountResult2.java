@@ -9,6 +9,9 @@ import lombok.EqualsAndHashCode;
 
 import javax.annotation.Resource;
 
+/**
+ * @author waitmoon
+ */
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class AmountResult2 extends BaseLeafPackResult {

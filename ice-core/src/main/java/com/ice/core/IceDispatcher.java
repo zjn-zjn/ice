@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.concurrent.Future;
 
 /**
- * @author zjn
+ * @author waitmoon
  * ice dispatcher with id/scene
  */
 @Slf4j
@@ -41,9 +41,9 @@ public final class IceDispatcher {
                 log.debug("handler maybe expired iceId:{}", pack.getIceId());
                 return Collections.emptyList();
             }
-            IceContext cxt = new IceContext(handler.findIceId(), pack);
-            handler.handle(cxt);
-            return Collections.singletonList(cxt);
+            IceContext ctx = new IceContext(handler.findIceId(), pack);
+            handler.handle(ctx);
+            return Collections.singletonList(ctx);
         }
         /*next scene*/
         if (pack.getScene() != null && !pack.getScene().isEmpty()) {
@@ -55,23 +55,23 @@ public final class IceDispatcher {
             if (handlerMap.size() == 1) {
                 /*one handler*/
                 IceHandler handler = handlerMap.values().iterator().next();
-                IceContext cxt = new IceContext(handler.findIceId(), pack);
-                handler.handle(cxt);
-                return Collections.singletonList(cxt);
+                IceContext ctx = new IceContext(handler.findIceId(), pack);
+                handler.handle(ctx);
+                return Collections.singletonList(ctx);
             }
             /*mutli handler ever each handler roam not conflict(note the effect of roam`s shallow copy)*/
             IceRoam roam = pack.getRoam();
-            List<IceContext> cxtList = new ArrayList<>(handlerMap.size());
+            List<IceContext> ctxList = new ArrayList<>(handlerMap.size());
             List<Future<?>> futures = new ArrayList<>(handlerMap.size());
             for (IceHandler handler : handlerMap.values()) {
-                IceContext cxt = new IceContext(handler.findIceId(), pack.newPack(roam));
-                futures.add(IceExecutor.submitHandler(handler, cxt));
-                cxtList.add(cxt);
+                IceContext ctx = new IceContext(handler.findIceId(), pack.newPack(roam));
+                futures.add(IceExecutor.submitHandler(handler, ctx));
+                ctxList.add(ctx);
             }
             for (Future<?> future : futures) {
                 future.get();
             }
-            return cxtList;
+            return ctxList;
         }
 
         /*last confId/nodeId*/
@@ -81,13 +81,13 @@ public final class IceDispatcher {
         }
         BaseNode root = IceConfCache.getConfById(confId);
         if (root != null) {
-            IceContext cxt = new IceContext(confId, pack);
+            IceContext ctx = new IceContext(confId, pack);
             IceHandler handler = new IceHandler();
             handler.setDebug(pack.getDebug());
             handler.setRoot(root);
             handler.setConfId(confId);
-            handler.handle(cxt);
-            return Collections.singletonList(cxt);
+            handler.handle(ctx);
+            return Collections.singletonList(ctx);
         }
         return Collections.emptyList();
     }
@@ -101,8 +101,8 @@ public final class IceDispatcher {
             if (handler == null) {
                 return Collections.emptyList();
             }
-            IceContext cxt = new IceContext(handler.findIceId(), pack);
-            return Collections.singletonList(IceExecutor.submitHandler(handler, cxt));
+            IceContext ctx = new IceContext(handler.findIceId(), pack);
+            return Collections.singletonList(IceExecutor.submitHandler(handler, ctx));
         }
         if (pack.getScene() != null && !pack.getScene().isEmpty()) {
             Map<Long, IceHandler> handlerMap = IceHandlerCache.getHandlersByScene(pack.getScene());
@@ -111,14 +111,14 @@ public final class IceDispatcher {
             }
             if (handlerMap.size() == 1) {
                 IceHandler handler = handlerMap.values().iterator().next();
-                IceContext cxt = new IceContext(handler.findIceId(), pack);
-                return Collections.singletonList(IceExecutor.submitHandler(handler, cxt));
+                IceContext ctx = new IceContext(handler.findIceId(), pack);
+                return Collections.singletonList(IceExecutor.submitHandler(handler, ctx));
             }
             IceRoam roam = pack.getRoam();
             List<Future<IceContext>> futures = new ArrayList<>(handlerMap.size());
             for (IceHandler handler : handlerMap.values()) {
-                IceContext cxt = new IceContext(handler.findIceId(), pack.newPack(roam));
-                futures.add(IceExecutor.submitHandler(handler, cxt));
+                IceContext ctx = new IceContext(handler.findIceId(), pack.newPack(roam));
+                futures.add(IceExecutor.submitHandler(handler, ctx));
             }
             return futures;
         }
@@ -129,12 +129,12 @@ public final class IceDispatcher {
 
         BaseNode root = IceConfCache.getConfById(confId);
         if (root != null) {
-            IceContext cxt = new IceContext(confId, pack);
+            IceContext ctx = new IceContext(confId, pack);
             IceHandler handler = new IceHandler();
             handler.setDebug(pack.getDebug());
             handler.setRoot(root);
             handler.setConfId(confId);
-            return Collections.singletonList(IceExecutor.submitHandler(handler, cxt));
+            return Collections.singletonList(IceExecutor.submitHandler(handler, ctx));
         }
         return Collections.emptyList();
     }

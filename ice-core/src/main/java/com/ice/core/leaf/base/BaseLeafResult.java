@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * @author zjn
+ * @author waitmoon
  * Result leaf
  */
 @Data
@@ -18,8 +18,8 @@ public abstract class BaseLeafResult extends BaseLeaf {
      * process leaf result
      */
     @Override
-    protected NodeRunStateEnum doLeaf(IceContext cxt) {
-        if (this.doResult(cxt)) {
+    protected NodeRunStateEnum doLeaf(IceContext ctx) {
+        if (this.doResult(ctx)) {
             return NodeRunStateEnum.TRUE;
         }
         return NodeRunStateEnum.FALSE;
@@ -28,5 +28,5 @@ public abstract class BaseLeafResult extends BaseLeaf {
     /*
      * process leaf result
      */
-    protected abstract boolean doResult(IceContext cxt);
+    protected abstract boolean doResult(IceContext ctx);
 }

@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 public enum EditTypeEnum {
 

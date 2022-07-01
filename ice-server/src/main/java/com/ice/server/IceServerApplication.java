@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
- * @author zjn
+ * @author waitmoon
  */
 @SpringBootApplication
 @EnableScheduling

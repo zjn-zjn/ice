@@ -2,8 +2,16 @@ package com.ice.client.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+import java.util.Set;
+
+/**
+ * @author waitmoon
+ */
 @Data
+@Configuration
 @ConfigurationProperties(prefix = "ice")
 public class IceClientProperties {
     /*
@@ -18,6 +26,12 @@ public class IceClientProperties {
      * default 16M, size bigger than this may dirty data
      */
     private int maxFrameLength = 16 * 1024 * 1024;
+    /*
+     * node scan packages
+     * multiple packages split with ','
+     * default main package
+     */
+    private Set<String> scan;
     /*
      * ice thread pool
      */
