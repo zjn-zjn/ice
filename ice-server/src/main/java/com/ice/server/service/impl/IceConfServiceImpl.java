@@ -104,7 +104,7 @@ public class IceConfServiceImpl implements IceConfService {
     private Long exchange(IceEditNode editNode) {
         int app = editNode.getApp();
         long iceId = editNode.getIceId();
-        if (StringUtils.hasLength(editNode.getMultiplexIds())) {
+        if (StringUtils.hasText(editNode.getMultiplexIds())) {
             /*exchange to another id*/
             if (editNode.getParentId() == null && editNode.getNextId() == null) {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "root not support exchange by id");
@@ -125,7 +125,7 @@ public class IceConfServiceImpl implements IceConfService {
                 }
                 List<IceConf> children = iceServerService.getMixConfListByIds(app, sonIdSet, iceId);
                 if (CollectionUtils.isEmpty(children) || children.size() != sonIdSet.size()) {
-                    throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "sonIds", editNode.getMultiplexIds());
+                    throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "one of sonId", editNode.getMultiplexIds());
                 }
                 if (iceServerService.haveCircle(editNode.getParentId(), sonIdSet)) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check input sonIds");
@@ -180,7 +180,8 @@ public class IceConfServiceImpl implements IceConfService {
             operateConf.setSonIds(null);
         }
         operateConf.setApp(app);
-        operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
+        //use old name
+        operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? operateConf.getName() : editNode.getName());
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
             if (StringUtils.hasLength(editNode.getConfField())) {
                 if (!JacksonUtils.isJsonObject(editNode.getConfField())) {
