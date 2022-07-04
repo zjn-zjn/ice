@@ -8,7 +8,7 @@ import java.util.List;
  * @author waitmoon
  */
 @Data
-public final class NodeInfo {
+public final class LeafNodeInfo {
     private byte type;
     private String clazz;
     private String name;

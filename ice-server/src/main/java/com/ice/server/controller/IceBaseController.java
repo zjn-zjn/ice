@@ -10,6 +10,7 @@ import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceBaseSearch;
 import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
+import com.ice.server.model.WebResult;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceServerService;
 import org.springframework.beans.factory.annotation.Value;
@@ -88,9 +89,9 @@ public class IceBaseController {
     }
 
     @RequestMapping(value = "/ice-server/base/export", method = RequestMethod.GET)
-    public String export(@RequestParam Long iceId,
-                         @RequestParam(required = false) Long pushId) {
-        return iceBaseService.exportData(iceId, pushId);
+    public WebResult<String> export(@RequestParam Long iceId,
+                                    @RequestParam(required = false) Long pushId) {
+        return WebResult.success(iceBaseService.exportData(iceId, pushId));
     }
 
     @RequestMapping(value = "/ice-server/base/rollback", method = RequestMethod.GET)

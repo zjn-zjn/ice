@@ -3,7 +3,7 @@ package com.ice.server.nio;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.model.IceChannelInfo;
 import com.ice.common.model.IceShowConf;
-import com.ice.common.model.NodeInfo;
+import com.ice.common.model.LeafNodeInfo;
 import com.ice.common.utils.UUIDUtils;
 import com.ice.core.client.IceNioModel;
 import com.ice.core.client.NioOps;
@@ -39,8 +39,8 @@ public final class IceNioClientManager implements InitializingBean {
     private static final Map<Integer, Map<String, Channel>> appAddressChannelMap = new ConcurrentHashMap<>();
     private static final Map<Channel, IceChannelInfo> channelInfoMap = new ConcurrentHashMap<>();
     private static final Map<Integer, TreeMap<Long, Set<Channel>>> appChannelTimeTreeMap = new TreeMap<>();
-    private static final Map<Integer, Map<String, Map<String, NodeInfo>>> appAddressClazzInfoMap = new ConcurrentHashMap<>();
-    private static Map<Integer, Map<Byte, Map<String, NodeInfo>>> appNodeClazzInfoMap = new ConcurrentHashMap<>();
+    private static final Map<Integer, Map<String, Map<String, LeafNodeInfo>>> appAddressLeafClazzMap = new ConcurrentHashMap<>();
+    private static Map<Integer, Map<Byte, Map<String, LeafNodeInfo>>> appNodeLeafClazzMap = new ConcurrentHashMap<>();
 
     @Resource
     private IceServerProperties properties;
@@ -75,22 +75,22 @@ public final class IceNioClientManager implements InitializingBean {
                 }
             }
             //remove client leaf class
-            Map<String, Map<String, NodeInfo>> addressNodeClassMap = appAddressClazzInfoMap.get(app);
+            Map<String, Map<String, LeafNodeInfo>> addressNodeClassMap = appAddressLeafClazzMap.get(app);
             if (!CollectionUtils.isEmpty(addressNodeClassMap)) {
                 addressNodeClassMap.remove(address);
                 if (CollectionUtils.isEmpty(addressNodeClassMap)) {
                     //not have any available client
-                    appAddressClazzInfoMap.remove(app);
-                    appNodeClazzInfoMap = new ConcurrentHashMap<>();
+                    appAddressLeafClazzMap.remove(app);
+                    appNodeLeafClazzMap = new ConcurrentHashMap<>();
                 } else {
                     //reorganize app leaf class map
-                    Map<Integer, Map<Byte, Map<String, NodeInfo>>> appNodeClassMapTmp = new ConcurrentHashMap<>();
-                    for (Map<String, NodeInfo> leafTypeClassMap : addressNodeClassMap.values()) {
-                        for (NodeInfo nodeInfo : leafTypeClassMap.values()) {
-                            appNodeClassMapTmp.computeIfAbsent(app, k -> new ConcurrentHashMap<>()).computeIfAbsent(nodeInfo.getType(), k -> new ConcurrentHashMap<>()).put(nodeInfo.getClazz(), nodeInfo);
+                    Map<Integer, Map<Byte, Map<String, LeafNodeInfo>>> appNodeLeafClazzMapTmp = new ConcurrentHashMap<>();
+                    for (Map<String, LeafNodeInfo> leafTypeClassMap : addressNodeClassMap.values()) {
+                        for (LeafNodeInfo leafNodeInfo : leafTypeClassMap.values()) {
+                            appNodeLeafClazzMapTmp.computeIfAbsent(app, k -> new ConcurrentHashMap<>()).computeIfAbsent(leafNodeInfo.getType(), k -> new ConcurrentHashMap<>()).put(leafNodeInfo.getClazz(), leafNodeInfo);
                         }
                     }
-                    appNodeClazzInfoMap = appNodeClassMapTmp;
+                    appNodeLeafClazzMap = appNodeLeafClazzMapTmp;
                 }
             }
             log.info("ice client app:{} client:{} offline", app, address);
@@ -121,7 +121,12 @@ public final class IceNioClientManager implements InitializingBean {
         }
     }
 
-    public static synchronized void register(int app, Channel channel, String address, List<NodeInfo> nodeInfoList) {
+    public static synchronized void register(int app, Channel channel, String address) {
+        //slap
+        register(app, channel, address, null);
+    }
+
+    public static synchronized void register(int app, Channel channel, String address, List<LeafNodeInfo> leafNodes) {
         long now = System.currentTimeMillis();
         IceChannelInfo info = channelInfoMap.get(channel);
         if (info != null) {
@@ -143,10 +148,10 @@ public final class IceNioClientManager implements InitializingBean {
             log.info("ice client app:{} client:{} online", app, address);
         }
         appChannelTimeTreeMap.computeIfAbsent(app, k -> new TreeMap<>()).computeIfAbsent(now, k -> new HashSet<>()).add(channel);
-        if (!CollectionUtils.isEmpty(nodeInfoList)) {
-            for (NodeInfo nodeInfo : nodeInfoList) {
-                appAddressClazzInfoMap.computeIfAbsent(app, k -> new ConcurrentHashMap<>()).computeIfAbsent(address, k -> new ConcurrentHashMap<>()).put(nodeInfo.getClazz(), nodeInfo);
-                appNodeClazzInfoMap.computeIfAbsent(app, k -> new ConcurrentHashMap<>()).computeIfAbsent(nodeInfo.getType(), k -> new ConcurrentHashMap<>()).put(nodeInfo.getClazz(), nodeInfo);
+        if (!CollectionUtils.isEmpty(leafNodes)) {
+            for (LeafNodeInfo leafNodeInfo : leafNodes) {
+                appAddressLeafClazzMap.computeIfAbsent(app, k -> new ConcurrentHashMap<>()).computeIfAbsent(address, k -> new ConcurrentHashMap<>()).put(leafNodeInfo.getClazz(), leafNodeInfo);
+                appNodeLeafClazzMap.computeIfAbsent(app, k -> new ConcurrentHashMap<>()).computeIfAbsent(leafNodeInfo.getType(), k -> new ConcurrentHashMap<>()).put(leafNodeInfo.getClazz(), leafNodeInfo);
             }
         }
     }
@@ -179,9 +184,9 @@ public final class IceNioClientManager implements InitializingBean {
     }
 
     public synchronized void confClazzCheck(int app, String clazz, byte type) {
-        Map<Byte, Map<String, NodeInfo>> addressClazzInfoMap = appNodeClazzInfoMap.get(app);
+        Map<Byte, Map<String, LeafNodeInfo>> addressClazzInfoMap = appNodeLeafClazzMap.get(app);
         if (!CollectionUtils.isEmpty(addressClazzInfoMap)) {
-            Map<String, NodeInfo> clazzInfoMap = addressClazzInfoMap.get(type);
+            Map<String, LeafNodeInfo> clazzInfoMap = addressClazzInfoMap.get(type);
             if (!CollectionUtils.isEmpty(clazzInfoMap)) {
                 if (clazzInfoMap.containsKey(clazz)) {
                     //one of available client have this clazz
@@ -193,9 +198,9 @@ public final class IceNioClientManager implements InitializingBean {
     }
 
     public synchronized Set<String> getLeafTypeClasses(int app, byte type) {
-        Map<Byte, Map<String, NodeInfo>> addressClazzInfoMap = appNodeClazzInfoMap.get(app);
+        Map<Byte, Map<String, LeafNodeInfo>> addressClazzInfoMap = appNodeLeafClazzMap.get(app);
         if (!CollectionUtils.isEmpty(addressClazzInfoMap)) {
-            Map<String, NodeInfo> clazzInfoMap = addressClazzInfoMap.get(type);
+            Map<String, LeafNodeInfo> clazzInfoMap = addressClazzInfoMap.get(type);
             if (!CollectionUtils.isEmpty(clazzInfoMap)) {
                 return clazzInfoMap.keySet();
             }

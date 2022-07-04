@@ -55,9 +55,9 @@ public class IceNioServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
                         response.setOps(NioOps.INIT);
                         response.setInitDto(serverService.getInitConfig(nioModel.getApp()));
                         IceNioUtils.writeNioModel(ctx, response);
-                        IceNioClientManager.register(nioModel.getApp(), channel, nioModel.getAddress(), nioModel.getNodeInfos());
+                        IceNioClientManager.register(nioModel.getApp(), channel, nioModel.getAddress(), nioModel.getLeafNodes());
                     } else if (nioModel.getOps() == NioOps.SLAP) {
-                        IceNioClientManager.register(nioModel.getApp(), channel, nioModel.getAddress(), null);
+                        IceNioClientManager.register(nioModel.getApp(), channel, nioModel.getAddress());
                     }
                     break;
                 case RSP:

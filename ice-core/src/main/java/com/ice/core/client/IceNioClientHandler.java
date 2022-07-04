@@ -1,15 +1,7 @@
 package com.ice.core.client;
 
-import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.IceShowConf;
-import com.ice.common.model.NodeInfo;
-import com.ice.core.annotation.IceField;
-import com.ice.core.annotation.IceNode;
-import com.ice.core.base.BaseLeaf;
 import com.ice.core.context.IceContext;
-import com.ice.core.leaf.base.BaseLeafFlow;
-import com.ice.core.leaf.base.BaseLeafNone;
-import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.core.utils.IceNioUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -17,13 +9,8 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import lombok.extern.slf4j.Slf4j;
-import org.reflections.Reflections;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * @author waitmoon
@@ -54,7 +41,7 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
         initRequest.setApp(app);
         initRequest.setAddress(iceNioClient.getAddress());
         //leaf node class
-        initRequest.setNodeInfos(getLeafTypeClassMap(iceNioClient.getScanPackages()));
+        initRequest.setLeafNodes(iceNioClient.getLeafNodes());
         IceNioUtils.writeNioModel(ctx, initRequest);
     }
 
@@ -124,59 +111,5 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         log.warn("ice client channel error:", cause);
         ctx.close();
-    }
-
-    private static List<NodeInfo> getLeafTypeClassMap(Set<String> scanPackages) {
-        if (scanPackages == null || scanPackages.isEmpty()) {
-            //empty scan return null
-            return null;
-        }
-        Reflections reflections = new Reflections(scanPackages.toArray());
-        Set<Class<? extends BaseLeaf>> leafClasses = reflections.getSubTypesOf(BaseLeaf.class);
-        if (leafClasses == null || leafClasses.isEmpty()) {
-            return null;
-        }
-        List<NodeInfo> nodeInfos = new ArrayList<>(leafClasses.size());
-        for (Class<? extends BaseLeaf> leafClass : leafClasses) {
-            if (!Modifier.isAbstract(leafClass.getModifiers())) { //exclude abstract nodes
-                NodeInfo nodeInfo = new NodeInfo();
-                nodeInfo.setClazz(leafClass.getName());
-                IceNode nodeAnnotation = leafClass.getAnnotation(IceNode.class);
-                if (nodeAnnotation != null) {
-                    nodeInfo.setName(nodeAnnotation.name());
-                    nodeInfo.setDesc(nodeAnnotation.desc());
-                }
-                Field[] leafFields = leafClass.getDeclaredFields();
-                List<NodeInfo.FieldInfo> annotationFields = new ArrayList<>(leafFields.length);
-                for (Field field : leafFields) {
-                    IceField fieldAnnotation = field.getAnnotation(IceField.class);
-                    if (fieldAnnotation != null) {
-                        NodeInfo.FieldInfo fieldInfo = new NodeInfo.FieldInfo();
-                        fieldInfo.setField(field.getName());
-                        fieldInfo.setName(fieldAnnotation.name());
-                        fieldInfo.setDesc(fieldAnnotation.desc());
-                        annotationFields.add(fieldInfo);
-                    }
-                }
-                if (!annotationFields.isEmpty()) {
-                    nodeInfo.setFields(annotationFields);
-                }
-                if (BaseLeafFlow.class.isAssignableFrom(leafClass)) {
-                    nodeInfo.setType(NodeTypeEnum.LEAF_FLOW.getType());
-                    nodeInfos.add(nodeInfo);
-                    continue;
-                }
-                if (BaseLeafResult.class.isAssignableFrom(leafClass)) {
-                    nodeInfo.setType(NodeTypeEnum.LEAF_RESULT.getType());
-                    nodeInfos.add(nodeInfo);
-                    continue;
-                }
-                if (BaseLeafNone.class.isAssignableFrom(leafClass)) {
-                    nodeInfo.setType(NodeTypeEnum.LEAF_NONE.getType());
-                    nodeInfos.add(nodeInfo);
-                }
-            }
-        }
-        return nodeInfos;
     }
 }

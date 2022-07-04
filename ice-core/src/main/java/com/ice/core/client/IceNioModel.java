@@ -2,7 +2,7 @@ package com.ice.core.client;
 
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.model.IceShowConf;
-import com.ice.common.model.NodeInfo;
+import com.ice.common.model.LeafNodeInfo;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
 import lombok.Data;
@@ -24,7 +24,7 @@ public class IceNioModel {
 
     private int app;
 
-    private List<NodeInfo> nodeInfos;
+    private List<LeafNodeInfo> leafNodes;
 
     private String address;
 
