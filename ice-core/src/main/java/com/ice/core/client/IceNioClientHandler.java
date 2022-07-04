@@ -73,10 +73,10 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
                     break;
                 case RSP:
                     if (nioModel.getOps() == NioOps.INIT) {
-                        log.info("ice client init app:{} address:{}", app, iceNioClient.getAddress());
+                        log.info("ice conf init app:{} address:{}", app, iceNioClient.getAddress());
                         IceUpdate.update(nioModel.getInitDto());
                         init = true;
-                        log.info("ice client init iceEnd success app:{} address:{}", app, iceNioClient.getAddress());
+                        log.info("ice conf init success app:{} address:{}", app, iceNioClient.getAddress());
                     }
                     break;
             }

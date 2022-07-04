@@ -131,7 +131,7 @@ public class IceNioClient {
                 throw new RuntimeException("ice connect server error server:" + server, initCause);
             }
             try {
-                Thread.sleep(1000);
+                Thread.sleep(500);
             } catch (InterruptedException e) {
                 //
             }
