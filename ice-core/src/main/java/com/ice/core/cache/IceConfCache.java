@@ -56,10 +56,18 @@ public final class IceConfCache {
         for (IceConfDto confDto : iceConfDtos) {
             try {
                 tmpConfMap.put(confDto.getId(), convert(confDto));
+            } catch (ClassNotFoundException ce) {
+                String errorNodeStr = JacksonUtils.toJsonString(confDto);
+                errors.add("class not found conf:" + errorNodeStr);
+                log.error("class not found conf:{}", errorNodeStr);
+            } catch (JsonProcessingException je) {
+                String errorNodeStr = JacksonUtils.toJsonString(confDto);
+                errors.add("json parse error conf:" + errorNodeStr);
+                log.error("json parse error conf:{}", errorNodeStr);
             } catch (Exception e) {
                 String errorNodeStr = JacksonUtils.toJsonString(confDto);
                 errors.add("error conf:" + errorNodeStr);
-                log.error("ice error conf:{} please check! e:", errorNodeStr, e);
+                log.error("ice error conf:{} e:{}", errorNodeStr, e);
             }
         }
         for (IceConfDto confInfo : iceConfDtos) {
