@@ -3,6 +3,7 @@ package com.ice.core.client;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.LeafNodeInfo;
+import com.ice.common.model.Pair;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
 import lombok.Data;
@@ -39,6 +40,8 @@ public class IceNioModel {
     private IcePack pack;
 
     private IceTransferDto initDto;
+
+    private Pair<Integer, String> clazzCheck;
 
     private List<String> updateErrors;
 

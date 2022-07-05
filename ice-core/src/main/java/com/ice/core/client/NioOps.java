@@ -8,6 +8,7 @@ public enum NioOps {
     INIT,
     SLAP,
     //server to client
+    CLAZZ_CHECK,
     UPDATE,
     SHOW_CONF,
     MOCK

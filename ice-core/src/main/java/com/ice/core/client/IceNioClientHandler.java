@@ -1,6 +1,7 @@
 package com.ice.core.client;
 
 import com.ice.common.model.IceShowConf;
+import com.ice.common.model.Pair;
 import com.ice.core.context.IceContext;
 import com.ice.core.utils.IceNioUtils;
 import io.netty.buffer.ByteBuf;
@@ -56,6 +57,10 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
                     response.setId(nioModel.getId());
                     response.setOps(nioModel.getOps());
                     switch (nioModel.getOps()) {
+                        case CLAZZ_CHECK:
+                            Pair<Integer, String> checkResult = IceNioClientService.confClazzCheck(nioModel.getClazz(), nioModel.getNodeType(), iceNioClient.getAddress());
+                            response.setClazzCheck(checkResult);
+                            break;
                         case UPDATE:
                             List<String> errors = IceNioClientService.update(nioModel.getUpdateDto());
                             response.setUpdateErrors(errors);

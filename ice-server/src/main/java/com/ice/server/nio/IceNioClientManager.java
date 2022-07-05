@@ -194,7 +194,25 @@ public final class IceNioClientManager implements InitializingBean {
                 }
             }
         }
-        throw new ErrorCodeException(ErrorCode.CLIENT_CLASS_NOT_FOUND, clazz, type, app);
+        //not found in client init leaf node, try search on one of real client
+        Channel channel = getClientSocketChannel(app, null);
+        if (channel == null) {
+            throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
+        }
+        IceNioModel request = new IceNioModel();
+        request.setClazz(clazz);
+        request.setNodeType(type);
+        request.setApp(app);
+        request.setId(UUIDUtils.generateUUID22());
+        request.setType(NioType.REQ);
+        request.setOps(NioOps.CLAZZ_CHECK);
+        IceNioModel response = getResult(channel, request);
+        if (response == null || response.getClazzCheck() == null) {
+            throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, "unknown");
+        }
+        if (response.getClazzCheck().getKey() != 1) {
+            throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, response.getClazzCheck().getValue());
+        }
     }
 
     public synchronized Set<String> getLeafTypeClasses(int app, byte type) {
