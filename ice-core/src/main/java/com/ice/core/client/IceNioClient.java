@@ -23,10 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
@@ -48,20 +45,25 @@ public class IceNioClient {
     private final String address;
     //combine main package and config scan packages
     private List<LeafNodeInfo> leafNodes;
-    private static volatile Throwable initCause;
+    private volatile Throwable initCause;
+    private final Object lock = new Object();
 
-    public IceNioClient(int app, String server, int parallelism, int maxFrameLength, Set<String> scan) throws IOException {
+    public IceNioClient(int app, String server, int parallelism, int maxFrameLength, Set<String> scanPackages) throws IOException {
         this.app = app;
         this.setServer(server);
         this.parallelism = parallelism;
         this.maxFrameLength = maxFrameLength;
         this.address = IceAddressUtils.getAddress(app);
-        scanLeafNodes(scan);
+        scanLeafNodes(scanPackages);
         init();
     }
 
-    public IceNioClient(int app, String server, Set<String> scan) throws IOException {
-        this(app, server, -1, DEFAULT_MAX_FRAME_LENGTH, scan);
+    public IceNioClient(int app, String server, Set<String> scanPackages) throws IOException {
+        this(app, server, -1, DEFAULT_MAX_FRAME_LENGTH, scanPackages);
+    }
+
+    public IceNioClient(int app, String server, String scan) throws IOException {
+        this(app, server, -1, DEFAULT_MAX_FRAME_LENGTH, new HashSet<>(Arrays.asList(scan.split(","))));
     }
 
     public IceNioClient(int app, String server) throws IOException {
@@ -109,9 +111,8 @@ public class IceNioClient {
     /**
      * connect to ice nio server
      */
-    public void connect() {
-        log.info("ice client init...");
-        long time = System.currentTimeMillis();
+    public void connect() throws InterruptedException {
+        long start = System.currentTimeMillis();
         new Thread(() -> {
             try {
                 bootstrap.connect(host, port).sync();
@@ -122,21 +123,26 @@ public class IceNioClient {
                         worker.shutdownGracefully();
                     }
                     initCause = t;
+                    synchronized (lock) {
+                        lock.notifyAll();
+                    }
                 }
             }
         }).start();
         //waiting for client init
-        while (!IceNioClientHandler.init) {
-            if (initCause != null) {
-                throw new RuntimeException("ice connect server error server:" + server, initCause);
-            }
-            try {
-                Thread.sleep(300);
-            } catch (InterruptedException e) {
-                //
-            }
+        synchronized (lock) {
+            lock.wait();
         }
-        log.info("ice client init success:{}ms", System.currentTimeMillis() - time);
+        if (!IceNioClientHandler.init && initCause != null) {
+            throw new RuntimeException("ice connect server error server:" + server, initCause);
+        }
+        log.info("ice client init success:{}ms", System.currentTimeMillis() - start);
+    }
+
+    public void freeLock() {
+        synchronized (lock) {
+            lock.notifyAll();
+        }
     }
 
     public void reconnect() throws InterruptedException {
@@ -166,6 +172,7 @@ public class IceNioClient {
         return leafNodes;
     }
 
+    //scan leaf node from packages
     private void scanLeafNodes(Set<String> scanPackages) throws IOException {
         long start = System.currentTimeMillis();
         Set<Class<?>> leafClasses;
@@ -178,7 +185,7 @@ public class IceNioClient {
                 leafClasses.addAll(IceLeafScanner.scanPackage(packageName));
             }
         }
-        log.info("ice scan leaf node, packages:{} with:{}ms", scanPackages, System.currentTimeMillis() - start);
+        log.info("ice scan leaf node, packages:{} {}ms cnt:{}", scanPackages, System.currentTimeMillis() - start, leafClasses.size());
         if (leafClasses.isEmpty()) {
             return;
         }

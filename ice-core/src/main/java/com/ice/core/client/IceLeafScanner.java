@@ -2,7 +2,6 @@ package com.ice.core.client;
 
 
 import com.ice.core.base.BaseLeaf;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -21,7 +20,6 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 
-@Slf4j
 public class IceLeafScanner {
 
     private final String packageName;
@@ -59,12 +57,6 @@ public class IceLeafScanner {
                     break;
             }
         }
-
-        //not found any class scan java class path
-        if (this.classes.isEmpty()) {
-            scanJavaClassPaths();
-        }
-
         return this.classes;
     }
 
@@ -111,19 +103,6 @@ public class IceLeafScanner {
             }
         }
         return classLoader;
-    }
-
-    private void scanJavaClassPaths() throws IOException {
-        final String[] javaClassPaths = getJavaClassPaths();
-        for (String classPath : javaClassPaths) {
-            Charset charset = Charset.defaultCharset();
-            if (File.separatorChar == '\\') {
-                //windows use GBK instead
-                charset = Charset.forName("GBK");
-            }
-            classPath = decode(classPath, charset, true);
-            scanFile(new File(classPath), null);
-        }
     }
 
     public static String decode(String str, Charset charset, boolean isPlusToSpace) {
@@ -218,9 +197,7 @@ public class IceLeafScanner {
         Class<?> clazz = null;
         try {
             clazz = Class.forName(className, false, IceLeafScanner.getClassLoader());
-        } catch (NoClassDefFoundError | ClassNotFoundException e) {
-            // ignore
-        } catch (UnsupportedClassVersionError e) {
+        } catch (NoClassDefFoundError | ClassNotFoundException | UnsupportedClassVersionError e) {
             // ignore
         } catch (Exception e) {
             throw new RuntimeException(e);

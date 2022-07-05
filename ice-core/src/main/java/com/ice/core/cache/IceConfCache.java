@@ -278,53 +278,43 @@ public final class IceConfCache {
                 IceBeanUtils.autowireBean(node);
                 break;
             case NONE:
-                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
-                        confDto.getConfField(), None.class);
+                node = new None();
                 node.setIceLogName("None");
                 break;
             case AND:
-                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
-                        confDto.getConfField(), And.class);
+                node = new And();
                 node.setIceLogName("And");
                 break;
             case TRUE:
-                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
-                        confDto.getConfField(), True.class);
+                node = new True();
                 node.setIceLogName("True");
                 break;
             case ALL:
-                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
-                        confDto.getConfField(), All.class);
+                node = new All();
                 node.setIceLogName("All");
                 break;
             case ANY:
-                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
-                        confDto.getConfField(), Any.class);
+                node = new Any();
                 node.setIceLogName("Any");
                 break;
             case P_ALL:
-                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
-                        confDto.getConfField(), ParallelAll.class);
+                node = new ParallelAll();
                 node.setIceLogName("P-All");
                 break;
             case P_AND:
-                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
-                        confDto.getConfField(), ParallelAnd.class);
+                node = new ParallelAnd();
                 node.setIceLogName("P-And");
                 break;
             case P_ANY:
-                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
-                        confDto.getConfField(), ParallelAny.class);
+                node = new ParallelAny();
                 node.setIceLogName("P-Any");
                 break;
             case P_NONE:
-                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
-                        confDto.getConfField(), ParallelNone.class);
+                node = new ParallelNone();
                 node.setIceLogName("P-None");
                 break;
             case P_TRUE:
-                node = JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
-                        confDto.getConfField(), ParallelTrue.class);
+                node = new ParallelTrue();
                 node.setIceLogName("P-True");
                 break;
             default:
