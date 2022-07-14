@@ -16,7 +16,7 @@ import javax.annotation.Resource;
 public class PointResult extends BaseLeafRoamResult {
 
     @Resource
-    private SendService sendService;
+    private SendService sendService2;
 
     private String key;
 
@@ -28,7 +28,7 @@ public class PointResult extends BaseLeafRoamResult {
         if (uid == null || value <= 0) {
             return false;
         }
-        boolean res = sendService.sendPoint(uid, value);
+        boolean res = sendService2.sendPoint(uid, value);
         roam.put("SEND_POINT", res);
         return res;
     }
