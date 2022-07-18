@@ -2,10 +2,15 @@ package com.ice.common.utils;
 
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
 
@@ -15,7 +20,14 @@ import java.io.IOException;
 public final class JacksonUtils {
 
     private static ObjectMapper mapper() {
-        return new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL).configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return JsonMapper.builder()
+                .serializationInclusion(JsonInclude.Include.NON_NULL)
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true)
+                .configure(JsonParser.Feature.ALLOW_COMMENTS, true)
+                .configure(JsonReadFeature.ALLOW_MISSING_VALUES.mappedFeature(), true)
+                .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+                .build();
     }
 
     public static String toJsonString(Object obj) {
