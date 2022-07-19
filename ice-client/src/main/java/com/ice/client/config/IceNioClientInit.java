@@ -1,11 +1,13 @@
 package com.ice.client.config;
 
 import com.ice.core.client.IceNioClient;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
+import java.io.IOException;
 
 /**
  * waiting ice nio client init
@@ -14,16 +16,24 @@ import javax.annotation.Resource;
  */
 @Component
 @DependsOn("iceSpringBeanFactory")
-public class IceNioClientInit implements CommandLineRunner {
+public class IceNioClientInit {
 
     @Resource
     private IceClientProperties properties;
 
-    @Override
-    public void run(String... args) throws Exception {
-        IceNioClient iceNioClient = new IceNioClient(properties.getApp(), properties.getServer(), properties.getPool().getParallelism(), properties.getMaxFrameLength(), properties.getScan());
+    private IceNioClient iceNioClient;
+
+    @PostConstruct
+    public void init() throws IOException, InterruptedException {
+        iceNioClient = new IceNioClient(properties.getApp(), properties.getServer(), properties.getPool().getParallelism(), properties.getMaxFrameLength(), properties.getScan());
         iceNioClient.connect();
-        Runtime.getRuntime().addShutdownHook(new Thread(iceNioClient::destroy));
+    }
+
+    @PreDestroy
+    public void destroy() {
+        if (iceNioClient != null) {
+            iceNioClient.destroy();
+        }
     }
 }
  
