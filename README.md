@@ -42,7 +42,7 @@ spring:
     url: jdbc:mysql://127.0.0.1:3306/ice?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai&useSSL=false
     username: username
     password: password
-    initialization-mode: always
+    initialization-mode: always //如果不想每次都检查表与建表，可以设置成never
 ice:
   port: 18121 #与客户端通信端口
   pool: #线程池配置(用于更新client)
@@ -81,9 +81,9 @@ http://localhost:8121/
 
 ```xml
 <dependency>
-  <groupId>com.waitmoon.ice</groupId>
-  <artifactId>ice-client-spring-boot-starter</artifactId>
-  <version>1.0.3</version>
+    <groupId>com.waitmoon.ice</groupId>
+    <artifactId>ice-client-spring-boot-starter</artifactId>
+    <version>1.0.3</version>
 </dependency>
 ```
 
@@ -104,9 +104,9 @@ ice: #ice client配置
 
 ```xml
 <dependency>
-  <groupId>com.waitmoon.ice</groupId>
-  <artifactId>ice-core</artifactId>
-  <version>1.0.3</version>
+    <groupId>com.waitmoon.ice</groupId>
+    <artifactId>ice-core</artifactId>
+    <version>1.0.3</version>
 </dependency>
 ```
 
@@ -114,8 +114,8 @@ ice: #ice client配置
 
 ```java
 IceNioClient iceNioClient = new IceNioClient(1, "127.0.0.1:18121", "com.ice.test"); //传入app、server地址和叶子节点扫描路径
-iceNioClient.connect(); //连接远程server，初始化ice配置
-iceNioClient.destroy(); //应用关停后最好清理一下~
+        iceNioClient.connect(); //连接远程server，初始化ice配置
+        iceNioClient.destroy(); //应用关停后最好清理一下~
 ```
 
 ## 开发&配置
@@ -379,18 +379,18 @@ roam提供了节点执行所需的数据源或存放执行结果供后续执行�
 
 ```java
 roam.putValue("a", 1); //{"a":1}
-roam.getValue("a"); //1
-roam.putMulti("b.c", 2); //{"a":1,"b":{"c":2}}
-roam.putMulti("b.d", 3); //{"a":1,"b":{"c":2,"d":3}}
-roam.getMutli("b"); //{"c":2,"d":3}
-roam.getMutli("b.c"); //2
-roam.getUnion("a"); //"a"
-roam.getUnion("@a"); //1
-roam.getUnion(1); //1
-roam.put("e", "@a");
-roam.getUnion("@e");//1
-roam.put("e", "a");
-roam.getUnion("@e");//"a"
+        roam.getValue("a"); //1
+        roam.putMulti("b.c", 2); //{"a":1,"b":{"c":2}}
+        roam.putMulti("b.d", 3); //{"a":1,"b":{"c":2,"d":3}}
+        roam.getMutli("b"); //{"c":2,"d":3}
+        roam.getMutli("b.c"); //2
+        roam.getUnion("a"); //"a"
+        roam.getUnion("@a"); //1
+        roam.getUnion(1); //1
+        roam.put("e", "@a");
+        roam.getUnion("@e");//1
+        roam.put("e", "a");
+        roam.getUnion("@e");//"a"
 ```
 
 ## 后台配置
