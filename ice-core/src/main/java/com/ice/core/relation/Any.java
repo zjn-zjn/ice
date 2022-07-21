@@ -25,13 +25,6 @@ public final class Any extends BaseRelation {
         if (children == null || children.isEmpty()) {
             return NodeRunStateEnum.NONE;
         }
-        if (children.getSize() == 1) {
-            BaseNode node = children.get(0);
-            if (node == null) {
-                return NodeRunStateEnum.NONE;
-            }
-            return node.process(ctx);
-        }
         boolean hasFalse = false;
         for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
             BaseNode node = listNode.item;
