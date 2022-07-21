@@ -55,7 +55,7 @@ public final class ProcessUtils {
     /*
      * [iceNodeId:process class name:process return]
      */
-    public synchronized static void collectInfo(StringBuilder sb, BaseNode node, char state) {
+    public static void collectInfo(StringBuilder sb, BaseNode node, char state) {
         if (node.isIceNodeDebug()) {
             synchronized (sb) {
                 sb.append('[').append(node.findIceNodeId()).append(':').append(node.getIceLogName()).append(':')
@@ -67,7 +67,7 @@ public final class ProcessUtils {
     /*
      * reject info
      */
-    public synchronized static void collectRejectInfo(StringBuilder sb, BaseNode node) {
+    public static void collectRejectInfo(StringBuilder sb, BaseNode node) {
         if (node.isIceNodeDebug()) {
             synchronized (sb) {
                 sb.append('[').append(node.findIceNodeId()).append(':').append(node.getIceLogName()).append(':')
