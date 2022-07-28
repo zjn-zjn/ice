@@ -23,8 +23,6 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     private final int app;
 
-    public static volatile boolean init = false;
-
     public IceNioClientHandler(int app, IceNioClient iceNioClient) {
         this.app = app;
         this.iceNioClient = iceNioClient;
@@ -81,8 +79,7 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
                         log.info("ice conf init app:{} address:{}", app, iceNioClient.getAddress());
                         long start = System.currentTimeMillis();
                         IceUpdate.update(nioModel.getInitDto());
-                        init = true;
-                        iceNioClient.freeLock();
+                        iceNioClient.ready();
                         log.info("ice conf init success app:{} address:{} {}ms", app, iceNioClient.getAddress(), System.currentTimeMillis() - start);
                     }
                     break;

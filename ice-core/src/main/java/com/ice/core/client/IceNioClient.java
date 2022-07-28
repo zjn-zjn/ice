@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
  * @author waitmoon
  */
 @Slf4j
-public class IceNioClient {
+public final class IceNioClient {
 
     private final int app;
     private String server;
@@ -46,6 +46,7 @@ public class IceNioClient {
     //combine main package and config scan packages
     private List<LeafNodeInfo> leafNodes;
     private volatile Throwable initCause;
+    private volatile boolean ready = false;
     private final Object lock = new Object();
 
     public IceNioClient(int app, String server, int parallelism, int maxFrameLength, Set<String> scanPackages) throws IOException {
@@ -103,6 +104,7 @@ public class IceNioClient {
 
     public void destroy() {
         initCause = null;
+        ready = false;
         if (worker != null) {
             worker.shutdownGracefully();
         }
@@ -117,7 +119,7 @@ public class IceNioClient {
             try {
                 bootstrap.connect(host, port).sync();
             } catch (Throwable t) {
-                if (!IceNioClientHandler.init) {
+                if (!this.ready) {
                     //ice client not init just shutdown it
                     if (worker != null) {
                         worker.shutdownGracefully();
@@ -129,18 +131,19 @@ public class IceNioClient {
                 }
             }
         }).start();
-        //waiting for client init
+        //waiting for client ready
         synchronized (lock) {
             lock.wait();
         }
-        if (!IceNioClientHandler.init && initCause != null) {
+        if (!this.ready && initCause != null) {
             throw new RuntimeException("ice connect server error server:" + server, initCause);
         }
         log.info("ice client init success:{}ms", System.currentTimeMillis() - start);
     }
 
-    public void freeLock() {
+    public void ready() {
         synchronized (lock) {
+            ready = true;
             lock.notifyAll();
         }
     }

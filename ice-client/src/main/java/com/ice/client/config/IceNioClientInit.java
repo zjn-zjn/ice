@@ -1,13 +1,12 @@
 package com.ice.client.config;
 
 import com.ice.core.client.IceNioClient;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
-import java.io.IOException;
 
 /**
  * waiting ice nio client init
@@ -16,20 +15,19 @@ import java.io.IOException;
  */
 @Component
 @DependsOn("iceSpringBeanFactory")
-public class IceNioClientInit {
+public class IceNioClientInit implements InitializingBean, DisposableBean {
 
     @Resource
     private IceClientProperties properties;
 
     private IceNioClient iceNioClient;
 
-    @PostConstruct
-    public void init() throws IOException, InterruptedException {
+    @Override
+    public void afterPropertiesSet() throws Exception {
         iceNioClient = new IceNioClient(properties.getApp(), properties.getServer(), properties.getPool().getParallelism(), properties.getMaxFrameLength(), properties.getScan());
         iceNioClient.connect();
     }
 
-    @PreDestroy
     public void destroy() {
         if (iceNioClient != null) {
             iceNioClient.destroy();
