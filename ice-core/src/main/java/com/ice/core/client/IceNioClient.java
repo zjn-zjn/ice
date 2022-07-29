@@ -1,5 +1,6 @@
 package com.ice.core.client;
 
+import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.LeafNodeInfo;
 import com.ice.core.annotation.IceField;
@@ -37,17 +38,27 @@ public final class IceNioClient {
     private String server;
     private String host;
     private int port;
-    private Bootstrap bootstrap;
     private final int maxFrameLength;
+    private final int parallelism;
+
+    private Bootstrap bootstrap;
     private static final int DEFAULT_MAX_FRAME_LENGTH = 16 * 1024 * 1024;
     private EventLoopGroup worker;
-    private final int parallelism;
     private final String address;
     //combine main package and config scan packages
     private List<LeafNodeInfo> leafNodes;
-    private volatile Throwable initCause;
-    private volatile boolean ready = false;
-    private final Object lock = new Object();
+
+    //start error cause
+    private volatile Throwable startCause;
+    //destroy sign
+    private volatile boolean destroy = false;
+    //start data ready from ice server
+    private volatile boolean startDataReady = false;
+    //ice client started
+    private volatile boolean started = false;
+    private final Object startDataLock = new Object();
+    private final Object startedLock = new Object();
+    private volatile IceTransferDto startData;
 
     public IceNioClient(int app, String server, int parallelism, int maxFrameLength, Set<String> scanPackages) throws IOException {
         this.app = app;
@@ -56,7 +67,7 @@ public final class IceNioClient {
         this.maxFrameLength = maxFrameLength;
         this.address = IceAddressUtils.getAddress(app);
         scanLeafNodes(scanPackages);
-        init();
+        prepare();
     }
 
     public IceNioClient(int app, String server, Set<String> scanPackages) throws IOException {
@@ -82,7 +93,7 @@ public final class IceNioClient {
         this.server = server;
     }
 
-    private void init() {
+    private void prepare() {
         bootstrap = new Bootstrap();
         worker = new NioEventLoopGroup();
         bootstrap.group(worker)
@@ -103,76 +114,137 @@ public final class IceNioClient {
     }
 
     public void destroy() {
-        initCause = null;
-        ready = false;
+        startCause = null;
+        startDataReady = false;
+        started = false;
+        destroy = true;
         if (worker != null) {
             worker.shutdownGracefully();
         }
     }
 
+    public boolean isDestroy() {
+        return destroy;
+    }
+
     /**
-     * connect to ice nio server
+     * wait for started
      */
-    public void connect() throws InterruptedException {
+    public void waitStarted() {
+        if (!started) {
+            synchronized (startedLock) {
+                if (!started) {
+                    try {
+                        startedLock.wait();
+                    } catch (InterruptedException e) {
+                        // ignore
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * start connect to ice nio server
+     */
+    public void start() throws InterruptedException {
+        destroy = false;
         long start = System.currentTimeMillis();
         new Thread(() -> {
             try {
                 bootstrap.connect(host, port).sync();
             } catch (Throwable t) {
-                if (!this.ready) {
-                    //ice client not init just shutdown it
+                if (!this.startDataReady) {
+                    //ice client not started, just shutdown it
                     if (worker != null) {
                         worker.shutdownGracefully();
                     }
-                    initCause = t;
-                    synchronized (lock) {
-                        lock.notifyAll();
+                    startCause = t;
+                    synchronized (startDataLock) {
+                        startDataLock.notifyAll();
                     }
                 }
             }
         }).start();
-        //waiting for client ready
-        synchronized (lock) {
-            lock.wait();
-        }
-        if (!this.ready && initCause != null) {
-            throw new RuntimeException("ice connect server error server:" + server, initCause);
-        }
-        log.info("ice client init success:{}ms", System.currentTimeMillis() - start);
-    }
-
-    public void ready() {
-        synchronized (lock) {
-            ready = true;
-            lock.notifyAll();
-        }
-    }
-
-    public void reconnect() throws InterruptedException {
-        ChannelFuture cf = bootstrap.connect(host, port);
-        cf.addListener((ChannelFutureListener) future -> {
-            if (!future.isSuccess()) {
-                //the reconnection handed over by backend thread
-                future.channel().eventLoop().schedule(() -> {
-                    try {
-                        reconnect();
-                    } catch (Exception e) {
-                        log.warn("ice nio client connected error", e);
-                    }
-                }, 2000, TimeUnit.MILLISECONDS);
-            } else {
-                log.info("ice nio client reconnected");
+        //waiting for client start data ready
+        synchronized (startDataLock) {
+            if (!startDataReady && startCause == null) {
+                startDataLock.wait();
             }
-        });
-        cf.channel().closeFuture().sync();
+        }
+        if (!this.startDataReady && startCause != null) {
+            throw new RuntimeException("ice connect server error server:" + server, startCause);
+        }
+        //start data ready, starting cache
+        IceUpdate.update(startData);
+        startData = null;
+        synchronized (startedLock) {
+            //started
+            started = true;
+            startedLock.notifyAll();
+        }
+        log.info("ice client init app:{} address:{} success:{}ms", app, address, System.currentTimeMillis() - start);
     }
 
-    public String getAddress() {
-        return address;
+    /**
+     * init data ready from ice server
+     *
+     * @param initData init data from server
+     */
+    public void initDataReady(IceTransferDto initData) {
+        if (started) {
+            //already start, just update
+            IceUpdate.update(initData);
+        } else {
+            synchronized (startedLock) {
+                if (started) {
+                    IceUpdate.update(initData);
+                    return;
+                }
+                if (startDataReady) {
+                    try {
+                        //start data ready, wait for started
+                        startedLock.wait();
+                    } catch (InterruptedException e) {
+                        //ignore
+                    }
+                    //already start, update
+                    IceUpdate.update(initData);
+                } else {
+                    //first start data ready
+                    this.startData = initData;
+                    startDataReady = true;
+                    startDataLock.notifyAll();
+                }
+            }
+        }
     }
 
-    public List<LeafNodeInfo> getLeafNodes() {
-        return leafNodes;
+    /**
+     * reconnect to ice server
+     * 2 second each
+     *
+     * @throws InterruptedException e
+     */
+    public void reconnect() throws InterruptedException {
+        if (!destroy) {
+            ChannelFuture cf = bootstrap.connect(host, port);
+            cf.addListener((ChannelFutureListener) future -> {
+                if (!future.isSuccess()) {
+                    //the reconnection handed over by backend thread
+                    future.channel().eventLoop().schedule(() -> {
+                        try {
+                            reconnect();
+                        } catch (Exception e) {
+                            log.warn("ice nio client connected error", e);
+                        }
+                    }, 2, TimeUnit.SECONDS);
+                } else {
+                    log.info("ice nio client reconnected");
+                }
+            });
+            cf.channel().closeFuture().sync();
+        }
     }
 
     //scan leaf node from packages
@@ -231,5 +303,13 @@ public final class IceNioClient {
                 leafNodes.add(leafNodeInfo);
             }
         }
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public List<LeafNodeInfo> getLeafNodes() {
+        return leafNodes;
     }
 }

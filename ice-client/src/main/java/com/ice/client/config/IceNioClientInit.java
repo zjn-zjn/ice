@@ -25,7 +25,7 @@ public class IceNioClientInit implements InitializingBean, DisposableBean {
     @Override
     public void afterPropertiesSet() throws Exception {
         iceNioClient = new IceNioClient(properties.getApp(), properties.getServer(), properties.getPool().getParallelism(), properties.getMaxFrameLength(), properties.getScan());
-        iceNioClient.connect();
+        iceNioClient.start();
     }
 
     public void destroy() {

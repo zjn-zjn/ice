@@ -50,6 +50,7 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
         if (nioModel != null && nioModel.getType() != null && nioModel.getOps() != null) {
             switch (nioModel.getType()) {
                 case REQ:
+                    iceNioClient.waitStarted(); //provide service after start end
                     IceNioModel response = new IceNioModel();
                     response.setType(NioType.RSP);
                     response.setId(nioModel.getId());
@@ -76,11 +77,7 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
                     break;
                 case RSP:
                     if (nioModel.getOps() == NioOps.INIT) {
-                        log.info("ice conf init app:{} address:{}", app, iceNioClient.getAddress());
-                        long start = System.currentTimeMillis();
-                        IceUpdate.update(nioModel.getInitDto());
-                        iceNioClient.ready();
-                        log.info("ice conf init success app:{} address:{} {}ms", app, iceNioClient.getAddress(), System.currentTimeMillis() - start);
+                        iceNioClient.initDataReady(nioModel.getInitDto());
                     }
                     break;
             }
@@ -89,8 +86,10 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws InterruptedException {
-        log.info("ice client is broken reconnecting...");
-        iceNioClient.reconnect();
+        if (!iceNioClient.isDestroy()) {
+            log.info("ice client is broken reconnecting...");
+            iceNioClient.reconnect();
+        }
     }
 
     /*
