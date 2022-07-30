@@ -50,7 +50,7 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
         if (nioModel != null && nioModel.getType() != null && nioModel.getOps() != null) {
             switch (nioModel.getType()) {
                 case REQ:
-                    iceNioClient.waitStarted(); //provide service after start end
+                    iceNioClient.waitStarted(); //provide service after client started
                     IceNioModel response = new IceNioModel();
                     response.setType(NioType.RSP);
                     response.setId(nioModel.getId());

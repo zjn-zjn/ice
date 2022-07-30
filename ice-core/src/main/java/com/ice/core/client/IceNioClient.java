@@ -145,7 +145,10 @@ public final class IceNioClient {
     }
 
     /**
-     * start connect to ice nio server
+     * start ice client
+     * 1.connect ice server
+     * 2.get start data from server
+     * 3.init start data
      */
     public void start() throws InterruptedException {
         destroy = false;
@@ -211,10 +214,12 @@ public final class IceNioClient {
                     //already start, update
                     IceUpdate.update(initData);
                 } else {
-                    //first start data ready
-                    this.startData = initData;
-                    startDataReady = true;
-                    startDataLock.notifyAll();
+                    synchronized (startDataLock) {
+                        //first start data ready
+                        this.startData = initData;
+                        startDataReady = true;
+                        startDataLock.notifyAll();
+                    }
                 }
             }
         }
