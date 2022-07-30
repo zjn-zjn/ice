@@ -1,6 +1,8 @@
 <img width="128" alt="5" src="https://user-images.githubusercontent.com/33447125/151098049-72aaf8d1-b759-4d84-bf6b-1a2260033582.png">
 
 > 致力于解决灵活繁复的硬编码问题
+> 
+> Committed to solving flexible and complex hard-coded problems
 
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![Badge](https://img.shields.io/badge/link-ice--docs-brightgreen)](http://waitmoon.com/docs)
