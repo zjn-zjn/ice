@@ -2,18 +2,16 @@ package com.ice.server.nio;
 
 import com.ice.server.config.IceServerProperties;
 import com.ice.server.service.IceServerService;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 
 /**
  * @author waitmoon
  */
-@SpringBootApplication
-public class IceNioServerApplication implements ApplicationRunner {
-
+@Component
+public class IceNioServerInit implements CommandLineRunner {
 
     @Resource
     private IceServerProperties properties;
@@ -22,7 +20,7 @@ public class IceNioServerApplication implements ApplicationRunner {
     private IceServerService serverService;
 
     @Override
-    public void run(ApplicationArguments args) throws Exception {
+    public void run(String... args) throws Exception {
         IceNioServer iceNioServer = new IceNioServer(properties, serverService);
         Runtime.getRuntime().addShutdownHook(new Thread(iceNioServer::destroy));
         iceNioServer.run();

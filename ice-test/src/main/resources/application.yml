@@ -7,7 +7,7 @@ spring:
 
 ice:
   app: 1
-  server: waitmoon.com:18121
+  server: localhost:18121
   scan: com.ice.test
   pool:
     parallelism: -1
