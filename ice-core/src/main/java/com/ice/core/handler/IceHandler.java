@@ -41,13 +41,13 @@ public final class IceHandler {
     private long end;
 
     /*
-     * handler的debug
+     * handler's debug
      * control pack process roam print
      */
     private byte debug;
 
     /*
-     * 执行根节点
+     * handler exec root node
      */
     private BaseNode root;
 
