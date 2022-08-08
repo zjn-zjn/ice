@@ -6,6 +6,7 @@ import com.ice.common.exception.NodeException;
 import com.ice.common.utils.JacksonUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.context.IceContext;
+import com.ice.core.utils.IceErrorHandle;
 import com.ice.core.utils.IceTimeUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -74,10 +75,8 @@ public final class IceHandler {
             } else {
                 log.error("root not exist please check! iceId:{}", this.iceId);
             }
-        } catch (NodeException ne) {
-            log.error("error occur in node iceId:{} node:{} ctx:{}", this.iceId, ne.getNodeId(), JacksonUtils.toJsonString(ctx), ne);
-        } catch (Exception e) {
-            log.error("error occur iceId:{} ctx:{}", this.iceId, JacksonUtils.toJsonString(ctx), e);
+        } catch (Throwable t) {
+            IceErrorHandle.errorHandle(this, ctx, t);
         }
     }
 

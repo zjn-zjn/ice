@@ -38,7 +38,7 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
         initRequest.setOps(NioOps.INIT);
         initRequest.setType(NioType.REQ);
         initRequest.setApp(app);
-        initRequest.setAddress(iceNioClient.getAddress());
+        initRequest.setAddress(iceNioClient.getIceAddress());
         //leaf node class
         initRequest.setLeafNodes(iceNioClient.getLeafNodes());
         IceNioUtils.writeNioModel(ctx, initRequest);
@@ -57,7 +57,7 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
                     response.setOps(nioModel.getOps());
                     switch (nioModel.getOps()) {
                         case CLAZZ_CHECK:
-                            Pair<Integer, String> checkResult = IceNioClientService.confClazzCheck(nioModel.getClazz(), nioModel.getNodeType(), iceNioClient.getAddress());
+                            Pair<Integer, String> checkResult = IceNioClientService.confClazzCheck(nioModel.getClazz(), nioModel.getNodeType(), iceNioClient.getIceAddress());
                             response.setClazzCheck(checkResult);
                             break;
                         case UPDATE:
@@ -65,7 +65,7 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
                             response.setUpdateErrors(errors);
                             break;
                         case SHOW_CONF:
-                            IceShowConf conf = IceNioClientService.getShowConf(nioModel.getConfId(), iceNioClient.getAddress());
+                            IceShowConf conf = IceNioClientService.getShowConf(nioModel.getConfId(), iceNioClient.getIceAddress());
                             response.setShowConf(conf);
                             break;
                         case MOCK:
@@ -103,7 +103,7 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
                 IceNioModel nioModel = new IceNioModel();
                 nioModel.setOps(NioOps.SLAP);
                 nioModel.setType(NioType.REQ);
-                nioModel.setAddress(iceNioClient.getAddress());
+                nioModel.setAddress(iceNioClient.getIceAddress());
                 nioModel.setApp(app);
                 IceNioUtils.writeNioModel(ctx, nioModel);
             }

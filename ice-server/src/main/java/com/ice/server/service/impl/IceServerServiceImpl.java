@@ -61,6 +61,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     @Resource
     private IceAppMapper iceAppMapper;
 
+    private Date lastUpdateTime;
+
     public synchronized boolean haveCircle(Long nodeId, Long linkId) {
         if (nodeId.equals(linkId)) {
             return true;
@@ -491,43 +493,63 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public void afterPropertiesSet() {
-        /*baseList*/
-        IceBaseExample baseExample = new IceBaseExample();
-        baseExample.createCriteria().andStatusEqualTo(StatusEnum.ONLINE.getStatus());
-        List<IceBase> baseList = baseMapper.selectByExample(baseExample);
-
-        if (!CollectionUtils.isEmpty(baseList)) {
-            for (IceBase base : baseList) {
-                baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
+    public void refresh() {
+        synchronized (CHANGE_LOCK) {
+            /*baseList*/
+            Date now = new Date();
+            IceBaseExample baseExample = new IceBaseExample();
+            IceBaseExample.Criteria baseCriteria = baseExample.createCriteria();
+            baseCriteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus()).andUpdateAtLessThanOrEqualTo(now);
+            if (lastUpdateTime != null) {
+                baseCriteria.andUpdateAtGreaterThan(lastUpdateTime);
             }
-        }
-        /*UpdateList*/
-        IceConfExample confUpdateExample = new IceConfExample();
-        confUpdateExample.createCriteria().andStatusEqualTo(StatusEnum.ONLINE.getStatus());
-        List<IceConf> confUpdateList = confUpdateMapper.selectByExample(confUpdateExample);
-        Set<Long> updateIdSet = new HashSet<>();
-        if (!CollectionUtils.isEmpty(confUpdateList)) {
-            for (IceConf conf : confUpdateList) {
-                updateIdSet.add(conf.getMixId());
-                confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
-                assembleAtlas(conf);
-                assembleLeafClass(conf);
-            }
-        }
-        /*ConfList*/
-        IceConfExample confExample = new IceConfExample();
-        confExample.createCriteria().andStatusEqualTo(StatusEnum.ONLINE.getStatus());
-        List<IceConf> confList = confMapper.selectByExample(confExample);
-        if (!CollectionUtils.isEmpty(confList)) {
-            for (IceConf conf : confList) {
-                confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
-                if (!updateIdSet.contains(conf.getMixId())) {
-                    assembleAtlas(conf);
+            List<IceBase> baseList = baseMapper.selectByExample(baseExample);
+            if (!CollectionUtils.isEmpty(baseList)) {
+                for (IceBase base : baseList) {
+                    baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
                 }
-                assembleLeafClass(conf);
             }
+            /*UpdateList*/
+            IceConfExample confUpdateExample = new IceConfExample();
+            IceConfExample.Criteria confUpdateCriteria = confUpdateExample.createCriteria();
+            confUpdateCriteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus()).andUpdateAtLessThanOrEqualTo(now);
+            if (lastUpdateTime != null) {
+                confUpdateCriteria.andUpdateAtGreaterThan(lastUpdateTime);
+            }
+            List<IceConf> confUpdateList = confUpdateMapper.selectByExample(confUpdateExample);
+            Set<Long> updateIdSet = new HashSet<>();
+            if (!CollectionUtils.isEmpty(confUpdateList)) {
+                for (IceConf conf : confUpdateList) {
+                    updateIdSet.add(conf.getMixId());
+                    confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
+                    assembleAtlas(conf);
+                    assembleLeafClass(conf);
+                }
+            }
+            /*ConfList*/
+            IceConfExample confExample = new IceConfExample();
+            IceConfExample.Criteria confCriteria = confExample.createCriteria();
+            confCriteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus()).andUpdateAtLessThanOrEqualTo(now);
+            if (lastUpdateTime != null) {
+                confCriteria.andUpdateAtGreaterThan(lastUpdateTime);
+            }
+            List<IceConf> confList = confMapper.selectByExample(confExample);
+            if (!CollectionUtils.isEmpty(confList)) {
+                for (IceConf conf : confList) {
+                    confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
+                    if (!updateIdSet.contains(conf.getMixId())) {
+                        assembleAtlas(conf);
+                    }
+                    assembleLeafClass(conf);
+                }
+            }
+            lastUpdateTime = now;
         }
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        refresh();
     }
 
     private void assembleAtlas(IceConf conf) {

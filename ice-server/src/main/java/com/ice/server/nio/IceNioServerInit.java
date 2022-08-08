@@ -2,7 +2,10 @@ package com.ice.server.nio;
 
 import com.ice.server.config.IceServerProperties;
 import com.ice.server.service.IceServerService;
-import org.springframework.boot.CommandLineRunner;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -11,7 +14,8 @@ import javax.annotation.Resource;
  * @author waitmoon
  */
 @Component
-public class IceNioServerInit implements CommandLineRunner {
+@Slf4j
+public class IceNioServerInit implements InitializingBean, DisposableBean {
 
     @Resource
     private IceServerProperties properties;
@@ -19,11 +23,27 @@ public class IceNioServerInit implements CommandLineRunner {
     @Resource
     private IceServerService serverService;
 
+    @Value("${server.port}")
+    private int serverPort;
+
+    private IceNioServer iceNioServer;
+
     @Override
-    public void run(String... args) throws Exception {
-        IceNioServer iceNioServer = new IceNioServer(properties, serverService);
-        Runtime.getRuntime().addShutdownHook(new Thread(iceNioServer::destroy));
-        iceNioServer.run();
+    public void afterPropertiesSet() throws Exception {
+        iceNioServer = new IceNioServer(properties, serverService, serverPort);
+        try {
+            iceNioServer.start();
+        } catch (Throwable t) {
+            iceNioServer.destroy();
+            throw new RuntimeException("ice nio server start error", t);
+        }
+    }
+
+    @Override
+    public void destroy() throws Exception {
+        if (iceNioServer != null) {
+            iceNioServer.destroy();
+        }
     }
 }
  

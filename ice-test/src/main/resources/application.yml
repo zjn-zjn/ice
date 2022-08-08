@@ -7,7 +7,7 @@ spring:
 
 ice:
   app: 1
-  server: localhost:18121
+  server: zookeeper:localhost:2182,localhost:2181,localhost:2103
   scan: com.ice.test
   pool:
     parallelism: -1

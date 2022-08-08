@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "ice")
 public class IceServerProperties {
 
-    private String ip = "0.0.0.0";
+    private String host = "0.0.0.0";
     //ice nio port
     private int port = 18121;
     //if there is no read request for readerIdleTime, close the client
@@ -22,11 +22,23 @@ public class IceServerProperties {
     //ice thread pool
     private IceServerThreadPoolProperties pool = new IceServerThreadPoolProperties();
 
+    private IceServerZkProperties zk = new IceServerZkProperties();
+
     @Data
     public static class IceServerThreadPoolProperties {
         private int coreSize = 4;
         private int maxSize = 4;
         private int keepAliveSeconds = 60;
         private int queueCapacity = 60000;
+    }
+
+    @Data
+    public static class IceServerZkProperties {
+        private String address;
+        private int baseSleepTimeMs = 1000;
+        private int maxRetries = 3;
+        private int maxSleepMs = 10000;
+        private int connectionTimeoutMs = 5000;
+        private String host;
     }
 }

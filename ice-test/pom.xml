@@ -24,13 +24,16 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.googlecode.aviator</groupId>
             <artifactId>aviator</artifactId>
             <version>5.3.1</version>
         </dependency>
-
+<!--        <dependency>-->
+<!--            <groupId>org.apache.curator</groupId>-->
+<!--            <artifactId>curator-recipes</artifactId>-->
+<!--            <version>${curator.version}</version>-->
+<!--        </dependency>-->
     </dependencies>
 
     <build>

@@ -121,7 +121,7 @@ public abstract class BaseNode {
     protected abstract NodeRunStateEnum processNode(IceContext ctx);
 
     public NodeRunStateEnum errorHandle(IceContext ctx, Throwable t) {
-        return IceErrorHandle.handleError(this, ctx, t);
+        return IceErrorHandle.errorHandle(this, ctx, t);
     }
 
     public Long getIceNodeId() {

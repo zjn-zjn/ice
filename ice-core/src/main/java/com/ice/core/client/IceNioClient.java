@@ -21,6 +21,11 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.imps.CuratorFrameworkState;
+import org.apache.curator.framework.recipes.leader.LeaderLatch;
+import org.apache.curator.retry.ExponentialBackoffRetry;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -33,18 +38,21 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 public final class IceNioClient {
-
+    /*base config*/
     private final int app;
     private String server;
-    private String host;
-    private int port;
+    /*with default*/
     private final int maxFrameLength;
     private final int parallelism;
-
+    private final int initRetryTimes;
+    private final int initRetrySleepMs;
+    /*derive*/
+    private String zkAddress;
+    private String host;
+    private int port;
     private Bootstrap bootstrap;
-    private static final int DEFAULT_MAX_FRAME_LENGTH = 16 * 1024 * 1024;
     private EventLoopGroup worker;
-    private final String address;
+    private final String iceAddress;
     //combine main package and config scan packages
     private List<LeafNodeInfo> leafNodes;
 
@@ -58,45 +66,70 @@ public final class IceNioClient {
     private volatile boolean started = false;
     private final Object startDataLock = new Object();
     private final Object startedLock = new Object();
+    //start data
     private volatile IceTransferDto startData;
+    /*default*/
+    private static final int DEFAULT_MAX_FRAME_LENGTH = 16 * 1024 * 1024; //16M
+    private static final int DEFAULT_INIT_RETRY_TIMES = 10;
+    private static final int DEFAULT_INIT_RETRY_SLEEP_MS = 2000;
+    private static final int DEFAULT_PARALLELISM = -1;
+    private static final String ZK_PREFIX = "zookeeper:";
+    private final static String LATCH_PATH = "/com.waitmoon.ice.server";
 
-    public IceNioClient(int app, String server, int parallelism, int maxFrameLength, Set<String> scanPackages) throws IOException {
+    private String serverLeaderNioAddress;
+    //zk curator framework
+    private CuratorFramework curatorFramework;
+    //zk leader latch to find server leader
+    private LeaderLatch leaderLatch;
+
+    public IceNioClient(int app, String server, int parallelism, int maxFrameLength, Set<String> scanPackages, int initRetryTimes, int initRetrySleepMs) throws IOException {
+        this.initRetryTimes = initRetryTimes < 0 ? DEFAULT_INIT_RETRY_TIMES : initRetryTimes;
+        this.initRetrySleepMs = initRetrySleepMs < 0 ? DEFAULT_INIT_RETRY_SLEEP_MS : initRetrySleepMs;
         this.app = app;
         this.setServer(server);
         this.parallelism = parallelism;
         this.maxFrameLength = maxFrameLength;
-        this.address = IceAddressUtils.getAddress(app);
+        this.iceAddress = IceAddressUtils.getAddress(app);
         scanLeafNodes(scanPackages);
         prepare();
     }
 
     public IceNioClient(int app, String server, Set<String> scanPackages) throws IOException {
-        this(app, server, -1, DEFAULT_MAX_FRAME_LENGTH, scanPackages);
+        this(app, server, DEFAULT_PARALLELISM, DEFAULT_MAX_FRAME_LENGTH, scanPackages, DEFAULT_INIT_RETRY_TIMES, DEFAULT_INIT_RETRY_SLEEP_MS);
     }
 
     public IceNioClient(int app, String server, String scan) throws IOException {
-        this(app, server, -1, DEFAULT_MAX_FRAME_LENGTH, new HashSet<>(Arrays.asList(scan.split(","))));
+        this(app, server, DEFAULT_PARALLELISM, DEFAULT_MAX_FRAME_LENGTH, new HashSet<>(Arrays.asList(scan.split(","))), DEFAULT_INIT_RETRY_TIMES, DEFAULT_INIT_RETRY_SLEEP_MS);
     }
 
     public IceNioClient(int app, String server) throws IOException {
-        this(app, server, -1, DEFAULT_MAX_FRAME_LENGTH, null);
+        this(app, server, DEFAULT_PARALLELISM, DEFAULT_MAX_FRAME_LENGTH, null, DEFAULT_INIT_RETRY_TIMES, DEFAULT_INIT_RETRY_SLEEP_MS);
     }
 
     private void setServer(String server) {
-        String[] serverHostPort = server.split(":");
+        this.server = server;
+        if (server.startsWith(ZK_PREFIX)) {
+            //HA from zk
+            zkAddress = server.substring(ZK_PREFIX.length());
+        } else {
+            //stand-alone
+            setServerHostPort(server);
+        }
+    }
+
+    private void setServerHostPort(String hostPort) {
+        String[] serverHostPort = hostPort.split(":");
         try {
             this.host = serverHostPort[0];
             this.port = Integer.parseInt(serverHostPort[1]);
         } catch (Exception e) {
-            throw new RuntimeException("ice server config error conf:" + server);
+            throw new RuntimeException("ice server config error conf:" + hostPort);
         }
-        this.server = server;
     }
 
     private void prepare() {
-        bootstrap = new Bootstrap();
         worker = new NioEventLoopGroup();
-        bootstrap.group(worker)
+        bootstrap = new Bootstrap().group(worker)
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
@@ -120,6 +153,9 @@ public final class IceNioClient {
         destroy = true;
         if (worker != null) {
             worker.shutdownGracefully();
+        }
+        if (curatorFramework != null) {
+            curatorFramework.close();
         }
     }
 
@@ -150,33 +186,73 @@ public final class IceNioClient {
      * 2.get start data from server
      * 3.init start data
      */
-    public void start() throws InterruptedException {
+    public void start() throws Exception {
         destroy = false;
         long start = System.currentTimeMillis();
-        new Thread(() -> {
+        for (int i = 0; i < initRetryTimes; i++) {
             try {
-                bootstrap.connect(host, port).sync();
-            } catch (Throwable t) {
-                if (!this.startDataReady) {
-                    //ice client not started, just shutdown it
-                    if (worker != null) {
-                        worker.shutdownGracefully();
+                if (zkAddress != null) {
+                    if (curatorFramework == null) {
+                        curatorFramework = CuratorFrameworkFactory.builder()
+                                .connectString(zkAddress)
+                                .retryPolicy(new ExponentialBackoffRetry(2000, 3))
+                                .connectionTimeoutMs(5000).build();
                     }
-                    startCause = t;
-                    synchronized (startDataLock) {
-                        startDataLock.notifyAll();
+                    if (leaderLatch == null) {
+                        leaderLatch = new LeaderLatch(curatorFramework, LATCH_PATH);
+                    }
+                    if (curatorFramework.getState() != CuratorFrameworkState.STARTED) {
+                        curatorFramework.start();
+                    }
+                    String serverLeader = leaderLatch.getLeader().getId();
+                    if (serverLeader == null || serverLeader.isEmpty()) {
+                        throw new RuntimeException("can not get ice server leader from zk:" + zkAddress);
+                    }
+                    this.serverLeaderNioAddress = serverLeader.split(",")[0];
+                    this.setServerHostPort(serverLeaderNioAddress);
+                }
+                new Thread(() -> {
+                    try {
+                        bootstrap.connect(host, port).sync();
+                    } catch (Throwable t) {
+                        if (!this.startDataReady) {
+                            //ice client not started, just shutdown it
+                            if (worker != null) {
+                                worker.shutdownGracefully();
+                            }
+                            startCause = t;
+                            synchronized (startDataLock) {
+                                startDataLock.notifyAll();
+                            }
+                        }
+                    }
+                }).start();
+                //waiting for client start data ready
+                synchronized (startDataLock) {
+                    if (!startDataReady && startCause == null) {
+                        startDataLock.wait();
                     }
                 }
-            }
-        }).start();
-        //waiting for client start data ready
-        synchronized (startDataLock) {
-            if (!startDataReady && startCause == null) {
-                startDataLock.wait();
+                if (startDataReady) {
+                    //ready to init
+                    break;
+                }
+                if (i < initRetryTimes - 1) {
+                    Thread.sleep(initRetrySleepMs);
+                }
+            } catch (Exception e) {
+                log.error("client init error for retry:{}, sleep:{}", i, initRetrySleepMs, e);
+                startCause = e;
+                Thread.sleep(initRetrySleepMs);
             }
         }
-        if (!this.startDataReady && startCause != null) {
-            throw new RuntimeException("ice connect server error server:" + server, startCause);
+        if (!this.startDataReady) {
+            this.destroy();
+            if (serverLeaderNioAddress == null || serverLeaderNioAddress.isEmpty()) {
+                throw new RuntimeException("ice connect server error server:" + server, startCause);
+            } else {
+                throw new RuntimeException("ice connect server error server:" + serverLeaderNioAddress, startCause);
+            }
         }
         //start data ready, starting cache
         IceUpdate.update(startData);
@@ -186,7 +262,11 @@ public final class IceNioClient {
             started = true;
             startedLock.notifyAll();
         }
-        log.info("ice client init app:{} address:{} success:{}ms", app, address, System.currentTimeMillis() - start);
+        if (serverLeaderNioAddress == null || serverLeaderNioAddress.isEmpty()) {
+            log.info("ice client init app:{} address:{} success:{}ms", app, iceAddress, System.currentTimeMillis() - start);
+        } else {
+            log.info("ice client init app:{} address:{} success:{}ms leader:{}", app, iceAddress, System.currentTimeMillis() - start, serverLeaderNioAddress);
+        }
     }
 
     /**
@@ -233,6 +313,36 @@ public final class IceNioClient {
      */
     public void reconnect() throws InterruptedException {
         if (!destroy) {
+            if (zkAddress != null) {
+                while (true) {
+                    //get server leader
+                    if (curatorFramework == null) {
+                        curatorFramework = CuratorFrameworkFactory.builder()
+                                .connectString(zkAddress)
+                                .retryPolicy(new ExponentialBackoffRetry(2000, 3))
+                                .connectionTimeoutMs(5000).build();
+                    }
+                    if (leaderLatch == null) {
+                        leaderLatch = new LeaderLatch(curatorFramework, LATCH_PATH);
+                    }
+                    if (curatorFramework.getState() != CuratorFrameworkState.STARTED) {
+                        curatorFramework.start();
+                    }
+                    String serverLeader;
+                    try {
+                        serverLeader = leaderLatch.getLeader().getId();
+                    } catch (Exception e) {
+                        //ignore
+                        continue;
+                    }
+                    if (serverLeader == null || serverLeader.isEmpty()) {
+                        continue;
+                    }
+                    serverLeaderNioAddress = serverLeader.split(",")[0];
+                    this.setServerHostPort(serverLeaderNioAddress);
+                    break;
+                }
+            }
             ChannelFuture cf = bootstrap.connect(host, port);
             cf.addListener((ChannelFutureListener) future -> {
                 if (!future.isSuccess()) {
@@ -245,7 +355,11 @@ public final class IceNioClient {
                         }
                     }, 2, TimeUnit.SECONDS);
                 } else {
-                    log.info("ice nio client reconnected");
+                    if (serverLeaderNioAddress == null || serverLeaderNioAddress.isEmpty()) {
+                        log.info("ice nio client reconnected");
+                    } else {
+                        log.info("ice nio client reconnected leader:{}", serverLeaderNioAddress);
+                    }
                 }
             });
             cf.channel().closeFuture().sync();
@@ -310,8 +424,8 @@ public final class IceNioClient {
         }
     }
 
-    public String getAddress() {
-        return address;
+    public String getIceAddress() {
+        return iceAddress;
     }
 
     public List<LeafNodeInfo> getLeafNodes() {

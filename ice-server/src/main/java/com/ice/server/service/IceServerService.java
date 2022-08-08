@@ -66,4 +66,6 @@ public interface IceServerService {
     Collection<IceConf> getAllUpdateConfList(int app, long iceId);
 
     Set<IceConf> getAllActiveConfSet(int app, long rootId);
+
+    void refresh();
 }

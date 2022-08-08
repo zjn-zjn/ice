@@ -32,6 +32,14 @@ public class IceClientProperties {
      */
     private Set<String> scan;
     /*
+     * init retry times default 10
+     */
+    private int initRetryTimes = 10;
+    /*
+     * init retry sleep ms default 2s
+     */
+    private int initRetrySleepMs = 2000;
+    /*
      * ice thread pool
      */
     private IceClientThreadPoolProperties pool = new IceClientThreadPoolProperties();

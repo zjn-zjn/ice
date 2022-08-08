@@ -38,5 +38,11 @@
             <artifactId>netty-handler</artifactId>
             <version>${netty.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-recipes</artifactId>
+            <version>${curator.version}</version>
+<!--            <optional>true</optional>-->
+        </dependency>
     </dependencies>
 </project>
