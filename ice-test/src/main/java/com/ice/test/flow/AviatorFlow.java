@@ -29,9 +29,11 @@ public class AviatorFlow extends BaseLeafRoamFlow {
         return (boolean) compiledExpression.execute(roam);
     }
 
-    public void setExp(String exp) {
-        this.exp = exp;
-        this.compiledExpression = AviatorEvaluator.compile(exp);
+    @Override
+    public void afterPropertiesSet() {
+        if (exp != null) {
+            this.compiledExpression = AviatorEvaluator.compile(exp);
+        }
     }
 
     public NodeRunStateEnum errorHandle(IceContext ctx, Throwable t) {

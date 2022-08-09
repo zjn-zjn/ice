@@ -35,21 +35,20 @@ import java.util.*;
 @Service
 public class IceServerServiceImpl implements IceServerService, InitializingBean {
 
-    private static final Object CHANGE_LOCK = new Object();
     /*
      * key:app value baseList
      */
-    private final Map<Integer, Map<Long, IceBase>> baseActiveMap = new HashMap<>();
+    private Map<Integer, Map<Long, IceBase>> baseActiveMap;
 
-    private final Map<Long, Map<Long, Integer>> atlasMap = new HashMap<>();
+    private Map<Long, Map<Long, Integer>> atlasMap;
     /*
      * key:app value conf
      */
-    private final Map<Integer, Map<Long, IceConf>> confActiveMap = new HashMap<>();
+    private Map<Integer, Map<Long, IceConf>> confActiveMap;
 
-    private final Map<Integer, Map<Long, Map<Long, IceConf>>> confUpdateMap = new HashMap<>();
+    private Map<Integer, Map<Long, Map<Long, IceConf>>> confUpdateMap;
 
-    private final Map<Integer, Map<Byte, Map<String, Integer>>> leafClassMap = new HashMap<>();
+    private Map<Integer, Map<Byte, Map<String, Integer>>> leafClassMap;
 
     private volatile long version;
     @Resource
@@ -60,8 +59,6 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     private IceConfUpdateMapper confUpdateMapper;
     @Resource
     private IceAppMapper iceAppMapper;
-
-    private Date lastUpdateTime;
 
     public synchronized boolean haveCircle(Long nodeId, Long linkId) {
         if (nodeId.equals(linkId)) {
@@ -149,98 +146,88 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public long getVersion() {
-        synchronized (CHANGE_LOCK) {
-            return this.version++;
-        }
+    public synchronized long getVersion() {
+        return this.version++;
     }
 
     @Override
     @Transactional
-    public IceTransferDto release(int app, long iceId) {
-        synchronized (CHANGE_LOCK) {
-            Map<Long, Map<Long, IceConf>> iceUpdateMap = confUpdateMap.get(app);
-            if (CollectionUtils.isEmpty(iceUpdateMap)) {
-                return null;
-            }
-            Map<Long, IceConf> confUpdateMap = iceUpdateMap.get(iceId);
-            if (CollectionUtils.isEmpty(confUpdateMap)) {
-                return null;
-            }
-            Collection<IceConf> confUpdates = confUpdateMap.values();
-            for (IceConf conf : confUpdates) {
-                IceConf oldConf = confMapper.selectByPrimaryKey(conf.getConfId());
-                conf.setUpdateAt(new Date());
-                long updateId = conf.getId();
-                conf.setId(conf.getConfId());
-                if (oldConf == null) {
-                    confMapper.insertWithId(conf);
-                } else {
-                    confMapper.updateByPrimaryKey(conf);
-                }
-                confUpdateMapper.deleteByPrimaryKey(updateId);
-            }
-            List<IceConfDto> confUpdateDtos = new ArrayList<>(confUpdates.size());
-            for (IceConf conf : confUpdates) {
-                conf.setId(conf.getConfId());
-                conf.setConfId(null);
-                conf.setIceId(null);
-                confUpdateDtos.add(Constant.confToDto(conf));
-                updateLocalConfActiveCache(conf);
-            }
-            iceUpdateMap.remove(iceId);
-            IceTransferDto transferDto = new IceTransferDto();
-            transferDto.setInsertOrUpdateConfs(confUpdateDtos);
-            transferDto.setVersion(++version);
-            return transferDto;
+    public synchronized IceTransferDto release(int app, long iceId) {
+        Map<Long, Map<Long, IceConf>> iceUpdateMap = confUpdateMap.get(app);
+        if (CollectionUtils.isEmpty(iceUpdateMap)) {
+            return null;
         }
+        Map<Long, IceConf> confUpdateMap = iceUpdateMap.get(iceId);
+        if (CollectionUtils.isEmpty(confUpdateMap)) {
+            return null;
+        }
+        Collection<IceConf> confUpdates = confUpdateMap.values();
+        for (IceConf conf : confUpdates) {
+            IceConf oldConf = confMapper.selectByPrimaryKey(conf.getConfId());
+            conf.setUpdateAt(new Date());
+            long updateId = conf.getId();
+            conf.setId(conf.getConfId());
+            if (oldConf == null) {
+                confMapper.insertWithId(conf);
+            } else {
+                confMapper.updateByPrimaryKey(conf);
+            }
+            confUpdateMapper.deleteByPrimaryKey(updateId);
+        }
+        List<IceConfDto> confUpdateDtos = new ArrayList<>(confUpdates.size());
+        for (IceConf conf : confUpdates) {
+            conf.setId(conf.getConfId());
+            conf.setConfId(null);
+            conf.setIceId(null);
+            confUpdateDtos.add(Constant.confToDto(conf));
+            updateLocalConfActiveCache(conf);
+        }
+        iceUpdateMap.remove(iceId);
+        IceTransferDto transferDto = new IceTransferDto();
+        transferDto.setInsertOrUpdateConfs(confUpdateDtos);
+        transferDto.setVersion(++version);
+        return transferDto;
     }
 
     @Override
-    public void updateClean(int app, long iceId) {
-        synchronized (CHANGE_LOCK) {
-            Map<Long, Map<Long, IceConf>> iceUpdateMap = confUpdateMap.get(app);
-            if (CollectionUtils.isEmpty(iceUpdateMap)) {
-                return;
-            }
-            Map<Long, IceConf> confUpdateMap = iceUpdateMap.get(iceId);
-            if (CollectionUtils.isEmpty(confUpdateMap)) {
-                return;
-            }
-            Collection<IceConf> confUpdates = confUpdateMap.values();
-            for (IceConf conf : confUpdates) {
-                confUpdateMapper.deleteByPrimaryKey(conf.getId());
-            }
-            iceUpdateMap.remove(iceId);
+    public synchronized void updateClean(int app, long iceId) {
+        Map<Long, Map<Long, IceConf>> iceUpdateMap = confUpdateMap.get(app);
+        if (CollectionUtils.isEmpty(iceUpdateMap)) {
+            return;
         }
+        Map<Long, IceConf> confUpdateMap = iceUpdateMap.get(iceId);
+        if (CollectionUtils.isEmpty(confUpdateMap)) {
+            return;
+        }
+        Collection<IceConf> confUpdates = confUpdateMap.values();
+        for (IceConf conf : confUpdates) {
+            confUpdateMapper.deleteByPrimaryKey(conf.getId());
+        }
+        iceUpdateMap.remove(iceId);
     }
 
     @Override
-    public Collection<IceConf> getAllUpdateConfList(int app, long iceId) {
-        synchronized (CHANGE_LOCK) {
-            Map<Long, Map<Long, IceConf>> iceUpdateMap = confUpdateMap.get(app);
-            if (CollectionUtils.isEmpty(iceUpdateMap)) {
-                return null;
-            }
-            Map<Long, IceConf> confUpdateMap = iceUpdateMap.get(iceId);
-            if (CollectionUtils.isEmpty(confUpdateMap)) {
-                return null;
-            }
-            return confUpdateMap.values();
+    public synchronized Collection<IceConf> getAllUpdateConfList(int app, long iceId) {
+        Map<Long, Map<Long, IceConf>> iceUpdateMap = confUpdateMap.get(app);
+        if (CollectionUtils.isEmpty(iceUpdateMap)) {
+            return null;
         }
+        Map<Long, IceConf> confUpdateMap = iceUpdateMap.get(iceId);
+        if (CollectionUtils.isEmpty(confUpdateMap)) {
+            return null;
+        }
+        return confUpdateMap.values();
     }
 
     @Override
-    public Set<IceConf> getAllActiveConfSet(int app, long rootId) {
-        synchronized (CHANGE_LOCK) {
-            Map<Long, IceConf> confMap = confActiveMap.get(app);
-            if (CollectionUtils.isEmpty(confMap)) {
-                return null;
-            }
-            Set<IceConf> resultSet = new HashSet<>();
-            assembleActiveConf(confMap, resultSet, rootId);
-            return resultSet;
+    public synchronized Set<IceConf> getAllActiveConfSet(int app, long rootId) {
+        Map<Long, IceConf> confMap = confActiveMap.get(app);
+        if (CollectionUtils.isEmpty(confMap)) {
+            return null;
         }
+        Set<IceConf> resultSet = new HashSet<>();
+        assembleActiveConf(confMap, resultSet, rootId);
+        return resultSet;
     }
 
     private void assembleActiveConf(Map<Long, IceConf> map, Set<IceConf> confSet, long nodeId) {
@@ -264,14 +251,12 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public IceConf getActiveConfById(Integer app, Long confId) {
-        synchronized (CHANGE_LOCK) {
-            Map<Long, IceConf> confMap = confActiveMap.get(app);
-            if (!CollectionUtils.isEmpty(confMap)) {
-                return confMap.get(confId);
-            }
-            return null;
+    public synchronized IceConf getActiveConfById(Integer app, Long confId) {
+        Map<Long, IceConf> confMap = confActiveMap.get(app);
+        if (!CollectionUtils.isEmpty(confMap)) {
+            return confMap.get(confId);
         }
+        return null;
     }
 
     @Override
@@ -292,22 +277,20 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public IceConf getMixConfById(int app, long confId, long iceId) {
-        synchronized (CHANGE_LOCK) {
-            Map<Long, Map<Long, IceConf>> updateMap = confUpdateMap.get(app);
-            if (!CollectionUtils.isEmpty(updateMap)) {
-                Map<Long, IceConf> confUpdateMap = updateMap.get(iceId);
-                if (!CollectionUtils.isEmpty(confUpdateMap)) {
-                    IceConf conf = confUpdateMap.get(confId);
-                    if (conf != null) {
-                        return newConf(conf);
-                    }
+    public synchronized IceConf getMixConfById(int app, long confId, long iceId) {
+        Map<Long, Map<Long, IceConf>> updateMap = confUpdateMap.get(app);
+        if (!CollectionUtils.isEmpty(updateMap)) {
+            Map<Long, IceConf> confUpdateMap = updateMap.get(iceId);
+            if (!CollectionUtils.isEmpty(confUpdateMap)) {
+                IceConf conf = confUpdateMap.get(confId);
+                if (conf != null) {
+                    return newConf(conf);
                 }
             }
-            Map<Long, IceConf> activeMap = confActiveMap.get(app);
-            if (!CollectionUtils.isEmpty(activeMap)) {
-                return newConf(activeMap.get(confId));
-            }
+        }
+        Map<Long, IceConf> activeMap = confActiveMap.get(app);
+        if (!CollectionUtils.isEmpty(activeMap)) {
+            return newConf(activeMap.get(confId));
         }
         return null;
     }
@@ -339,17 +322,15 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public IceShowNode getConfMixById(int app, long confId, long iceId) {
-        synchronized (CHANGE_LOCK) {
-            Map<Long, Map<Long, IceConf>> updateShowMap = confUpdateMap.get(app);
-            Map<Long, IceConf> updateMap = null;
-            if (!CollectionUtils.isEmpty(updateShowMap)) {
-                updateMap = updateShowMap.get(iceId);
-            }
-            Map<Long, IceConf> activeMap = confActiveMap.get(app);
-            IceConf root = getConf(confId, updateMap, activeMap);
-            return assembleShowNode(root, updateMap, activeMap);
+    public synchronized IceShowNode getConfMixById(int app, long confId, long iceId) {
+        Map<Long, Map<Long, IceConf>> updateShowMap = confUpdateMap.get(app);
+        Map<Long, IceConf> updateMap = null;
+        if (!CollectionUtils.isEmpty(updateShowMap)) {
+            updateMap = updateShowMap.get(iceId);
         }
+        Map<Long, IceConf> activeMap = confActiveMap.get(app);
+        IceConf root = getConf(confId, updateMap, activeMap);
+        return assembleShowNode(root, updateMap, activeMap);
     }
 
     private IceConf getConf(Long confId, Map<Long, IceConf> updateMap, Map<Long, IceConf> activeMap) {
@@ -400,36 +381,28 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public IceBase getActiveBaseById(Integer app, Long iceId) {
-        synchronized (CHANGE_LOCK) {
-            Map<Long, IceBase> confMap = baseActiveMap.get(app);
-            if (!CollectionUtils.isEmpty(confMap)) {
-                return confMap.get(iceId);
-            }
+    public synchronized IceBase getActiveBaseById(Integer app, Long iceId) {
+        Map<Long, IceBase> confMap = baseActiveMap.get(app);
+        if (!CollectionUtils.isEmpty(confMap)) {
+            return confMap.get(iceId);
         }
         return null;
     }
 
     @Override
-    public void updateLocalConfUpdateCache(IceConf conf) {
-        synchronized (CHANGE_LOCK) {
-            confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
-        }
+    public synchronized void updateLocalConfUpdateCache(IceConf conf) {
+        confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
     }
 
     @Override
-    public void updateLocalConfUpdateCaches(Collection<IceConf> confs) {
-        synchronized (CHANGE_LOCK) {
-            for (IceConf conf : confs) {
-                updateLocalConfUpdateCache(conf);
-            }
+    public synchronized void updateLocalConfUpdateCaches(Collection<IceConf> confs) {
+        for (IceConf conf : confs) {
+            updateLocalConfUpdateCache(conf);
         }
     }
 
-    public void updateLocalConfActiveCache(IceConf conf) {
-        synchronized (CHANGE_LOCK) {
-            confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
-        }
+    public synchronized void updateLocalConfActiveCache(IceConf conf) {
+        confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
     }
 
     @Override
@@ -440,10 +413,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public void updateLocalBaseActiveCache(IceBase base) {
-        synchronized (CHANGE_LOCK) {
-            baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
-        }
+    public synchronized void updateLocalBaseActiveCache(IceBase base) {
+        baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
     }
 
     @Override
@@ -493,58 +464,55 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public void refresh() {
-        synchronized (CHANGE_LOCK) {
-            /*baseList*/
-            Date now = new Date();
-            IceBaseExample baseExample = new IceBaseExample();
-            IceBaseExample.Criteria baseCriteria = baseExample.createCriteria();
-            baseCriteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus()).andUpdateAtLessThanOrEqualTo(now);
-            if (lastUpdateTime != null) {
-                baseCriteria.andUpdateAtGreaterThan(lastUpdateTime);
+    public synchronized void refresh() {
+        clean();
+        /*baseList*/
+        IceBaseExample baseExample = new IceBaseExample();
+        IceBaseExample.Criteria baseCriteria = baseExample.createCriteria();
+        baseCriteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus());
+        List<IceBase> baseList = baseMapper.selectByExample(baseExample);
+        if (!CollectionUtils.isEmpty(baseList)) {
+            for (IceBase base : baseList) {
+                baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
             }
-            List<IceBase> baseList = baseMapper.selectByExample(baseExample);
-            if (!CollectionUtils.isEmpty(baseList)) {
-                for (IceBase base : baseList) {
-                    baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
-                }
-            }
-            /*UpdateList*/
-            IceConfExample confUpdateExample = new IceConfExample();
-            IceConfExample.Criteria confUpdateCriteria = confUpdateExample.createCriteria();
-            confUpdateCriteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus()).andUpdateAtLessThanOrEqualTo(now);
-            if (lastUpdateTime != null) {
-                confUpdateCriteria.andUpdateAtGreaterThan(lastUpdateTime);
-            }
-            List<IceConf> confUpdateList = confUpdateMapper.selectByExample(confUpdateExample);
-            Set<Long> updateIdSet = new HashSet<>();
-            if (!CollectionUtils.isEmpty(confUpdateList)) {
-                for (IceConf conf : confUpdateList) {
-                    updateIdSet.add(conf.getMixId());
-                    confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
-                    assembleAtlas(conf);
-                    assembleLeafClass(conf);
-                }
-            }
-            /*ConfList*/
-            IceConfExample confExample = new IceConfExample();
-            IceConfExample.Criteria confCriteria = confExample.createCriteria();
-            confCriteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus()).andUpdateAtLessThanOrEqualTo(now);
-            if (lastUpdateTime != null) {
-                confCriteria.andUpdateAtGreaterThan(lastUpdateTime);
-            }
-            List<IceConf> confList = confMapper.selectByExample(confExample);
-            if (!CollectionUtils.isEmpty(confList)) {
-                for (IceConf conf : confList) {
-                    confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
-                    if (!updateIdSet.contains(conf.getMixId())) {
-                        assembleAtlas(conf);
-                    }
-                    assembleLeafClass(conf);
-                }
-            }
-            lastUpdateTime = now;
         }
+        /*UpdateList*/
+        IceConfExample confUpdateExample = new IceConfExample();
+        IceConfExample.Criteria confUpdateCriteria = confUpdateExample.createCriteria();
+        confUpdateCriteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus());
+        List<IceConf> confUpdateList = confUpdateMapper.selectByExample(confUpdateExample);
+        Set<Long> updateIdSet = new HashSet<>();
+        if (!CollectionUtils.isEmpty(confUpdateList)) {
+            for (IceConf conf : confUpdateList) {
+                updateIdSet.add(conf.getMixId());
+                confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
+                assembleAtlas(conf);
+                assembleLeafClass(conf);
+            }
+        }
+        /*ConfList*/
+        IceConfExample confExample = new IceConfExample();
+        IceConfExample.Criteria confCriteria = confExample.createCriteria();
+        confCriteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus());
+        List<IceConf> confList = confMapper.selectByExample(confExample);
+        if (!CollectionUtils.isEmpty(confList)) {
+            for (IceConf conf : confList) {
+                confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
+                if (!updateIdSet.contains(conf.getMixId())) {
+                    assembleAtlas(conf);
+                }
+                assembleLeafClass(conf);
+            }
+        }
+    }
+
+    @Override
+    public synchronized void clean() {
+        baseActiveMap = new HashMap<>();
+        leafClassMap = new HashMap<>();
+        confUpdateMap = new HashMap<>();
+        confActiveMap = new HashMap<>();
+        atlasMap = new HashMap<>();
     }
 
     @Override
@@ -612,13 +580,11 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public IceTransferDto getInitConfig(Integer app) {
-        synchronized (CHANGE_LOCK) {
-            IceTransferDto transferDto = new IceTransferDto();
-            transferDto.setInsertOrUpdateBases(this.getActiveBasesByApp(app));
-            transferDto.setInsertOrUpdateConfs(this.getActiveConfsByApp(app));
-            transferDto.setVersion(version);
-            return transferDto;
-        }
+    public synchronized IceTransferDto getInitConfig(Integer app) {
+        IceTransferDto transferDto = new IceTransferDto();
+        transferDto.setInsertOrUpdateBases(this.getActiveBasesByApp(app));
+        transferDto.setInsertOrUpdateConfs(this.getActiveConfsByApp(app));
+        transferDto.setVersion(version);
+        return transferDto;
     }
 }

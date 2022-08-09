@@ -117,6 +117,7 @@ public class IceNioServer {
                 @Override
                 public void notLeader() {
                     leader = false;
+                    serverService.clean();
                     log.info(id + " off server leader");
                 }
             });

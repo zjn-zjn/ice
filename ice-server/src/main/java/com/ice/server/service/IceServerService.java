@@ -68,4 +68,6 @@ public interface IceServerService {
     Set<IceConf> getAllActiveConfSet(int app, long rootId);
 
     void refresh();
+
+    void clean();
 }

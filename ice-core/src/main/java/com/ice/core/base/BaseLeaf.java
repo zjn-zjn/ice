@@ -27,4 +27,7 @@ public abstract class BaseLeaf extends BaseNode {
      * process leaf
      */
     protected abstract NodeRunStateEnum doLeaf(IceContext ctx);
+
+    public void afterPropertiesSet() {
+    }
 }
