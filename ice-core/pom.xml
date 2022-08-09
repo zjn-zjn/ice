@@ -42,7 +42,7 @@
             <groupId>org.apache.curator</groupId>
             <artifactId>curator-recipes</artifactId>
             <version>${curator.version}</version>
-<!--            <optional>true</optional>-->
+            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

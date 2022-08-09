@@ -1,7 +1,8 @@
 package com.ice.server.controller.common;
 
-import com.ice.server.nio.IceNioServer;
+import com.ice.server.nio.ha.IceNioServerHa;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.*;
@@ -15,13 +16,16 @@ import java.io.PrintWriter;
 @Component
 public class IceServerLeaderFilter implements Filter {
 
+    @Autowired(required = false)
+    private IceNioServerHa nioServerZk;
+
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
-        if (!IceNioServer.leader) {
+        if (nioServerZk != null && !nioServerZk.isLeader()) {
             servletResponse.setCharacterEncoding("UTF-8");
             servletResponse.setContentType("text/html; charset=utf-8");
             try (PrintWriter writer = servletResponse.getWriter()) {
-                writer.print("current leader page: " + IceNioServer.getLeaderWebAddress());
+                writer.print("current leader page: " + nioServerZk.getLeaderWebAddress());
             } catch (Exception e) {
                 log.error("not leader response error", e);
             }

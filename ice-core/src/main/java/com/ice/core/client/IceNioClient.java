@@ -5,6 +5,9 @@ import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.LeafNodeInfo;
 import com.ice.core.annotation.IceField;
 import com.ice.core.annotation.IceNode;
+import com.ice.core.client.ha.IceServerHaDiscovery;
+import com.ice.core.client.ha.IceServerHaZkDiscovery;
+import com.ice.core.client.ha.IceServerStandAlone;
 import com.ice.core.leaf.base.BaseLeafFlow;
 import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;
@@ -21,11 +24,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.framework.imps.CuratorFrameworkState;
-import org.apache.curator.framework.recipes.leader.LeaderLatch;
-import org.apache.curator.retry.ExponentialBackoffRetry;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -47,7 +45,6 @@ public final class IceNioClient {
     private final int initRetryTimes;
     private final int initRetrySleepMs;
     /*derive*/
-    private String zkAddress;
     private String host;
     private int port;
     private Bootstrap bootstrap;
@@ -70,28 +67,36 @@ public final class IceNioClient {
     private volatile IceTransferDto startData;
     /*default*/
     private static final int DEFAULT_MAX_FRAME_LENGTH = 16 * 1024 * 1024; //16M
-    private static final int DEFAULT_INIT_RETRY_TIMES = 10;
+    private static final int DEFAULT_INIT_RETRY_TIMES = 3;
     private static final int DEFAULT_INIT_RETRY_SLEEP_MS = 2000;
     private static final int DEFAULT_PARALLELISM = -1;
-    private static final String ZK_PREFIX = "zookeeper:";
-    private final static String LATCH_PATH = "/com.waitmoon.ice.server";
 
-    private String serverLeaderNioAddress;
-    //zk curator framework
-    private CuratorFramework curatorFramework;
-    //zk leader latch to find server leader
-    private LeaderLatch leaderLatch;
+    private final IceServerHaDiscovery discovery;
 
-    public IceNioClient(int app, String server, int parallelism, int maxFrameLength, Set<String> scanPackages, int initRetryTimes, int initRetrySleepMs) throws IOException {
+    public IceNioClient(int app, String server, int parallelism, int maxFrameLength, Set<String> scanPackages, int initRetryTimes, int initRetrySleepMs, IceServerHaDiscovery discovery) throws IOException {
+        if (discovery != null) {
+            this.discovery = discovery;
+        } else {
+            if (server.startsWith("zookeeper:")) {
+                //default zk ha
+                this.discovery = new IceServerHaZkDiscovery(server);
+            } else {
+                this.discovery = new IceServerStandAlone();
+            }
+        }
         this.initRetryTimes = initRetryTimes < 0 ? DEFAULT_INIT_RETRY_TIMES : initRetryTimes;
         this.initRetrySleepMs = initRetrySleepMs < 0 ? DEFAULT_INIT_RETRY_SLEEP_MS : initRetrySleepMs;
         this.app = app;
-        this.setServer(server);
         this.parallelism = parallelism;
         this.maxFrameLength = maxFrameLength;
         this.iceAddress = IceAddressUtils.getAddress(app);
+        this.setServer(server);
         scanLeafNodes(scanPackages);
         prepare();
+    }
+
+    public IceNioClient(int app, String server, int parallelism, int maxFrameLength, Set<String> scanPackages, int initRetryTimes, int initRetrySleepMs) throws IOException {
+        this(app, server, parallelism, maxFrameLength, scanPackages, initRetryTimes, initRetrySleepMs, null);
     }
 
     public IceNioClient(int app, String server, Set<String> scanPackages) throws IOException {
@@ -99,19 +104,16 @@ public final class IceNioClient {
     }
 
     public IceNioClient(int app, String server, String scan) throws IOException {
-        this(app, server, DEFAULT_PARALLELISM, DEFAULT_MAX_FRAME_LENGTH, new HashSet<>(Arrays.asList(scan.split(","))), DEFAULT_INIT_RETRY_TIMES, DEFAULT_INIT_RETRY_SLEEP_MS);
+        this(app, server, new HashSet<>(Arrays.asList(scan.split(","))));
     }
 
     public IceNioClient(int app, String server) throws IOException {
-        this(app, server, DEFAULT_PARALLELISM, DEFAULT_MAX_FRAME_LENGTH, null, DEFAULT_INIT_RETRY_TIMES, DEFAULT_INIT_RETRY_SLEEP_MS);
+        this(app, server, Collections.emptySet());
     }
 
     private void setServer(String server) {
         this.server = server;
-        if (server.startsWith(ZK_PREFIX)) {
-            //HA from zk
-            zkAddress = server.substring(ZK_PREFIX.length());
-        } else {
+        if (!discovery.support()) {
             //stand-alone
             setServerHostPort(server);
         }
@@ -154,9 +156,7 @@ public final class IceNioClient {
         if (worker != null) {
             worker.shutdownGracefully();
         }
-        if (curatorFramework != null) {
-            curatorFramework.close();
-        }
+        discovery.destroy();
     }
 
     public boolean isDestroy() {
@@ -191,25 +191,8 @@ public final class IceNioClient {
         long start = System.currentTimeMillis();
         for (int i = 0; i < initRetryTimes; i++) {
             try {
-                if (zkAddress != null) {
-                    if (curatorFramework == null) {
-                        curatorFramework = CuratorFrameworkFactory.builder()
-                                .connectString(zkAddress)
-                                .retryPolicy(new ExponentialBackoffRetry(2000, 3))
-                                .connectionTimeoutMs(5000).build();
-                    }
-                    if (leaderLatch == null) {
-                        leaderLatch = new LeaderLatch(curatorFramework, LATCH_PATH);
-                    }
-                    if (curatorFramework.getState() != CuratorFrameworkState.STARTED) {
-                        curatorFramework.start();
-                    }
-                    String serverLeader = leaderLatch.getLeader().getId();
-                    if (serverLeader == null || serverLeader.isEmpty()) {
-                        throw new RuntimeException("can not get ice server leader from zk:" + zkAddress);
-                    }
-                    this.serverLeaderNioAddress = serverLeader.split(",")[0];
-                    this.setServerHostPort(serverLeaderNioAddress);
+                if (discovery.support()) {
+                    this.setServerHostPort(discovery.initServerLeaderAddress());
                 }
                 new Thread(() -> {
                     try {
@@ -248,10 +231,10 @@ public final class IceNioClient {
         }
         if (!this.startDataReady) {
             this.destroy();
-            if (serverLeaderNioAddress == null || serverLeaderNioAddress.isEmpty()) {
-                throw new RuntimeException("ice connect server error server:" + server, startCause);
+            if (discovery.support()) {
+                throw new RuntimeException("ice connect server error server:" + discovery.getServerLeaderAddress(), startCause);
             } else {
-                throw new RuntimeException("ice connect server error server:" + serverLeaderNioAddress, startCause);
+                throw new RuntimeException("ice connect server error server:" + server, startCause);
             }
         }
         //start data ready, starting cache
@@ -262,10 +245,10 @@ public final class IceNioClient {
             started = true;
             startedLock.notifyAll();
         }
-        if (serverLeaderNioAddress == null || serverLeaderNioAddress.isEmpty()) {
-            log.info("ice client init app:{} address:{} success:{}ms", app, iceAddress, System.currentTimeMillis() - start);
+        if (discovery.support()) {
+            log.info("ice client init app:{} address:{} success:{}ms leader:{}", app, iceAddress, System.currentTimeMillis() - start, discovery.getServerLeaderAddress());
         } else {
-            log.info("ice client init app:{} address:{} success:{}ms leader:{}", app, iceAddress, System.currentTimeMillis() - start, serverLeaderNioAddress);
+            log.info("ice client init app:{} address:{} success:{}ms", app, iceAddress, System.currentTimeMillis() - start);
         }
     }
 
@@ -313,32 +296,20 @@ public final class IceNioClient {
      */
     public void reconnect() throws InterruptedException {
         if (!destroy) {
-            if (zkAddress != null) {
+            if (discovery.support()) {
                 while (true) {
                     //get server leader
-                    if (curatorFramework == null) {
-                        curatorFramework = CuratorFrameworkFactory.builder()
-                                .connectString(zkAddress)
-                                .retryPolicy(new ExponentialBackoffRetry(2000, 3))
-                                .connectionTimeoutMs(5000).build();
-                    }
-                    if (leaderLatch == null) {
-                        leaderLatch = new LeaderLatch(curatorFramework, LATCH_PATH);
-                    }
-                    if (curatorFramework.getState() != CuratorFrameworkState.STARTED) {
-                        curatorFramework.start();
-                    }
-                    String serverLeader;
+                    String serverLeaderNioAddress = null;
                     try {
-                        serverLeader = leaderLatch.getLeader().getId();
+                        serverLeaderNioAddress = discovery.initServerLeaderAddress();
                     } catch (Exception e) {
                         //ignore
+                    }
+                    if (serverLeaderNioAddress == null || serverLeaderNioAddress.isEmpty()) {
+                        //sleep 2s to continue
+                        Thread.sleep(2000);
                         continue;
                     }
-                    if (serverLeader == null || serverLeader.isEmpty()) {
-                        continue;
-                    }
-                    serverLeaderNioAddress = serverLeader.split(",")[0];
                     this.setServerHostPort(serverLeaderNioAddress);
                     break;
                 }
@@ -355,10 +326,10 @@ public final class IceNioClient {
                         }
                     }, 2, TimeUnit.SECONDS);
                 } else {
-                    if (serverLeaderNioAddress == null || serverLeaderNioAddress.isEmpty()) {
-                        log.info("ice nio client reconnected");
+                    if (discovery.support()) {
+                        log.info("ice nio client reconnected leader:{}", discovery.getServerLeaderAddress());
                     } else {
-                        log.info("ice nio client reconnected leader:{}", serverLeaderNioAddress);
+                        log.info("ice nio client reconnected");
                     }
                 }
             });

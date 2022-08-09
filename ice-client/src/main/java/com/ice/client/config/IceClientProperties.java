@@ -32,9 +32,9 @@ public class IceClientProperties {
      */
     private Set<String> scan;
     /*
-     * init retry times default 10
+     * init retry times default 3
      */
-    private int initRetryTimes = 10;
+    private int initRetryTimes = 3;
     /*
      * init retry sleep ms default 2s
      */

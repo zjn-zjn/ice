@@ -22,7 +22,7 @@ public class IceServerProperties {
     //ice thread pool
     private IceServerThreadPoolProperties pool = new IceServerThreadPoolProperties();
 
-    private IceServerZkProperties zk = new IceServerZkProperties();
+    private IceServerHaProperties ha = new IceServerHaProperties();
 
     @Data
     public static class IceServerThreadPoolProperties {
@@ -33,7 +33,7 @@ public class IceServerProperties {
     }
 
     @Data
-    public static class IceServerZkProperties {
+    public static class IceServerHaProperties {
         private String address;
         private int baseSleepTimeMs = 1000;
         private int maxRetries = 3;

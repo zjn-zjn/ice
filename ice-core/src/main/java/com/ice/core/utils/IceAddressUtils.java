@@ -36,7 +36,7 @@ public final class IceAddressUtils {
         String host = null;
         try {
             host = InetAddress.getLocalHost().getHostAddress();
-            if ("127.0.0.1".equals(host)) {
+            if ("127.0.0.1".equals(host) || "localhost".equals(host)) {
                 host = getHostIp();
             }
         } catch (UnknownHostException e) {
