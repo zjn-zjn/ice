@@ -59,16 +59,16 @@ public final class IceConfCache {
                 tmpConfMap.put(confDto.getId(), convert(confDto));
             } catch (ClassNotFoundException ce) {
                 String errorNodeStr = JacksonUtils.toJsonString(confDto);
-                errors.add("class not found conf:" + errorNodeStr);
-                log.error("class not found conf:{}", errorNodeStr);
+                errors.add("class not found, conf:" + errorNodeStr);
+                log.error("class not found, conf:{}", errorNodeStr);
             } catch (JsonProcessingException je) {
                 String errorNodeStr = JacksonUtils.toJsonString(confDto);
-                errors.add("json parse error conf:" + errorNodeStr);
-                log.error("json parse error conf:{}", errorNodeStr);
+                errors.add("json parse error, conf:" + errorNodeStr);
+                log.error("json parse error, conf:{}", errorNodeStr);
             } catch (Exception e) {
                 String errorNodeStr = JacksonUtils.toJsonString(confDto);
-                errors.add("error conf:" + errorNodeStr);
-                log.error("ice error conf:{} e:{}", errorNodeStr, e);
+                errors.add("node init error, conf:" + errorNodeStr);
+                log.error("node init error, conf:{} e:{}", errorNodeStr, e);
             }
         }
         for (IceConfDto confInfo : iceConfDtos) {
@@ -163,8 +163,8 @@ public final class IceConfCache {
                 }
                 if (tmpForwardNode == null) {
                     String errorModeStr = JacksonUtils.toJsonString(confInfo);
-                    errors.add("forwardId:" + confInfo.getForwardId() + " not exist conf:" + errorModeStr);
-                    log.error("forwardId:{} not exist please check! conf:{}", confInfo.getForwardId(), errorModeStr);
+                    errors.add("forwardId:" + confInfo.getForwardId() + " not exist, conf:" + errorModeStr);
+                    log.error("forwardId:{} not exist please check, conf:{}", confInfo.getForwardId(), errorModeStr);
                 } else {
                     BaseNode nextNode = tmpConfMap.get(confInfo.getId());
                     if (nextNode != null) {
@@ -182,8 +182,8 @@ public final class IceConfCache {
                     BaseNode tmpParentNode = confMap.get(parentId);
                     if (tmpParentNode == null) {
                         String errorModeStr = JacksonUtils.toJsonString(confInfo);
-                        errors.add("parentId:" + parentId + " not exist conf:" + errorModeStr);
-                        log.error("parentId:{} not exist please check! conf:{}", parentId, errorModeStr);
+                        errors.add("parentId:" + parentId + " not exist, conf:" + errorModeStr);
+                        log.error("parentId:{} not exist please check, conf:{}", parentId, errorModeStr);
                     } else {
                         if (tmpParentNode instanceof BaseRelation) {
                             BaseRelation relation = (BaseRelation) tmpParentNode;
@@ -212,8 +212,8 @@ public final class IceConfCache {
                     BaseNode tmpNode = confMap.get(forwardUseId);
                     if (tmpNode == null) {
                         String errorModeStr = JacksonUtils.toJsonString(confInfo);
-                        errors.add("forwardUseId:" + forwardUseId + " not exist conf:" + errorModeStr);
-                        log.error("forwardUseId:{} not exist please check! conf:{}", forwardUseId, errorModeStr);
+                        errors.add("forwardUseId:" + forwardUseId + " not exist, conf:" + errorModeStr);
+                        log.error("forwardUseId:{} not exist please check, conf:{}", forwardUseId, errorModeStr);
                     } else {
                         BaseNode forward = confMap.get(confInfo.getId());
                         if (forward != null) {
