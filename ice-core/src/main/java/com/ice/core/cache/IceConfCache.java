@@ -150,7 +150,7 @@ public final class IceConfCache {
                     }
                 }
             }
-            if (confInfo.getForwardId() != null) {
+            if (confInfo.getForwardId() != null && confInfo.getForwardId() > 0) {
                 Set<Long> forwardUseIds = forwardUseIdsMap.get(confInfo.getForwardId());
                 if (forwardUseIds == null || forwardUseIds.isEmpty()) {
                     forwardUseIds = new HashSet<>();
