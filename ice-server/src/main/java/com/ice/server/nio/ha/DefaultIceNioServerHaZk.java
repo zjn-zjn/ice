@@ -13,6 +13,7 @@ import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -21,6 +22,7 @@ import java.io.IOException;
 
 @Slf4j
 @Component
+@ConditionalOnProperty("ice.ha.address")
 @ConditionalOnClass({LeaderLatch.class, CuratorFramework.class})
 public class DefaultIceNioServerHaZk implements IceNioServerHa {
 

@@ -25,13 +25,13 @@ public class IceNioServerInit implements InitializingBean, DisposableBean {
     private IceServerService serverService;
 
     @Autowired(required = false)
-    private IceNioServerHa nioServerZk;
+    private IceNioServerHa serverHa;
 
     private IceNioServer iceNioServer;
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        iceNioServer = new IceNioServer(properties, serverService, nioServerZk);
+        iceNioServer = new IceNioServer(properties, serverService, serverHa);
         try {
             iceNioServer.start();
         } catch (Throwable t) {
