@@ -3,6 +3,7 @@ package com.ice.server.nio.ha;
 
 import com.ice.core.utils.IceAddressUtils;
 import com.ice.server.config.IceServerProperties;
+import com.ice.server.nio.IceNioClientManager;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
@@ -40,44 +41,43 @@ public class DefaultIceNioServerHaZk implements IceNioServerHa {
     @Resource
     private IceServerService serverService;
 
+    @Resource
+    private IceNioClientManager iceNioClientManager;
+
     @Override
     public void register() throws Exception {
-        if (StringUtils.hasLength(properties.getHa().getAddress())) {
-            client = CuratorFrameworkFactory.builder()
-                    .connectString(properties.getHa().getAddress())
-                    .retryPolicy(new ExponentialBackoffRetry(properties.getHa().getBaseSleepTimeMs(), properties.getHa().getMaxRetries(), properties.getHa().getMaxSleepMs()))
-                    .connectionTimeoutMs(properties.getHa().getConnectionTimeoutMs()).build();
-            //first get the host from config to solve multiple network problem, then get address without 127.0.0.1
-            String host = properties.getHa().getHost() == null ? IceAddressUtils.getAddress() : properties.getHa().getHost();
-            if (!StringUtils.hasLength(host)) {
-                throw new RuntimeException("ice server failed register zk, get host null");
-            }
-            //host:nio-port,host:web-port
-            String id = host + ":" + properties.getPort() + "," + host + ":" + serverPort;
-            log.info("server:" + id + " will register to zk for HA");
-            leaderLatch = new LeaderLatch(client, LATCH_PATH, id, LeaderLatch.CloseMode.NOTIFY_LEADER);
-            leaderLatch.addListener(new LeaderLatchListener() {
-                @Override
-                public void isLeader() {
-                    leader = true;
-                    /*server becomes to leader refresh local cache from database*/
-                    serverService.refresh();
-                    log.info(id + " is server leader now");
-                }
-
-                @Override
-                public void notLeader() {
-                    leader = false;
-                    serverService.clean();
-                    log.info(id + " off server leader");
-                }
-            });
-            client.start();
-            leaderLatch.start();
-        } else {
-            //not register to zk for ha, keep leader
-            leader = true;
+        client = CuratorFrameworkFactory.builder()
+                .connectString(properties.getHa().getAddress())
+                .retryPolicy(new ExponentialBackoffRetry(properties.getHa().getBaseSleepTimeMs(), properties.getHa().getMaxRetries(), properties.getHa().getMaxSleepMs()))
+                .connectionTimeoutMs(properties.getHa().getConnectionTimeoutMs()).build();
+        //first get the host from config to solve multiple network problem, then get address without 127.0.0.1
+        String host = properties.getHa().getHost() == null ? IceAddressUtils.getAddress() : properties.getHa().getHost();
+        if (!StringUtils.hasLength(host)) {
+            throw new RuntimeException("ice server failed register zk, get host null");
         }
+        //host:nio-port,host:web-port
+        String id = host + ":" + properties.getPort() + "," + host + ":" + serverPort;
+        log.info("server:" + id + " will register to zk for HA");
+        leaderLatch = new LeaderLatch(client, LATCH_PATH, id, LeaderLatch.CloseMode.NOTIFY_LEADER);
+        leaderLatch.addListener(new LeaderLatchListener() {
+            @Override
+            public void isLeader() {
+                leader = true;
+                /*server becomes to leader refresh local cache from database*/
+                serverService.refresh();
+                log.info(id + " is server leader now");
+            }
+
+            @Override
+            public void notLeader() {
+                leader = false;
+                log.info(id + " off server leader");
+                serverService.cleanConfigCache();
+                iceNioClientManager.cleanChannelCache();
+            }
+        });
+        client.start();
+        leaderLatch.start();
     }
 
     @Override

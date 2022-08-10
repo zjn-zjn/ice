@@ -88,6 +88,8 @@ public class IceNioClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
     public void channelInactive(ChannelHandlerContext ctx) throws InterruptedException {
         if (!iceNioClient.isDestroy()) {
             log.info("ice client is broken reconnecting...");
+            //wait 1.5s to reconnect
+            Thread.sleep(1500);
             iceNioClient.reconnect();
         }
     }

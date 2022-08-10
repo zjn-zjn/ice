@@ -69,5 +69,5 @@ public interface IceServerService {
 
     void refresh();
 
-    void clean();
+    void cleanConfigCache();
 }

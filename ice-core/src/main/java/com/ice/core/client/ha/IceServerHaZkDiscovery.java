@@ -12,7 +12,26 @@ import org.apache.curator.retry.RetryNTimes;
  */
 public class IceServerHaZkDiscovery implements IceServerHaDiscovery {
 
-    public IceServerHaZkDiscovery(String server) {
+    private static final String ZK_PREFIX = "zookeeper:";
+    private final static String LATCH_PATH = "/com.waitmoon.ice.server";
+    //zk curator framework
+    private CuratorFramework zkClient;
+    //zk leader latch to find server leader
+    private LeaderLatch leaderLatch;
+    //zk address
+    private String zkAddress;
+
+    private boolean support;
+    //server leader
+    private String serverLeaderAddress;
+
+    @Override
+    public boolean support() {
+        return support;
+    }
+
+    @Override
+    public void init(String server) {
         if (server.startsWith(ZK_PREFIX)) {
             support = true;
             //HA from zk
@@ -22,26 +41,8 @@ public class IceServerHaZkDiscovery implements IceServerHaDiscovery {
         }
     }
 
-    private static final String ZK_PREFIX = "zookeeper:";
-    private final static String LATCH_PATH = "/com.waitmoon.ice.server";
-    //zk curator framework
-    private CuratorFramework zkClient;
-    //zk leader latch to find server leader
-    private LeaderLatch leaderLatch;
-
-    private String zkAddress;
-
-    private boolean support;
-
-    private String serverLeaderAddress;
-
     @Override
-    public boolean support() {
-        return support;
-    }
-
-    @Override
-    public String initServerLeaderAddress() throws Exception {
+    public String refreshServerLeaderAddress() throws Exception {
         if (!support) {
             return null;
         }

@@ -12,6 +12,6 @@ ice:
     max-size: 4
     keep-alive-seconds: 60
     queue-capacity: 60000
-  zk:
-    address: localhost:2181,localhost:2182,localhost:2183
+#  ha: #now default zk
+#    address: localhost:2181,localhost:2182,localhost:2183
 environment: dev

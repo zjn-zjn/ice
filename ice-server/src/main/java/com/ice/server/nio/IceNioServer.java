@@ -33,17 +33,17 @@ public class IceNioServer {
 
     private final IceServerService serverService;
 
-    private final IceNioServerHa nioServerZk;
+    private final IceNioServerHa serverHa;
 
-    public IceNioServer(IceServerProperties properties, IceServerService serverService, IceNioServerHa nioServerZk) {
+    public IceNioServer(IceServerProperties properties, IceServerService serverService, IceNioServerHa serverHa) {
         this.properties = properties;
         this.serverService = serverService;
-        this.nioServerZk = nioServerZk;
+        this.serverHa = serverHa;
     }
 
     public void start() throws Exception {
-        if (nioServerZk == null && StringUtils.hasLength(properties.getHa().getAddress())) {
-            throw new RuntimeException("lost dependency of curator-recipes to start server with zk");
+        if (serverHa == null && StringUtils.hasLength(properties.getHa().getAddress())) {
+            throw new RuntimeException("lost dependency of curator-recipes to start server with ha");
         }
         bossEventLoop = new NioEventLoopGroup();
         workEventLoop = new NioEventLoopGroup();
@@ -56,7 +56,7 @@ public class IceNioServer {
                     protected void initChannel(SocketChannel socketChannel) {
                         socketChannel.pipeline().addLast(new IdleStateHandler(properties.getReaderIdleTime(), 0, 0, TimeUnit.SECONDS));
                         socketChannel.pipeline().addLast(new LengthFieldBasedFrameDecoder(properties.getMaxFrameLength(), 0, 4, 0, 4));
-                        socketChannel.pipeline().addLast(new IceNioServerHandler(serverService));
+                        socketChannel.pipeline().addLast(new IceNioServerHandler(serverService, serverHa));
                     }
                 });
         ChannelFuture channelFuture = serverBootstrap.bind(properties.getHost(), properties.getPort()).sync();
@@ -74,9 +74,9 @@ public class IceNioServer {
                 }
             }
         }).start();
-        if (nioServerZk != null) {
+        if (serverHa != null) {
             //register server to zk for HA
-            nioServerZk.register();
+            serverHa.register();
         }
         log.info("ice nio server start success");
     }
@@ -88,8 +88,8 @@ public class IceNioServer {
         if (workEventLoop != null) {
             workEventLoop.shutdownGracefully();
         }
-        if (nioServerZk != null) {
-            nioServerZk.destroy();
+        if (serverHa != null) {
+            serverHa.destroy();
         }
     }
 }

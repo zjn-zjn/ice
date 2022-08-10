@@ -465,7 +465,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
 
     @Override
     public synchronized void refresh() {
-        clean();
+        cleanConfigCache();
         /*baseList*/
         IceBaseExample baseExample = new IceBaseExample();
         IceBaseExample.Criteria baseCriteria = baseExample.createCriteria();
@@ -507,7 +507,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     }
 
     @Override
-    public synchronized void clean() {
+    public synchronized void cleanConfigCache() {
         baseActiveMap = new HashMap<>();
         leafClassMap = new HashMap<>();
         confUpdateMap = new HashMap<>();

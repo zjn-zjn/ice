@@ -4,6 +4,7 @@ import com.ice.core.client.IceNioModel;
 import com.ice.core.client.NioOps;
 import com.ice.core.client.NioType;
 import com.ice.core.utils.IceNioUtils;
+import com.ice.server.nio.ha.IceNioServerHa;
 import com.ice.server.service.IceServerService;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -28,9 +29,12 @@ public class IceNioServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     private final IceServerService serverService;
 
+    private final IceNioServerHa serverHa;
 
-    public IceNioServerHandler(IceServerService serverService) {
+
+    public IceNioServerHandler(IceServerService serverService, IceNioServerHa serverHa) {
         this.serverService = serverService;
+        this.serverHa = serverHa;
     }
 
     /*
@@ -44,6 +48,11 @@ public class IceNioServerHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, ByteBuf buf) {
+        if (serverHa != null && !serverHa.isLeader()) {
+            //not leader again, close channel
+            log.info("not leader now, closed");
+            ctx.close();
+        }
         Channel channel = ctx.channel();
         IceNioModel nioModel = IceNioUtils.readNioModel(buf);
         if (nioModel != null && nioModel.getType() != null && nioModel.getOps() != null) {

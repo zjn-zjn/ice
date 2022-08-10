@@ -2,7 +2,7 @@ package com.ice.core.client.ha;
 
 /**
  * @author waitmoon
- * standAlone not support ha
+ * standAlone
  */
 public class IceServerStandAlone implements IceServerHaDiscovery {
 
@@ -12,7 +12,11 @@ public class IceServerStandAlone implements IceServerHaDiscovery {
     }
 
     @Override
-    public String initServerLeaderAddress() throws Exception {
+    public void init(String server) {
+    }
+
+    @Override
+    public String refreshServerLeaderAddress() throws Exception {
         return null;
     }
 

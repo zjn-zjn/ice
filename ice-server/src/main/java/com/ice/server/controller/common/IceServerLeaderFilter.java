@@ -17,15 +17,15 @@ import java.io.PrintWriter;
 public class IceServerLeaderFilter implements Filter {
 
     @Autowired(required = false)
-    private IceNioServerHa nioServerZk;
+    private IceNioServerHa serverHa;
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
-        if (nioServerZk != null && !nioServerZk.isLeader()) {
+        if (serverHa != null && !serverHa.isLeader()) {
             servletResponse.setCharacterEncoding("UTF-8");
             servletResponse.setContentType("text/html; charset=utf-8");
             try (PrintWriter writer = servletResponse.getWriter()) {
-                writer.print("current leader page: " + nioServerZk.getLeaderWebAddress());
+                writer.print("current leader page: " + serverHa.getLeaderWebAddress());
             } catch (Exception e) {
                 log.error("not leader response error", e);
             }

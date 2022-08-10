@@ -36,10 +36,10 @@ import java.util.concurrent.*;
 @Service
 public final class IceNioClientManager implements InitializingBean {
 
-    private static final Map<Integer, Map<String, Channel>> appAddressChannelMap = new ConcurrentHashMap<>();
-    private static final Map<Channel, IceChannelInfo> channelInfoMap = new ConcurrentHashMap<>();
-    private static final Map<Integer, TreeMap<Long, Set<Channel>>> appChannelTimeTreeMap = new TreeMap<>();
-    private static final Map<Integer, Map<String, Map<String, LeafNodeInfo>>> appAddressLeafClazzMap = new ConcurrentHashMap<>();
+    private static Map<Integer, Map<String, Channel>> appAddressChannelMap = new ConcurrentHashMap<>();
+    private static Map<Channel, IceChannelInfo> channelInfoMap = new ConcurrentHashMap<>();
+    private static Map<Integer, TreeMap<Long, Set<Channel>>> appChannelTimeTreeMap = new TreeMap<>();
+    private static Map<Integer, Map<String, Map<String, LeafNodeInfo>>> appAddressLeafClazzMap = new ConcurrentHashMap<>();
     private static Map<Integer, Map<Byte, Map<String, LeafNodeInfo>>> appNodeLeafClazzMap = new ConcurrentHashMap<>();
 
     @Resource
@@ -318,5 +318,22 @@ public final class IceNioClientManager implements InitializingBean {
         executor = new ThreadPoolExecutor(properties.getPool().getCoreSize(), properties.getPool().getMaxSize(),
                 properties.getPool().getKeepAliveSeconds(), TimeUnit.SECONDS,
                 new LinkedBlockingQueue<>(properties.getPool().getQueueCapacity()), new ThreadPoolExecutor.CallerRunsPolicy());
+    }
+
+    public synchronized void cleanChannelCache() {
+        appNodeLeafClazzMap = new ConcurrentHashMap<>();
+        appAddressLeafClazzMap = new ConcurrentHashMap<>();
+        appChannelTimeTreeMap = new ConcurrentHashMap<>();
+        appAddressChannelMap = new ConcurrentHashMap<>();
+        try {
+            if (!CollectionUtils.isEmpty(channelInfoMap)) {
+                for (Channel channel : channelInfoMap.keySet()) {
+                    channel.close();
+                }
+            }
+        } catch (Exception e) {
+            //ignore
+        }
+        channelInfoMap = new ConcurrentHashMap<>();
     }
 }

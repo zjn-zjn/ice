@@ -79,11 +79,12 @@ public final class IceNioClient {
         } else {
             if (server.startsWith("zookeeper:")) {
                 //default zk ha
-                this.discovery = new IceServerHaZkDiscovery(server);
+                this.discovery = new IceServerHaZkDiscovery();
             } else {
                 this.discovery = new IceServerStandAlone();
             }
         }
+        this.discovery.init(server);
         this.initRetryTimes = initRetryTimes < 0 ? DEFAULT_INIT_RETRY_TIMES : initRetryTimes;
         this.initRetrySleepMs = initRetrySleepMs < 0 ? DEFAULT_INIT_RETRY_SLEEP_MS : initRetrySleepMs;
         this.app = app;
@@ -192,7 +193,7 @@ public final class IceNioClient {
         for (int i = 0; i < initRetryTimes; i++) {
             try {
                 if (discovery.support()) {
-                    this.setServerHostPort(discovery.initServerLeaderAddress());
+                    this.setServerHostPort(discovery.refreshServerLeaderAddress());
                 }
                 new Thread(() -> {
                     try {
@@ -232,7 +233,7 @@ public final class IceNioClient {
         if (!this.startDataReady) {
             this.destroy();
             if (discovery.support()) {
-                throw new RuntimeException("ice connect server error server:" + discovery.getServerLeaderAddress(), startCause);
+                throw new RuntimeException("ice connect server error server:" + (discovery.getServerLeaderAddress() == null ? server : discovery.getServerLeaderAddress()), startCause);
             } else {
                 throw new RuntimeException("ice connect server error server:" + server, startCause);
             }
@@ -301,7 +302,7 @@ public final class IceNioClient {
                     //get server leader
                     String serverLeaderNioAddress = null;
                     try {
-                        serverLeaderNioAddress = discovery.initServerLeaderAddress();
+                        serverLeaderNioAddress = discovery.refreshServerLeaderAddress();
                     } catch (Exception e) {
                         //ignore
                     }
