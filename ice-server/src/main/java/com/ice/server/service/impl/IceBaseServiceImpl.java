@@ -128,6 +128,8 @@ public class IceBaseServiceImpl implements IceBaseService {
             }
             base.setConfId(base.getConfId());
             iceBaseMapper.insertSelective(base);
+            iceServerService.updateLocalBaseActiveCache(base);
+            transferDto.setInsertOrUpdateBases(Collections.singletonList(Constant.baseToDto(base)));
         } else {
             IceBase origin = iceBaseMapper.selectByPrimaryKey(base.getId());
             if (origin == null || origin.getStatus().equals(StatusEnum.OFFLINE.getStatus())) {
@@ -135,9 +137,9 @@ public class IceBaseServiceImpl implements IceBaseService {
             }
             base.setConfId(origin.getConfId());
             iceBaseMapper.updateByPrimaryKey(base);
+            iceServerService.updateLocalBaseActiveCache(base);
+            transferDto.setInsertOrUpdateBases(Collections.singletonList(Constant.baseToDto(base)));
         }
-        iceServerService.updateLocalBaseActiveCache(base);
-        transferDto.setInsertOrUpdateBases(Collections.singletonList(Constant.baseToDto(base)));
         transferDto.setVersion(iceServerService.getVersion());
         iceNioClientManager.release(base.getApp(), transferDto);
         return base.getId();

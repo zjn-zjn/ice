@@ -373,6 +373,7 @@ public final class IceNioClient {
                     fieldInfo.setField(field.getName());
                     fieldInfo.setName(fieldAnnotation.name());
                     fieldInfo.setDesc(fieldAnnotation.desc());
+                    fieldInfo.setType(fieldAnnotation.type().isEmpty() ? field.getType().getTypeName() : fieldAnnotation.type());
                     annotationFields.add(fieldInfo);
                 }
             }

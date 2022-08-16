@@ -15,4 +15,6 @@ public @interface IceField {
     String name() default "";
 
     String desc() default "";
+
+    String type() default "";
 }

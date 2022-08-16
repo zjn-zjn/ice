@@ -1,5 +1,6 @@
 package com.ice.common.model;
 
+import com.ice.common.enums.NodeRunStateEnum;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -33,6 +34,8 @@ public class IceShowNode implements Serializable {
 
     private Byte timeType;
 
+    private Boolean edit;
+
     /**
      * @author waitmoon
      */
@@ -43,6 +46,8 @@ public class IceShowNode implements Serializable {
         private Boolean debug;
 
         private Boolean inverse;
+
+        private NodeRunStateEnum errorStateEnum;
 
         private Byte nodeType;
 
