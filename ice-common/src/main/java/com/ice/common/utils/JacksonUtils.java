@@ -6,10 +6,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MapperFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -27,6 +24,7 @@ public final class JacksonUtils {
                 .configure(JsonParser.Feature.ALLOW_COMMENTS, true)
                 .configure(JsonReadFeature.ALLOW_MISSING_VALUES.mappedFeature(), true)
                 .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
                 .build();
     }
 
