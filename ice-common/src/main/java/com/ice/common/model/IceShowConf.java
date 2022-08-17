@@ -2,14 +2,13 @@ package com.ice.common.model;
 
 import lombok.Data;
 
-import java.io.Serializable;
 import java.util.Set;
 
 /**
  * @author waitmoon
  */
 @Data
-public class IceShowConf implements Serializable {
+public class IceShowConf {
     private String address;
     private long confId;
     private int app;

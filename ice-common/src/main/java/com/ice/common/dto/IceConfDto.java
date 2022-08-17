@@ -2,13 +2,11 @@ package com.ice.common.dto;
 
 import lombok.Data;
 
-import java.io.Serializable;
-
 /**
  * @author waitmoon
  */
 @Data
-public final class IceConfDto implements Serializable {
+public final class IceConfDto {
 
     private Long id;
 

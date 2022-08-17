@@ -3,14 +3,13 @@ package com.ice.common.model;
 import com.ice.common.enums.NodeRunStateEnum;
 import lombok.Data;
 
-import java.io.Serializable;
 import java.util.List;
 
 /**
  * @author waitmoon
  */
 @Data
-public class IceShowNode implements Serializable {
+public class IceShowNode {
 
     private NodeConf showConf;
 
@@ -40,7 +39,7 @@ public class IceShowNode implements Serializable {
      * @author waitmoon
      */
     @Data
-    public static final class NodeConf implements Serializable {
+    public static final class NodeConf {
         private Long nodeId;
 
         private Boolean debug;
