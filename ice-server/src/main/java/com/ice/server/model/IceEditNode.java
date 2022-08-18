@@ -16,7 +16,7 @@ public class IceEditNode {
 
     private Long iceId;
 
-    //operate nodeId add&edit need
+    //operate nodeId add&edit&move need
     private Long selectId;
 
     private String name;
@@ -42,6 +42,10 @@ public class IceEditNode {
     private Integer index;
 
     private Integer moveTo;
+    //default equals parentId
+    private Long moveToParentId;
+
+    private Long moveToNextId;
 
     private Long nextId;
 

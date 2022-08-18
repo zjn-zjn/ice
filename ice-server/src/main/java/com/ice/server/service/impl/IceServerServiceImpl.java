@@ -116,18 +116,18 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     /*
      * nodeId next reduce linkId count
      */
-    public synchronized void unlink(Long nodeId, Long linkId) {
+    public synchronized void unlink(Long nodeId, Long unLinkId) {
         Map<Long, Integer> nodeNextMap = atlasMap.get(nodeId);
         if (nodeNextMap != null) {
-            Integer nodeNextCount = nodeNextMap.get(linkId);
+            Integer nodeNextCount = nodeNextMap.get(unLinkId);
             if (nodeNextCount != null) {
                 if (nodeNextCount <= 1) {
-                    nodeNextMap.remove(linkId);
+                    nodeNextMap.remove(unLinkId);
                     if (CollectionUtils.isEmpty(nodeNextMap)) {
                         atlasMap.remove(nodeId);
                     }
                 } else {
-                    nodeNextMap.put(linkId, nodeNextCount - 1);
+                    nodeNextMap.put(unLinkId, nodeNextCount - 1);
                 }
             }
         }

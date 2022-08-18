@@ -65,40 +65,193 @@ public class IceConfServiceImpl implements IceConfService {
         return null;
     }
 
-    private Long move(IceEditNode editNode) {
-        if (editNode.getParentId() == null || editNode.getIndex() == null || editNode.getMoveTo() == null) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parentId|index");
-        }
-        if (editNode.getMoveTo() < 0) {
-            throw new ErrorCodeException(ErrorCode.CUSTOM, "can not move");
-        }
+    private synchronized Long move(IceEditNode editNode) {
         int app = editNode.getApp();
         long iceId = editNode.getIceId();
-        IceConf conf = iceServerService.getMixConfById(app, editNode.getParentId(), iceId);
-        if (conf == null) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", editNode.getParentId());
+        if (editNode.getParentId() != null && editNode.getIndex() != null) {
+            //from parent`s child
+            IceConf parent = iceServerService.getMixConfById(app, editNode.getParentId(), iceId);
+            if (parent == null) {
+                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", editNode.getParentId());
+            }
+            if (!StringUtils.hasLength(parent.getSonIds())) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent no child");
+            }
+            String[] sonIds = parent.getSonIds().split(",");
+            int index = editNode.getIndex();
+            if (index < 0 || index >= sonIds.length || !sonIds[index].equals(editNode.getSelectId() + "")) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son with input index");
+            }
+            if (editNode.getMoveToNextId() != null) {
+                //from some parent`s child to forward
+                IceConf moveToNext = iceServerService.getMixConfById(app, editNode.getMoveToNextId(), iceId);
+                if (moveToNext.getForwardId() != null) {
+                    throw new ErrorCodeException(ErrorCode.CUSTOM, "move to moveToNext:" + editNode.getMoveToNextId() + " already has forward");
+                }
+                if (iceServerService.haveCircle(moveToNext.getMixId(), editNode.getSelectId())) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
+                }
+                moveToNext.setForwardId(editNode.getSelectId());
+                StringBuilder sb = new StringBuilder();
+                sonIds[index] = null;
+                for (String sonIdStr : sonIds) {
+                    if (sonIdStr != null) {
+                        sb.append(sonIdStr).append(",");
+                    }
+                }
+                parent.setSonIds(sb.substring(0, sb.length() - 1));
+                update(moveToNext, iceId);
+                update(parent, iceId);
+                iceServerService.unlink(parent.getMixId(), editNode.getSelectId());
+                iceServerService.link(moveToNext.getMixId(), editNode.getSelectId());
+                return editNode.getSelectId();
+            }
+            //move between child nodes
+            if (editNode.getMoveToParentId() == null || editNode.getMoveToParentId().equals(editNode.getParentId())) {
+                //same parent
+                StringBuilder sb = new StringBuilder();
+                if (editNode.getMoveTo() == null) {
+                    //default move to the end
+                    sonIds[index] = null;
+                    for (String sonIdStr : sonIds) {
+                        if (sonIdStr != null) {
+                            sb.append(sonIdStr).append(",");
+                        }
+                    }
+                    parent.setSonIds(sb.toString() + editNode.getSelectId());
+                } else {
+                    for (int i = 0; i < sonIds.length; i++) {
+                        if (editNode.getMoveTo().equals(i)) {
+                            sb.append(editNode.getSelectId()).append(",");
+                        }
+                        if (index != i) {
+                            sb.append(sonIds[i]).append(",");
+                        }
+                    }
+                    parent.setSonIds(sb.substring(0, sb.length() - 1));
+                }
+                update(parent, iceId);
+            } else {
+                //different parent
+                IceConf moveToParent = iceServerService.getMixConfById(app, editNode.getMoveToParentId(), iceId);
+                if (moveToParent == null) {
+                    throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "moveToParentId", editNode.getMoveToParentId());
+                }
+                if (iceServerService.haveCircle(moveToParent.getMixId(), editNode.getSelectId())) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
+                }
+                if (editNode.getMoveTo() == null) {
+                    //default move to the end
+                    moveToParent.setSonIds(StringUtils.hasLength(moveToParent.getSonIds()) ? (moveToParent.getSonIds() + "," + editNode.getSelectId()) : (editNode.getSelectId() + ""));
+                    StringBuilder sb = new StringBuilder();
+                    sonIds[index] = null;
+                    for (String sonIdStr : sonIds) {
+                        if (sonIdStr != null) {
+                            sb.append(sonIdStr).append(",");
+                        }
+                    }
+                    parent.setSonIds(sb.substring(0, sb.length() - 1));
+                } else {
+                    if (!StringUtils.hasLength(moveToParent.getSonIds())) {
+                        throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent no child");
+                    }
+                    String[] moveToSonIds = moveToParent.getSonIds().split(",");
+                    if (moveToSonIds.length <= 1 || editNode.getMoveTo() >= moveToSonIds.length) {
+                        throw new ErrorCodeException(ErrorCode.CUSTOM, "can not move");
+                    }
+                    StringBuilder sb = new StringBuilder();
+                    sonIds[index] = null;
+                    for (String sonIdStr : sonIds) {
+                        if (sonIdStr != null) {
+                            sb.append(sonIdStr).append(",");
+                        }
+                    }
+                    parent.setSonIds(sb.substring(0, sb.length() - 1));
+                    StringBuilder moveToSb = new StringBuilder();
+                    for (int i = 0; i < moveToSonIds.length; i++) {
+                        if (editNode.getMoveTo().equals(i)) {
+                            moveToSb.append(editNode.getSelectId()).append(",");
+                        }
+                        moveToSb.append(moveToSonIds[i]).append(",");
+                    }
+                    moveToParent.setSonIds(moveToSb.substring(0, moveToSb.length() - 1));
+                }
+                update(moveToParent, iceId);
+                update(parent, iceId);
+                iceServerService.unlink(parent.getMixId(), editNode.getSelectId());
+                iceServerService.link(moveToParent.getMixId(), editNode.getSelectId());
+            }
+            return editNode.getSelectId();
         }
-        if (!StringUtils.hasLength(conf.getSonIds())) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent no child");
+
+        if (editNode.getNextId() != null) {
+            //from next`s forward
+            IceConf next = iceServerService.getMixConfById(app, editNode.getNextId(), iceId);
+            if (next == null) {
+                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", editNode.getParentId());
+            }
+            if (next.getForwardId() == null || !next.getForwardId().equals(editNode.getSelectId())) {
+                throw new ErrorCodeException(ErrorCode.CUSTOM, "next:" + editNode.getNextId() + " not have this forward:" + editNode.getSelectId());
+            }
+            if (editNode.getMoveToNextId() != null) {
+                //move between forward
+                if (editNode.getNextId().equals(editNode.getMoveToNextId())) {
+                    return editNode.getSelectId();
+                }
+                IceConf moveToNext = iceServerService.getMixConfById(app, editNode.getMoveToNextId(), iceId);
+                if (moveToNext.getForwardId() != null) {
+                    throw new ErrorCodeException(ErrorCode.CUSTOM, "move to next:" + editNode.getMoveToNextId() + " already has forward");
+                }
+                if (iceServerService.haveCircle(moveToNext.getMixId(), editNode.getSelectId())) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
+                }
+                moveToNext.setForwardId(editNode.getSelectId());
+                next.setForwardId(null);
+                update(moveToNext, iceId);
+                update(next, iceId);
+                iceServerService.unlink(next.getMixId(), editNode.getSelectId());
+                iceServerService.link(moveToNext.getMixId(), editNode.getSelectId());
+                return editNode.getSelectId();
+            }
+            //forward move to parent
+            if (editNode.getMoveToParentId() != null) {
+                IceConf moveToParent = iceServerService.getMixConfById(app, editNode.getMoveToParentId(), iceId);
+                if (moveToParent == null) {
+                    throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "moveToParentId", editNode.getMoveToParentId());
+                }
+                if (iceServerService.haveCircle(moveToParent.getMixId(), editNode.getSelectId())) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
+                }
+                if (editNode.getMoveTo() == null) {
+                    //default move to the end
+                    moveToParent.setSonIds(StringUtils.hasLength(moveToParent.getSonIds()) ? (moveToParent.getSonIds() + "," + editNode.getSelectId()) : (editNode.getSelectId() + ""));
+                    next.setForwardId(null);
+                } else {
+                    if (!StringUtils.hasLength(moveToParent.getSonIds())) {
+                        throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent no child");
+                    }
+                    String[] moveToSonIds = moveToParent.getSonIds().split(",");
+                    if (moveToSonIds.length <= 1 || editNode.getMoveTo() >= moveToSonIds.length) {
+                        throw new ErrorCodeException(ErrorCode.CUSTOM, "can not move");
+                    }
+                    next.setForwardId(null);
+                    StringBuilder moveToSb = new StringBuilder();
+                    for (int i = 0; i < moveToSonIds.length; i++) {
+                        if (editNode.getMoveTo().equals(i)) {
+                            moveToSb.append(editNode.getSelectId()).append(",");
+                        }
+                        moveToSb.append(moveToSonIds[i]).append(",");
+                    }
+                    moveToParent.setSonIds(moveToSb.substring(0, moveToSb.length() - 1));
+                }
+                update(moveToParent, iceId);
+                update(next, iceId);
+                iceServerService.unlink(next.getMixId(), editNode.getSelectId());
+                iceServerService.link(moveToParent.getMixId(), editNode.getSelectId());
+                return editNode.getSelectId();
+            }
         }
-        String[] sonIds = conf.getSonIds().split(",");
-        if (sonIds.length <= 1 || editNode.getMoveTo() >= sonIds.length) {
-            throw new ErrorCodeException(ErrorCode.CUSTOM, "can not move");
-        }
-        int index = editNode.getIndex();
-        if (index < 0 || index >= sonIds.length || !sonIds[index].equals(editNode.getSelectId() + "")) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son with input index");
-        }
-        String tmp = sonIds[index];
-        sonIds[index] = sonIds[editNode.getMoveTo()];
-        sonIds[editNode.getMoveTo()] = tmp;
-        StringBuilder sb = new StringBuilder();
-        for (String sonIdStr : sonIds) {
-            sb.append(sonIdStr).append(",");
-        }
-        conf.setSonIds(sb.substring(0, sb.length() - 1));
-        update(conf, iceId);
-        return conf.getMixId();
+        return editNode.getSelectId();
     }
 
     private Long exchange(IceEditNode editNode) {
@@ -175,10 +328,18 @@ public class IceConfServiceImpl implements IceConfService {
         operateConf.setTimeType(editNode.getTimeType());
         operateConf.setStart(editNode.getStart() == null ? null : new Date(editNode.getStart()));
         operateConf.setEnd(editNode.getEnd() == null ? null : new Date(editNode.getEnd()));
-        operateConf.setType(editNode.getNodeType());
-        if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+        if (NodeTypeEnum.isRelation(operateConf.getType()) && !NodeTypeEnum.isRelation(editNode.getNodeType())) {
+            //origin is relation now not
             operateConf.setSonIds(null);
+            if (StringUtils.hasLength(operateConf.getSonIds())) {
+                //unlink all child
+                String[] sonIdStrs = operateConf.getSonIds().split(",");
+                for (String sonIdStr : sonIdStrs) {
+                    iceServerService.unlink(operateConf.getMixId(), Long.valueOf(sonIdStr));
+                }
+            }
         }
+        operateConf.setType(editNode.getNodeType());
         operateConf.setApp(app);
         //use old name
         operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? operateConf.getName() : editNode.getName());

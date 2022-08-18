@@ -261,7 +261,9 @@ public final class IceConfCache {
                 String flowFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField();
                 node = (BaseLeafFlow) JacksonUtils.readJson(flowFiled, Class.forName(confDto.getConfName()));
-                node.setIceLogName(node.getClass().getSimpleName());
+                if (node.getIceLogName() == null) {
+                    node.setIceLogName(node.getClass().getSimpleName());
+                }
                 IceBeanUtils.autowireBean(node);
                 ((BaseLeaf) node).afterPropertiesSet();
                 break;
@@ -269,7 +271,9 @@ public final class IceConfCache {
                 String resultFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField();
                 node = (BaseLeafResult) JacksonUtils.readJson(resultFiled, Class.forName(confDto.getConfName()));
-                node.setIceLogName(node.getClass().getSimpleName());
+                if (node.getIceLogName() == null) {
+                    node.setIceLogName(node.getClass().getSimpleName());
+                }
                 IceBeanUtils.autowireBean(node);
                 ((BaseLeaf) node).afterPropertiesSet();
                 break;
@@ -277,7 +281,9 @@ public final class IceConfCache {
                 String noneFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField();
                 node = (BaseLeafNone) JacksonUtils.readJson(noneFiled, Class.forName(confDto.getConfName()));
-                node.setIceLogName(node.getClass().getSimpleName());
+                if (node.getIceLogName() == null) {
+                    node.setIceLogName(node.getClass().getSimpleName());
+                }
                 IceBeanUtils.autowireBean(node);
                 ((BaseLeaf) node).afterPropertiesSet();
                 break;
@@ -324,7 +330,7 @@ public final class IceConfCache {
             default:
                 node = (BaseNode) JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), Class.forName(confDto.getConfName()));
-                if (node != null) {
+                if (node != null && node.getIceLogName() == null) {
                     node.setIceLogName(node.getClass().getSimpleName());
                 }
                 IceBeanUtils.autowireBean(node);
