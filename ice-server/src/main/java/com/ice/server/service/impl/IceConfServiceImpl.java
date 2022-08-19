@@ -565,12 +565,14 @@ public class IceConfServiceImpl implements IceConfService {
         operateConf.setUpdateAt(new Date());
         boolean updateUnlink = false;
         boolean updateLink = false;
-        boolean isUpdatingConf = operateConf.isUpdatingConf();
-        if (!isUpdatingConf) {
-            operateConf.initUpdateConfLinks();
-        }
         if (linkIds != null) {
             //handle link
+            if (operateConf.getUnlinkIdMap() == null) {
+                operateConf.setUnlinkIdMap(new HashMap<>());
+            }
+            if (operateConf.getLinkIdMap() == null) {
+                operateConf.setLinkIdMap(new HashMap<>());
+            }
             for (Long linkId : linkIds) {
                 Integer unlinkCnt = operateConf.getUnlinkIdMap().get(linkId);
                 if (unlinkCnt != null && unlinkCnt > 0) {
@@ -593,6 +595,12 @@ public class IceConfServiceImpl implements IceConfService {
         }
         if (unLinkIds != null) {
             //handle unlink
+            if (operateConf.getUnlinkIdMap() == null) {
+                operateConf.setUnlinkIdMap(new HashMap<>());
+            }
+            if (operateConf.getLinkIdMap() == null) {
+                operateConf.setLinkIdMap(new HashMap<>());
+            }
             for (Long unlinkId : unLinkIds) {
                 Integer linkCnt = operateConf.getLinkIdMap().get(unlinkId);
                 if (linkCnt != null && linkCnt > 0) {
@@ -619,7 +627,7 @@ public class IceConfServiceImpl implements IceConfService {
         if (updateUnlink) {
             operateConf.setUnlinkIds(linkRelatedMapToStrIds(operateConf.getUnlinkIdMap()));
         }
-        if (!isUpdatingConf) {
+        if (!operateConf.isUpdatingConf()) {
             operateConf.setIceId(iceId);
             operateConf.setConfId(operateConf.getId());
             confUpdateMapper.insertSelective(operateConf);

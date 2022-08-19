@@ -30,7 +30,7 @@ public class WebAbstractResponseAdapter implements ResponseBodyAdvice<Object> {
             ErrorCodeException exception = (ErrorCodeException) e;
             return WebResult.fail(exception);
         } else {
-            log.error("error: {}", e.getMessage());
+            log.error("error: ", e);
         }
         return WebResult.fail(ErrorCode.INTERNAL_ERROR.getCode(), e.getMessage());
     }
