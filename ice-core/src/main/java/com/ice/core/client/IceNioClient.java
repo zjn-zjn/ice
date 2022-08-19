@@ -1,5 +1,6 @@
 package com.ice.core.client;
 
+import com.ice.common.constant.Constant;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.LeafNodeInfo;
@@ -105,7 +106,7 @@ public final class IceNioClient {
     }
 
     public IceNioClient(int app, String server, String scan) throws IOException {
-        this(app, server, new HashSet<>(Arrays.asList(scan.split(","))));
+        this(app, server, new HashSet<>(Arrays.asList(scan.split(Constant.REGEX_COMMA))));
     }
 
     public IceNioClient(int app, String server) throws IOException {

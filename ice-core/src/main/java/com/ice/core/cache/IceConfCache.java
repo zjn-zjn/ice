@@ -1,6 +1,7 @@
 package com.ice.core.cache;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.ice.common.constant.Constant;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
@@ -26,8 +27,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 public final class IceConfCache {
-
-    private static final String REGEX_COMMA = ",";
 
     private static final Map<Long, BaseNode> confMap = new ConcurrentHashMap<>();
 
@@ -78,7 +77,7 @@ public final class IceConfCache {
                 if (confInfo.getSonIds() == null || confInfo.getSonIds().isEmpty()) {
                     sonIds = Collections.emptyList();
                 } else {
-                    String[] sonIdStrs = confInfo.getSonIds().split(REGEX_COMMA);
+                    String[] sonIdStrs = confInfo.getSonIds().split(Constant.REGEX_COMMA);
                     sonIds = new ArrayList<>();
                     for (String sonStr : sonIdStrs) {
                         sonIds.add(Long.valueOf(sonStr));

@@ -1,6 +1,7 @@
 package com.ice.core.cache;
 
 
+import com.ice.common.constant.Constant;
 import com.ice.common.dto.IceBaseDto;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.utils.JacksonUtils;
@@ -31,8 +32,6 @@ public final class IceHandlerCache {
      * key1 confId key2 iceId
      */
     private static final Map<Long, Map<Long, IceHandler>> confIdHandlersMap = new ConcurrentHashMap<>();
-
-    private static final String REGEX_COMMA = ",";
 
     public static IceHandler getHandlerById(Long iceId) {
         return idHandlerMap.get(iceId);
@@ -74,7 +73,7 @@ public final class IceHandlerCache {
             }
             handler.setDebug(base.getDebug() == null ? 0 : base.getDebug());
             if (base.getScenes() != null && !base.getScenes().isEmpty()) {
-                handler.setScenes(new HashSet<>(Arrays.asList(base.getScenes().split(REGEX_COMMA))));
+                handler.setScenes(new HashSet<>(Arrays.asList(base.getScenes().split(Constant.REGEX_COMMA))));
             } else {
                 handler.setScenes(Collections.emptySet());
             }

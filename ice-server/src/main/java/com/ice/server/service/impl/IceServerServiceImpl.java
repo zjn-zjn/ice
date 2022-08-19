@@ -1,11 +1,12 @@
 package com.ice.server.service.impl;
 
+import com.ice.common.constant.Constant;
 import com.ice.common.dto.IceBaseDto;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.IceShowNode;
-import com.ice.server.constant.Constant;
+import com.ice.server.constant.ServerConstant;
 import com.ice.server.dao.mapper.IceAppMapper;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
@@ -39,10 +40,17 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
      * key:app value baseList
      */
     private Map<Integer, Map<Long, IceBase>> baseActiveMap;
-
-    private Map<Long, Map<Long, Integer>> atlasMap;
-
-    private Map<Long, Map<Long, Integer>> realAtlasMap;
+    /*
+     * key: confId(include updating)
+     * value: linkNextMap
+     */
+    private Map<Long, Map<Long, Integer>> updatingAtlasMap;
+    /*
+     * used avoid quote in different ice circle
+     * key: confId(exclude updating)
+     * value: linkNextMap
+     */
+    private Map<Long, Map<Long, Integer>> activeAtlasMap;
     /*
      * key:app value conf
      */
@@ -66,26 +74,34 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         if (nodeId.equals(linkId)) {
             return true;
         }
-        Map<Long, Integer> linkNextMap = atlasMap.get(linkId);
+        return updatingHaveCircle(nodeId, linkId) || activeHaveCircle(nodeId, linkId);
+    }
+
+    private boolean updatingHaveCircle(Long nodeId, Long linkId) {
+        Map<Long, Integer> linkNextMap = updatingAtlasMap.get(linkId);
         if (!CollectionUtils.isEmpty(linkNextMap)) {
             Set<Long> linkNext = linkNextMap.keySet();
             if (linkNext.contains(nodeId)) {
                 return true;
             }
             for (Long next : linkNext) {
-                if (haveCircle(nodeId, next)) {
+                if (updatingHaveCircle(nodeId, next)) {
                     return true;
                 }
             }
         }
-        Map<Long, Integer> realLinkNextMap = realAtlasMap.get(linkId);
-        if (!CollectionUtils.isEmpty(realLinkNextMap)) {
-            Set<Long> realLinkNext = realLinkNextMap.keySet();
-            if (realLinkNext.contains(nodeId)) {
+        return false;
+    }
+
+    private boolean activeHaveCircle(Long nodeId, Long linkId) {
+        Map<Long, Integer> linkNextMap = activeAtlasMap.get(linkId);
+        if (!CollectionUtils.isEmpty(linkNextMap)) {
+            Set<Long> linkNext = linkNextMap.keySet();
+            if (linkNext.contains(nodeId)) {
                 return true;
             }
-            for (Long next : realLinkNext) {
-                if (haveCircle(nodeId, next)) {
+            for (Long next : linkNext) {
+                if (activeHaveCircle(nodeId, next)) {
                     return true;
                 }
             }
@@ -109,22 +125,17 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
      * nodeId next add linkId count
      */
     public synchronized void link(Long nodeId, Long linkId) {
-        link(nodeId, linkId, false, null);
+        link(nodeId, linkId, updatingAtlasMap);
     }
 
-    public synchronized void link(Long nodeId, Long linkId, boolean check, Map<Long, Map<Long, Integer>> atMap) {
-        if (check && haveCircle(nodeId, linkId)) {
+    private synchronized void link(Long nodeId, Long linkId, Map<Long, Map<Long, Integer>> atlasMap) {
+        if (haveCircle(nodeId, linkId)) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "have circle nodeId:" + nodeId + " linkId:" + linkId);
         }
-        if (atMap == null) {
-            Map<Long, Integer> nodeNextMap = atlasMap.computeIfAbsent(nodeId, k -> new HashMap<>());
-            Integer nodeNextCount = nodeNextMap.computeIfAbsent(linkId, k -> 0);
-            nodeNextMap.put(linkId, nodeNextCount + 1);
-        } else {
-            Map<Long, Integer> nodeNextMap = atMap.computeIfAbsent(nodeId, k -> new HashMap<>());
-            Integer nodeNextCount = nodeNextMap.computeIfAbsent(linkId, k -> 0);
-            nodeNextMap.put(linkId, nodeNextCount + 1);
-        }
+
+        Map<Long, Integer> linkNextMap = atlasMap.computeIfAbsent(nodeId, k -> new HashMap<>());
+        Integer nodeNextCount = linkNextMap.computeIfAbsent(linkId, k -> 0);
+        linkNextMap.put(linkId, nodeNextCount + 1);
     }
 
     @Override
@@ -140,14 +151,14 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
      * nodeId next reduce linkId count
      */
     public synchronized void unlink(Long nodeId, Long linkId) {
-        Map<Long, Integer> nodeNextMap = atlasMap.get(nodeId);
+        Map<Long, Integer> nodeNextMap = updatingAtlasMap.get(nodeId);
         if (nodeNextMap != null) {
             Integer nodeNextCount = nodeNextMap.get(linkId);
             if (nodeNextCount != null) {
                 if (nodeNextCount <= 1) {
                     nodeNextMap.remove(linkId);
                     if (CollectionUtils.isEmpty(nodeNextMap)) {
-                        atlasMap.remove(nodeId);
+                        updatingAtlasMap.remove(nodeId);
                     }
                 } else {
                     nodeNextMap.put(linkId, nodeNextCount - 1);
@@ -202,9 +213,9 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             conf.setId(conf.getConfId());
             conf.setConfId(null);
             conf.setIceId(null);
-            confUpdateDtos.add(Constant.confToDto(conf));
+            confUpdateDtos.add(ServerConstant.confToDto(conf));
             updateLocalConfActiveCache(conf);
-            assembleAtlas(conf, realAtlasMap);
+            assembleAtlas(conf, activeAtlasMap);
         }
         iceUpdateMap.remove(iceId);
         IceTransferDto transferDto = new IceTransferDto();
@@ -268,7 +279,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         confSet.add(conf);
         if (NodeTypeEnum.isRelation(conf.getType())) {
             if (StringUtils.hasLength(conf.getSonIds())) {
-                String[] sonIdStrs = conf.getSonIds().split(",");
+                String[] sonIdStrs = conf.getSonIds().split(Constant.REGEX_COMMA);
                 for (String sonIdStr : sonIdStrs) {
                     long sonId = Long.parseLong(sonIdStr);
                     assembleActiveConf(map, confSet, sonId);
@@ -380,9 +391,9 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         if (node == null) {
             return null;
         }
-        IceShowNode showNode = Constant.confToShow(node);
+        IceShowNode showNode = ServerConstant.confToShow(node);
         if (NodeTypeEnum.isRelation(node.getType()) && StringUtils.hasLength(showNode.getSonIds())) {
-            String[] sonIdStrs = showNode.getSonIds().split(",");
+            String[] sonIdStrs = showNode.getSonIds().split(Constant.REGEX_COMMA);
             List<Long> sonIds = new ArrayList<>(sonIdStrs.length);
             for (String sonStr : sonIdStrs) {
                 sonIds.add(Long.valueOf(sonStr));
@@ -516,7 +527,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             for (IceConf conf : confUpdateList) {
                 updateIdSet.add(conf.getMixId());
                 confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
-                assembleAtlas(conf, null);
+                assembleAtlas(conf, updatingAtlasMap);
                 assembleLeafClass(conf);
             }
         }
@@ -529,9 +540,9 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             for (IceConf conf : confList) {
                 confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
                 if (!updateIdSet.contains(conf.getMixId())) {
-                    assembleAtlas(conf, null);
+                    assembleAtlas(conf, updatingAtlasMap);
                 }
-                assembleAtlas(conf, realAtlasMap);
+                assembleAtlas(conf, activeAtlasMap);
                 assembleLeafClass(conf);
             }
         }
@@ -543,19 +554,19 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         leafClassMap = new HashMap<>();
         confUpdateMap = new HashMap<>();
         confActiveMap = new HashMap<>();
-        atlasMap = new HashMap<>();
-        realAtlasMap = new HashMap<>();
+        updatingAtlasMap = new HashMap<>();
+        activeAtlasMap = new HashMap<>();
     }
 
     @Override
     public synchronized void rebuildingAtlas(Collection<IceConf> updateList, Collection<IceConf> confList) {
         Set<Long> updateIdSet = new HashSet<>();
-        Map<Long, Map<Long, Integer>> tmpAtlasMap = getAtlasMapCopy(atlasMap);
-        Map<Long, Map<Long, Integer>> tmpRealAtlasMap = getAtlasMapCopy(realAtlasMap);
+        Map<Long, Map<Long, Integer>> tmpAtlasMap = getAtlasMapCopy(updatingAtlasMap);
+        Map<Long, Map<Long, Integer>> tmpRealAtlasMap = getAtlasMapCopy(activeAtlasMap);
         if (!CollectionUtils.isEmpty(updateList)) {
             for (IceConf updateConf : updateList) {
-                assembleAtlas(updateConf, true, tmpAtlasMap);
-                assembleAtlas(getActiveConfById(updateConf.getApp(), updateConf.getMixId()), true, tmpRealAtlasMap);
+                assembleAtlas(updateConf, tmpAtlasMap);
+                assembleAtlas(getActiveConfById(updateConf.getApp(), updateConf.getMixId()), tmpRealAtlasMap);
                 updateIdSet.add(updateConf.getMixId());
             }
         }
@@ -564,13 +575,13 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
                 if (!updateIdSet.contains(conf.getMixId())) {
                     tmpAtlasMap.remove(conf.getMixId());
                     tmpRealAtlasMap.remove(conf.getMixId());
-                    assembleAtlas(conf, true, tmpRealAtlasMap);
-                    assembleAtlas(conf, true, null);
+                    assembleAtlas(conf, tmpRealAtlasMap);
+                    assembleAtlas(conf, tmpAtlasMap);
                 }
             }
         }
-        atlasMap = tmpAtlasMap;
-        realAtlasMap = tmpRealAtlasMap;
+        updatingAtlasMap = tmpAtlasMap;
+        activeAtlasMap = tmpRealAtlasMap;
     }
 
     private Map<Long, Map<Long, Integer>> getAtlasMapCopy(Map<Long, Map<Long, Integer>> atlasMap) {
@@ -590,26 +601,18 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         refresh();
     }
 
-    private void assembleAtlas(IceConf conf, boolean check, Map<Long, Map<Long, Integer>> atsMap) {
-        if (atsMap != null) {
-            atsMap.remove(conf.getMixId());
-        } else {
-            atlasMap.remove(conf.getMixId());
-        }
+    private void assembleAtlas(IceConf conf, Map<Long, Map<Long, Integer>> atlasMap) {
+        atlasMap.remove(conf.getMixId());
         if (NodeTypeEnum.isRelation(conf.getType()) && StringUtils.hasLength(conf.getSonIds())) {
-            String[] sonIdStrs = conf.getSonIds().split(",");
+            String[] sonIdStrs = conf.getSonIds().split(Constant.REGEX_COMMA);
             for (String sonIdStr : sonIdStrs) {
                 Long sonId = Long.parseLong(sonIdStr);
-                link(conf.getMixId(), sonId, check, atsMap);
+                link(conf.getMixId(), sonId, atlasMap);
             }
         }
         if (conf.getForwardId() != null) {
-            link(conf.getMixId(), conf.getForwardId(), check, atsMap);
+            link(conf.getMixId(), conf.getForwardId(), atlasMap);
         }
-    }
-
-    private void assembleAtlas(IceConf conf, Map<Long, Map<Long, Integer>> atlasMap) {
-        assembleAtlas(conf, false, atlasMap);
     }
 
     private void assembleLeafClass(IceConf conf) {
@@ -641,7 +644,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         if (map == null) {
             return new ArrayList<>(1);
         }
-        return Constant.confListToDtoList(map.values());
+        return ServerConstant.confListToDtoList(map.values());
     }
 
     public Collection<IceBaseDto> getActiveBasesByApp(Integer app) {
@@ -649,7 +652,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         if (map == null) {
             return new ArrayList<>(1);
         }
-        return Constant.baseListToDtoList(map.values());
+        return ServerConstant.baseListToDtoList(map.values());
     }
 
     @Override

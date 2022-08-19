@@ -18,7 +18,7 @@ import java.util.Date;
 /**
  * @author waitmoon
  */
-public final class Constant {
+public final class ServerConstant {
 
     /**
      * base convert to dto
@@ -173,7 +173,7 @@ public final class Constant {
         }
         Collection<IceConfDto> results = new ArrayList<>(confList.size());
         for (IceConf conf : confList) {
-            results.add(Constant.confToDto(conf));
+            results.add(ServerConstant.confToDto(conf));
         }
         return results;
     }
@@ -184,7 +184,7 @@ public final class Constant {
         }
         Collection<IceConfDto> results = new ArrayList<>(confList.size());
         for (IceConf conf : confList) {
-            results.add(Constant.confToDtoWithName(conf));
+            results.add(ServerConstant.confToDtoWithName(conf));
         }
         return results;
     }
@@ -195,7 +195,7 @@ public final class Constant {
         }
         Collection<IceBaseDto> results = new ArrayList<>(baseList.size());
         for (IceBase base : baseList) {
-            results.add(Constant.baseToDto(base));
+            results.add(ServerConstant.baseToDto(base));
         }
         return results;
     }
@@ -206,7 +206,7 @@ public final class Constant {
         }
         Collection<IceConf> results = new ArrayList<>(dtoList.size());
         for (IceConfDto dto : dtoList) {
-            results.add(Constant.dtoToConf(dto, app));
+            results.add(ServerConstant.dtoToConf(dto, app));
         }
         return results;
     }
