@@ -258,6 +258,8 @@ public class IceBaseServiceImpl implements IceBaseService {
 //    @Transactional
     public void importData(PushData data) {
         Collection<IceConf> confUpdates = Constant.dtoListToConfList(data.getConfUpdates(), data.getApp());
+        Collection<IceConf> confs = Constant.dtoListToConfList(data.getConfs(), data.getApp());
+        iceServerService.rebuildingAtlas(confUpdates, confs);
         if (!CollectionUtils.isEmpty(confUpdates)) {
             for (IceConf conf : confUpdates) {
                 IceConf oldConf = iceConfUpdateMapper.selectByPrimaryKey(conf.getId());
@@ -269,7 +271,6 @@ public class IceBaseServiceImpl implements IceBaseService {
                 }
             }
         }
-        Collection<IceConf> confs = Constant.dtoListToConfList(data.getConfs(), data.getApp());
         if (!CollectionUtils.isEmpty(confs)) {
             for (IceConf conf : confs) {
                 IceConf oldConf = iceConfMapper.selectByPrimaryKey(conf.getMixId());

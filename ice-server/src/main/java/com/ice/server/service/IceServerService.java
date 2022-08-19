@@ -70,4 +70,7 @@ public interface IceServerService {
     void refresh();
 
     void cleanConfigCache();
+
+    void rebuildingAtlas(Collection<IceConf> updateList, Collection<IceConf> confList);
+
 }

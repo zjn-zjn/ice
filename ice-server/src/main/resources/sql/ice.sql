@@ -68,8 +68,6 @@ CREATE TABLE IF NOT EXISTS `ice_conf_update` (
   `conf_id` bigint(20) NOT NULL,
   `name` varchar(50) COLLATE utf8mb4_bin DEFAULT NULL,
   `son_ids` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,
-  `link_ids` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,
-  `unlink_ids` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,
   `type` tinyint(4) NOT NULL DEFAULT '6' COMMENT 'see NodeTypeEnum',
   `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '1 online 0 offline',
   `inverse` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'make true->false false->true',
@@ -85,25 +83,6 @@ CREATE TABLE IF NOT EXISTS `ice_conf_update` (
   PRIMARY KEY (`id`),
   KEY `update_index` (`update_at`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-
--- ----------------------------
--- v1.2.0
--- add column(link_ids&unlink_ids) if not exist
--- ----------------------------
-SET @preparedStatement = (SELECT IF(
-  (
-    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE
-      table_name = 'ice_conf_update'
-      AND table_schema = DATABASE()
-      AND column_name = "link_ids"
-  ) > 0,
-  "SELECT 1",
-  "ALTER TABLE ice_conf_update ADD link_ids varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL, ADD unlink_ids varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL;"
-));
-PREPARE alterIfNotExists FROM @preparedStatement;
-EXECUTE alterIfNotExists;
-DEALLOCATE PREPARE alterIfNotExists;
 
 -- ----------------------------
 -- Table structure for ice_push_history

@@ -41,6 +41,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     private Map<Integer, Map<Long, IceBase>> baseActiveMap;
 
     private Map<Long, Map<Long, Integer>> atlasMap;
+
+    private Map<Long, Map<Long, Integer>> realAtlasMap;
     /*
      * key:app value conf
      */
@@ -65,16 +67,27 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             return true;
         }
         Map<Long, Integer> linkNextMap = atlasMap.get(linkId);
-        if (CollectionUtils.isEmpty(linkNextMap)) {
-            return false;
-        }
-        Set<Long> linkNext = linkNextMap.keySet();
-        if (linkNext.contains(nodeId)) {
-            return true;
-        }
-        for (Long next : linkNext) {
-            if (haveCircle(nodeId, next)) {
+        if (!CollectionUtils.isEmpty(linkNextMap)) {
+            Set<Long> linkNext = linkNextMap.keySet();
+            if (linkNext.contains(nodeId)) {
                 return true;
+            }
+            for (Long next : linkNext) {
+                if (haveCircle(nodeId, next)) {
+                    return true;
+                }
+            }
+        }
+        Map<Long, Integer> realLinkNextMap = realAtlasMap.get(linkId);
+        if (!CollectionUtils.isEmpty(realLinkNextMap)) {
+            Set<Long> realLinkNext = realLinkNextMap.keySet();
+            if (realLinkNext.contains(nodeId)) {
+                return true;
+            }
+            for (Long next : realLinkNext) {
+                if (haveCircle(nodeId, next)) {
+                    return true;
+                }
             }
         }
         return false;
@@ -96,18 +109,22 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
      * nodeId next add linkId count
      */
     public synchronized void link(Long nodeId, Long linkId) {
-        if (haveCircle(nodeId, linkId)) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "have circle nodeId:" + nodeId + " linkId:" + linkId);
-        }
-        Map<Long, Integer> nodeNextMap = atlasMap.computeIfAbsent(nodeId, k -> new HashMap<>());
-        Integer nodeNextCount = nodeNextMap.computeIfAbsent(linkId, k -> 0);
-        nodeNextMap.put(linkId, nodeNextCount + 1);
+        link(nodeId, linkId, false, null);
     }
 
-    public synchronized void updateReverseLink(Long nodeId, Long linkId) {
-        Map<Long, Integer> nodeNextMap = atlasMap.computeIfAbsent(nodeId, k -> new HashMap<>());
-        Integer nodeNextCount = nodeNextMap.computeIfAbsent(linkId, k -> 0);
-        nodeNextMap.put(linkId, nodeNextCount + 1);
+    public synchronized void link(Long nodeId, Long linkId, boolean check, Map<Long, Map<Long, Integer>> atMap) {
+        if (check && haveCircle(nodeId, linkId)) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "have circle nodeId:" + nodeId + " linkId:" + linkId);
+        }
+        if (atMap == null) {
+            Map<Long, Integer> nodeNextMap = atlasMap.computeIfAbsent(nodeId, k -> new HashMap<>());
+            Integer nodeNextCount = nodeNextMap.computeIfAbsent(linkId, k -> 0);
+            nodeNextMap.put(linkId, nodeNextCount + 1);
+        } else {
+            Map<Long, Integer> nodeNextMap = atMap.computeIfAbsent(nodeId, k -> new HashMap<>());
+            Integer nodeNextCount = nodeNextMap.computeIfAbsent(linkId, k -> 0);
+            nodeNextMap.put(linkId, nodeNextCount + 1);
+        }
     }
 
     @Override
@@ -122,18 +139,18 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
     /*
      * nodeId next reduce linkId count
      */
-    public synchronized void unlink(Long nodeId, Long unLinkId) {
+    public synchronized void unlink(Long nodeId, Long linkId) {
         Map<Long, Integer> nodeNextMap = atlasMap.get(nodeId);
         if (nodeNextMap != null) {
-            Integer nodeNextCount = nodeNextMap.get(unLinkId);
+            Integer nodeNextCount = nodeNextMap.get(linkId);
             if (nodeNextCount != null) {
                 if (nodeNextCount <= 1) {
-                    nodeNextMap.remove(unLinkId);
+                    nodeNextMap.remove(linkId);
                     if (CollectionUtils.isEmpty(nodeNextMap)) {
                         atlasMap.remove(nodeId);
                     }
                 } else {
-                    nodeNextMap.put(unLinkId, nodeNextCount - 1);
+                    nodeNextMap.put(linkId, nodeNextCount - 1);
                 }
             }
         }
@@ -185,12 +202,9 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             conf.setId(conf.getConfId());
             conf.setConfId(null);
             conf.setIceId(null);
-            conf.setLinkIds(null);
-            conf.setUnlinkIds(null);
-            conf.setLinkIdMap(null);
-            conf.setUnlinkIdMap(null);
             confUpdateDtos.add(Constant.confToDto(conf));
             updateLocalConfActiveCache(conf);
+            assembleAtlas(conf, realAtlasMap);
         }
         iceUpdateMap.remove(iceId);
         IceTransferDto transferDto = new IceTransferDto();
@@ -210,23 +224,16 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             return;
         }
         Collection<IceConf> confUpdates = confUpdateMap.values();
-        for (IceConf conf : confUpdates) {
-            //revert link to origin
-            if (StringUtils.hasLength(conf.getUnlinkIds())) {
-                String[] shouldLinkIds = conf.getUnlinkIds().split(",");
-                for (String shouldLinkId : shouldLinkIds) {
-                    updateReverseLink(conf.getMixId(), Long.valueOf(shouldLinkId));
-                }
+        Collection<IceConf> confList = new ArrayList<>();
+        for (IceConf confUpdate : confUpdates) {
+            confUpdateMapper.deleteByPrimaryKey(confUpdate.getId());
+            IceConf conf = getActiveConfById(app, confUpdate.getConfId());
+            if (conf != null) {
+                confList.add(conf);
             }
-            if (StringUtils.hasLength(conf.getLinkIds())) {
-                String[] shouldUnlinkIds = conf.getLinkIds().split(",");
-                for (String shouldUnlinkId : shouldUnlinkIds) {
-                    unlink(conf.getMixId(), Long.valueOf(shouldUnlinkId));
-                }
-            }
-            confUpdateMapper.deleteByPrimaryKey(conf.getId());
         }
         iceUpdateMap.remove(iceId);
+        rebuildingAtlas(null, confList);
     }
 
     @Override
@@ -332,8 +339,6 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         newConf.setStatus(conf.getStatus());
         newConf.setTimeType(conf.getTimeType());
         newConf.setSonIds(conf.getSonIds());
-        newConf.setLinkIds(conf.getLinkIds());
-        newConf.setUnlinkIds(conf.getUnlinkIds());
         newConf.setForwardId(conf.getForwardId());
         newConf.setStart(conf.getStart());
         newConf.setEnd(conf.getEnd());
@@ -343,8 +348,6 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         newConf.setConfField(conf.getConfField());
         newConf.setName(conf.getName());
         newConf.setType(conf.getType());
-        newConf.setUnlinkIdMap(conf.getUnlinkIdMap());
-        newConf.setLinkIdMap(conf.getLinkIdMap());
         return newConf;
     }
 
@@ -513,9 +516,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             for (IceConf conf : confUpdateList) {
                 updateIdSet.add(conf.getMixId());
                 confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
-                assembleAtlas(conf);
+                assembleAtlas(conf, null);
                 assembleLeafClass(conf);
-                conf.initUpdateConfLinks();
             }
         }
         /*ConfList*/
@@ -527,8 +529,9 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             for (IceConf conf : confList) {
                 confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
                 if (!updateIdSet.contains(conf.getMixId())) {
-                    assembleAtlas(conf);
+                    assembleAtlas(conf, null);
                 }
+                assembleAtlas(conf, realAtlasMap);
                 assembleLeafClass(conf);
             }
         }
@@ -541,6 +544,45 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         confUpdateMap = new HashMap<>();
         confActiveMap = new HashMap<>();
         atlasMap = new HashMap<>();
+        realAtlasMap = new HashMap<>();
+    }
+
+    @Override
+    public synchronized void rebuildingAtlas(Collection<IceConf> updateList, Collection<IceConf> confList) {
+        Set<Long> updateIdSet = new HashSet<>();
+        Map<Long, Map<Long, Integer>> tmpAtlasMap = getAtlasMapCopy(atlasMap);
+        Map<Long, Map<Long, Integer>> tmpRealAtlasMap = getAtlasMapCopy(realAtlasMap);
+        if (!CollectionUtils.isEmpty(updateList)) {
+            for (IceConf updateConf : updateList) {
+                assembleAtlas(updateConf, true, tmpAtlasMap);
+                assembleAtlas(getActiveConfById(updateConf.getApp(), updateConf.getMixId()), true, tmpRealAtlasMap);
+                updateIdSet.add(updateConf.getMixId());
+            }
+        }
+        if (!CollectionUtils.isEmpty(confList)) {
+            for (IceConf conf : confList) {
+                if (!updateIdSet.contains(conf.getMixId())) {
+                    tmpAtlasMap.remove(conf.getMixId());
+                    tmpRealAtlasMap.remove(conf.getMixId());
+                    assembleAtlas(conf, true, tmpRealAtlasMap);
+                    assembleAtlas(conf, true, null);
+                }
+            }
+        }
+        atlasMap = tmpAtlasMap;
+        realAtlasMap = tmpRealAtlasMap;
+    }
+
+    private Map<Long, Map<Long, Integer>> getAtlasMapCopy(Map<Long, Map<Long, Integer>> atlasMap) {
+        if (CollectionUtils.isEmpty(atlasMap)) {
+            return new HashMap<>();
+        }
+        Map<Long, Map<Long, Integer>> copyMap = new HashMap<>();
+        for (Map.Entry<Long, Map<Long, Integer>> entry : atlasMap.entrySet()) {
+            Map<Long, Integer> map = new HashMap<>(entry.getValue());
+            copyMap.put(entry.getKey(), map);
+        }
+        return copyMap;
     }
 
     @Override
@@ -548,23 +590,26 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         refresh();
     }
 
-    private void assembleAtlas(IceConf conf) {
+    private void assembleAtlas(IceConf conf, boolean check, Map<Long, Map<Long, Integer>> atsMap) {
+        if (atsMap != null) {
+            atsMap.remove(conf.getMixId());
+        } else {
+            atlasMap.remove(conf.getMixId());
+        }
         if (NodeTypeEnum.isRelation(conf.getType()) && StringUtils.hasLength(conf.getSonIds())) {
             String[] sonIdStrs = conf.getSonIds().split(",");
             for (String sonIdStr : sonIdStrs) {
                 Long sonId = Long.parseLong(sonIdStr);
-                Map<Long, Integer> nextMap = atlasMap.computeIfAbsent(conf.getMixId(), k -> new HashMap<>());
-                int nextCount = nextMap.computeIfAbsent(sonId, k -> 0);
-                nextCount += 1;
-                nextMap.put(sonId, nextCount);
+                link(conf.getMixId(), sonId, check, atsMap);
             }
         }
         if (conf.getForwardId() != null) {
-            Map<Long, Integer> nextMap = atlasMap.computeIfAbsent(conf.getMixId(), k -> new HashMap<>());
-            int nextCount = nextMap.computeIfAbsent(conf.getForwardId(), k -> 0);
-            nextCount += 1;
-            nextMap.put(conf.getForwardId(), nextCount);
+            link(conf.getMixId(), conf.getForwardId(), check, atsMap);
         }
+    }
+
+    private void assembleAtlas(IceConf conf, Map<Long, Map<Long, Integer>> atlasMap) {
+        assembleAtlas(conf, false, atlasMap);
     }
 
     private void assembleLeafClass(IceConf conf) {
