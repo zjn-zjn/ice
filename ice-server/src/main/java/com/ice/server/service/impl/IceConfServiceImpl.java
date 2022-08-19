@@ -100,8 +100,8 @@ public class IceConfServiceImpl implements IceConfService {
                     }
                 }
                 parent.setSonIds(sb.substring(0, sb.length() - 1));
-                update(moveToNext, iceId);
-                update(parent, iceId);
+                updateWithAtlas(moveToNext, iceId, editNode.getSelectId(), null);
+                updateWithAtlas(parent, iceId, null, editNode.getSelectId());
                 iceServerService.unlink(parent.getMixId(), editNode.getSelectId());
                 iceServerService.link(moveToNext.getMixId(), editNode.getSelectId());
                 return editNode.getSelectId();
@@ -130,7 +130,7 @@ public class IceConfServiceImpl implements IceConfService {
                     }
                     parent.setSonIds(sb.substring(0, sb.length() - 1));
                 }
-                update(parent, iceId);
+                updateWithoutAtlas(parent, iceId);
             } else {
                 //different parent
                 IceConf moveToParent = iceServerService.getMixConfById(app, editNode.getMoveToParentId(), iceId);
@@ -176,8 +176,8 @@ public class IceConfServiceImpl implements IceConfService {
                     }
                     moveToParent.setSonIds(moveToSb.substring(0, moveToSb.length() - 1));
                 }
-                update(moveToParent, iceId);
-                update(parent, iceId);
+                updateWithAtlas(moveToParent, iceId, editNode.getSelectId(), null);
+                updateWithAtlas(parent, iceId, null, editNode.getSelectId());
                 iceServerService.unlink(parent.getMixId(), editNode.getSelectId());
                 iceServerService.link(moveToParent.getMixId(), editNode.getSelectId());
             }
@@ -207,8 +207,8 @@ public class IceConfServiceImpl implements IceConfService {
                 }
                 moveToNext.setForwardId(editNode.getSelectId());
                 next.setForwardId(null);
-                update(moveToNext, iceId);
-                update(next, iceId);
+                updateWithAtlas(moveToNext, iceId, editNode.getSelectId(), null);
+                updateWithAtlas(next, iceId, null, editNode.getSelectId());
                 iceServerService.unlink(next.getMixId(), editNode.getSelectId());
                 iceServerService.link(moveToNext.getMixId(), editNode.getSelectId());
                 return editNode.getSelectId();
@@ -244,8 +244,8 @@ public class IceConfServiceImpl implements IceConfService {
                     }
                     moveToParent.setSonIds(moveToSb.substring(0, moveToSb.length() - 1));
                 }
-                update(moveToParent, iceId);
-                update(next, iceId);
+                updateWithAtlas(moveToParent, iceId, editNode.getSelectId(), null);
+                updateWithAtlas(next, iceId, null, editNode.getSelectId());
                 iceServerService.unlink(next.getMixId(), editNode.getSelectId());
                 iceServerService.link(moveToParent.getMixId(), editNode.getSelectId());
                 return editNode.getSelectId();
@@ -294,7 +294,7 @@ public class IceConfServiceImpl implements IceConfService {
                     sb.append(sonIdStr).append(",");
                 }
                 conf.setSonIds(sb.substring(0, sb.length() - 1));
-                update(conf, iceId);
+                update(conf, iceId, sonIdList, Collections.singletonList(editNode.getSelectId()));
                 iceServerService.exchangeLink(editNode.getParentId(), editNode.getSelectId(), sonIdList);
                 return conf.getMixId();
             }
@@ -313,7 +313,7 @@ public class IceConfServiceImpl implements IceConfService {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check exchangeForwardId");
                 }
                 conf.setForwardId(exchangeForwardId);
-                update(conf, iceId);
+                updateWithAtlas(conf, iceId, exchangeForwardId, editNode.getSelectId());
                 iceServerService.exchangeLink(editNode.getNextId(), editNode.getSelectId(), exchangeForwardId);
                 return conf.getMixId();
             }
@@ -353,7 +353,7 @@ public class IceConfServiceImpl implements IceConfService {
             operateConf.setConfName(editNode.getConfName());
             operateConf.setConfField(editNode.getConfField());
         }
-        update(operateConf, iceId);
+        updateWithoutAtlas(operateConf, iceId);
         return operateConf.getMixId();
     }
 
@@ -378,7 +378,7 @@ public class IceConfServiceImpl implements IceConfService {
                 throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "forwardId", forwardId);
             }
             operateConf.setForwardId(forwardId);
-            update(operateConf, iceId);
+            updateWithAtlas(operateConf, iceId, forwardId, null);
             iceServerService.link(operateConf.getMixId(), forwardId);
             return operateConf.getMixId();
         }
@@ -410,7 +410,7 @@ public class IceConfServiceImpl implements IceConfService {
         createConf.setStatus(StatusEnum.ONLINE.getStatus());
         confUpdateMapper.insertSelective(createConf);
         iceServerService.updateLocalConfUpdateCache(createConf);
-        update(operateConf, iceId);
+        updateWithAtlas(operateConf, iceId, createConf.getMixId(), null);
         iceServerService.link(operateConf.getMixId(), createConf.getMixId());
         return createConf.getMixId();
     }
@@ -446,7 +446,7 @@ public class IceConfServiceImpl implements IceConfService {
             } else {
                 operateConf.setSonIds(null);
             }
-            update(operateConf, iceId);
+            updateWithAtlas(operateConf, iceId, null, editNode.getSelectId());
             iceServerService.unlink(editNode.getParentId(), editNode.getSelectId());
             return operateConf.getMixId();
         }
@@ -460,7 +460,7 @@ public class IceConfServiceImpl implements IceConfService {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "nextId:" + editNode.getNextId() + " not have this forward:" + editNode.getSelectId());
             }
             operateConf.setForwardId(null);
-            update(operateConf, iceId);
+            updateWithAtlas(operateConf, iceId, null, editNode.getSelectId());
             iceServerService.unlink(editNode.getNextId(), editNode.getSelectId());
             return operateConf.getMixId();
         }
@@ -488,7 +488,7 @@ public class IceConfServiceImpl implements IceConfService {
             }
             operateConf.setConfField(editNode.getConfField());
         }
-        update(operateConf, iceId);
+        updateWithoutAtlas(operateConf, iceId);
         return operateConf.getMixId();
     }
 
@@ -522,7 +522,7 @@ public class IceConfServiceImpl implements IceConfService {
             operateConf.setSonIds(!StringUtils.hasLength(operateConf.getSonIds()) ?
                     String.valueOf(editNode.getMultiplexIds()) :
                     operateConf.getSonIds() + "," + editNode.getMultiplexIds());
-            update(operateConf, iceId);
+            update(operateConf, iceId, sonIdList, null);
             iceServerService.link(operateConf.getMixId(), sonIdList);
             return operateConf.getMixId();
         }
@@ -556,14 +556,70 @@ public class IceConfServiceImpl implements IceConfService {
         createConf.setStatus(StatusEnum.ONLINE.getStatus());
         confUpdateMapper.insertSelective(createConf);
         iceServerService.updateLocalConfUpdateCache(createConf);
-        update(operateConf, iceId);
+        updateWithAtlas(operateConf, iceId, createConf.getMixId(), null);
         iceServerService.link(operateConf.getMixId(), createConf.getMixId());
         return createConf.getMixId();
     }
 
-    private void update(IceConf operateConf, long iceId) {
+    private synchronized void update(IceConf operateConf, long iceId, List<Long> linkIds, List<Long> unLinkIds) {
         operateConf.setUpdateAt(new Date());
-        if (!operateConf.isUpdate()) {
+        boolean updateUnlink = false;
+        boolean updateLink = false;
+        boolean isUpdatingConf = operateConf.isUpdatingConf();
+        if (!isUpdatingConf) {
+            operateConf.initUpdateConfLinks();
+        }
+        if (linkIds != null) {
+            //handle link
+            for (Long linkId : linkIds) {
+                Integer unlinkCnt = operateConf.getUnlinkIdMap().get(linkId);
+                if (unlinkCnt != null && unlinkCnt > 0) {
+                    //offset unlink
+                    unlinkCnt--;
+                    if (unlinkCnt <= 0) {
+                        operateConf.getUnlinkIdMap().remove(linkId);
+                    } else {
+                        operateConf.getUnlinkIdMap().put(linkId, unlinkCnt);
+                    }
+                    updateUnlink = true;
+                } else {
+                    //add
+                    Integer linkCnt = operateConf.getLinkIdMap().get(linkId);
+                    linkCnt = linkCnt == null ? 1 : linkCnt + 1;
+                    operateConf.getLinkIdMap().put(linkId, linkCnt);
+                    updateLink = true;
+                }
+            }
+        }
+        if (unLinkIds != null) {
+            //handle unlink
+            for (Long unlinkId : unLinkIds) {
+                Integer linkCnt = operateConf.getLinkIdMap().get(unlinkId);
+                if (linkCnt != null && linkCnt > 0) {
+                    //offset link
+                    linkCnt--;
+                    if (linkCnt <= 0) {
+                        operateConf.getLinkIdMap().remove(unlinkId);
+                    } else {
+                        operateConf.getLinkIdMap().put(unlinkId, linkCnt);
+                    }
+                    updateLink = true;
+                } else {
+                    //add
+                    Integer unlinkCnt = operateConf.getUnlinkIdMap().get(unlinkId);
+                    unlinkCnt = unlinkCnt == null ? 1 : unlinkCnt + 1;
+                    operateConf.getUnlinkIdMap().put(unlinkId, unlinkCnt);
+                    updateUnlink = true;
+                }
+            }
+        }
+        if (updateLink) {
+            operateConf.setLinkIds(linkRelatedMapToStrIds(operateConf.getLinkIdMap()));
+        }
+        if (updateUnlink) {
+            operateConf.setUnlinkIds(linkRelatedMapToStrIds(operateConf.getUnlinkIdMap()));
+        }
+        if (!isUpdatingConf) {
             operateConf.setIceId(iceId);
             operateConf.setConfId(operateConf.getId());
             confUpdateMapper.insertSelective(operateConf);
@@ -571,6 +627,30 @@ public class IceConfServiceImpl implements IceConfService {
             confUpdateMapper.updateByPrimaryKey(operateConf);
         }
         iceServerService.updateLocalConfUpdateCache(operateConf);
+    }
+
+    private void updateWithoutAtlas(IceConf operateConf, long iceId) {
+        update(operateConf, iceId, null, null);
+    }
+
+    private void updateWithAtlas(IceConf operateConf, long iceId, Long linkId, Long unlinkId) {
+        update(operateConf, iceId, linkId == null ? null : Collections.singletonList(linkId), unlinkId == null ? null : Collections.singletonList(unlinkId));
+    }
+
+    private String linkRelatedMapToStrIds(Map<Long, Integer> map) {
+        if (CollectionUtils.isEmpty(map)) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<Long, Integer> entry : map.entrySet()) {
+            if (entry.getValue() != null && entry.getValue() > 0) {
+                String id = entry.getKey().toString();
+                for (int i = 0; i < entry.getValue(); i++) {
+                    sb.append(id).append(",");
+                }
+            }
+        }
+        return sb.substring(0, sb.length() - 1);
     }
 
     private void paramHandle(IceEditNode editNode) {

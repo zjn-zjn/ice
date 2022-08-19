@@ -26,10 +26,11 @@ public class WebAbstractResponseAdapter implements ResponseBodyAdvice<Object> {
 
     @ExceptionHandler(value = Throwable.class)
     public Object exceptionHandler(Exception e) {
-        log.error("error: ", e);
         if (e instanceof ErrorCodeException) {
             ErrorCodeException exception = (ErrorCodeException) e;
             return WebResult.fail(exception);
+        } else {
+            log.error("error: {}", e.getMessage());
         }
         return WebResult.fail(ErrorCode.INTERNAL_ERROR.getCode(), e.getMessage());
     }

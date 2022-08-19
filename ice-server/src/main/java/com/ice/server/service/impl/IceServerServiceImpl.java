@@ -104,6 +104,12 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         nodeNextMap.put(linkId, nodeNextCount + 1);
     }
 
+    public synchronized void updateReverseLink(Long nodeId, Long linkId) {
+        Map<Long, Integer> nodeNextMap = atlasMap.computeIfAbsent(nodeId, k -> new HashMap<>());
+        Integer nodeNextCount = nodeNextMap.computeIfAbsent(linkId, k -> 0);
+        nodeNextMap.put(linkId, nodeNextCount + 1);
+    }
+
     @Override
     public synchronized void link(Long nodeId, List<Long> linkIds) {
         if (!CollectionUtils.isEmpty(linkIds)) {
@@ -179,6 +185,10 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             conf.setId(conf.getConfId());
             conf.setConfId(null);
             conf.setIceId(null);
+            conf.setLinkIds(null);
+            conf.setUnlinkIds(null);
+            conf.setLinkIdMap(null);
+            conf.setUnlinkIdMap(null);
             confUpdateDtos.add(Constant.confToDto(conf));
             updateLocalConfActiveCache(conf);
         }
@@ -201,6 +211,19 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         }
         Collection<IceConf> confUpdates = confUpdateMap.values();
         for (IceConf conf : confUpdates) {
+            //revert link to origin
+            if (StringUtils.hasLength(conf.getUnlinkIds())) {
+                String[] shouldLinkIds = conf.getUnlinkIds().split(",");
+                for (String shouldLinkId : shouldLinkIds) {
+                    updateReverseLink(conf.getMixId(), Long.valueOf(shouldLinkId));
+                }
+            }
+            if (StringUtils.hasLength(conf.getLinkIds())) {
+                String[] shouldUnlinkIds = conf.getLinkIds().split(",");
+                for (String shouldUnlinkId : shouldUnlinkIds) {
+                    unlink(conf.getMixId(), Long.valueOf(shouldUnlinkId));
+                }
+            }
             confUpdateMapper.deleteByPrimaryKey(conf.getId());
         }
         iceUpdateMap.remove(iceId);
@@ -309,6 +332,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         newConf.setStatus(conf.getStatus());
         newConf.setTimeType(conf.getTimeType());
         newConf.setSonIds(conf.getSonIds());
+        newConf.setLinkIds(conf.getLinkIds());
+        newConf.setUnlinkIds(conf.getUnlinkIds());
         newConf.setForwardId(conf.getForwardId());
         newConf.setStart(conf.getStart());
         newConf.setEnd(conf.getEnd());
@@ -318,6 +343,8 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
         newConf.setConfField(conf.getConfField());
         newConf.setName(conf.getName());
         newConf.setType(conf.getType());
+        newConf.setUnlinkIdMap(conf.getUnlinkIdMap());
+        newConf.setLinkIdMap(conf.getLinkIdMap());
         return newConf;
     }
 
@@ -488,6 +515,7 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
                 confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
                 assembleAtlas(conf);
                 assembleLeafClass(conf);
+                conf.initUpdateConfLinks();
             }
         }
         /*ConfList*/

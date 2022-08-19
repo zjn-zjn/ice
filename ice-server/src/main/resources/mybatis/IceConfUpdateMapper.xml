@@ -8,6 +8,8 @@
         <result column="conf_id" jdbcType="BIGINT" property="confId"/>
         <result column="name" jdbcType="VARCHAR" property="name"/>
         <result column="son_ids" jdbcType="VARCHAR" property="sonIds"/>
+        <result column="link_ids" jdbcType="VARCHAR" property="linkIds"/>
+        <result column="unlink_ids" jdbcType="VARCHAR" property="unlinkIds"/>
         <result column="type" jdbcType="TINYINT" property="type"/>
         <result column="status" jdbcType="TINYINT" property="status"/>
         <result column="inverse" jdbcType="TINYINT" property="inverse"/>
@@ -82,7 +84,8 @@
         </where>
     </sql>
     <sql id="Base_Column_List">
-        id, app, ice_id,conf_id, name, son_ids, type, status, inverse, conf_name, conf_field, forward_id,
+        id, app, ice_id, conf_id, name, son_ids, link_ids, unlink_ids, type, status, inverse, conf_name, conf_field,
+        forward_id,
         time_type, start, end, debug, create_at, update_at
     </sql>
     <select id="selectByExample" parameterType="com.ice.server.dao.model.IceConfExample" resultMap="BaseResultMap">
@@ -120,12 +123,14 @@
             SELECT LAST_INSERT_ID()
         </selectKey>
         insert into ice_conf_update (app, ice_id, conf_id,name, son_ids,
+        link_ids, unlink_ids,
         type, status, inverse,
         conf_name, conf_field, forward_id,
         time_type, start, end, debug, create_at,
         update_at)
         values (#{app,jdbcType=INTEGER},#{iceId,jdbcType=BIGINT}, #{confId,jdbcType=BIGINT},#{name,jdbcType=VARCHAR},
         #{sonIds,jdbcType=VARCHAR},
+        #{linkIds,jdbcType=VARCHAR}, #{unlinkIds,jdbcType=VARCHAR},
         #{type,jdbcType=TINYINT}, #{status,jdbcType=TINYINT}, #{inverse,jdbcType=TINYINT},
         #{confName,jdbcType=VARCHAR}, #{confField,jdbcType=VARCHAR}, #{forwardId,jdbcType=BIGINT},
         #{timeType,jdbcType=TINYINT}, #{start,jdbcType=TIMESTAMP}, #{end,jdbcType=TIMESTAMP},
@@ -135,6 +140,7 @@
 
     <insert id="insertWithId" parameterType="com.ice.server.dao.model.IceConf">
         insert into ice_conf_update (id, app, ice_id, conf_id,name, son_ids,
+        link_ids, unlink_ids,
         type, status, inverse,
         conf_name, conf_field, forward_id,
         time_type, start, end, debug,
@@ -142,6 +148,7 @@
         values (#{id,jdbcType=BIGINT}, #{app,jdbcType=INTEGER}, #{iceId,jdbcType=BIGINT},
         #{confId,jdbcType=BIGINT},#{name,jdbcType=VARCHAR},
         #{sonIds,jdbcType=VARCHAR},
+        #{linkIds,jdbcType=VARCHAR}, #{unlinkIds,jdbcType=VARCHAR},
         #{type,jdbcType=TINYINT}, #{status,jdbcType=TINYINT}, #{inverse,jdbcType=TINYINT},
         #{confName,jdbcType=VARCHAR}, #{confField,jdbcType=VARCHAR}, #{forwardId,jdbcType=BIGINT},
         #{timeType,jdbcType=TINYINT}, #{start,jdbcType=TIMESTAMP}, #{end,jdbcType=TIMESTAMP}, #{debug,jdbcType=TINYINT},
@@ -167,6 +174,12 @@
             </if>
             <if test="sonIds != null">
                 son_ids,
+            </if>
+            <if test="linkIds != null">
+                link_ids,
+            </if>
+            <if test="unlinkIds != null">
+                unlink_ids,
             </if>
             <if test="type != null">
                 type,
@@ -220,6 +233,12 @@
             </if>
             <if test="sonIds != null">
                 #{sonIds,jdbcType=VARCHAR},
+            </if>
+            <if test="linkIds != null">
+                #{linkIds,jdbcType=VARCHAR},
+            </if>
+            <if test="unlinkIds != null">
+                #{unlinkIds,jdbcType=VARCHAR},
             </if>
             <if test="type != null">
                 #{type,jdbcType=TINYINT},
@@ -280,6 +299,12 @@
             <if test="sonIds != null">
                 son_ids,
             </if>
+            <if test="linkIds != null">
+                link_ids,
+            </if>
+            <if test="unlinkIds != null">
+                unlink_ids,
+            </if>
             <if test="type != null">
                 type,
             </if>
@@ -335,6 +360,12 @@
             </if>
             <if test="sonIds != null">
                 #{sonIds,jdbcType=VARCHAR},
+            </if>
+            <if test="linkIds != null">
+                #{linkIds,jdbcType=VARCHAR},
+            </if>
+            <if test="unlinkIds != null">
+                #{unlinkIds,jdbcType=VARCHAR},
             </if>
             <if test="type != null">
                 #{type,jdbcType=TINYINT},
@@ -401,6 +432,12 @@
             <if test="record.sonIds != null">
                 son_ids = #{record.sonIds,jdbcType=VARCHAR},
             </if>
+            <if test="record.linkIds != null">
+                link_ids = #{record.linkIds,jdbcType=VARCHAR},
+            </if>
+            <if test="record.unlinkIds != null">
+                unlink_ids = #{record.unlinkIds,jdbcType=VARCHAR},
+            </if>
             <if test="record.type != null">
                 type = #{record.type,jdbcType=TINYINT},
             </if>
@@ -450,6 +487,8 @@
         conf_id = #{record.confId,jdbcType=BIGINT},
         name = #{record.name,jdbcType=VARCHAR},
         son_ids = #{record.sonIds,jdbcType=VARCHAR},
+        link_ids = #{record.linkIds,jdbcType=VARCHAR},
+        unlink_ids = #{record.unlinkIds,jdbcType=VARCHAR},
         type = #{record.type,jdbcType=TINYINT},
         status = #{record.status,jdbcType=TINYINT},
         inverse = #{record.inverse,jdbcType=TINYINT},
@@ -483,6 +522,12 @@
             </if>
             <if test="sonIds != null">
                 son_ids = #{sonIds,jdbcType=VARCHAR},
+            </if>
+            <if test="linkIds != null">
+                link_ids = #{linkIds,jdbcType=VARCHAR},
+            </if>
+            <if test="unlinkIds != null">
+                unlink_ids = #{unlinkIds,jdbcType=VARCHAR},
             </if>
             <if test="type != null">
                 type = #{type,jdbcType=TINYINT},
@@ -530,6 +575,8 @@
         conf_id = #{confId,jdbcType=BIGINT},
         name = #{name,jdbcType=VARCHAR},
         son_ids = #{sonIds,jdbcType=VARCHAR},
+        link_ids = #{linkIds,jdbcType=VARCHAR},
+        unlink_ids = #{unlinkIds,jdbcType=VARCHAR},
         type = #{type,jdbcType=TINYINT},
         status = #{status,jdbcType=TINYINT},
         inverse = #{inverse,jdbcType=TINYINT},
