@@ -78,6 +78,9 @@ public class IceConfServiceImpl implements IceConfService {
             if (!StringUtils.hasLength(parent.getSonIds())) {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent no child");
             }
+            if (!NodeTypeEnum.isRelation(parent.getType())) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parentId not parent");
+            }
             String[] sonIds = parent.getSonIds().split(Constant.REGEX_COMMA);
             int index = editNode.getIndex();
             if (index < 0 || index >= sonIds.length || !sonIds[index].equals(editNode.getSelectId() + "")) {
@@ -109,6 +112,10 @@ public class IceConfServiceImpl implements IceConfService {
             }
             //move between child nodes
             if (editNode.getMoveToParentId() == null || editNode.getMoveToParentId().equals(editNode.getParentId())) {
+                if (sonIds.length == 1 || (editNode.getMoveTo() == null && index == sonIds.length - 1) || editNode.getIndex().equals(editNode.getMoveTo())) {
+                    //ignore
+                    return editNode.getSelectId();
+                }
                 //same parent
                 StringBuilder sb = new StringBuilder();
                 if (editNode.getMoveTo() == null) {
@@ -122,11 +129,14 @@ public class IceConfServiceImpl implements IceConfService {
                     parent.setSonIds(sb.toString() + editNode.getSelectId());
                 } else {
                     for (int i = 0; i < sonIds.length; i++) {
-                        if (editNode.getMoveTo().equals(i)) {
+                        if (editNode.getMoveTo() < index && editNode.getMoveTo().equals(i)) {
                             sb.append(editNode.getSelectId()).append(Constant.REGEX_COMMA);
                         }
                         if (index != i) {
                             sb.append(sonIds[i]).append(Constant.REGEX_COMMA);
+                        }
+                        if (editNode.getMoveTo() > index && editNode.getMoveTo().equals(i)) {
+                            sb.append(editNode.getSelectId()).append(Constant.REGEX_COMMA);
                         }
                     }
                     parent.setSonIds(sb.substring(0, sb.length() - 1));
@@ -137,6 +147,9 @@ public class IceConfServiceImpl implements IceConfService {
                 IceConf moveToParent = iceServerService.getMixConfById(app, editNode.getMoveToParentId(), iceId);
                 if (moveToParent == null) {
                     throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "moveToParentId", editNode.getMoveToParentId());
+                }
+                if (!NodeTypeEnum.isRelation(moveToParent.getType())) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "move to parentId not parent");
                 }
                 if (iceServerService.haveCircle(moveToParent.getMixId(), editNode.getSelectId())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
@@ -219,6 +232,9 @@ public class IceConfServiceImpl implements IceConfService {
                 IceConf moveToParent = iceServerService.getMixConfById(app, editNode.getMoveToParentId(), iceId);
                 if (moveToParent == null) {
                     throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "moveToParentId", editNode.getMoveToParentId());
+                }
+                if (!NodeTypeEnum.isRelation(moveToParent.getType())) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "move to parentId not parent");
                 }
                 if (iceServerService.haveCircle(moveToParent.getMixId(), editNode.getSelectId())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
