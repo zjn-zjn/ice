@@ -103,7 +103,7 @@ public class IceConfServiceImpl implements IceConfService {
                         sb.append(sonIdStr).append(Constant.REGEX_COMMA);
                     }
                 }
-                parent.setSonIds(sb.substring(0, sb.length() - 1));
+                parent.setSonIds(Constant.removeLast(sb));
                 update(moveToNext, iceId);
                 update(parent, iceId);
                 iceServerService.unlink(parent.getMixId(), editNode.getSelectId());
@@ -139,7 +139,7 @@ public class IceConfServiceImpl implements IceConfService {
                             sb.append(editNode.getSelectId()).append(Constant.REGEX_COMMA);
                         }
                     }
-                    parent.setSonIds(sb.substring(0, sb.length() - 1));
+                    parent.setSonIds(Constant.removeLast(sb));
                 }
                 update(parent, iceId);
             } else {
@@ -164,14 +164,25 @@ public class IceConfServiceImpl implements IceConfService {
                             sb.append(sonIdStr).append(Constant.REGEX_COMMA);
                         }
                     }
-                    parent.setSonIds(sb.substring(0, sb.length() - 1));
+                    parent.setSonIds(Constant.removeLast(sb));
                 } else {
                     if (!StringUtils.hasLength(moveToParent.getSonIds())) {
-                        throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent no child");
-                    }
-                    String[] moveToSonIds = moveToParent.getSonIds().split(Constant.REGEX_COMMA);
-                    if (moveToSonIds.length <= 1 || editNode.getMoveTo() >= moveToSonIds.length) {
-                        throw new ErrorCodeException(ErrorCode.CUSTOM, "can not move");
+                        moveToParent.setSonIds(editNode.getSelectId() + "");
+                    } else {
+                        String[] moveToSonIds = moveToParent.getSonIds().split(Constant.REGEX_COMMA);
+                        if (editNode.getMoveTo() >= moveToSonIds.length || editNode.getMoveTo() < 0) {
+                            //put on last
+                            moveToParent.setSonIds(moveToParent.getSonIds() + Constant.REGEX_COMMA + editNode.getSelectId());
+                        } else {
+                            StringBuilder moveToSb = new StringBuilder();
+                            for (int i = 0; i < moveToSonIds.length; i++) {
+                                if (editNode.getMoveTo().equals(i)) {
+                                    moveToSb.append(editNode.getSelectId()).append(Constant.REGEX_COMMA);
+                                }
+                                moveToSb.append(moveToSonIds[i]).append(Constant.REGEX_COMMA);
+                            }
+                            moveToParent.setSonIds(Constant.removeLast(moveToSb));
+                        }
                     }
                     StringBuilder sb = new StringBuilder();
                     sonIds[index] = null;
@@ -180,15 +191,7 @@ public class IceConfServiceImpl implements IceConfService {
                             sb.append(sonIdStr).append(Constant.REGEX_COMMA);
                         }
                     }
-                    parent.setSonIds(sb.substring(0, sb.length() - 1));
-                    StringBuilder moveToSb = new StringBuilder();
-                    for (int i = 0; i < moveToSonIds.length; i++) {
-                        if (editNode.getMoveTo().equals(i)) {
-                            moveToSb.append(editNode.getSelectId()).append(Constant.REGEX_COMMA);
-                        }
-                        moveToSb.append(moveToSonIds[i]).append(Constant.REGEX_COMMA);
-                    }
-                    moveToParent.setSonIds(moveToSb.substring(0, moveToSb.length() - 1));
+                    parent.setSonIds(Constant.removeLast(sb));
                 }
                 update(moveToParent, iceId);
                 update(parent, iceId);
@@ -208,7 +211,7 @@ public class IceConfServiceImpl implements IceConfService {
                 throw new ErrorCodeException(ErrorCode.CUSTOM, "next:" + editNode.getNextId() + " not have this forward:" + editNode.getSelectId());
             }
             if (editNode.getMoveToNextId() != null) {
-                //move between forward
+                //move between forwards
                 if (editNode.getNextId().equals(editNode.getMoveToNextId())) {
                     return editNode.getSelectId();
                 }
@@ -245,21 +248,24 @@ public class IceConfServiceImpl implements IceConfService {
                     next.setForwardId(null);
                 } else {
                     if (!StringUtils.hasLength(moveToParent.getSonIds())) {
-                        throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent no child");
-                    }
-                    String[] moveToSonIds = moveToParent.getSonIds().split(Constant.REGEX_COMMA);
-                    if (moveToSonIds.length <= 1 || editNode.getMoveTo() >= moveToSonIds.length) {
-                        throw new ErrorCodeException(ErrorCode.CUSTOM, "can not move");
+                        moveToParent.setSonIds(editNode.getSelectId() + "");
+                    } else {
+                        String[] moveToSonIds = moveToParent.getSonIds().split(Constant.REGEX_COMMA);
+                        if (editNode.getMoveTo() >= moveToSonIds.length || editNode.getMoveTo() < 0) {
+                            //put on last
+                            moveToParent.setSonIds(moveToParent.getSonIds() + Constant.REGEX_COMMA + editNode.getSelectId());
+                        } else {
+                            StringBuilder moveToSb = new StringBuilder();
+                            for (int i = 0; i < moveToSonIds.length; i++) {
+                                if (editNode.getMoveTo().equals(i)) {
+                                    moveToSb.append(editNode.getSelectId()).append(Constant.REGEX_COMMA);
+                                }
+                                moveToSb.append(moveToSonIds[i]).append(Constant.REGEX_COMMA);
+                            }
+                            moveToParent.setSonIds(Constant.removeLast(moveToSb));
+                        }
                     }
                     next.setForwardId(null);
-                    StringBuilder moveToSb = new StringBuilder();
-                    for (int i = 0; i < moveToSonIds.length; i++) {
-                        if (editNode.getMoveTo().equals(i)) {
-                            moveToSb.append(editNode.getSelectId()).append(Constant.REGEX_COMMA);
-                        }
-                        moveToSb.append(moveToSonIds[i]).append(Constant.REGEX_COMMA);
-                    }
-                    moveToParent.setSonIds(moveToSb.substring(0, moveToSb.length() - 1));
                 }
                 update(moveToParent, iceId);
                 update(next, iceId);
@@ -310,7 +316,7 @@ public class IceConfServiceImpl implements IceConfService {
                 for (String sonIdStr : sonIds) {
                     sb.append(sonIdStr).append(Constant.REGEX_COMMA);
                 }
-                conf.setSonIds(sb.substring(0, sb.length() - 1));
+                conf.setSonIds(Constant.removeLast(sb));
                 update(conf, iceId);
                 iceServerService.exchangeLink(editNode.getParentId(), editNode.getSelectId(), sonIdList);
                 return conf.getMixId();
@@ -457,12 +463,7 @@ public class IceConfServiceImpl implements IceConfService {
                     sb.append(idStr).append(Constant.REGEX_COMMA);
                 }
             }
-            String str = sb.toString();
-            if (StringUtils.hasLength(str)) {
-                operateConf.setSonIds(str.substring(0, str.length() - 1));
-            } else {
-                operateConf.setSonIds(null);
-            }
+            operateConf.setSonIds(Constant.removeLast(sb));
             update(operateConf, iceId);
             iceServerService.unlink(editNode.getParentId(), editNode.getSelectId());
             return operateConf.getMixId();
