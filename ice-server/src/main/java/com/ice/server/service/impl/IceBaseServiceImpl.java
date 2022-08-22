@@ -7,7 +7,7 @@ import com.github.pagehelper.page.PageMethod;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
-import com.ice.common.utils.JacksonUtils;
+import com.ice.core.utils.JacksonUtils;
 import com.ice.server.constant.ServerConstant;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;

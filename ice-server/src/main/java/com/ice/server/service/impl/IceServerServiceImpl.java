@@ -20,7 +20,6 @@ import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -34,7 +33,7 @@ import java.util.*;
  */
 @Slf4j
 @Service
-public class IceServerServiceImpl implements IceServerService, InitializingBean {
+public class IceServerServiceImpl implements IceServerService {
 
     /*
      * key:app value baseList
@@ -594,11 +593,6 @@ public class IceServerServiceImpl implements IceServerService, InitializingBean 
             copyMap.put(entry.getKey(), map);
         }
         return copyMap;
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-        refresh();
     }
 
     private void assembleAtlas(IceConf conf, Map<Long, Map<Long, Integer>> atlasMap) {

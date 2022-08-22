@@ -1,7 +1,7 @@
 package com.ice.core;
 
 
-import com.ice.common.utils.JacksonUtils;
+import com.ice.core.utils.JacksonUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.cache.IceConfCache;
 import com.ice.core.cache.IceHandlerCache;

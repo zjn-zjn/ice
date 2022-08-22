@@ -2,11 +2,11 @@ package com.ice.core.client;
 
 
 import com.ice.common.dto.IceTransferDto;
+import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
 import com.ice.common.model.Pair;
-import com.ice.common.utils.JacksonUtils;
 import com.ice.core.Ice;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
@@ -17,6 +17,7 @@ import com.ice.core.leaf.base.BaseLeafFlow;
 import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.core.utils.IceLinkedList;
+import com.ice.core.utils.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Modifier;
@@ -145,6 +146,10 @@ public final class IceNioClientService {
         clientNode.setEnd(node.getIceEnd() == 0 ? null : node.getIceEnd());
         showConf.setDebug(node.isIceNodeDebug() ? null : node.isIceNodeDebug());
         showConf.setInverse(node.isIceInverse() ? node.isIceInverse() : null);
+        if (node.getIceErrorStateEnum() != null && node.getIceErrorStateEnum() != NodeRunStateEnum.SHUT_DOWN) {
+            showConf.setErrorStateEnum(node.getIceErrorStateEnum());
+        }
+        showConf.setConfField(JacksonUtils.toJsonStringWithoutIceBean(node));
         return clientNode;
     }
 

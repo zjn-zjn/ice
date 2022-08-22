@@ -13,13 +13,11 @@ public final class LeafNodeInfo {
     private String clazz;
     private String name;
     private String desc;
-    private List<FieldInfo> fields;
+    private List<IceFieldInfo> iceFields;
+    private List<HideFieldInfo> hideFields;
 
-    /**
-     * @author waitmoon
-     */
     @Data
-    public static class FieldInfo {
+    public static class IceFieldInfo {
         //field name
         private String field;
         //name
@@ -28,7 +26,13 @@ public final class LeafNodeInfo {
         private String desc;
         //client type clazz name, first from config, then declared type
         private String type;
-        //value of json while show client conf
-        private String value;
+    }
+
+    @Data
+    public static class HideFieldInfo {
+        //field name
+        private String field;
+        //client type clazz name, first from config, then declared type
+        private String type;
     }
 }

@@ -5,7 +5,7 @@ import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
-import com.ice.common.utils.JacksonUtils;
+import com.ice.core.utils.JacksonUtils;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IceConfUpdateMapper;
 import com.ice.server.dao.model.IceConf;

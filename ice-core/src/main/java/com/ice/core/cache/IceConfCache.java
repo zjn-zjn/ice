@@ -5,7 +5,7 @@ import com.ice.common.constant.Constant;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
-import com.ice.common.utils.JacksonUtils;
+import com.ice.core.utils.JacksonUtils;
 import com.ice.core.base.BaseLeaf;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;

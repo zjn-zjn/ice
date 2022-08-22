@@ -1,5 +1,6 @@
 package com.ice.core.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ice.common.constant.Constant;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
@@ -13,6 +14,7 @@ import com.ice.core.leaf.base.BaseLeafFlow;
 import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.core.utils.IceAddressUtils;
+import com.ice.core.utils.IceBeanUtils;
 import com.ice.core.utils.IceExecutor;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
@@ -365,21 +367,36 @@ public final class IceNioClient {
                 leafNodeInfo.setName(nodeAnnotation.name());
                 leafNodeInfo.setDesc(nodeAnnotation.desc());
             }
+
             Field[] leafFields = leafClass.getDeclaredFields();
-            List<LeafNodeInfo.FieldInfo> annotationFields = new ArrayList<>(leafFields.length);
+            List<LeafNodeInfo.IceFieldInfo> iceFields = new ArrayList<>();
+            List<LeafNodeInfo.HideFieldInfo> hideFields = new ArrayList<>();
             for (Field field : leafFields) {
                 IceField fieldAnnotation = field.getAnnotation(IceField.class);
                 if (fieldAnnotation != null) {
-                    LeafNodeInfo.FieldInfo fieldInfo = new LeafNodeInfo.FieldInfo();
-                    fieldInfo.setField(field.getName());
-                    fieldInfo.setName(fieldAnnotation.name());
-                    fieldInfo.setDesc(fieldAnnotation.desc());
-                    fieldInfo.setType(fieldAnnotation.type().isEmpty() ? field.getType().getTypeName() : fieldAnnotation.type());
-                    annotationFields.add(fieldInfo);
+                    //ice filed show on web
+                    LeafNodeInfo.IceFieldInfo iceFieldInfo = new LeafNodeInfo.IceFieldInfo();
+                    iceFieldInfo.setField(field.getName());
+                    iceFieldInfo.setName(fieldAnnotation.name());
+                    iceFieldInfo.setDesc(fieldAnnotation.desc());
+                    iceFieldInfo.setType(fieldAnnotation.type().isEmpty() ? field.getType().getTypeName() : fieldAnnotation.type());
+                    iceFields.add(iceFieldInfo);
+                } else {
+                    //ignore with @JsonIgnore and iceBeans(like spring bean)
+                    if (field.getAnnotation(JsonIgnore.class) == null && !IceBeanUtils.containsBean(field.getName())) {
+                        //hide filed show on web
+                        LeafNodeInfo.HideFieldInfo hideFieldInfo = new LeafNodeInfo.HideFieldInfo();
+                        hideFieldInfo.setField(field.getName());
+                        hideFieldInfo.setType(field.getType().getTypeName());
+                        hideFields.add(hideFieldInfo);
+                    }
                 }
             }
-            if (!annotationFields.isEmpty()) {
-                leafNodeInfo.setFields(annotationFields);
+            if (!iceFields.isEmpty()) {
+                leafNodeInfo.setIceFields(iceFields);
+            }
+            if (!hideFields.isEmpty()) {
+                leafNodeInfo.setHideFields(hideFields);
             }
             if (BaseLeafFlow.class.isAssignableFrom(leafClass)) {
                 leafNodeInfo.setType(NodeTypeEnum.LEAF_FLOW.getType());
