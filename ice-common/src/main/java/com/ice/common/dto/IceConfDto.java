@@ -28,6 +28,8 @@ public final class IceConfDto {
 
     private Byte debug;
 
+    private Byte errorState;
+
     private Boolean inverse;
 
     private String name;

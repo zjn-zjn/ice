@@ -147,7 +147,7 @@ public final class IceNioClientService {
         showConf.setDebug(node.isIceNodeDebug() ? null : node.isIceNodeDebug());
         showConf.setInverse(node.isIceInverse() ? node.isIceInverse() : null);
         if (node.getIceErrorStateEnum() != null && node.getIceErrorStateEnum() != NodeRunStateEnum.SHUT_DOWN) {
-            showConf.setErrorStateEnum(node.getIceErrorStateEnum());
+            showConf.setErrorState(node.getIceErrorStateEnum().getState());
         }
         showConf.setConfField(JacksonUtils.toJsonStringWithoutIceBean(node));
         return clientNode;

@@ -41,7 +41,11 @@ public enum NodeRunStateEnum {
         this.state = state;
     }
 
-    public static NodeRunStateEnum getEnum(byte state) {
+    public static NodeRunStateEnum getEnumDefaultShutdown(Byte state) {
+        if (state == null) {
+            //default shutdown
+            return SHUT_DOWN;
+        }
         return MAP.get(state);
     }
 

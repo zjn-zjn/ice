@@ -38,6 +38,8 @@ public class IceConf {
 
     private Byte debug;
 
+    private Byte errorState;
+
     private Date createAt;
 
     private Date updateAt;

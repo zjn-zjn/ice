@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS `ice_conf` (
   `start` datetime(3) DEFAULT NULL,
   `end` datetime(3) DEFAULT NULL,
   `debug` tinyint(4) NOT NULL DEFAULT '1',
+  `error_state` tinyint(4) DEFAULT NULL COMMENT 'NULL/3-SHUTDOWN, 0-CONTINUE_FALSE, 1-CONTINUE_TRUE, 2-CONTINUE_NONE',
   `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_at` datetime(3) NOT NULL,
   PRIMARY KEY (`id`),
@@ -78,6 +79,7 @@ CREATE TABLE IF NOT EXISTS `ice_conf_update` (
   `start` datetime(3) DEFAULT NULL,
   `end` datetime(3) DEFAULT NULL,
   `debug` tinyint(4) NOT NULL DEFAULT '1',
+  `error_state` tinyint(4) DEFAULT NULL COMMENT 'NULL/3-SHUTDOWN, 0-CONTINUE_FALSE, 1-CONTINUE_TRUE, 2-CONTINUE_NONE',
   `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_at` datetime(3) NOT NULL,
   PRIMARY KEY (`id`),
@@ -97,3 +99,41 @@ CREATE TABLE IF NOT EXISTS `ice_push_history` (
   `create_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+-- ----------------------------
+-- v1.2.0
+-- table ice_conf add column error_state if not exist
+-- ----------------------------
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE
+      table_name = 'ice_conf'
+      AND table_schema = DATABASE()
+      AND column_name = "error_state"
+  ) > 0,
+  "SELECT 1",
+  "ALTER TABLE ice_conf ADD error_state tinyint(4) DEFAULT NULL COMMENT 'NULL/3-SHUTDOWN, 0-CONTINUE_FALSE, 1-CONTINUE_TRUE, 2-CONTINUE_NONE';"
+));
+PREPARE iceConfAlterIfNotExists FROM @preparedStatement;
+EXECUTE iceConfAlterIfNotExists;
+DEALLOCATE PREPARE iceConfAlterIfNotExists;
+
+-- ----------------------------
+-- v1.2.0
+-- table ice_conf_update add column error_state if not exist
+-- ----------------------------
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE
+      table_name = 'ice_conf_update'
+      AND table_schema = DATABASE()
+      AND column_name = "error_state"
+  ) > 0,
+  "SELECT 1",
+  "ALTER TABLE ice_conf_update ADD error_state tinyint(4) DEFAULT NULL COMMENT 'NULL/3-SHUTDOWN, 0-CONTINUE_FALSE, 1-CONTINUE_TRUE, 2-CONTINUE_NONE';"
+));
+PREPARE iceConfUpdateAlterIfNotExists FROM @preparedStatement;
+EXECUTE iceConfUpdateAlterIfNotExists;
+DEALLOCATE PREPARE iceConfUpdateAlterIfNotExists;

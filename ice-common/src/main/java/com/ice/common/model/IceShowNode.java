@@ -44,9 +44,9 @@ public class IceShowNode {
 
         private Boolean debug;
 
-        private Boolean inverse;
+        private Byte errorState;
 
-        private NodeRunStateEnum errorStateEnum;
+        private Boolean inverse;
 
         private Byte nodeType;
 

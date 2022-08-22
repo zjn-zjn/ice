@@ -3,6 +3,7 @@ package com.ice.core.cache;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ice.common.constant.Constant;
 import com.ice.common.dto.IceConfDto;
+import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.core.utils.JacksonUtils;
@@ -344,6 +345,7 @@ public final class IceConfCache {
         node.setIceTimeTypeEnum(TimeTypeEnum.getEnumDefaultNone(confDto.getTimeType()));
         node.setIceStart(confDto.getStart() == null ? 0 : confDto.getStart());
         node.setIceEnd(confDto.getEnd() == null ? 0 : confDto.getEnd());
+        node.setIceErrorStateEnum(NodeRunStateEnum.getEnumDefaultShutdown(confDto.getErrorState()));
         return node;
     }
 }
