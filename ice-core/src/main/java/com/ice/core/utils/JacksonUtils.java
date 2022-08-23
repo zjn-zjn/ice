@@ -21,36 +21,8 @@ import java.io.IOException;
  * @author waitmoon
  */
 public final class JacksonUtils {
-
-    private final static FilterProvider iceBeanFilterProvider = new SimpleFilterProvider().addFilter("iceBeanPropertyFilter", new PropertyFilter() {
-        @Override
-        public void serializeAsField(Object pojo, JsonGenerator gen, SerializerProvider prov, PropertyWriter writer) throws Exception {
-            if (!IceBeanUtils.containsBean(writer.getName())) {
-                writer.serializeAsField(pojo, gen, prov);
-            }
-        }
-
-        @Override
-        public void serializeAsElement(Object elementValue, JsonGenerator gen, SerializerProvider prov, PropertyWriter writer) throws Exception {
-            if (!IceBeanUtils.containsBean(writer.getName())) {
-                writer.serializeAsElement(elementValue, gen, prov);
-            }
-        }
-
-        @Override
-        public void depositSchemaProperty(PropertyWriter writer, ObjectNode propertiesNode, SerializerProvider provider) throws JsonMappingException {
-            if (!IceBeanUtils.containsBean(writer.getName())) {
-                writer.depositSchemaProperty(propertiesNode, provider);
-            }
-        }
-
-        @Override
-        public void depositSchemaProperty(PropertyWriter writer, JsonObjectFormatVisitor objectVisitor, SerializerProvider provider) throws JsonMappingException {
-            if (!IceBeanUtils.containsBean(writer.getName())) {
-                writer.depositSchemaProperty(objectVisitor, provider);
-            }
-        }
-    });
+    //filter ice beans
+    private final static FilterProvider iceBeanFilterProvider = new SimpleFilterProvider().addFilter("iceBeanPropertyFilter", new IceBeanPropertyFilter());
 
     private static ObjectMapper mapper() {
         return JsonMapper.builder()
@@ -126,6 +98,40 @@ public final class JacksonUtils {
         } catch (Exception e) {
             //ignore
             return false;
+        }
+    }
+
+    /**
+     * @author waitmoon
+     * ignore ice beans
+     */
+    public static class IceBeanPropertyFilter implements PropertyFilter {
+        @Override
+        public void serializeAsField(Object pojo, JsonGenerator gen, SerializerProvider prov, PropertyWriter writer) throws Exception {
+            if (!IceBeanUtils.containsBean(writer.getName())) {
+                writer.serializeAsField(pojo, gen, prov);
+            }
+        }
+
+        @Override
+        public void serializeAsElement(Object elementValue, JsonGenerator gen, SerializerProvider prov, PropertyWriter writer) throws Exception {
+            if (!IceBeanUtils.containsBean(writer.getName())) {
+                writer.serializeAsElement(elementValue, gen, prov);
+            }
+        }
+
+        @Override
+        public void depositSchemaProperty(PropertyWriter writer, ObjectNode propertiesNode, SerializerProvider provider) throws JsonMappingException {
+            if (!IceBeanUtils.containsBean(writer.getName())) {
+                writer.depositSchemaProperty(propertiesNode, provider);
+            }
+        }
+
+        @Override
+        public void depositSchemaProperty(PropertyWriter writer, JsonObjectFormatVisitor objectVisitor, SerializerProvider provider) throws JsonMappingException {
+            if (!IceBeanUtils.containsBean(writer.getName())) {
+                writer.depositSchemaProperty(objectVisitor, provider);
+            }
         }
     }
 }
