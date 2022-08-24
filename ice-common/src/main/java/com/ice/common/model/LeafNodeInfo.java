@@ -9,12 +9,12 @@ import java.util.List;
  */
 @Data
 public final class LeafNodeInfo {
-    private byte type;
+    private Byte type;
     private String clazz;
     private String name;
     private String desc;
     private List<IceFieldInfo> iceFields;
-    private List<HideFieldInfo> hideFields;
+    private List<IceFieldInfo> hideFields;
 
     @Data
     public static class IceFieldInfo {
@@ -26,13 +26,8 @@ public final class LeafNodeInfo {
         private String desc;
         //client type clazz name, first from config, then declared type
         private String type;
-    }
 
-    @Data
-    public static class HideFieldInfo {
-        //field name
-        private String field;
-        //client type clazz name, first from config, then declared type
-        private String type;
+        //assemble in server admin node conf
+        private Object value;
     }
 }

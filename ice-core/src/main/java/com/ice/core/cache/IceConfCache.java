@@ -6,7 +6,6 @@ import com.ice.common.dto.IceConfDto;
 import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
-import com.ice.core.utils.JacksonUtils;
 import com.ice.core.base.BaseLeaf;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
@@ -17,6 +16,7 @@ import com.ice.core.relation.*;
 import com.ice.core.relation.parallel.*;
 import com.ice.core.utils.IceBeanUtils;
 import com.ice.core.utils.IceLinkedList;
+import com.ice.core.utils.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -346,6 +346,7 @@ public final class IceConfCache {
         node.setIceStart(confDto.getStart() == null ? 0 : confDto.getStart());
         node.setIceEnd(confDto.getEnd() == null ? 0 : confDto.getEnd());
         node.setIceErrorStateEnum(NodeRunStateEnum.getEnumDefaultShutdown(confDto.getErrorState()));
+        node.setIceType(confDto.getType());
         return node;
     }
 }

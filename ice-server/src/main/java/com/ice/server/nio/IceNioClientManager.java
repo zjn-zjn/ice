@@ -336,4 +336,62 @@ public final class IceNioClientManager implements InitializingBean {
         }
         channelInfoMap = new ConcurrentHashMap<>();
     }
+
+    public LeafNodeInfo getNodeInfo(int app, String address, String clazz, Byte type) {
+        if (address == null) {
+            return getNodeInfoFromAllClient(app, clazz, type);
+        }
+        Map<String, Map<String, LeafNodeInfo>> addressLeafClazzMap = appAddressLeafClazzMap.get(app);
+        if (addressLeafClazzMap == null) {
+            return getNodeInfoFromAllClient(app, clazz, type);
+        }
+        Map<String, LeafNodeInfo> clazzMap = addressLeafClazzMap.get(address);
+        if (clazzMap == null) {
+            return getNodeInfoFromAllClient(app, clazz, type);
+        }
+        return nodeInfoCopy(clazzMap.get(clazz));
+    }
+
+    private LeafNodeInfo getNodeInfoFromAllClient(int app, String clazz, Byte type) {
+        Map<Byte, Map<String, LeafNodeInfo>> nodeLeafClazzMap = appNodeLeafClazzMap.get(app);
+        if (nodeLeafClazzMap == null) {
+            return null;
+        }
+        Map<String, LeafNodeInfo> clazzMap = nodeLeafClazzMap.get(type);
+        if (clazzMap == null) {
+            return null;
+        }
+        return nodeInfoCopy(clazzMap.get(clazz));
+    }
+
+    private static LeafNodeInfo nodeInfoCopy(LeafNodeInfo nodeInfo) {
+        if (nodeInfo == null) {
+            return null;
+        }
+        LeafNodeInfo result = new LeafNodeInfo();
+        result.setName(nodeInfo.getName());
+        result.setClazz(nodeInfo.getClazz());
+        result.setType(nodeInfo.getType());
+        result.setDesc(nodeInfo.getDesc());
+        result.setIceFields(fieldInfoListCopy(nodeInfo.getIceFields()));
+        result.setHideFields(fieldInfoListCopy(nodeInfo.getHideFields()));
+        return result;
+    }
+
+    private static List<LeafNodeInfo.IceFieldInfo> fieldInfoListCopy(List<LeafNodeInfo.IceFieldInfo> fieldInfoList) {
+        if (fieldInfoList == null) {
+            return null;
+        }
+        List<LeafNodeInfo.IceFieldInfo> results = new ArrayList<>(fieldInfoList.size());
+        for (LeafNodeInfo.IceFieldInfo fieldInfo : fieldInfoList) {
+            LeafNodeInfo.IceFieldInfo result = new LeafNodeInfo.IceFieldInfo();
+            result.setField(fieldInfo.getField());
+            result.setValue(fieldInfo.getValue());
+            result.setType(fieldInfo.getType());
+            result.setName(fieldInfo.getName());
+            results.add(result);
+        }
+        return results;
+    }
+
 }

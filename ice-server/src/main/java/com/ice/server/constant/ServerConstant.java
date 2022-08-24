@@ -146,12 +146,12 @@ public final class ServerConstant {
 
     public static IceShowNode confToShow(IceConf conf) {
         IceShowNode show = new IceShowNode();
-        IceShowNode.NodeConf showConf = new IceShowNode.NodeConf();
-        show.setShowConf(showConf);
+        IceShowNode.NodeShowConf nodeShowConf = new IceShowNode.NodeShowConf();
+        show.setShowConf(nodeShowConf);
         show.setForwardId(conf.getForwardId());
-        showConf.setDebug(conf.getDebug() == null || conf.getDebug() == 1);
-        showConf.setNodeId(conf.getMixId());
-        showConf.setErrorState(conf.getErrorState());
+        nodeShowConf.setDebug(conf.getDebug() == null || conf.getDebug() == 1);
+        nodeShowConf.setNodeId(conf.getMixId());
+        nodeShowConf.setErrorState(conf.getErrorState() == null ? NodeRunStateEnum.SHUT_DOWN.getState() : conf.getErrorState());
         show.setStart(conf.getStart() == null ? null : conf.getStart().getTime());
         show.setEnd(conf.getEnd() == null ? null : conf.getEnd().getTime());
         if (conf.getTimeType() != null && conf.getTimeType() != TimeTypeEnum.NONE.getType()) {
@@ -161,15 +161,16 @@ public final class ServerConstant {
             if (StringUtils.hasLength(conf.getSonIds())) {
                 show.setSonIds(conf.getSonIds());
             }
-            showConf.setLabelName(conf.getMixId() + (conf.isUpdatingConf() ? "^" : "") + "-" + NodeTypeEnum.getEnum(conf.getType()).name() + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
+            nodeShowConf.setLabelName(conf.getMixId() + (conf.isUpdatingConf() ? "^" : "") + "-" + NodeTypeEnum.getEnum(conf.getType()).name() + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
         } else {
-            showConf.setConfName(conf.getConfName());
-            showConf.setConfField(conf.getConfField());
-            showConf.setLabelName(conf.getMixId() + (conf.isUpdatingConf() ? "^" : "") + "-" + (StringUtils.hasLength(conf.getConfName()) ? conf.getConfName().substring(conf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
+            nodeShowConf.setConfName(conf.getConfName());
+            nodeShowConf.setConfField(conf.getConfField());
+            nodeShowConf.setLabelName(conf.getMixId() + (conf.isUpdatingConf() ? "^" : "") + "-" + (StringUtils.hasLength(conf.getConfName()) ? conf.getConfName().substring(conf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
         }
-        showConf.setInverse(conf.getInverse() != null && conf.getInverse() == 1);
-        showConf.setNodeName(conf.getName());
-        showConf.setNodeType(conf.getType());
+        nodeShowConf.setUpdating(conf.isUpdatingConf());
+        nodeShowConf.setInverse(conf.getInverse() != null && conf.getInverse() == 1);
+        nodeShowConf.setNodeName(conf.getName());
+        nodeShowConf.setNodeType(conf.getType());
         return show;
     }
 

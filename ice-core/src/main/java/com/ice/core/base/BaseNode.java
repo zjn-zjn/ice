@@ -65,6 +65,9 @@ public abstract class BaseNode {
     @JsonIgnore
     private NodeRunStateEnum iceErrorStateEnum;
 
+    @JsonIgnore
+    private byte iceType;
+
     /*
      * process
      * @return NodeRunStateEnum

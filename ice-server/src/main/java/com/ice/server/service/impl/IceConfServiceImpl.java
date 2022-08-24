@@ -1,10 +1,13 @@
 package com.ice.server.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.ice.common.constant.Constant;
+import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
+import com.ice.common.model.LeafNodeInfo;
 import com.ice.core.utils.JacksonUtils;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IceConfUpdateMapper;
@@ -707,11 +710,11 @@ public class IceConfServiceImpl implements IceConfService {
         if (clientConf == null || clientConf.getRoot() == null) {
             throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, address);
         }
-        assemble(app, clientConf.getRoot());
+        assemble(app, clientConf.getRoot(), address);
         return clientConf;
     }
 
-    private void assemble(Integer app, IceShowNode clientNode) {
+    private void assemble(Integer app, IceShowNode clientNode, String address) {
         if (clientNode == null) {
             return;
         }
@@ -720,8 +723,8 @@ public class IceConfServiceImpl implements IceConfService {
         if (forward != null) {
             forward.setNextId(nodeId);
         }
-        assembleInfoInServer(app, clientNode);
-        assemble(app, forward);
+        assembleInfoInServer(app, clientNode, address);
+        assemble(app, forward, address);
         List<IceShowNode> children = clientNode.getChildren();
         if (CollectionUtils.isEmpty(children)) {
             return;
@@ -730,29 +733,58 @@ public class IceConfServiceImpl implements IceConfService {
             IceShowNode child = children.get(i);
             child.setIndex(i);
             child.setParentId(nodeId);
-            assemble(app, child);
+            assemble(app, child, address);
         }
     }
 
-    private void assembleInfoInServer(Integer app, IceShowNode clientNode) {
-        Long nodeId = clientNode.getShowConf().getNodeId();
+    private void assembleInfoInServer(Integer app, IceShowNode clientNode, String address) {
+        IceShowNode.NodeShowConf nodeShowConf = clientNode.getShowConf();
+        Long nodeId = nodeShowConf.getNodeId();
+        if (NodeTypeEnum.isLeaf(nodeShowConf.getNodeType())) {
+            //assemble filed info
+            LeafNodeInfo nodeInfo = iceNioClientManager.getNodeInfo(app, address, nodeShowConf.getConfName(), nodeShowConf.getNodeType());
+            if (nodeInfo != null) {
+                nodeShowConf.setHaveClient(true);
+                nodeShowConf.setNodeInfo(nodeInfo);
+                String confJson = nodeShowConf.getConfField();
+                JsonNode jsonNode = JacksonUtils.readTree(confJson);
+                if (jsonNode != null) {
+                    if (!CollectionUtils.isEmpty(nodeInfo.getIceFields())) {
+                        for (LeafNodeInfo.IceFieldInfo fieldInfo : nodeInfo.getIceFields()) {
+                            fieldInfo.setValue(jsonNode.get(fieldInfo.getField()));
+                        }
+                    }
+                    if (!CollectionUtils.isEmpty(nodeInfo.getHideFields())) {
+                        for (LeafNodeInfo.IceFieldInfo hideFiledInfo : nodeInfo.getHideFields()) {
+                            hideFiledInfo.setValue(jsonNode.get(hideFiledInfo.getField()));
+                        }
+                    }
+                }
+            } else {
+                nodeShowConf.setHaveClient(false);
+            }
+        }
+        //reset to default
+        if (nodeShowConf.getInverse() == null) {
+            nodeShowConf.setInverse(false);
+        }
+        if (nodeShowConf.getDebug() == null) {
+            nodeShowConf.setDebug(true);
+        }
+        if (nodeShowConf.getErrorState() == null) {
+            nodeShowConf.setErrorState(NodeRunStateEnum.SHUT_DOWN.getState());
+        }
+        //assemble name from server
         IceConf iceConf = iceServerService.getActiveConfById(app, nodeId);
         if (iceConf != null) {
+            if (StringUtils.hasLength(iceConf.getName())) {
+                nodeShowConf.setNodeName(iceConf.getName());
+            }
             if (NodeTypeEnum.isRelation(iceConf.getType())) {
                 clientNode.getShowConf().setLabelName(nodeId + "-" + NodeTypeEnum.getEnum(iceConf.getType()).name() + (StringUtils.hasLength(iceConf.getName()) ? ("-" + iceConf.getName()) : ""));
             } else {
                 clientNode.getShowConf().setLabelName(nodeId + "-" + (StringUtils.hasLength(iceConf.getConfName()) ? iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(iceConf.getName()) ? ("-" + iceConf.getName()) : ""));
             }
-            if (StringUtils.hasLength(iceConf.getName())) {
-                clientNode.getShowConf().setNodeName(iceConf.getName());
-            }
-            if (StringUtils.hasLength(iceConf.getConfField())) {
-                clientNode.getShowConf().setConfField(iceConf.getConfField());
-            }
-            if (StringUtils.hasLength(iceConf.getConfName())) {
-                clientNode.getShowConf().setConfName(iceConf.getConfName());
-            }
-            clientNode.getShowConf().setNodeType(iceConf.getType());
         }
     }
 }

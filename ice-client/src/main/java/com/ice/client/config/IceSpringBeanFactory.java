@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * use AutowireCapableBeanFactory
  * for autowired spring beans for leaf node
+ *
  * @author waitmoon
  */
 @Component

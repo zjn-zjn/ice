@@ -370,7 +370,7 @@ public final class IceNioClient {
 
             Field[] leafFields = leafClass.getDeclaredFields();
             List<LeafNodeInfo.IceFieldInfo> iceFields = new ArrayList<>();
-            List<LeafNodeInfo.HideFieldInfo> hideFields = new ArrayList<>();
+            List<LeafNodeInfo.IceFieldInfo> hideFields = new ArrayList<>();
             for (Field field : leafFields) {
                 IceField fieldAnnotation = field.getAnnotation(IceField.class);
                 if (fieldAnnotation != null) {
@@ -385,7 +385,7 @@ public final class IceNioClient {
                     //ignore with @JsonIgnore and iceBeans(like spring bean)
                     if (field.getAnnotation(JsonIgnore.class) == null && !IceBeanUtils.containsBean(field.getName())) {
                         //hide filed show on web
-                        LeafNodeInfo.HideFieldInfo hideFieldInfo = new LeafNodeInfo.HideFieldInfo();
+                        LeafNodeInfo.IceFieldInfo hideFieldInfo = new LeafNodeInfo.IceFieldInfo();
                         hideFieldInfo.setField(field.getName());
                         hideFieldInfo.setType(field.getType().getTypeName());
                         hideFields.add(hideFieldInfo);

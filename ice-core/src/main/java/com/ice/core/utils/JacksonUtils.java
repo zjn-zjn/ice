@@ -71,6 +71,18 @@ public final class JacksonUtils {
         return mapper().readValue(jsonBytes, clazz);
     }
 
+    public static JsonNode readTree(String json) {
+        if (json == null || json.equals("{}")) {
+            return null;
+        }
+        try {
+            return mapper().readTree(json);
+        } catch (Exception e) {
+            //ignore
+            return null;
+        }
+    }
+
     public static boolean isJson(String json) {
         try {
             mapper().readTree(json);

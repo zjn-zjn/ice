@@ -1,11 +1,14 @@
 package com.ice.server.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.ice.common.constant.Constant;
 import com.ice.common.dto.IceBaseDto;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.IceShowNode;
+import com.ice.common.model.LeafNodeInfo;
+import com.ice.core.utils.JacksonUtils;
 import com.ice.server.constant.ServerConstant;
 import com.ice.server.dao.mapper.IceAppMapper;
 import com.ice.server.dao.mapper.IceBaseMapper;
@@ -18,6 +21,7 @@ import com.ice.server.dao.model.IceConfExample;
 import com.ice.server.enums.StatusEnum;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
+import com.ice.server.nio.IceNioClientManager;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -68,6 +72,9 @@ public class IceServerServiceImpl implements IceServerService {
     private IceConfUpdateMapper confUpdateMapper;
     @Resource
     private IceAppMapper iceAppMapper;
+
+    @Resource
+    private IceNioClientManager iceNioClientManager;
 
     public synchronized boolean haveCircle(Long nodeId, Long linkId) {
         if (nodeId.equals(linkId)) {
@@ -408,6 +415,29 @@ public class IceServerServiceImpl implements IceServerService {
                 }
             }
             showNode.setChildren(children);
+        } else {
+            //assemble filed info
+            LeafNodeInfo nodeInfo = iceNioClientManager.getNodeInfo(node.getApp(), null, node.getConfName(), node.getType());
+            if (nodeInfo != null) {
+                showNode.getShowConf().setHaveClient(true);
+                showNode.getShowConf().setNodeInfo(nodeInfo);
+                String confJson = showNode.getShowConf().getConfField();
+                JsonNode jsonNode = JacksonUtils.readTree(confJson);
+                if (jsonNode != null) {
+                    if (!CollectionUtils.isEmpty(nodeInfo.getIceFields())) {
+                        for (LeafNodeInfo.IceFieldInfo fieldInfo : nodeInfo.getIceFields()) {
+                            fieldInfo.setValue(jsonNode.get(fieldInfo.getField()));
+                        }
+                    }
+                    if (!CollectionUtils.isEmpty(nodeInfo.getHideFields())) {
+                        for (LeafNodeInfo.IceFieldInfo hideFiledInfo : nodeInfo.getHideFields()) {
+                            hideFiledInfo.setValue(jsonNode.get(hideFiledInfo.getField()));
+                        }
+                    }
+                }
+            } else {
+                showNode.getShowConf().setHaveClient(false);
+            }
         }
 
         if (showNode.getForwardId() != null) {
