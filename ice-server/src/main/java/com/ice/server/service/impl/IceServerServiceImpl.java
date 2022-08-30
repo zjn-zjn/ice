@@ -419,7 +419,7 @@ public class IceServerServiceImpl implements IceServerService {
             //assemble filed info
             LeafNodeInfo nodeInfo = iceNioClientManager.getNodeInfo(node.getApp(), null, node.getConfName(), node.getType());
             if (nodeInfo != null) {
-                showNode.getShowConf().setHaveClient(true);
+                showNode.getShowConf().setHaveClientMeta(true);
                 showNode.getShowConf().setNodeInfo(nodeInfo);
                 String confJson = showNode.getShowConf().getConfField();
                 JsonNode jsonNode = JacksonUtils.readTree(confJson);
@@ -446,7 +446,7 @@ public class IceServerServiceImpl implements IceServerService {
                     }
                 }
             } else {
-                showNode.getShowConf().setHaveClient(false);
+                showNode.getShowConf().setHaveClientMeta(false);
             }
         }
 
