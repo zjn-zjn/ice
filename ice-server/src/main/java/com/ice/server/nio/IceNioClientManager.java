@@ -40,6 +40,7 @@ public final class IceNioClientManager implements InitializingBean {
     private static Map<Channel, IceChannelInfo> channelInfoMap = new ConcurrentHashMap<>();
     private static Map<Integer, TreeMap<Long, Set<Channel>>> appChannelTimeTreeMap = new TreeMap<>();
     private static Map<Integer, Map<String, Map<String, LeafNodeInfo>>> appAddressLeafClazzMap = new ConcurrentHashMap<>();
+    //remain app`s last client leaf info
     private static Map<Integer, Map<Byte, Map<String, LeafNodeInfo>>> appNodeLeafClazzMap = new ConcurrentHashMap<>();
 
     @Resource
@@ -79,18 +80,17 @@ public final class IceNioClientManager implements InitializingBean {
             if (!CollectionUtils.isEmpty(addressNodeClassMap)) {
                 addressNodeClassMap.remove(address);
                 if (CollectionUtils.isEmpty(addressNodeClassMap)) {
-                    //not have any available client
+                    //not have any available client, but remain last appNodeLeafClazzMap
                     appAddressLeafClazzMap.remove(app);
-                    appNodeLeafClazzMap = new ConcurrentHashMap<>();
                 } else {
                     //reorganize app leaf class map
-                    Map<Integer, Map<Byte, Map<String, LeafNodeInfo>>> appNodeLeafClazzMapTmp = new ConcurrentHashMap<>();
+                    Map<Byte, Map<String, LeafNodeInfo>> nodeLeafClazzMapTmp = new ConcurrentHashMap<>();
                     for (Map<String, LeafNodeInfo> leafTypeClassMap : addressNodeClassMap.values()) {
                         for (LeafNodeInfo leafNodeInfo : leafTypeClassMap.values()) {
-                            appNodeLeafClazzMapTmp.computeIfAbsent(app, k -> new ConcurrentHashMap<>()).computeIfAbsent(leafNodeInfo.getType(), k -> new ConcurrentHashMap<>()).put(leafNodeInfo.getClazz(), leafNodeInfo);
+                            nodeLeafClazzMapTmp.computeIfAbsent(leafNodeInfo.getType(), k -> new ConcurrentHashMap<>()).put(leafNodeInfo.getClazz(), leafNodeInfo);
                         }
                     }
-                    appNodeLeafClazzMap = appNodeLeafClazzMapTmp;
+                    appNodeLeafClazzMap.put(app, nodeLeafClazzMapTmp);
                 }
             }
             log.info("ice client app:{} client:{} offline", app, address);
