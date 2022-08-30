@@ -29,5 +29,6 @@ public final class LeafNodeInfo {
 
         //assemble in server admin node conf
         private Object value;
+        private Boolean valueNull;
     }
 }

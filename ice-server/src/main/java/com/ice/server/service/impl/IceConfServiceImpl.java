@@ -751,12 +751,22 @@ public class IceConfServiceImpl implements IceConfService {
                 if (jsonNode != null) {
                     if (!CollectionUtils.isEmpty(nodeInfo.getIceFields())) {
                         for (LeafNodeInfo.IceFieldInfo fieldInfo : nodeInfo.getIceFields()) {
-                            fieldInfo.setValue(jsonNode.get(fieldInfo.getField()));
+                            JsonNode value = jsonNode.get(fieldInfo.getField());
+                            if (value != null && value.isNull()) {
+                                fieldInfo.setValueNull(true);
+                            } else {
+                                fieldInfo.setValue(value);
+                            }
                         }
                     }
                     if (!CollectionUtils.isEmpty(nodeInfo.getHideFields())) {
                         for (LeafNodeInfo.IceFieldInfo hideFiledInfo : nodeInfo.getHideFields()) {
-                            hideFiledInfo.setValue(jsonNode.get(hideFiledInfo.getField()));
+                            JsonNode value = jsonNode.get(hideFiledInfo.getField());
+                            if (value != null && value.isNull()) {
+                                hideFiledInfo.setValueNull(true);
+                            } else {
+                                hideFiledInfo.setValue(value);
+                            }
                         }
                     }
                 }

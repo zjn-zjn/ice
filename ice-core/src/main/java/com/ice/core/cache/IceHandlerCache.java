@@ -55,7 +55,7 @@ public final class IceHandlerCache {
             handler.setEnd(base.getEnd() == null ? 0 : base.getEnd());
             Long confId = base.getConfId();
             if (confId != null) {
-                /*confId等于空的情况不考虑处理,没配confId的handler是没有意义的*/
+                /*the handler without confId is meaningless.*/
                 BaseNode root = IceConfCache.getConfById(confId);
                 if (root == null) {
                     String errorModeStr = JacksonUtils.toJsonString(base);
