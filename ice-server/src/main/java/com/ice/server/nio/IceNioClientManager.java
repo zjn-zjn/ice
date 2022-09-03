@@ -389,6 +389,7 @@ public final class IceNioClientManager implements InitializingBean {
             result.setValue(fieldInfo.getValue());
             result.setType(fieldInfo.getType());
             result.setName(fieldInfo.getName());
+            result.setDesc(fieldInfo.getDesc());
             results.add(result);
         }
         return results;
