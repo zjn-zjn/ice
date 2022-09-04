@@ -1,6 +1,7 @@
 package com.ice.core.client;
 
 
+import com.ice.core.annotation.IceIgnore;
 import com.ice.core.base.BaseLeaf;
 
 import java.io.ByteArrayOutputStream;
@@ -225,10 +226,10 @@ public class IceLeafScanner {
         }
     }
 
-    //just leaf node & not abstract
+    //just leaf node & not abstract & not with @IceIgnore
     private void addIfLeaf(Class<?> clazz) {
         if (null != clazz) {
-            if (BaseLeaf.class.isAssignableFrom(clazz) && !Modifier.isAbstract(clazz.getModifiers())) {
+            if (!clazz.isAnnotationPresent(IceIgnore.class) && BaseLeaf.class.isAssignableFrom(clazz) && !Modifier.isAbstract(clazz.getModifiers())) {
                 this.classes.add(clazz);
             }
         }

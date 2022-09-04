@@ -6,6 +6,7 @@ import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.LeafNodeInfo;
 import com.ice.core.annotation.IceField;
+import com.ice.core.annotation.IceIgnore;
 import com.ice.core.annotation.IceNode;
 import com.ice.core.client.ha.IceServerHaDiscovery;
 import com.ice.core.client.ha.IceServerHaZkDiscovery;
@@ -27,9 +28,11 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
@@ -382,8 +385,20 @@ public final class IceNioClient {
                     iceFieldInfo.setType(fieldAnnotation.type().isEmpty() ? field.getType().getTypeName() : fieldAnnotation.type());
                     iceFields.add(iceFieldInfo);
                 } else {
-                    //ignore with @JsonIgnore and iceBeans(like spring bean)
-                    if (field.getAnnotation(JsonIgnore.class) == null && !IceBeanUtils.containsBean(field.getName())) {
+                    // ignore with @IceIgnore
+                    // and with final
+                    // and log/LOG/logger/LOGGER/ type of org.slf4j.Logger
+                    // and @JsonIgnore
+                    // and iceBeans(like spring bean)
+                    if (!field.isAnnotationPresent(IceIgnore.class) &&
+                            !Modifier.isFinal(field.getModifiers()) &&
+                            !field.getName().equals("log") &&
+                            !field.getName().equals("LOG") &&
+                            !field.getName().equals("logger") &&
+                            !field.getName().equals("LOGGER") &&
+                            !field.getType().isAssignableFrom(Logger.class) &&
+                            !field.isAnnotationPresent(JsonIgnore.class) &&
+                            !IceBeanUtils.containsBean(field.getName())) {
                         //hide filed show on web
                         LeafNodeInfo.IceFieldInfo hideFieldInfo = new LeafNodeInfo.IceFieldInfo();
                         hideFieldInfo.setField(field.getName());
