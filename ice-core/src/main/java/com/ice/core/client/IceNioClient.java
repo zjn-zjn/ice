@@ -375,6 +375,13 @@ public final class IceNioClient {
             List<LeafNodeInfo.IceFieldInfo> iceFields = new ArrayList<>();
             List<LeafNodeInfo.IceFieldInfo> hideFields = new ArrayList<>();
             for (Field field : leafFields) {
+                //ignore static or final or with @IceIgnore or with @JsonIgnore
+                if (Modifier.isFinal(field.getModifiers()) ||
+                        Modifier.isStatic(field.getModifiers()) ||
+                        field.isAnnotationPresent(IceIgnore.class) ||
+                        field.isAnnotationPresent(JsonIgnore.class)) {
+                    continue;
+                }
                 IceField fieldAnnotation = field.getAnnotation(IceField.class);
                 if (fieldAnnotation != null) {
                     //ice filed show on web
@@ -386,25 +393,22 @@ public final class IceNioClient {
                     iceFields.add(iceFieldInfo);
                 } else {
                     // ignore with @IceIgnore
-                    // and with final
-                    // and log/LOG/logger/LOGGER/ type of org.slf4j.Logger
-                    // and @JsonIgnore
-                    // and iceBeans(like spring bean)
-                    if (!field.isAnnotationPresent(IceIgnore.class) &&
-                            !Modifier.isFinal(field.getModifiers()) &&
-                            !field.getName().equals("log") &&
-                            !field.getName().equals("LOG") &&
-                            !field.getName().equals("logger") &&
-                            !field.getName().equals("LOGGER") &&
-                            !field.getType().isAssignableFrom(Logger.class) &&
-                            !field.isAnnotationPresent(JsonIgnore.class) &&
-                            !IceBeanUtils.containsBean(field.getName())) {
-                        //hide filed show on web
-                        LeafNodeInfo.IceFieldInfo hideFieldInfo = new LeafNodeInfo.IceFieldInfo();
-                        hideFieldInfo.setField(field.getName());
-                        hideFieldInfo.setType(field.getType().getTypeName());
-                        hideFields.add(hideFieldInfo);
+                    // or log/LOG/logger/LOGGER/ type of org.slf4j.Logger
+                    // or @JsonIgnore
+                    // or iceBeans(like spring bean)
+                    if (field.getName().equals("log") ||
+                            field.getName().equals("LOG") ||
+                            field.getName().equals("logger") ||
+                            field.getName().equals("LOGGER") ||
+                            field.getType().isAssignableFrom(Logger.class) ||
+                            IceBeanUtils.containsBean(field.getName())) {
+                        continue;
                     }
+                    //hide filed show on web
+                    LeafNodeInfo.IceFieldInfo hideFieldInfo = new LeafNodeInfo.IceFieldInfo();
+                    hideFieldInfo.setField(field.getName());
+                    hideFieldInfo.setType(field.getType().getTypeName());
+                    hideFields.add(hideFieldInfo);
                 }
             }
             if (!iceFields.isEmpty()) {
