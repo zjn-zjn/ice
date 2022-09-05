@@ -11,6 +11,7 @@ import com.ice.core.client.NioType;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IcePack;
 import com.ice.core.utils.IceNioUtils;
+import com.ice.core.utils.JacksonUtils;
 import com.ice.server.config.IceServerProperties;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
@@ -232,8 +233,14 @@ public final class IceNioClientManager implements InitializingBean {
         }
         Map<String, Channel> clientMap = appAddressChannelMap.get(app);
         if (!CollectionUtils.isEmpty(clientMap)) {
+            IceNioModel updateModel = new IceNioModel();
+            updateModel.setUpdateDto(dto);
+            updateModel.setApp(app);
+            updateModel.setOps(NioOps.UPDATE);
+            updateModel.setType(NioType.REQ);
+            byte[] updateModelBytes = JacksonUtils.toJsonBytes(updateModel);
             for (Map.Entry<String, Channel> entry : clientMap.entrySet()) {
-                submitRelease(app, entry.getValue(), dto);
+                submitRelease(entry.getValue(), updateModelBytes);
             }
         }
         return null;
@@ -242,18 +249,20 @@ public final class IceNioClientManager implements InitializingBean {
     /**
      * submit release to update client config
      *
-     * @param app     client app
-     * @param channel client socket channel
-     * @param dto     update data
+     * @param channel    client socket channel
+     * @param modelBytes update data
      */
-    private void submitRelease(int app, Channel channel, IceTransferDto dto) {
+    private void submitRelease(Channel channel, byte[] modelBytes) {
         executor.submit(() -> {
-            IceNioModel request = new IceNioModel();
-            request.setUpdateDto(dto);
-            request.setApp(app);
-            request.setOps(NioOps.UPDATE);
-            request.setType(NioType.REQ);
-            IceNioUtils.writeNioModel(channel, request);
+            try {
+                //synchronized with IceNioServerHandler client init
+                synchronized (channel) {
+                    IceNioUtils.writeModel(channel, modelBytes);
+                }
+            } catch (Throwable t) {
+                //write failed closed client, client will get update from reconnect
+                channel.close();
+            }
         });
     }
 
