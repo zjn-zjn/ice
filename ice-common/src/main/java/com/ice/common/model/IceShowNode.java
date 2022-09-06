@@ -57,7 +57,7 @@ public class IceShowNode {
         //updating or not
         private Boolean updating;
 
-        private Boolean haveClientMeta;
+        private Boolean haveMeta;
 
         private LeafNodeInfo nodeInfo;
     }

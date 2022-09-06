@@ -744,7 +744,7 @@ public class IceConfServiceImpl implements IceConfService {
             //assemble filed info
             LeafNodeInfo nodeInfo = iceNioClientManager.getNodeInfo(app, address, nodeShowConf.getConfName(), nodeShowConf.getNodeType());
             if (nodeInfo != null) {
-                nodeShowConf.setHaveClientMeta(true);
+                nodeShowConf.setHaveMeta(true);
                 nodeShowConf.setNodeInfo(nodeInfo);
                 String confJson = nodeShowConf.getConfField();
                 JsonNode jsonNode = JacksonUtils.readTree(confJson);
@@ -771,8 +771,10 @@ public class IceConfServiceImpl implements IceConfService {
                     }
                 }
             } else {
-                nodeShowConf.setHaveClientMeta(false);
+                nodeShowConf.setHaveMeta(false);
             }
+        } else {
+            nodeShowConf.setHaveMeta(true);
         }
         //reset to default
         if (nodeShowConf.getInverse() == null) {
