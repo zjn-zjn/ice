@@ -116,7 +116,7 @@ public final class JacksonUtils {
 
     /**
      * @author waitmoon
-     * ignore ice beans & IceIgnore
+     * ignore ice beans and IceIgnore
      */
     public static class IcePropertyFilter extends SimpleBeanPropertyFilter {
 
