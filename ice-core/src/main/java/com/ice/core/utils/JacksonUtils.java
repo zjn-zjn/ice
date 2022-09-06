@@ -11,9 +11,10 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonObjectFormatVisitor;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
-import com.fasterxml.jackson.databind.ser.PropertyFilter;
 import com.fasterxml.jackson.databind.ser.PropertyWriter;
+import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
+import com.ice.core.annotation.IceIgnore;
 
 import java.io.IOException;
 
@@ -21,8 +22,8 @@ import java.io.IOException;
  * @author waitmoon
  */
 public final class JacksonUtils {
-    //filter ice beans
-    private final static FilterProvider iceBeanFilterProvider = new SimpleFilterProvider().addFilter("iceBeanPropertyFilter", new IceBeanPropertyFilter());
+    //filter ice beans&ignores
+    private final static FilterProvider iceBeanFilterProvider = new SimpleFilterProvider().addFilter("icePropertyFilter", new IcePropertyFilter());
 
     private static ObjectMapper mapper() {
         return JsonMapper.builder()
@@ -115,19 +116,24 @@ public final class JacksonUtils {
 
     /**
      * @author waitmoon
-     * ignore ice beans
+     * ignore ice beans & IceIgnore
      */
-    public static class IceBeanPropertyFilter implements PropertyFilter {
+    public static class IcePropertyFilter extends SimpleBeanPropertyFilter {
+
+        public boolean include(PropertyWriter writer) {
+            return writer.getAnnotation(IceIgnore.class) == null && !IceBeanUtils.containsBean(writer.getName());
+        }
+
         @Override
         public void serializeAsField(Object pojo, JsonGenerator gen, SerializerProvider prov, PropertyWriter writer) throws Exception {
-            if (!IceBeanUtils.containsBean(writer.getName())) {
+            if (include(writer)) {
                 writer.serializeAsField(pojo, gen, prov);
             }
         }
 
         @Override
         public void serializeAsElement(Object elementValue, JsonGenerator gen, SerializerProvider prov, PropertyWriter writer) throws Exception {
-            if (!IceBeanUtils.containsBean(writer.getName())) {
+            if (include(writer)) {
                 writer.serializeAsElement(elementValue, gen, prov);
             }
         }
@@ -141,7 +147,7 @@ public final class JacksonUtils {
 
         @Override
         public void depositSchemaProperty(PropertyWriter writer, JsonObjectFormatVisitor objectVisitor, SerializerProvider provider) throws JsonMappingException {
-            if (!IceBeanUtils.containsBean(writer.getName())) {
+            if (include(writer)) {
                 writer.depositSchemaProperty(objectVisitor, provider);
             }
         }

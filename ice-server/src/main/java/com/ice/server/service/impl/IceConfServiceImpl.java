@@ -121,7 +121,7 @@ public class IceConfServiceImpl implements IceConfService {
                 }
                 //same parent
                 StringBuilder sb = new StringBuilder();
-                if (editNode.getMoveTo() == null) {
+                if (editNode.getMoveTo() == null || editNode.getMoveTo() >= sonIds.length) {
                     //default move to the end
                     sonIds[index] = null;
                     for (String sonIdStr : sonIds) {
