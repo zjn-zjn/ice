@@ -132,7 +132,7 @@ public final class IceNioClientService {
             }
         } else {
             nodeShowConf.setConfName(node.getClass().getName());
-            String confJson = JacksonUtils.toJsonStringWithoutIceBean(node);
+            String confJson = JacksonUtils.toJsonStringWithIceFilter(node);
             if (confJson != null && !"{}".equals(confJson)) {
                 nodeShowConf.setConfField(confJson);
             }

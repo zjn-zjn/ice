@@ -23,11 +23,22 @@ import java.io.IOException;
  */
 public final class JacksonUtils {
     //filter ice beans&ignores
-    private final static FilterProvider iceBeanFilterProvider = new SimpleFilterProvider().addFilter("icePropertyFilter", new IcePropertyFilter());
+    private final static FilterProvider icePropertyFilter = new SimpleFilterProvider().addFilter("icePropertyFilter", new IcePropertyFilter());
 
     private static ObjectMapper mapper() {
         return JsonMapper.builder()
                 .serializationInclusion(JsonInclude.Include.NON_NULL)
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true)
+                .configure(JsonParser.Feature.ALLOW_COMMENTS, true)
+                .configure(JsonReadFeature.ALLOW_MISSING_VALUES.mappedFeature(), true)
+                .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+                .build();
+    }
+
+    private static ObjectMapper withNullMapper() {
+        return JsonMapper.builder()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                 .configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true)
                 .configure(JsonParser.Feature.ALLOW_COMMENTS, true)
@@ -46,9 +57,9 @@ public final class JacksonUtils {
         return null;
     }
 
-    public static String toJsonStringWithoutIceBean(Object obj) {
+    public static String toJsonStringWithIceFilter(Object obj) {
         try {
-            return mapper().setFilterProvider(iceBeanFilterProvider).writeValueAsString(obj);
+            return withNullMapper().setFilterProvider(icePropertyFilter).writeValueAsString(obj);
         } catch (JsonProcessingException e) {
             //ignore
         }
