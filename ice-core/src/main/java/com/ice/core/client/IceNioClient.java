@@ -400,7 +400,7 @@ public final class IceNioClient {
                             field.getName().equals("LOG") ||
                             field.getName().equals("logger") ||
                             field.getName().equals("LOGGER") ||
-                            field.getType().isAssignableFrom(Logger.class) ||
+                            Logger.class.isAssignableFrom(field.getType()) ||
                             IceBeanUtils.containsBean(field.getName())) {
                         continue;
                     }
