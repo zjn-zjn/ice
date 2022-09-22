@@ -165,7 +165,7 @@ public final class IceNioClientManager implements InitializingBean {
         return null;
     }
 
-    private synchronized Channel getClientSocketChannel(int app, String address) {
+    public synchronized Channel getClientSocketChannel(int app, String address) {
         if (address != null) {
             Map<String, Channel> clientMap = appAddressChannelMap.get(app);
             if (CollectionUtils.isEmpty(clientMap)) {
@@ -184,44 +184,12 @@ public final class IceNioClientManager implements InitializingBean {
         return socketChannels.iterator().next();
     }
 
-    public synchronized void confClazzCheck(int app, String clazz, byte type) {
+    public synchronized Map<String, LeafNodeInfo> getLeafTypeClasses(int app, byte type) {
         Map<Byte, Map<String, LeafNodeInfo>> addressClazzInfoMap = appNodeLeafClazzMap.get(app);
         if (!CollectionUtils.isEmpty(addressClazzInfoMap)) {
             Map<String, LeafNodeInfo> clazzInfoMap = addressClazzInfoMap.get(type);
             if (!CollectionUtils.isEmpty(clazzInfoMap)) {
-                if (clazzInfoMap.containsKey(clazz)) {
-                    //one of available client have this clazz
-                    return;
-                }
-            }
-        }
-        //not found in client init leaf node, try search on one of real client
-        Channel channel = getClientSocketChannel(app, null);
-        if (channel == null) {
-            throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
-        }
-        IceNioModel request = new IceNioModel();
-        request.setClazz(clazz);
-        request.setNodeType(type);
-        request.setApp(app);
-        request.setId(UUIDUtils.generateUUID22());
-        request.setType(NioType.REQ);
-        request.setOps(NioOps.CLAZZ_CHECK);
-        IceNioModel response = getResult(channel, request);
-        if (response == null || response.getClazzCheck() == null) {
-            throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, "unknown");
-        }
-        if (response.getClazzCheck().getKey() != 1) {
-            throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, response.getClazzCheck().getValue());
-        }
-    }
-
-    public synchronized Set<String> getLeafTypeClasses(int app, byte type) {
-        Map<Byte, Map<String, LeafNodeInfo>> addressClazzInfoMap = appNodeLeafClazzMap.get(app);
-        if (!CollectionUtils.isEmpty(addressClazzInfoMap)) {
-            Map<String, LeafNodeInfo> clazzInfoMap = addressClazzInfoMap.get(type);
-            if (!CollectionUtils.isEmpty(clazzInfoMap)) {
-                return clazzInfoMap.keySet();
+                return clazzInfoMap;
             }
         }
         return null;
@@ -281,7 +249,7 @@ public final class IceNioClientManager implements InitializingBean {
         return result == null ? null : result.getShowConf();
     }
 
-    private IceNioModel getResult(Channel channel, IceNioModel request) {
+    public IceNioModel getResult(Channel channel, IceNioModel request) {
         Object lock = new Object();
         String id = request.getId();
         IceNioServerHandler.lockMap.put(id, lock);

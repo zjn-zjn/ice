@@ -264,6 +264,7 @@ public final class IceConfCache {
                 if (node.getIceLogName() == null) {
                     node.setIceLogName(node.getClass().getSimpleName());
                 }
+                assembleBasicInfo(node, confDto);
                 IceBeanUtils.autowireBean(node);
                 ((BaseLeaf) node).afterPropertiesSet();
                 break;
@@ -274,6 +275,7 @@ public final class IceConfCache {
                 if (node.getIceLogName() == null) {
                     node.setIceLogName(node.getClass().getSimpleName());
                 }
+                assembleBasicInfo(node, confDto);
                 IceBeanUtils.autowireBean(node);
                 ((BaseLeaf) node).afterPropertiesSet();
                 break;
@@ -284,36 +286,44 @@ public final class IceConfCache {
                 if (node.getIceLogName() == null) {
                     node.setIceLogName(node.getClass().getSimpleName());
                 }
+                assembleBasicInfo(node, confDto);
                 IceBeanUtils.autowireBean(node);
                 ((BaseLeaf) node).afterPropertiesSet();
                 break;
             case NONE:
                 node = new None();
                 node.setIceLogName("None");
+                assembleBasicInfo(node, confDto);
                 break;
             case AND:
                 node = new And();
                 node.setIceLogName("And");
+                assembleBasicInfo(node, confDto);
                 break;
             case TRUE:
                 node = new True();
                 node.setIceLogName("True");
+                assembleBasicInfo(node, confDto);
                 break;
             case ALL:
                 node = new All();
                 node.setIceLogName("All");
+                assembleBasicInfo(node, confDto);
                 break;
             case ANY:
                 node = new Any();
                 node.setIceLogName("Any");
+                assembleBasicInfo(node, confDto);
                 break;
             case P_ALL:
                 node = new ParallelAll();
                 node.setIceLogName("P-All");
+                assembleBasicInfo(node, confDto);
                 break;
             case P_AND:
                 node = new ParallelAnd();
                 node.setIceLogName("P-And");
+                assembleBasicInfo(node, confDto);
                 break;
             case P_ANY:
                 node = new ParallelAny();
@@ -322,23 +332,30 @@ public final class IceConfCache {
             case P_NONE:
                 node = new ParallelNone();
                 node.setIceLogName("P-None");
+                assembleBasicInfo(node, confDto);
                 break;
             case P_TRUE:
                 node = new ParallelTrue();
                 node.setIceLogName("P-True");
+                assembleBasicInfo(node, confDto);
                 break;
             default:
                 node = (BaseNode) JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), Class.forName(confDto.getConfName()));
                 if (node != null && node.getIceLogName() == null) {
                     node.setIceLogName(node.getClass().getSimpleName());
-                }
-                IceBeanUtils.autowireBean(node);
-                if (node instanceof BaseLeaf) {
-                    ((BaseLeaf) node).afterPropertiesSet();
+                    assembleBasicInfo(node, confDto);
+                    IceBeanUtils.autowireBean(node);
+                    if (node instanceof BaseLeaf) {
+                        ((BaseLeaf) node).afterPropertiesSet();
+                    }
                 }
                 break;
         }
+        return node;
+    }
+
+    private static void assembleBasicInfo(BaseNode node, IceConfDto confDto) {
         node.setIceNodeId(confDto.getId());
         node.setIceNodeDebug(confDto.getDebug() == null || confDto.getDebug() == 1);
         node.setIceInverse(confDto.getInverse() != null && confDto.getInverse());
@@ -347,6 +364,5 @@ public final class IceConfCache {
         node.setIceEnd(confDto.getEnd() == null ? 0 : confDto.getEnd());
         node.setIceErrorStateEnum(NodeRunStateEnum.getEnumDefaultShutdown(confDto.getErrorState()));
         node.setIceType(confDto.getType());
-        return node;
     }
 }

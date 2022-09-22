@@ -8,6 +8,10 @@ import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
 import com.ice.common.model.LeafNodeInfo;
+import com.ice.common.utils.UUIDUtils;
+import com.ice.core.client.IceNioModel;
+import com.ice.core.client.NioOps;
+import com.ice.core.client.NioType;
 import com.ice.core.utils.JacksonUtils;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IceConfUpdateMapper;
@@ -21,6 +25,7 @@ import com.ice.server.model.IceLeafClass;
 import com.ice.server.nio.IceNioClientManager;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
+import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -638,39 +643,49 @@ public class IceConfServiceImpl implements IceConfService {
     @Override
     public synchronized List<IceLeafClass> getConfLeafClass(int app, byte type) {
         List<IceLeafClass> result = new ArrayList<>();
-        Set<String> clientLeafClassSet = iceNioClientManager.getLeafTypeClasses(app, type);
-        if (CollectionUtils.isEmpty(clientLeafClassSet)) {
-            //no leaf class with type found in client
+        Map<String, LeafNodeInfo> clientClazzInfoMap = iceNioClientManager.getLeafTypeClasses(app, type);
+        Map<String, Integer> leafClassDBMap = iceServerService.getLeafClassMap(app, type);
+        if (CollectionUtils.isEmpty(clientClazzInfoMap)) {
+            //no leaf class with type found in client, used db config instead
+            if (leafClassDBMap != null) {
+                for (Map.Entry<String, Integer> entry : leafClassDBMap.entrySet()) {
+                    IceLeafClass leafClass = new IceLeafClass();
+                    leafClass.setFullName(entry.getKey());
+                    leafClass.setCount(entry.getValue());
+                    result.add(leafClass);
+                }
+            }
             return result;
         }
-        Map<String, Integer> leafClassDBMap = iceServerService.getLeafClassMap(app, type);
         if (leafClassDBMap != null) {
-            for (String clientLeafClass : clientLeafClassSet) {
-                if (!leafClassDBMap.containsKey(clientLeafClass)) {
+            for (Map.Entry<String, LeafNodeInfo> leafNodeInfoEntry : clientClazzInfoMap.entrySet()) {
+                if (!leafClassDBMap.containsKey(leafNodeInfoEntry.getKey())) {
                     //add not used leaf class
                     IceLeafClass leafClass = new IceLeafClass();
-                    leafClass.setFullName(clientLeafClass);
+                    leafClass.setFullName(leafNodeInfoEntry.getKey());
+                    leafClass.setName(leafNodeInfoEntry.getValue().getName());
                     leafClass.setCount(0);
-                    leafClass.setShortName(clientLeafClass.substring(clientLeafClass.lastIndexOf('.') + 1));
                     result.add(leafClass);
                 }
             }
             for (Map.Entry<String, Integer> entry : leafClassDBMap.entrySet()) {
-                if (clientLeafClassSet.contains(entry.getKey())) {
+                //used to assembly by used cnt from db config
+                LeafNodeInfo nodeInfo = clientClazzInfoMap.get(entry.getKey());
+                if (nodeInfo != null) {
                     //add only class found from client
                     IceLeafClass leafClass = new IceLeafClass();
                     leafClass.setFullName(entry.getKey());
                     leafClass.setCount(entry.getValue());
-                    leafClass.setShortName(entry.getKey().substring(entry.getKey().lastIndexOf('.') + 1));
+                    leafClass.setName(nodeInfo.getName());
                     result.add(leafClass);
                 }
             }
         } else {
-            for (String clientLeafClass : clientLeafClassSet) {
+            for (Map.Entry<String, LeafNodeInfo> leafNodeInfoEntry : clientClazzInfoMap.entrySet()) {
                 IceLeafClass leafClass = new IceLeafClass();
-                leafClass.setFullName(clientLeafClass);
-                leafClass.setCount(1);
-                leafClass.setShortName(clientLeafClass.substring(clientLeafClass.lastIndexOf('.') + 1));
+                leafClass.setFullName(leafNodeInfoEntry.getKey());
+                leafClass.setName(leafNodeInfoEntry.getValue().getName());
+                leafClass.setCount(0);
                 result.add(leafClass);
             }
         }
@@ -685,11 +700,45 @@ public class IceConfServiceImpl implements IceConfService {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|clazz|type");
         }
         try {
-            iceNioClientManager.confClazzCheck(app, clazz, type);
+            confClazzCheck(app, clazz, type);
             iceServerService.addLeafClass(app, type, clazz);
         } catch (Exception e) {
             iceServerService.removeLeafClass(app, type, clazz);
             throw e;
+        }
+    }
+
+    private synchronized void confClazzCheck(int app, String clazz, byte type) {
+        Map<String, LeafNodeInfo> clazzInfoMap = iceNioClientManager.getLeafTypeClasses(app, type);
+        if (!CollectionUtils.isEmpty(clazzInfoMap)) {
+            if (clazzInfoMap.containsKey(clazz)) {
+                //one of available client have this clazz
+                return;
+            }
+        }
+        //not found in client init leaf node, try search on db config
+        Map<String, Integer> leafClazzDBMap = iceServerService.getLeafClassMap(app, type);
+        if (!CollectionUtils.isEmpty(leafClazzDBMap) && leafClazzDBMap.containsKey(clazz)) {
+            return;
+        }
+        //not found in client init leaf node and db config, try search on one of real client
+        Channel channel = iceNioClientManager.getClientSocketChannel(app, null);
+        if (channel == null) {
+            throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
+        }
+        IceNioModel request = new IceNioModel();
+        request.setClazz(clazz);
+        request.setNodeType(type);
+        request.setApp(app);
+        request.setId(UUIDUtils.generateUUID22());
+        request.setType(NioType.REQ);
+        request.setOps(NioOps.CLAZZ_CHECK);
+        IceNioModel response = iceNioClientManager.getResult(channel, request);
+        if (response == null || response.getClazzCheck() == null) {
+            throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, "unknown");
+        }
+        if (response.getClazzCheck().getKey() != 1) {
+            throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, response.getClazzCheck().getValue());
         }
     }
 
