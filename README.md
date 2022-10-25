@@ -9,10 +9,9 @@
 
 - **文档链接**
     - [**首页**](http://waitmoon.com/zh/)
-    - [**视频介绍**](https://www.bilibili.com/video/BV1hg411A7jx)
     - [**快速开始**](http://waitmoon.com/zh/guide/getting-started.html)
-    - [**介绍**](http://waitmoon.com/zh/guide/)
-    - [**交流群**](http://waitmoon.com/zh/guide/#%E4%BA%A4%E6%B5%81%E6%8E%A2%E8%AE%A8)
+    - [**视频介绍**](https://www.bilibili.com/video/BV1hg411A7jx)
+    - [**交流群**](http://waitmoon.com/zh/community/community.html)
     - [**开发&配置视频**](https://www.bilibili.com/video/BV1Q34y1R7KF)
     - [**配置体验(ice-test&ice-server真实部署)**](http://eg.waitmoon.com/)
   
@@ -20,6 +19,5 @@
 - **Doc links**
     - [**Home Page**](http://waitmoon.com/)
     - [**Quick start**](http://waitmoon.com/guide/getting-started.html)
-    - [**Introduction**](http://waitmoon.com/guide/)
-    - [**Discussion**](http://waitmoon.com/guide/#exchange-discussion)
+    - [**Community**](http://waitmoon.com/community/community.html)
     - [**Configuration experience(ice-test&ice-server real deployment)**](http://eg.waitmoon.com/)
