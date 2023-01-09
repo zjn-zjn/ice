@@ -8,8 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
-
 /**
  * waiting ice nio client init
  *
@@ -19,7 +17,7 @@ import javax.annotation.Resource;
 @DependsOn("iceSpringBeanFactory")
 public class IceNioClientInit implements InitializingBean, DisposableBean {
 
-    @Resource
+    @Autowired
     private IceClientProperties properties;
 
     private IceNioClient iceNioClient;

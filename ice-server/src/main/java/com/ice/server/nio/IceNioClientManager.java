@@ -21,7 +21,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -44,7 +44,7 @@ public final class IceNioClientManager implements InitializingBean {
     //remain app`s last client leaf info
     private static Map<Integer, Map<Byte, Map<String, LeafNodeInfo>>> appNodeLeafClazzMap = new ConcurrentHashMap<>();
 
-    @Resource
+    @Autowired
     private IceServerProperties properties;
 
     private static ExecutorService executor;

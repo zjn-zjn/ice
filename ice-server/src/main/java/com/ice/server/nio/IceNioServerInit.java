@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author waitmoon
@@ -18,10 +18,10 @@ import javax.annotation.Resource;
 @Component
 public class IceNioServerInit implements CommandLineRunner, DisposableBean {
 
-    @Resource
+    @Autowired
     private IceServerProperties properties;
 
-    @Resource
+    @Autowired
     private IceServerService serverService;
 
     @Autowired(required = false)

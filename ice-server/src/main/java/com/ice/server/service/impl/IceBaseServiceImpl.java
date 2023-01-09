@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -42,28 +42,28 @@ import java.util.Set;
 @Service
 public class IceBaseServiceImpl implements IceBaseService {
 
-    @Resource
+    @Autowired
     private IceBaseMapper iceBaseMapper;
 
-    @Resource
+    @Autowired
     private IceConfMapper iceConfMapper;
 
-    @Resource
+    @Autowired
     private IceConfUpdateMapper iceConfUpdateMapper;
 
-    @Resource
+    @Autowired
     private IcePushHistoryMapper pushHistoryMapper;
 
-    @Resource
+    @Autowired
     private IceServerService iceServerService;
 
-    @Resource
+    @Autowired
     private IceNioClientManager iceNioClientManager;
 
-    @Resource
+    @Autowired
     private IceServerService serverService;
 
-    @Resource
+    @Autowired
     private IceNioClientManager iceClientManager;
 
     @Override

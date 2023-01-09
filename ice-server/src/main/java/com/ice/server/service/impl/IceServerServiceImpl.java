@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.*;
 
 /**
@@ -64,16 +64,16 @@ public class IceServerServiceImpl implements IceServerService {
     private Map<Integer, Map<Byte, Map<String, Integer>>> leafClassMap;
 
     private volatile long version;
-    @Resource
+    @Autowired
     private IceBaseMapper baseMapper;
-    @Resource
+    @Autowired
     private IceConfMapper confMapper;
-    @Resource
+    @Autowired
     private IceConfUpdateMapper confUpdateMapper;
-    @Resource
+    @Autowired
     private IceAppMapper iceAppMapper;
 
-    @Resource
+    @Autowired
     private IceNioClientManager iceNioClientManager;
 
     public synchronized boolean haveCircle(Long nodeId, Long linkId) {

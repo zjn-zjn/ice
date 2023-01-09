@@ -7,7 +7,7 @@ import com.ice.test.service.SendService;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author waitmoon
@@ -16,7 +16,7 @@ import javax.annotation.Resource;
 @EqualsAndHashCode(callSuper = true)
 public class PointResult2 extends BaseLeafPackResult {
 
-    @Resource
+    @Autowired
     private SendService sendService;
     //给谁发
     private String key;

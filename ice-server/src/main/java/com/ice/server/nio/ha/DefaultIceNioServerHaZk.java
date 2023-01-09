@@ -18,7 +18,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.io.IOException;
 
 @Slf4j
@@ -38,13 +38,13 @@ public class DefaultIceNioServerHaZk implements IceNioServerHa {
     @Value("${server.port}")
     private int serverPort;
 
-    @Resource
+    @Autowired
     private IceServerProperties properties;
 
-    @Resource
+    @Autowired
     private IceServerService serverService;
 
-    @Resource
+    @Autowired
     private IceNioClientManager iceNioClientManager;
 
     @Override

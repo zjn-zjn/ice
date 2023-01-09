@@ -9,7 +9,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +20,7 @@ import java.util.List;
 @RestController
 public class IceMockController {
 
-    @Resource
+    @Autowired
     private IceNioClientManager iceNioClientManager;
 
     @RequestMapping(value = "/ice/nio/mock", method = RequestMethod.POST)

@@ -12,7 +12,7 @@ import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.List;
 
 /**
@@ -23,13 +23,13 @@ import java.util.List;
 @CrossOrigin
 @RestController
 public class IceConfController {
-    @Resource
+    @Autowired
     private IceConfService iceConfService;
 
-    @Resource
+    @Autowired
     private IceServerService iceServerService;
 
-    @Resource
+    @Autowired
     private IceNioClientManager iceNioClientManager;
 
     @RequestMapping(value = "/ice-server/conf/edit", method = RequestMethod.POST)

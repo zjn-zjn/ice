@@ -31,7 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.*;
 
 /**
@@ -41,16 +41,16 @@ import java.util.*;
 @Service
 public class IceConfServiceImpl implements IceConfService {
 
-    @Resource
+    @Autowired
     private IceConfMapper confMapper;
 
-    @Resource
+    @Autowired
     private IceServerService iceServerService;
 
-    @Resource
+    @Autowired
     private IceConfUpdateMapper confUpdateMapper;
 
-    @Resource
+    @Autowired
     private IceNioClientManager iceNioClientManager;
 
     @Override

@@ -16,7 +16,7 @@ import com.ice.server.service.IceServerService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Map;
 
 /**
@@ -27,10 +27,10 @@ import java.util.Map;
 @CrossOrigin
 @RestController
 public class IceBaseController {
-    @Resource
+    @Autowired
     private IceBaseService iceBaseService;
 
-    @Resource
+    @Autowired
     private IceServerService iceServerService;
 
     @Value("${environment:dev}")

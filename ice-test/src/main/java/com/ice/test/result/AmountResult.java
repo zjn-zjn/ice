@@ -8,7 +8,7 @@ import com.ice.test.service.SendService;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author waitmoon
@@ -18,7 +18,7 @@ import javax.annotation.Resource;
 @IceNode(name = "发放余额节点", desc = "用于发放余额")
 public class AmountResult extends BaseLeafRoamResult {
 
-    @Resource
+    @Autowired
     private SendService sendService;
     @IceField(name = "发给谁", desc = "发放的key 如uid")
     private String key;
