@@ -6,7 +6,6 @@ import com.ice.common.dto.IceConfDto;
 import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
-import com.ice.core.base.BaseLeaf;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
 import com.ice.core.leaf.base.BaseLeafFlow;
@@ -266,7 +265,7 @@ public final class IceConfCache {
                 }
                 assembleBasicInfo(node, confDto);
                 IceBeanUtils.autowireBean(node);
-                ((BaseLeaf) node).afterPropertiesSet();
+                node.afterPropertiesSet();
                 break;
             case LEAF_RESULT:
                 String resultFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
@@ -277,7 +276,7 @@ public final class IceConfCache {
                 }
                 assembleBasicInfo(node, confDto);
                 IceBeanUtils.autowireBean(node);
-                ((BaseLeaf) node).afterPropertiesSet();
+                node.afterPropertiesSet();
                 break;
             case LEAF_NONE:
                 String noneFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
@@ -288,7 +287,7 @@ public final class IceConfCache {
                 }
                 assembleBasicInfo(node, confDto);
                 IceBeanUtils.autowireBean(node);
-                ((BaseLeaf) node).afterPropertiesSet();
+                node.afterPropertiesSet();
                 break;
             case NONE:
                 node = new None();
@@ -346,9 +345,7 @@ public final class IceConfCache {
                     node.setIceLogName(node.getClass().getSimpleName());
                     assembleBasicInfo(node, confDto);
                     IceBeanUtils.autowireBean(node);
-                    if (node instanceof BaseLeaf) {
-                        ((BaseLeaf) node).afterPropertiesSet();
-                    }
+                    node.afterPropertiesSet();
                 }
                 break;
         }

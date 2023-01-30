@@ -17,7 +17,9 @@ public enum ErrorCode implements IErrorCode {
     CLIENT_CLOSED(-11, "client closed"),
     TIMEOUT(-12, "time out"),
     CLIENT_CLASS_NOT_FOUND(-13, "class:{0} type:{1} not found in any available client with app:{2}"),
-    CUSTOM(-14, "{0}");
+
+    CONFIG_FILED_ILLEGAL(-14, "config illegal {0}"),
+    CUSTOM(-255, "{0}");
     private final int code;
     private final String msgTemplate;
 

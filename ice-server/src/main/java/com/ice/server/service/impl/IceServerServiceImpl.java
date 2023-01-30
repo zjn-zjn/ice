@@ -30,6 +30,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
+
 import java.util.*;
 
 /**
@@ -430,7 +431,9 @@ public class IceServerServiceImpl implements IceServerService {
                             if (value != null && value.isNull()) {
                                 fieldInfo.setValueNull(true);
                             } else {
-                                fieldInfo.setValue(value);
+                                if (value != null) {
+                                    fieldInfo.setValue(JacksonUtils.toJsonString(value));
+                                }
                             }
                         }
                     }
@@ -440,7 +443,9 @@ public class IceServerServiceImpl implements IceServerService {
                             if (value != null && value.isNull()) {
                                 hideFiledInfo.setValueNull(true);
                             } else {
-                                hideFiledInfo.setValue(value);
+                                if (value != null) {
+                                    hideFiledInfo.setValue(JacksonUtils.toJsonString(value));
+                                }
                             }
                         }
                     }

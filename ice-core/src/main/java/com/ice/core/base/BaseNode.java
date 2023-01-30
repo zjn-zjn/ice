@@ -139,4 +139,7 @@ public abstract class BaseNode {
     public long findIceNodeId() {
         return iceNodeId;
     }
+
+    public void afterPropertiesSet() {
+    }
 }

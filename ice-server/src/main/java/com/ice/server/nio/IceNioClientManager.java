@@ -363,7 +363,6 @@ public final class IceNioClientManager implements InitializingBean {
         for (LeafNodeInfo.IceFieldInfo fieldInfo : fieldInfoList) {
             LeafNodeInfo.IceFieldInfo result = new LeafNodeInfo.IceFieldInfo();
             result.setField(fieldInfo.getField());
-            result.setValue(fieldInfo.getValue());
             result.setType(fieldInfo.getType());
             result.setName(fieldInfo.getName());
             result.setDesc(fieldInfo.getDesc());

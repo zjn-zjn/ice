@@ -28,7 +28,7 @@ public final class LeafNodeInfo {
         private String type;
 
         //assemble in server admin node conf
-        private Object value;
+        private String value; //json value for web
         private Boolean valueNull;
     }
 }

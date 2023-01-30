@@ -25,32 +25,27 @@ public final class JacksonUtils {
     //filter ice beans&ignores
     private final static FilterProvider icePropertyFilter = new SimpleFilterProvider().addFilter("icePropertyFilter", new IcePropertyFilter());
 
-    private static ObjectMapper mapper() {
-        return JsonMapper.builder()
-                .serializationInclusion(JsonInclude.Include.NON_NULL)
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                .configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true)
-                .configure(JsonParser.Feature.ALLOW_COMMENTS, true)
-                .configure(JsonReadFeature.ALLOW_MISSING_VALUES.mappedFeature(), true)
-                .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
-                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-                .build();
-    }
-
-    private static ObjectMapper withNullMapper() {
-        return JsonMapper.builder()
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                .configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true)
-                .configure(JsonParser.Feature.ALLOW_COMMENTS, true)
-                .configure(JsonReadFeature.ALLOW_MISSING_VALUES.mappedFeature(), true)
-                .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
-                .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-                .build();
-    }
+    public final static ObjectMapper mapper = JsonMapper.builder()
+            .serializationInclusion(JsonInclude.Include.NON_NULL)
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true)
+            .configure(JsonParser.Feature.ALLOW_COMMENTS, true)
+            .configure(JsonReadFeature.ALLOW_MISSING_VALUES.mappedFeature(), true)
+            .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+            .build();
+    private final static ObjectMapper withNullMapper = JsonMapper.builder()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .configure(JsonGenerator.Feature.IGNORE_UNKNOWN, true)
+            .configure(JsonParser.Feature.ALLOW_COMMENTS, true)
+            .configure(JsonReadFeature.ALLOW_MISSING_VALUES.mappedFeature(), true)
+            .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
+            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+            .build();
 
     public static String toJsonString(Object obj) {
         try {
-            return mapper().writeValueAsString(obj);
+            return mapper.writeValueAsString(obj);
         } catch (JsonProcessingException e) {
             //ignore
         }
@@ -59,7 +54,7 @@ public final class JacksonUtils {
 
     public static String toJsonStringWithIceFilter(Object obj) {
         try {
-            return withNullMapper().setFilterProvider(icePropertyFilter).writeValueAsString(obj);
+            return withNullMapper.setFilterProvider(icePropertyFilter).writeValueAsString(obj);
         } catch (JsonProcessingException e) {
             //ignore
         }
@@ -68,7 +63,7 @@ public final class JacksonUtils {
 
     public static byte[] toJsonBytes(Object obj) {
         try {
-            return mapper().writeValueAsBytes(obj);
+            return mapper.writeValueAsBytes(obj);
         } catch (JsonProcessingException e) {
             //ignore
         }
@@ -76,11 +71,11 @@ public final class JacksonUtils {
     }
 
     public static <T> T readJson(String json, Class<T> clazz) throws JsonProcessingException {
-        return mapper().readValue(json, clazz);
+        return mapper.readValue(json, clazz);
     }
 
     public static <T> T readJsonBytes(byte[] jsonBytes, Class<T> clazz) throws IOException {
-        return mapper().readValue(jsonBytes, clazz);
+        return mapper.readValue(jsonBytes, clazz);
     }
 
     public static JsonNode readTree(String json) {
@@ -88,7 +83,7 @@ public final class JacksonUtils {
             return null;
         }
         try {
-            return mapper().readTree(json);
+            return mapper.readTree(json);
         } catch (Exception e) {
             //ignore
             return null;
@@ -97,7 +92,7 @@ public final class JacksonUtils {
 
     public static boolean isJson(String json) {
         try {
-            mapper().readTree(json);
+            mapper.readTree(json);
             return true;
         } catch (Exception e) {
             //ignore
@@ -107,7 +102,7 @@ public final class JacksonUtils {
 
     public static boolean isJsonObject(String json) {
         try {
-            JsonNode node = mapper().readTree(json);
+            JsonNode node = mapper.readTree(json);
             return node.isObject();
         } catch (Exception e) {
             //ignore
@@ -117,7 +112,7 @@ public final class JacksonUtils {
 
     public static boolean isJsonArray(String json) {
         try {
-            JsonNode node = mapper().readTree(json);
+            JsonNode node = mapper.readTree(json);
             return node.isArray();
         } catch (Exception e) {
             //ignore

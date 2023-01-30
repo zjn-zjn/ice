@@ -1,6 +1,7 @@
 package com.ice.server.service;
 
 import com.ice.common.model.IceShowConf;
+import com.ice.common.model.LeafNodeInfo;
 import com.ice.server.model.IceEditNode;
 import com.ice.server.model.IceLeafClass;
 
@@ -14,7 +15,7 @@ public interface IceConfService {
 
     List<IceLeafClass> getConfLeafClass(int app, byte type);
 
-    void leafClassCheck(int app, String clazz, byte type);
+    LeafNodeInfo leafClassCheck(int app, String clazz, byte type);
 
     IceShowConf confDetail(int app, long confId, String address, long iceId);
 }

@@ -84,7 +84,7 @@ public final class IceNioClientService {
             if (!errors.isEmpty()) {
                 results.addAll(errors);
             }
-            log.info("ice update end success");
+            log.info("ice update end");
         } catch (Exception e) {
             log.error("ice update error dto:{} e:", JacksonUtils.toJsonString(dto), e);
         }

@@ -13,6 +13,7 @@ import com.ice.core.client.IceNioModel;
 import com.ice.core.client.NioOps;
 import com.ice.core.client.NioType;
 import com.ice.core.utils.JacksonUtils;
+import com.ice.server.constant.ServerConstant;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IceConfUpdateMapper;
 import com.ice.server.dao.model.IceConf;
@@ -27,11 +28,11 @@ import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
 import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import java.util.*;
 
 /**
@@ -375,12 +376,13 @@ public class IceConfServiceImpl implements IceConfService {
         //use old name
         operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? operateConf.getName() : editNode.getName());
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+            LeafNodeInfo leafNodeInfo = leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
             if (StringUtils.hasLength(editNode.getConfField())) {
-                if (!JacksonUtils.isJsonObject(editNode.getConfField())) {
-                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
+                String checkRes = ServerConstant.checkIllegalAndAdjustJson(editNode, leafNodeInfo);
+                if (checkRes != null) {
+                    throw new ErrorCodeException(ErrorCode.CONFIG_FILED_ILLEGAL, checkRes);
                 }
             }
-            leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
             operateConf.setConfName(editNode.getConfName());
             operateConf.setConfField(editNode.getConfField());
         }
@@ -423,12 +425,13 @@ public class IceConfServiceImpl implements IceConfService {
         createConf.setApp(app);
         createConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+            LeafNodeInfo leafNodeInfo = leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
             if (StringUtils.hasLength(editNode.getConfField())) {
-                if (!JacksonUtils.isJsonObject(editNode.getConfField())) {
-                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
+                String checkRes = ServerConstant.checkIllegalAndAdjustJson(editNode, leafNodeInfo);
+                if (checkRes != null) {
+                    throw new ErrorCodeException(ErrorCode.CONFIG_FILED_ILLEGAL, checkRes);
                 }
             }
-            leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
             createConf.setConfName(editNode.getConfName());
             createConf.setConfField(editNode.getConfField());
         }
@@ -507,9 +510,11 @@ public class IceConfServiceImpl implements IceConfService {
         operateConf.setInverse(editNode.getInverse() ? (byte) 1 : (byte) 0);
         operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+            LeafNodeInfo leafNodeInfo = leafClassCheck(app, operateConf.getConfName(), editNode.getNodeType());
             if (StringUtils.hasLength(editNode.getConfField())) {
-                if (!JacksonUtils.isJsonObject(editNode.getConfField())) {
-                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
+                String checkRes = ServerConstant.checkIllegalAndAdjustJson(editNode, leafNodeInfo);
+                if (checkRes != null) {
+                    throw new ErrorCodeException(ErrorCode.CONFIG_FILED_ILLEGAL, checkRes);
                 }
             }
             operateConf.setConfField(editNode.getConfField());
@@ -562,9 +567,11 @@ public class IceConfServiceImpl implements IceConfService {
         createConf.setType(editNode.getNodeType());
         createConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
         if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+            LeafNodeInfo leafNodeInfo = leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
             if (StringUtils.hasLength(editNode.getConfField())) {
-                if (!JacksonUtils.isJsonObject(editNode.getConfField())) {
-                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "confFiled json illegal");
+                String checkRes = ServerConstant.checkIllegalAndAdjustJson(editNode, leafNodeInfo);
+                if (checkRes != null) {
+                    throw new ErrorCodeException(ErrorCode.CONFIG_FILED_ILLEGAL, checkRes);
                 }
             }
             leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
@@ -694,32 +701,34 @@ public class IceConfServiceImpl implements IceConfService {
     }
 
     @Override
-    public void leafClassCheck(int app, String clazz, byte type) {
+    public LeafNodeInfo leafClassCheck(int app, String clazz, byte type) {
         NodeTypeEnum typeEnum = NodeTypeEnum.getEnum(type);
         if (!StringUtils.hasLength(clazz) || typeEnum == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|clazz|type");
         }
         try {
-            confClazzCheck(app, clazz, type);
+            LeafNodeInfo leafNodeInfo = confClazzCheck(app, clazz, type);
             iceServerService.addLeafClass(app, type, clazz);
+            return leafNodeInfo;
         } catch (Exception e) {
             iceServerService.removeLeafClass(app, type, clazz);
             throw e;
         }
     }
 
-    private synchronized void confClazzCheck(int app, String clazz, byte type) {
+    private synchronized LeafNodeInfo confClazzCheck(int app, String clazz, byte type) {
         Map<String, LeafNodeInfo> clazzInfoMap = iceNioClientManager.getLeafTypeClasses(app, type);
         if (!CollectionUtils.isEmpty(clazzInfoMap)) {
-            if (clazzInfoMap.containsKey(clazz)) {
+            LeafNodeInfo leafNodeInfo = clazzInfoMap.get(clazz);
+            if (leafNodeInfo != null) {
                 //one of available client have this clazz
-                return;
+                return leafNodeInfo;
             }
         }
         //not found in client init leaf node, try search on db config
         Map<String, Integer> leafClazzDBMap = iceServerService.getLeafClassMap(app, type);
         if (!CollectionUtils.isEmpty(leafClazzDBMap) && leafClazzDBMap.containsKey(clazz)) {
-            return;
+            return null;
         }
         //not found in client init leaf node and db config, try search on one of real client
         Channel channel = iceNioClientManager.getClientSocketChannel(app, null);
@@ -740,6 +749,7 @@ public class IceConfServiceImpl implements IceConfService {
         if (response.getClazzCheck().getKey() != 1) {
             throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, response.getClazzCheck().getValue());
         }
+        return null;
     }
 
     @Override
@@ -804,7 +814,9 @@ public class IceConfServiceImpl implements IceConfService {
                             if (value != null && value.isNull()) {
                                 fieldInfo.setValueNull(true);
                             } else {
-                                fieldInfo.setValue(value);
+                                if (value != null) {
+                                    fieldInfo.setValue(JacksonUtils.toJsonString(value));
+                                }
                             }
                         }
                     }
@@ -814,7 +826,9 @@ public class IceConfServiceImpl implements IceConfService {
                             if (value != null && value.isNull()) {
                                 hideFiledInfo.setValueNull(true);
                             } else {
-                                hideFiledInfo.setValue(value);
+                                if (value != null) {
+                                    hideFiledInfo.setValue(JacksonUtils.toJsonString(value));
+                                }
                             }
                         }
                     }

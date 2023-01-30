@@ -389,7 +389,7 @@ public final class IceNioClient {
                     iceFieldInfo.setField(field.getName());
                     iceFieldInfo.setName(fieldAnnotation.name());
                     iceFieldInfo.setDesc(fieldAnnotation.desc());
-                    iceFieldInfo.setType(fieldAnnotation.type().isEmpty() ? field.getType().getSimpleName() : fieldAnnotation.type());
+                    iceFieldInfo.setType(fieldAnnotation.type().isEmpty() ? field.getType().getTypeName() : fieldAnnotation.type());
                     iceFields.add(iceFieldInfo);
                 } else {
                     // ignore with @IceIgnore
