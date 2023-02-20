@@ -67,7 +67,7 @@ public final class IceConfCache {
             } catch (Exception e) {
                 String errorNodeStr = JacksonUtils.toJsonString(confDto);
                 errors.add("node init error, conf:" + errorNodeStr);
-                log.error("node init error, conf:{} e:{}", errorNodeStr, e);
+                log.error("node init error, conf:{} e:", errorNodeStr, e);
             }
         }
         for (IceConfDto confInfo : iceConfDtos) {

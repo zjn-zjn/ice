@@ -392,10 +392,7 @@ public final class IceNioClient {
                     iceFieldInfo.setType(fieldAnnotation.type().isEmpty() ? field.getType().getTypeName() : fieldAnnotation.type());
                     iceFields.add(iceFieldInfo);
                 } else {
-                    // ignore with @IceIgnore
-                    // or log/LOG/logger/LOGGER/ type of org.slf4j.Logger
-                    // or @JsonIgnore
-                    // or iceBeans(like spring bean)
+                    // ignore log/LOG/logger/LOGGER/ type of org.slf4j.Logger & iceBeans(like spring bean)
                     if (field.getName().equals("log") ||
                             field.getName().equals("LOG") ||
                             field.getName().equals("logger") ||
