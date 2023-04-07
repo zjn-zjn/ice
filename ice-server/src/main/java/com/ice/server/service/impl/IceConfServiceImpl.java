@@ -642,6 +642,9 @@ public class IceConfServiceImpl implements IceConfService {
             editNode.setConfName(null);
             editNode.setConfField(null);
         }
+        if (StringUtils.hasLength(editNode.getName()) && editNode.getName().length() > 50) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "name too long (>50)");
+        }
         editNode.setDebug(editNode.getDebug() == null || editNode.getDebug());
         editNode.setInverse(editNode.getInverse() != null && editNode.getInverse());
         editNode.setTimeType(editNode.getTimeType() == null ? TimeTypeEnum.NONE.getType() : editNode.getTimeType());
