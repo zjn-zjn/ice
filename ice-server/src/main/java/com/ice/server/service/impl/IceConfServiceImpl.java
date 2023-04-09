@@ -818,7 +818,7 @@ public class IceConfServiceImpl implements IceConfService {
                                 fieldInfo.setValueNull(true);
                             } else {
                                 if (value != null) {
-                                    fieldInfo.setValue(JacksonUtils.toJsonString(value));
+                                    fieldInfo.setValue(value);
                                 }
                             }
                         }
@@ -830,7 +830,7 @@ public class IceConfServiceImpl implements IceConfService {
                                 hideFiledInfo.setValueNull(true);
                             } else {
                                 if (value != null) {
-                                    hideFiledInfo.setValue(JacksonUtils.toJsonString(value));
+                                    hideFiledInfo.setValue(value);
                                 }
                             }
                         }
