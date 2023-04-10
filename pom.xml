@@ -8,7 +8,7 @@
     <version>1.2.0</version>
     <packaging>pom</packaging>
     <description>Committed to solving flexible and complex hard-coded problems</description>
-    <url>http://waitmoon.com/docs</url>
+    <url>http://waitmoon.com</url>
 
     <name>ice</name>
 
@@ -79,7 +79,7 @@
         <developer>
             <name>waitmoon</name>
             <email>admin@waitmoon.com</email>
-            <url>http://waitmoon.com/docs/</url>
+            <url>http://waitmoon.com</url>
             <roles>
                 <role>Developer</role>
             </roles>
