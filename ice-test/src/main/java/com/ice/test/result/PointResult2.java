@@ -1,5 +1,6 @@
 package com.ice.test.result;
 
+import com.ice.core.annotation.IceField;
 import com.ice.core.context.IcePack;
 import com.ice.core.context.IceRoam;
 import com.ice.core.leaf.pack.BaseLeafPackResult;
@@ -19,6 +20,7 @@ public class PointResult2 extends BaseLeafPackResult {
     @Autowired
     private SendService sendService;
     //给谁发
+    @IceField(name = "发给谁", desc = "发放的key 如uid")
     private String key;
     //发多少
     private Object value;
