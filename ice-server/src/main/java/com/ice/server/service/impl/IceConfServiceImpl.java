@@ -766,7 +766,7 @@ public class IceConfServiceImpl implements IceConfService {
             IceShowConf serverConf = new IceShowConf();
             serverConf.setApp(app);
             serverConf.setRoot(root);
-            addUniqueKey(root, "r");
+            addUniqueKey(root, null, true, false);
             return serverConf;
         }
         IceShowConf clientConf = iceNioClientManager.getClientShowConf(app, confId, address);
@@ -774,7 +774,7 @@ public class IceConfServiceImpl implements IceConfService {
             throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, address);
         }
         assemble(app, clientConf.getRoot(), address);
-        addUniqueKey(clientConf.getRoot(), "r");
+        addUniqueKey(clientConf.getRoot(), null, true, false);
         return clientConf;
     }
 
@@ -784,18 +784,24 @@ public class IceConfServiceImpl implements IceConfService {
      * @param node   node
      * @param prefix prefix
      */
-    private void addUniqueKey(IceShowNode node, String prefix) {
+    private void addUniqueKey(IceShowNode node, String prefix, boolean root, boolean forward) {
         if (node == null) {
             return;
         }
-        String uniqueKey = prefix + "_" + node.getShowConf().getNodeId() + "_" + (node.getIndex() == null ? 0 : node.getIndex());
+        String uniqueKey = (prefix == null ? "" : prefix + "_") + node.getShowConf().getNodeId() + "_" + (node.getIndex() == null ? 0 : node.getIndex());
+        if (root) {
+            uniqueKey = uniqueKey + "_r";
+        }
+        if (forward) {
+            uniqueKey = uniqueKey + "_f";
+        }
         node.getShowConf().setUniqueKey(uniqueKey);
         if (node.getForward() != null) {
-            addUniqueKey(node.getForward(), uniqueKey + "_f");
+            addUniqueKey(node.getForward(), uniqueKey, false, true);
         }
         if (!CollectionUtils.isEmpty(node.getChildren())) {
             for (IceShowNode child : node.getChildren()) {
-                addUniqueKey(child, uniqueKey);
+                addUniqueKey(child, uniqueKey, false, false);
             }
         }
     }
