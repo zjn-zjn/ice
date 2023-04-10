@@ -18,6 +18,7 @@
         <result column="start" jdbcType="TIMESTAMP" property="start"/>
         <result column="end" jdbcType="TIMESTAMP" property="end"/>
         <result column="debug" jdbcType="TINYINT" property="debug"/>
+        <result column="error_state" jdbcType="TINYINT" property="errorState"/>
         <result column="create_at" jdbcType="TIMESTAMP" property="createAt"/>
         <result column="update_at" jdbcType="TIMESTAMP" property="updateAt"/>
     </resultMap>
@@ -83,7 +84,7 @@
     </sql>
     <sql id="Base_Column_List">
         id, app, ice_id,conf_id, name, son_ids, type, status, inverse, conf_name, conf_field, forward_id,
-        time_type, start, end, debug, create_at, update_at
+        time_type, start, end, debug, error_state, create_at, update_at
     </sql>
     <select id="selectByExample" parameterType="com.ice.server.dao.model.IceConfExample" resultMap="BaseResultMap">
         select
@@ -122,14 +123,14 @@
         insert into ice_conf_update (app, ice_id, conf_id,name, son_ids,
         type, status, inverse,
         conf_name, conf_field, forward_id,
-        time_type, start, end, debug, create_at,
+        time_type, start, end, debug, error_state, create_at,
         update_at)
         values (#{app,jdbcType=INTEGER},#{iceId,jdbcType=BIGINT}, #{confId,jdbcType=BIGINT},#{name,jdbcType=VARCHAR},
         #{sonIds,jdbcType=VARCHAR},
         #{type,jdbcType=TINYINT}, #{status,jdbcType=TINYINT}, #{inverse,jdbcType=TINYINT},
         #{confName,jdbcType=VARCHAR}, #{confField,jdbcType=VARCHAR}, #{forwardId,jdbcType=BIGINT},
         #{timeType,jdbcType=TINYINT}, #{start,jdbcType=TIMESTAMP}, #{end,jdbcType=TIMESTAMP},
-        #{debug,jdbcType=TINYINT}, #{createAt,jdbcType=TIMESTAMP},
+        #{debug,jdbcType=TINYINT},#{errorState,jdbcType=TINYINT}, #{createAt,jdbcType=TIMESTAMP},
         #{updateAt,jdbcType=TIMESTAMP})
     </insert>
 
@@ -137,7 +138,7 @@
         insert into ice_conf_update (id, app, ice_id, conf_id,name, son_ids,
         type, status, inverse,
         conf_name, conf_field, forward_id,
-        time_type, start, end, debug,
+        time_type, start, end, debug,error_state,
         update_at)
         values (#{id,jdbcType=BIGINT}, #{app,jdbcType=INTEGER}, #{iceId,jdbcType=BIGINT},
         #{confId,jdbcType=BIGINT},#{name,jdbcType=VARCHAR},
@@ -145,7 +146,7 @@
         #{type,jdbcType=TINYINT}, #{status,jdbcType=TINYINT}, #{inverse,jdbcType=TINYINT},
         #{confName,jdbcType=VARCHAR}, #{confField,jdbcType=VARCHAR}, #{forwardId,jdbcType=BIGINT},
         #{timeType,jdbcType=TINYINT}, #{start,jdbcType=TIMESTAMP}, #{end,jdbcType=TIMESTAMP}, #{debug,jdbcType=TINYINT},
-        #{updateAt,jdbcType=TIMESTAMP})
+        #{errorState,jdbcType=TINYINT}, #{updateAt,jdbcType=TIMESTAMP})
     </insert>
     <insert id="insertSelective" parameterType="com.ice.server.dao.model.IceConf">
         <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
@@ -197,6 +198,9 @@
             </if>
             <if test="debug != null">
                 debug,
+            </if>
+            <if test="errorState != null">
+                error_state,
             </if>
             <if test="createAt != null">
                 create_at,
@@ -250,6 +254,9 @@
             </if>
             <if test="debug != null">
                 #{debug,jdbcType=TINYINT},
+            </if>
+            <if test="errorState != null">
+                #{errorState,jdbcType=TINYINT},
             </if>
             <if test="createAt != null">
                 #{createAt,jdbcType=TIMESTAMP},
@@ -310,6 +317,9 @@
             <if test="debug != null">
                 debug,
             </if>
+            <if test="errorState != null">
+                error_state,
+            </if>
             <if test="createAt != null">
                 create_at,
             </if>
@@ -365,6 +375,9 @@
             </if>
             <if test="debug != null">
                 #{debug,jdbcType=TINYINT},
+            </if>
+            <if test="errorState != null">
+                #{errorState,jdbcType=TINYINT},
             </if>
             <if test="createAt != null">
                 #{createAt,jdbcType=TIMESTAMP},
@@ -431,6 +444,9 @@
             <if test="record.debug != null">
                 debug = #{record.debug,jdbcType=TINYINT},
             </if>
+            <if test="record.errorState != null">
+                error_state = #{record.errorState,jdbcType=TINYINT},
+            </if>
             <if test="record.createAt != null">
                 create_at = #{record.createAt,jdbcType=TIMESTAMP},
             </if>
@@ -460,6 +476,7 @@
         start = #{record.start,jdbcType=TIMESTAMP},
         end = #{record.end,jdbcType=TIMESTAMP},
         debug = #{record.debug,jdbcType=TINYINT},
+        error_state = #{record.errorState,jdbcType=TINYINT},
         create_at = #{record.createAt,jdbcType=TIMESTAMP},
         update_at = #{record.updateAt,jdbcType=TIMESTAMP}
         <if test="_parameter != null">
@@ -514,6 +531,9 @@
             <if test="debug != null">
                 debug = #{debug,jdbcType=TINYINT},
             </if>
+            <if test="errorState != null">
+                error_state = #{errorState,jdbcType=TINYINT},
+            </if>
             <if test="createAt != null">
                 create_at = #{createAt,jdbcType=TIMESTAMP},
             </if>
@@ -540,6 +560,7 @@
         start = #{start,jdbcType=TIMESTAMP},
         end = #{end,jdbcType=TIMESTAMP},
         debug = #{debug,jdbcType=TINYINT},
+        error_state = #{errorState,jdbcType=TINYINT},
         update_at = #{updateAt,jdbcType=TIMESTAMP}
         where id = #{id,jdbcType=BIGINT}
     </update>

@@ -9,17 +9,15 @@ import java.util.List;
  */
 @Data
 public final class LeafNodeInfo {
-    private byte type;
+    private Byte type;
     private String clazz;
     private String name;
     private String desc;
-    private List<FieldInfo> fields;
+    private List<IceFieldInfo> iceFields;
+    private List<IceFieldInfo> hideFields;
 
-    /**
-     * @author waitmoon
-     */
     @Data
-    public static class FieldInfo {
+    public static class IceFieldInfo {
         //field name
         private String field;
         //name
@@ -28,7 +26,9 @@ public final class LeafNodeInfo {
         private String desc;
         //client type clazz name, first from config, then declared type
         private String type;
-        //value of json while show client conf
-        private String value;
+
+        //assemble in server admin node conf
+        private Object value; //json value for web
+        private Boolean valueNull;
     }
 }

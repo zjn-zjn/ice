@@ -1,24 +1,29 @@
 package com.ice.server.constant;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ShortNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.ice.common.dto.IceBaseDto;
 import com.ice.common.dto.IceConfDto;
+import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.model.IceShowNode;
+import com.ice.common.model.LeafNodeInfo;
+import com.ice.core.utils.JacksonUtils;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceConf;
+import com.ice.server.model.IceEditNode;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
+import java.util.*;
 
 /**
  * @author waitmoon
  */
-public final class Constant {
+public final class ServerConstant {
 
     /**
      * base convert to dto
@@ -65,6 +70,9 @@ public final class Constant {
         dto.setForwardId(conf.getForwardId());
         if (conf.getDebug() != null && conf.getDebug() != 1) {
             dto.setDebug(conf.getDebug());
+        }
+        if (conf.getErrorState() != null && conf.getErrorState() != NodeRunStateEnum.SHUT_DOWN.getState()) {
+            dto.setErrorState(conf.getErrorState());
         }
         dto.setId(conf.getId());
         dto.setConfId(conf.getConfId());
@@ -123,6 +131,7 @@ public final class Constant {
         conf.setName(dto.getName());
         conf.setForwardId(dto.getForwardId());
         conf.setDebug(dto.getDebug() == null ? 1 : dto.getDebug());
+        conf.setErrorState(dto.getErrorState() == null ? NodeRunStateEnum.SHUT_DOWN.getState() : dto.getErrorState());
         conf.setId(dto.getId());
         conf.setStart(dto.getStart() == null ? null : new Date(dto.getStart()));
         conf.setEnd(dto.getEnd() == null ? null : new Date(dto.getEnd()));
@@ -141,11 +150,12 @@ public final class Constant {
 
     public static IceShowNode confToShow(IceConf conf) {
         IceShowNode show = new IceShowNode();
-        IceShowNode.NodeConf showConf = new IceShowNode.NodeConf();
-        show.setShowConf(showConf);
+        IceShowNode.NodeShowConf nodeShowConf = new IceShowNode.NodeShowConf();
+        show.setShowConf(nodeShowConf);
         show.setForwardId(conf.getForwardId());
-        showConf.setDebug(conf.getDebug() == null || conf.getDebug() == 1);
-        showConf.setNodeId(conf.getMixId());
+        nodeShowConf.setDebug(conf.getDebug() == null || conf.getDebug() == 1);
+        nodeShowConf.setNodeId(conf.getMixId());
+        nodeShowConf.setErrorState(conf.getErrorState() == null ? NodeRunStateEnum.SHUT_DOWN.getState() : conf.getErrorState());
         show.setStart(conf.getStart() == null ? null : conf.getStart().getTime());
         show.setEnd(conf.getEnd() == null ? null : conf.getEnd().getTime());
         if (conf.getTimeType() != null && conf.getTimeType() != TimeTypeEnum.NONE.getType()) {
@@ -155,15 +165,16 @@ public final class Constant {
             if (StringUtils.hasLength(conf.getSonIds())) {
                 show.setSonIds(conf.getSonIds());
             }
-            showConf.setLabelName(conf.getMixId() + (conf.isUpdate() ? "^" : "") + "-" + NodeTypeEnum.getEnum(conf.getType()).name() + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
+            nodeShowConf.setLabelName(conf.getMixId() + (conf.isUpdatingConf() ? "^" : "") + "-" + NodeTypeEnum.getEnum(conf.getType()).name() + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
         } else {
-            showConf.setConfName(conf.getConfName());
-            showConf.setConfField(conf.getConfField());
-            showConf.setLabelName(conf.getMixId() + (conf.isUpdate() ? "^" : "") + "-" + (StringUtils.hasLength(conf.getConfName()) ? conf.getConfName().substring(conf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
+            nodeShowConf.setConfName(conf.getConfName());
+            nodeShowConf.setConfField(conf.getConfField());
+            nodeShowConf.setLabelName(conf.getMixId() + (conf.isUpdatingConf() ? "^" : "") + "-" + (StringUtils.hasLength(conf.getConfName()) ? conf.getConfName().substring(conf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
         }
-        showConf.setInverse(conf.getInverse() != null && conf.getInverse() == 1);
-        showConf.setNodeName(conf.getName());
-        showConf.setNodeType(conf.getType());
+        nodeShowConf.setUpdating(conf.isUpdatingConf());
+        nodeShowConf.setInverse(conf.getInverse() != null && conf.getInverse() == 1);
+        nodeShowConf.setNodeName(conf.getName());
+        nodeShowConf.setNodeType(conf.getType());
         return show;
     }
 
@@ -173,7 +184,7 @@ public final class Constant {
         }
         Collection<IceConfDto> results = new ArrayList<>(confList.size());
         for (IceConf conf : confList) {
-            results.add(Constant.confToDto(conf));
+            results.add(ServerConstant.confToDto(conf));
         }
         return results;
     }
@@ -184,7 +195,7 @@ public final class Constant {
         }
         Collection<IceConfDto> results = new ArrayList<>(confList.size());
         for (IceConf conf : confList) {
-            results.add(Constant.confToDtoWithName(conf));
+            results.add(ServerConstant.confToDtoWithName(conf));
         }
         return results;
     }
@@ -195,7 +206,7 @@ public final class Constant {
         }
         Collection<IceBaseDto> results = new ArrayList<>(baseList.size());
         for (IceBase base : baseList) {
-            results.add(Constant.baseToDto(base));
+            results.add(ServerConstant.baseToDto(base));
         }
         return results;
     }
@@ -206,8 +217,80 @@ public final class Constant {
         }
         Collection<IceConf> results = new ArrayList<>(dtoList.size());
         for (IceConfDto dto : dtoList) {
-            results.add(Constant.dtoToConf(dto, app));
+            results.add(ServerConstant.dtoToConf(dto, app));
         }
         return results;
+    }
+
+    /**
+     * check illegal json and adjust json config from web
+     *
+     * @param editNode edit node
+     * @return is illegal
+     */
+    public static String checkIllegalAndAdjustJson(IceEditNode editNode, LeafNodeInfo nodeInfo) {
+        JsonNode node;
+        try {
+            node = JacksonUtils.mapper.readTree(editNode.getConfField());
+            if (!node.isObject()) {
+                return "not object";
+            }
+        } catch (Exception e) {
+            //ignore
+            return "json illegal";
+        }
+        if (nodeInfo != null) {
+            //check first level json & replace json
+            Map<String, JsonNode> map = new HashMap<>();
+            for (Iterator<Map.Entry<String, JsonNode>> it = node.fields(); it.hasNext(); ) {
+                Map.Entry<String, JsonNode> entry = it.next();
+                String filedType = getFiledType(entry.getKey(), nodeInfo);
+                if (filedType == null) {
+                    map.put(entry.getKey(), entry.getValue());
+                    continue;
+                }
+                if (entry.getValue().isTextual() && !filedType.equals("java.lang.String")) {
+                    //text value need ensure to string, otherwise adjust it
+                    JsonNode adjustNode;
+                    String text = entry.getValue().asText();
+                    if (filedType.equals("java.lang.Object")) {
+                        //Object type to string need surround with ""
+                        if (StringUtils.hasLength(text) && text.length() > 1 && text.startsWith("\"") && text.endsWith("\"")) {
+                            map.put(entry.getKey(), new TextNode(text.substring(1, text.length() - 1)));
+                            continue;
+                        }
+                    }
+                    try {
+                        adjustNode = JacksonUtils.mapper.readTree(text);
+                    } catch (JsonProcessingException e) {
+                        return "filed:" + entry.getKey() + " type:" + filedType + " input:" + text;
+                    }
+                    map.put(entry.getKey(), adjustNode);
+                } else {
+                    map.put(entry.getKey(), entry.getValue());
+                }
+            }
+            //replace json from web
+            editNode.setConfField(JacksonUtils.toJsonString(map));
+        }
+        return null;
+    }
+
+    private static String getFiledType(String filedName, LeafNodeInfo nodeInfo) {
+        if (!CollectionUtils.isEmpty(nodeInfo.getIceFields())) {
+            for (LeafNodeInfo.IceFieldInfo fieldInfo : nodeInfo.getIceFields()) {
+                if (fieldInfo.getField().equals(filedName)) {
+                    return fieldInfo.getType();
+                }
+            }
+        }
+        if (!CollectionUtils.isEmpty(nodeInfo.getHideFields())) {
+            for (LeafNodeInfo.IceFieldInfo fieldInfo : nodeInfo.getHideFields()) {
+                if (fieldInfo.getField().equals(filedName)) {
+                    return fieldInfo.getType();
+                }
+            }
+        }
+        return null;
     }
 }

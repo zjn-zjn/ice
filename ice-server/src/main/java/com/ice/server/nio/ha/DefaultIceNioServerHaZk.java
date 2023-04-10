@@ -1,6 +1,7 @@
 package com.ice.server.nio.ha;
 
 
+import com.ice.common.constant.Constant;
 import com.ice.core.utils.IceAddressUtils;
 import com.ice.server.config.IceServerProperties;
 import com.ice.server.nio.IceNioClientManager;
@@ -17,7 +18,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.io.IOException;
 
 @Slf4j
@@ -37,13 +38,13 @@ public class DefaultIceNioServerHaZk implements IceNioServerHa {
     @Value("${server.port}")
     private int serverPort;
 
-    @Resource
+    @Autowired
     private IceServerProperties properties;
 
-    @Resource
+    @Autowired
     private IceServerService serverService;
 
-    @Resource
+    @Autowired
     private IceNioClientManager iceNioClientManager;
 
     @Override
@@ -58,7 +59,7 @@ public class DefaultIceNioServerHaZk implements IceNioServerHa {
             throw new RuntimeException("ice server failed register zk, get host null");
         }
         //host:nio-port,host:web-port
-        String id = host + ":" + properties.getPort() + "," + host + ":" + serverPort;
+        String id = host + ":" + properties.getPort() + Constant.REGEX_COMMA + host + ":" + serverPort;
         log.info("server:" + id + " will register to zk for HA");
         leaderLatch = new LeaderLatch(client, LATCH_PATH, id, LeaderLatch.CloseMode.NOTIFY_LEADER);
         leaderLatch.addListener(new LeaderLatchListener() {
@@ -99,6 +100,6 @@ public class DefaultIceNioServerHaZk implements IceNioServerHa {
 
     @Override
     public String getLeaderWebAddress() throws Exception {
-        return leaderLatch == null ? null : leaderLatch.getLeader().getId().split(",")[1];
+        return leaderLatch == null ? null : leaderLatch.getLeader().getId().split(Constant.REGEX_COMMA)[1];
     }
 }

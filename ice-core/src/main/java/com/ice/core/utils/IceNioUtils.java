@@ -1,6 +1,5 @@
 package com.ice.core.utils;
 
-import com.ice.common.utils.JacksonUtils;
 import com.ice.core.client.IceNioModel;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -32,10 +31,15 @@ public final class IceNioUtils {
     public static void writeNioModel(Channel channel, IceNioModel nioModel) {
         //write nio model to server/client
         byte[] bytes = JacksonUtils.toJsonBytes(nioModel);
-        if (bytes != null) {
-            ByteBuf buf = Unpooled.buffer(bytes.length);
-            buf.writeInt(bytes.length);
-            buf.writeBytes(bytes);
+        writeModel(channel, bytes);
+    }
+
+    public static void writeModel(Channel channel, byte[] modelBytes) {
+        //write nio model to server/client
+        if (modelBytes != null) {
+            ByteBuf buf = Unpooled.buffer(modelBytes.length);
+            buf.writeInt(modelBytes.length);
+            buf.writeBytes(modelBytes);
             channel.writeAndFlush(buf);
         }
     }

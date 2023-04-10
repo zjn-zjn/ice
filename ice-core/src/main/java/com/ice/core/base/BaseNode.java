@@ -1,5 +1,6 @@
 package com.ice.core.base;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.core.context.IceContext;
@@ -18,50 +19,54 @@ public abstract class BaseNode {
     /*
      * nodeId
      */
+    @JsonIgnore
     private long iceNodeId;
     /*
      * time type
      */
+    @JsonIgnore
     private TimeTypeEnum iceTimeTypeEnum;
     /*
      * node start run time
      */
+    @JsonIgnore
     private long iceStart;
     /*
      * node end run time
      */
+    @JsonIgnore
     private long iceEnd;
     /*
      * iceNodeDebug(print process info)
      */
+    @JsonIgnore
     private boolean iceNodeDebug;
     /*
      * inverse
      * 1.only effect TRUE&FALSE
      * 2.not effect on OUT_TIME&NONE
      */
+    @JsonIgnore
     private boolean iceInverse;
     /*
      * forward node
      * if forward return FALSE then this node reject run
      * forward node the same of combined with relation-and
      */
+    @JsonIgnore
     private BaseNode iceForward;
-    /*
-     * sync lock default not work
-     */
-    private boolean iceLock;
-    /*
-     * transaction default not work
-     */
-    private boolean iceTransaction;
 
+    @JsonIgnore
     private String iceLogName;
     /*
      * node error handle res from config
      * this config is high priority than custom error handle method
      */
+    @JsonIgnore
     private NodeRunStateEnum iceErrorStateEnum;
+
+    @JsonIgnore
+    private byte iceType;
 
     /*
      * process
@@ -73,23 +78,26 @@ public abstract class BaseNode {
             return NodeRunStateEnum.NONE;
         }
         long start = System.currentTimeMillis();
-        if (iceForward != null) {
-            NodeRunStateEnum forwardRes = iceForward.process(ctx);
-            if (forwardRes != NodeRunStateEnum.FALSE) {
-                NodeRunStateEnum res = processNode(ctx);
-                res = forwardRes == NodeRunStateEnum.NONE ? res : (res == NodeRunStateEnum.NONE ? NodeRunStateEnum.TRUE : res);
-                ProcessUtils.collectInfo(ctx.getProcessInfo(), this, start, res);
-                return iceInverse ?
-                        res == NodeRunStateEnum.TRUE ?
-                                NodeRunStateEnum.FALSE :
-                                res == NodeRunStateEnum.FALSE ? NodeRunStateEnum.TRUE : res :
-                        res;
-            }
-            ProcessUtils.collectRejectInfo(ctx.getProcessInfo(), this);
-            return NodeRunStateEnum.FALSE;
-        }
         NodeRunStateEnum res;
         try {
+            if (iceForward != null) {
+                //process forward
+                NodeRunStateEnum forwardRes = iceForward.process(ctx);
+                if (forwardRes != NodeRunStateEnum.FALSE) {
+                    //forward return not false then process this
+                    res = processNode(ctx);
+                    //forward just like node with and relation, return like and also
+                    res = forwardRes == NodeRunStateEnum.NONE ? res : (res == NodeRunStateEnum.NONE ? NodeRunStateEnum.TRUE : res);
+                    ProcessUtils.collectInfo(ctx.getProcessInfo(), this, start, res);
+                    return iceInverse ?
+                            res == NodeRunStateEnum.TRUE ?
+                                    NodeRunStateEnum.FALSE :
+                                    res == NodeRunStateEnum.FALSE ? NodeRunStateEnum.TRUE : res :
+                            res;
+                }
+                ProcessUtils.collectRejectInfo(ctx.getProcessInfo(), this);
+                return NodeRunStateEnum.FALSE;
+            }
             res = processNode(ctx);
         } catch (Throwable t) {
             /*error occur use error handle method*/
@@ -130,5 +138,8 @@ public abstract class BaseNode {
 
     public long findIceNodeId() {
         return iceNodeId;
+    }
+
+    public void afterPropertiesSet() {
     }
 }

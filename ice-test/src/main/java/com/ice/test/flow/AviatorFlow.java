@@ -3,6 +3,7 @@ package com.ice.test.flow;
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.Expression;
 import com.ice.common.enums.NodeRunStateEnum;
+import com.ice.core.annotation.IceIgnore;
 import com.ice.core.context.IceContext;
 import com.ice.core.context.IceRoam;
 import com.ice.core.leaf.roam.BaseLeafRoamFlow;
@@ -22,6 +23,7 @@ public class AviatorFlow extends BaseLeafRoamFlow {
 
     private String exp;
 
+    @IceIgnore
     private Expression compiledExpression;
 
     @Override

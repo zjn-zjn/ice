@@ -1,5 +1,6 @@
 package com.ice.core.client.ha;
 
+import com.ice.common.constant.Constant;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.imps.CuratorFrameworkState;
@@ -62,7 +63,7 @@ public class IceServerHaZkDiscovery implements IceServerHaDiscovery {
         if (serverLeader == null || serverLeader.isEmpty()) {
             throw new RuntimeException("can not get ice server leader from zk:" + zkAddress);
         }
-        serverLeaderAddress = serverLeader.split(",")[0];
+        serverLeaderAddress = serverLeader.split(Constant.REGEX_COMMA)[0];
         return serverLeaderAddress;
     }
 

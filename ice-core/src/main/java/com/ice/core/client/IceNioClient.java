@@ -1,9 +1,12 @@
 package com.ice.core.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.ice.common.constant.Constant;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.LeafNodeInfo;
 import com.ice.core.annotation.IceField;
+import com.ice.core.annotation.IceIgnore;
 import com.ice.core.annotation.IceNode;
 import com.ice.core.client.ha.IceServerHaDiscovery;
 import com.ice.core.client.ha.IceServerHaZkDiscovery;
@@ -12,6 +15,7 @@ import com.ice.core.leaf.base.BaseLeafFlow;
 import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.core.utils.IceAddressUtils;
+import com.ice.core.utils.IceBeanUtils;
 import com.ice.core.utils.IceExecutor;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
@@ -24,9 +28,11 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
@@ -105,7 +111,7 @@ public final class IceNioClient {
     }
 
     public IceNioClient(int app, String server, String scan) throws IOException {
-        this(app, server, new HashSet<>(Arrays.asList(scan.split(","))));
+        this(app, server, new HashSet<>(Arrays.asList(scan.split(Constant.REGEX_COMMA))));
     }
 
     public IceNioClient(int app, String server) throws IOException {
@@ -364,21 +370,49 @@ public final class IceNioClient {
                 leafNodeInfo.setName(nodeAnnotation.name());
                 leafNodeInfo.setDesc(nodeAnnotation.desc());
             }
+
             Field[] leafFields = leafClass.getDeclaredFields();
-            List<LeafNodeInfo.FieldInfo> annotationFields = new ArrayList<>(leafFields.length);
+            List<LeafNodeInfo.IceFieldInfo> iceFields = new ArrayList<>();
+            List<LeafNodeInfo.IceFieldInfo> hideFields = new ArrayList<>();
             for (Field field : leafFields) {
+                //ignore static or final or with @IceIgnore or with @JsonIgnore
+                if (Modifier.isFinal(field.getModifiers()) ||
+                        Modifier.isStatic(field.getModifiers()) ||
+                        field.isAnnotationPresent(IceIgnore.class) ||
+                        field.isAnnotationPresent(JsonIgnore.class)) {
+                    continue;
+                }
                 IceField fieldAnnotation = field.getAnnotation(IceField.class);
                 if (fieldAnnotation != null) {
-                    LeafNodeInfo.FieldInfo fieldInfo = new LeafNodeInfo.FieldInfo();
-                    fieldInfo.setField(field.getName());
-                    fieldInfo.setName(fieldAnnotation.name());
-                    fieldInfo.setDesc(fieldAnnotation.desc());
-                    fieldInfo.setType(fieldAnnotation.type().isEmpty() ? field.getType().getTypeName() : fieldAnnotation.type());
-                    annotationFields.add(fieldInfo);
+                    //ice filed show on web
+                    LeafNodeInfo.IceFieldInfo iceFieldInfo = new LeafNodeInfo.IceFieldInfo();
+                    iceFieldInfo.setField(field.getName());
+                    iceFieldInfo.setName(fieldAnnotation.name());
+                    iceFieldInfo.setDesc(fieldAnnotation.desc());
+                    iceFieldInfo.setType(fieldAnnotation.type().isEmpty() ? field.getType().getTypeName() : fieldAnnotation.type());
+                    iceFields.add(iceFieldInfo);
+                } else {
+                    // ignore log/LOG/logger/LOGGER/ type of org.slf4j.Logger & iceBeans(like spring bean)
+                    if (field.getName().equals("log") ||
+                            field.getName().equals("LOG") ||
+                            field.getName().equals("logger") ||
+                            field.getName().equals("LOGGER") ||
+                            Logger.class.isAssignableFrom(field.getType()) ||
+                            IceBeanUtils.containsBean(field.getName())) {
+                        continue;
+                    }
+                    //hide filed show on web
+                    LeafNodeInfo.IceFieldInfo hideFieldInfo = new LeafNodeInfo.IceFieldInfo();
+                    hideFieldInfo.setField(field.getName());
+                    hideFieldInfo.setType(field.getType().getTypeName());
+                    hideFields.add(hideFieldInfo);
                 }
             }
-            if (!annotationFields.isEmpty()) {
-                leafNodeInfo.setFields(annotationFields);
+            if (!iceFields.isEmpty()) {
+                leafNodeInfo.setIceFields(iceFields);
+            }
+            if (!hideFields.isEmpty()) {
+                leafNodeInfo.setHideFields(hideFields);
             }
             if (BaseLeafFlow.class.isAssignableFrom(leafClass)) {
                 leafNodeInfo.setType(NodeTypeEnum.LEAF_FLOW.getType());

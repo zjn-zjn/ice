@@ -1,6 +1,5 @@
 package com.ice.common.model;
 
-import com.ice.common.enums.NodeRunStateEnum;
 import lombok.Data;
 
 import java.util.List;
@@ -11,7 +10,7 @@ import java.util.List;
 @Data
 public class IceShowNode {
 
-    private NodeConf showConf;
+    private NodeShowConf showConf;
 
     private IceShowNode forward;
 
@@ -33,20 +32,20 @@ public class IceShowNode {
 
     private Byte timeType;
 
-    private Boolean edit;
-
     /**
      * @author waitmoon
      */
     @Data
-    public static final class NodeConf {
+    public static final class NodeShowConf {
+        private String uniqueKey;
+
         private Long nodeId;
 
         private Boolean debug;
 
-        private Boolean inverse;
+        private Byte errorState;
 
-        private NodeRunStateEnum errorStateEnum;
+        private Boolean inverse;
 
         private Byte nodeType;
 
@@ -57,5 +56,11 @@ public class IceShowNode {
         private String confName;
 
         private String confField;
+        //updating or not
+        private Boolean updating;
+
+        private Boolean haveMeta;
+
+        private LeafNodeInfo nodeInfo;
     }
 }

@@ -2,7 +2,7 @@ package com.ice.server.controller;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.ice.common.utils.JacksonUtils;
+import com.ice.core.utils.JacksonUtils;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IcePushHistory;
 import com.ice.server.exception.ErrorCode;
@@ -16,7 +16,7 @@ import com.ice.server.service.IceServerService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Map;
 
 /**
@@ -27,10 +27,10 @@ import java.util.Map;
 @CrossOrigin
 @RestController
 public class IceBaseController {
-    @Resource
+    @Autowired
     private IceBaseService iceBaseService;
 
-    @Resource
+    @Autowired
     private IceServerService iceServerService;
 
     @Value("${environment:dev}")

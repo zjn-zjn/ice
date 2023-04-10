@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Date;
 
 /**
@@ -21,7 +21,7 @@ import java.util.Date;
 @Service
 public class IceAppServiceImpl implements IceAppService {
 
-    @Resource
+    @Autowired
     private IceAppMapper iceAppMapper;
 
     @Override

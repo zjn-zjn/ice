@@ -2,11 +2,11 @@ package com.ice.core.client;
 
 
 import com.ice.common.dto.IceTransferDto;
+import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
 import com.ice.common.model.Pair;
-import com.ice.common.utils.JacksonUtils;
 import com.ice.core.Ice;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
@@ -17,6 +17,7 @@ import com.ice.core.leaf.base.BaseLeafFlow;
 import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.core.utils.IceLinkedList;
+import com.ice.core.utils.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Modifier;
@@ -83,7 +84,7 @@ public final class IceNioClientService {
             if (!errors.isEmpty()) {
                 results.addAll(errors);
             }
-            log.info("ice update end success");
+            log.info("ice update end");
         } catch (Exception e) {
             log.error("ice update error dto:{} e:", JacksonUtils.toJsonString(dto), e);
         }
@@ -112,6 +113,7 @@ public final class IceNioClientService {
         if (node == null) {
             return null;
         }
+        IceShowNode.NodeShowConf nodeShowConf = new IceShowNode.NodeShowConf();
         IceShowNode clientNode = new IceShowNode();
         if (node instanceof BaseRelation) {
             BaseRelation relation = (BaseRelation) node;
@@ -121,14 +123,19 @@ public final class IceNioClientService {
                 for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();
                      listNode != null; listNode = listNode.next) {
                     BaseNode child = listNode.item;
-                    IceShowNode childMap = assembleShowNode(child);
-                    if (childMap != null) {
-                        showChildren.add(childMap);
+                    IceShowNode childConf = assembleShowNode(child);
+                    if (childConf != null) {
+                        showChildren.add(childConf);
                     }
                 }
                 clientNode.setChildren(showChildren);
             }
-
+        } else {
+            nodeShowConf.setConfName(node.getClass().getName());
+            String confJson = JacksonUtils.toJsonStringWithIceFilter(node);
+            if (confJson != null && !"{}".equals(confJson)) {
+                nodeShowConf.setConfField(confJson);
+            }
         }
         BaseNode forward = node.getIceForward();
         if (forward != null) {
@@ -137,14 +144,17 @@ public final class IceNioClientService {
                 clientNode.setForward(forwardNode);
             }
         }
-        IceShowNode.NodeConf showConf = new IceShowNode.NodeConf();
-        clientNode.setShowConf(showConf);
-        showConf.setNodeId(node.getIceNodeId());
+        clientNode.setShowConf(nodeShowConf);
+        nodeShowConf.setNodeId(node.getIceNodeId());
         clientNode.setTimeType(node.getIceTimeTypeEnum().getType());
         clientNode.setStart(node.getIceStart() == 0 ? null : node.getIceStart());
         clientNode.setEnd(node.getIceEnd() == 0 ? null : node.getIceEnd());
-        showConf.setDebug(node.isIceNodeDebug() ? null : node.isIceNodeDebug());
-        showConf.setInverse(node.isIceInverse() ? node.isIceInverse() : null);
+        nodeShowConf.setDebug(node.isIceNodeDebug() ? null : node.isIceNodeDebug());
+        nodeShowConf.setInverse(node.isIceInverse() ? node.isIceInverse() : null);
+        if (node.getIceErrorStateEnum() != null && node.getIceErrorStateEnum() != NodeRunStateEnum.SHUT_DOWN) {
+            nodeShowConf.setErrorState(node.getIceErrorStateEnum().getState());
+        }
+        nodeShowConf.setNodeType(node.getIceType());
         return clientNode;
     }
 

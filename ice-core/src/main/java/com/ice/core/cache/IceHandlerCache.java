@@ -1,11 +1,12 @@
 package com.ice.core.cache;
 
 
+import com.ice.common.constant.Constant;
 import com.ice.common.dto.IceBaseDto;
 import com.ice.common.enums.TimeTypeEnum;
-import com.ice.common.utils.JacksonUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.handler.IceHandler;
+import com.ice.core.utils.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -32,8 +33,6 @@ public final class IceHandlerCache {
      */
     private static final Map<Long, Map<Long, IceHandler>> confIdHandlersMap = new ConcurrentHashMap<>();
 
-    private static final String REGEX_COMMA = ",";
-
     public static IceHandler getHandlerById(Long iceId) {
         return idHandlerMap.get(iceId);
     }
@@ -56,7 +55,7 @@ public final class IceHandlerCache {
             handler.setEnd(base.getEnd() == null ? 0 : base.getEnd());
             Long confId = base.getConfId();
             if (confId != null) {
-                /*confId等于空的情况不考虑处理,没配confId的handler是没有意义的*/
+                /*the handler without confId is meaningless.*/
                 BaseNode root = IceConfCache.getConfById(confId);
                 if (root == null) {
                     String errorModeStr = JacksonUtils.toJsonString(base);
@@ -74,7 +73,7 @@ public final class IceHandlerCache {
             }
             handler.setDebug(base.getDebug() == null ? 0 : base.getDebug());
             if (base.getScenes() != null && !base.getScenes().isEmpty()) {
-                handler.setScenes(new HashSet<>(Arrays.asList(base.getScenes().split(REGEX_COMMA))));
+                handler.setScenes(new HashSet<>(Arrays.asList(base.getScenes().split(Constant.REGEX_COMMA))));
             } else {
                 handler.setScenes(Collections.emptySet());
             }

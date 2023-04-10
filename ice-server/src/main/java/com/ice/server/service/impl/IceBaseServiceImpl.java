@@ -7,8 +7,8 @@ import com.github.pagehelper.page.PageMethod;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
-import com.ice.common.utils.JacksonUtils;
-import com.ice.server.constant.Constant;
+import com.ice.core.utils.JacksonUtils;
+import com.ice.server.constant.ServerConstant;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IceConfUpdateMapper;
@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -42,28 +42,28 @@ import java.util.Set;
 @Service
 public class IceBaseServiceImpl implements IceBaseService {
 
-    @Resource
+    @Autowired
     private IceBaseMapper iceBaseMapper;
 
-    @Resource
+    @Autowired
     private IceConfMapper iceConfMapper;
 
-    @Resource
+    @Autowired
     private IceConfUpdateMapper iceConfUpdateMapper;
 
-    @Resource
+    @Autowired
     private IcePushHistoryMapper pushHistoryMapper;
 
-    @Resource
+    @Autowired
     private IceServerService iceServerService;
 
-    @Resource
+    @Autowired
     private IceNioClientManager iceNioClientManager;
 
-    @Resource
+    @Autowired
     private IceServerService serverService;
 
-    @Resource
+    @Autowired
     private IceNioClientManager iceClientManager;
 
     @Override
@@ -123,13 +123,11 @@ public class IceBaseServiceImpl implements IceBaseService {
                 createConf.setTimeType(TimeTypeEnum.NONE.getType());
                 iceConfMapper.insertSelective(createConf);
                 iceServerService.updateLocalConfActiveCache(createConf);
-                transferDto.setInsertOrUpdateConfs(Collections.singletonList(Constant.confToDto(createConf)));
+                transferDto.setInsertOrUpdateConfs(Collections.singletonList(ServerConstant.confToDto(createConf)));
                 base.setConfId(createConf.getMixId());
             }
             base.setConfId(base.getConfId());
             iceBaseMapper.insertSelective(base);
-            iceServerService.updateLocalBaseActiveCache(base);
-            transferDto.setInsertOrUpdateBases(Collections.singletonList(Constant.baseToDto(base)));
         } else {
             IceBase origin = iceBaseMapper.selectByPrimaryKey(base.getId());
             if (origin == null || origin.getStatus().equals(StatusEnum.OFFLINE.getStatus())) {
@@ -137,9 +135,9 @@ public class IceBaseServiceImpl implements IceBaseService {
             }
             base.setConfId(origin.getConfId());
             iceBaseMapper.updateByPrimaryKey(base);
-            iceServerService.updateLocalBaseActiveCache(base);
-            transferDto.setInsertOrUpdateBases(Collections.singletonList(Constant.baseToDto(base)));
         }
+        iceServerService.updateLocalBaseActiveCache(base);
+        transferDto.setInsertOrUpdateBases(Collections.singletonList(ServerConstant.baseToDto(base)));
         transferDto.setVersion(iceServerService.getVersion());
         iceNioClientManager.release(base.getApp(), transferDto);
         return base.getId();
@@ -188,7 +186,7 @@ public class IceBaseServiceImpl implements IceBaseService {
         history.setApp(base.getApp());
         history.setIceId(iceId);
         history.setReason(reason);
-        history.setOperator("zjn");
+        history.setOperator("waitmoon");
         history.setPushData(getPushDataJson(base));
         pushHistoryMapper.insertSelective(history);
         return history.getId();
@@ -201,14 +199,14 @@ public class IceBaseServiceImpl implements IceBaseService {
     private PushData getPushData(IceBase base) {
         PushData pushData = new PushData();
         pushData.setApp(base.getApp());
-        pushData.setBase(Constant.baseToDtoWithName(base));
+        pushData.setBase(ServerConstant.baseToDtoWithName(base));
         Collection<IceConf> confUpdates = iceServerService.getAllUpdateConfList(base.getApp(), base.getId());
         if (!CollectionUtils.isEmpty(confUpdates)) {
-            pushData.setConfUpdates(Constant.confListToDtoListWithName(confUpdates));
+            pushData.setConfUpdates(ServerConstant.confListToDtoListWithName(confUpdates));
         }
         Set<IceConf> activeConfs = iceServerService.getAllActiveConfSet(base.getApp(), base.getConfId());
         if (!CollectionUtils.isEmpty(activeConfs)) {
-            pushData.setConfs(Constant.confListToDtoListWithName(activeConfs));
+            pushData.setConfs(ServerConstant.confListToDtoListWithName(activeConfs));
         }
         return pushData;
     }
@@ -257,7 +255,9 @@ public class IceBaseServiceImpl implements IceBaseService {
     @Override
 //    @Transactional
     public void importData(PushData data) {
-        Collection<IceConf> confUpdates = Constant.dtoListToConfList(data.getConfUpdates(), data.getApp());
+        Collection<IceConf> confUpdates = ServerConstant.dtoListToConfList(data.getConfUpdates(), data.getApp());
+        Collection<IceConf> confs = ServerConstant.dtoListToConfList(data.getConfs(), data.getApp());
+        iceServerService.rebuildingAtlas(confUpdates, confs);
         if (!CollectionUtils.isEmpty(confUpdates)) {
             for (IceConf conf : confUpdates) {
                 IceConf oldConf = iceConfUpdateMapper.selectByPrimaryKey(conf.getId());
@@ -269,7 +269,6 @@ public class IceBaseServiceImpl implements IceBaseService {
                 }
             }
         }
-        Collection<IceConf> confs = Constant.dtoListToConfList(data.getConfs(), data.getApp());
         if (!CollectionUtils.isEmpty(confs)) {
             for (IceConf conf : confs) {
                 IceConf oldConf = iceConfMapper.selectByPrimaryKey(conf.getMixId());
@@ -281,7 +280,7 @@ public class IceBaseServiceImpl implements IceBaseService {
                 }
             }
         }
-        IceBase base = Constant.dtoToBase(data.getBase(), data.getApp());
+        IceBase base = ServerConstant.dtoToBase(data.getBase(), data.getApp());
         if (base != null) {
             IceBase oldBase = iceBaseMapper.selectByPrimaryKey(base.getId());
             base.setUpdateAt(new Date());
@@ -298,11 +297,11 @@ public class IceBaseServiceImpl implements IceBaseService {
         }
         if (!CollectionUtils.isEmpty(confs)) {
             iceServerService.updateLocalConfActiveCaches(confs);
-            transferDto.setInsertOrUpdateConfs(Constant.confListToDtoList(confs));
+            transferDto.setInsertOrUpdateConfs(ServerConstant.confListToDtoList(confs));
         }
         if (base != null) {
             iceServerService.updateLocalBaseActiveCache(base);
-            transferDto.setInsertOrUpdateBases(Collections.singletonList(Constant.baseToDto(base)));
+            transferDto.setInsertOrUpdateBases(Collections.singletonList(ServerConstant.baseToDto(base)));
         }
         iceClientManager.release(data.getApp(), transferDto);
     }

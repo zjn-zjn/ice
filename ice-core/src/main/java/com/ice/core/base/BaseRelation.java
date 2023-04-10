@@ -1,5 +1,6 @@
 package com.ice.core.base;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ice.core.utils.IceLinkedList;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -12,6 +13,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public abstract class BaseRelation extends BaseNode {
 
+    @JsonIgnore
     private IceLinkedList<BaseNode> children;
 
     protected BaseRelation() {

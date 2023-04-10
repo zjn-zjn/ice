@@ -1,7 +1,6 @@
 package com.ice.core;
 
 
-import com.ice.common.utils.JacksonUtils;
 import com.ice.core.base.BaseNode;
 import com.ice.core.cache.IceConfCache;
 import com.ice.core.cache.IceHandlerCache;
@@ -10,6 +9,7 @@ import com.ice.core.context.IcePack;
 import com.ice.core.context.IceRoam;
 import com.ice.core.handler.IceHandler;
 import com.ice.core.utils.IceExecutor;
+import com.ice.core.utils.JacksonUtils;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 

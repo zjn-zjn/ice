@@ -7,7 +7,7 @@ import com.ice.server.model.PageResult;
 import com.ice.server.service.IceAppService;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * app crud
@@ -17,7 +17,7 @@ import javax.annotation.Resource;
 @CrossOrigin
 @RestController
 public class IceAppController {
-    @Resource
+    @Autowired
     private IceAppService iceAppService;
 
     @RequestMapping(value = "/ice-server/app/list", method = RequestMethod.GET)

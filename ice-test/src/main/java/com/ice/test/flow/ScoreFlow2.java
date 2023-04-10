@@ -13,11 +13,12 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@IceNode(name = "name of ScoreFlow2", desc = "desc of ScoreFlow2")
+@IceNode(name = "比大小2号", desc = "比大小2号的描述")
 public class ScoreFlow2 extends BaseLeafRoamFlow {
 
+    @IceField(name = "比较值1", desc = "比较值1的描述")
     private Object value1;
-    @IceField(name = "name of value2", desc = "desc of value2")
+    @IceField(name = "比较值2", desc = "比较值2的描述")
     private Object value2;
 
     @Override

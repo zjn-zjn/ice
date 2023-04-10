@@ -1,11 +1,11 @@
 package com.ice.core.cache;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.ice.common.constant.Constant;
 import com.ice.common.dto.IceConfDto;
+import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
-import com.ice.common.utils.JacksonUtils;
-import com.ice.core.base.BaseLeaf;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
 import com.ice.core.leaf.base.BaseLeafFlow;
@@ -15,6 +15,7 @@ import com.ice.core.relation.*;
 import com.ice.core.relation.parallel.*;
 import com.ice.core.utils.IceBeanUtils;
 import com.ice.core.utils.IceLinkedList;
+import com.ice.core.utils.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -26,8 +27,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 public final class IceConfCache {
-
-    private static final String REGEX_COMMA = ",";
 
     private static final Map<Long, BaseNode> confMap = new ConcurrentHashMap<>();
 
@@ -68,7 +67,7 @@ public final class IceConfCache {
             } catch (Exception e) {
                 String errorNodeStr = JacksonUtils.toJsonString(confDto);
                 errors.add("node init error, conf:" + errorNodeStr);
-                log.error("node init error, conf:{} e:{}", errorNodeStr, e);
+                log.error("node init error, conf:{} e:", errorNodeStr, e);
             }
         }
         for (IceConfDto confInfo : iceConfDtos) {
@@ -78,7 +77,7 @@ public final class IceConfCache {
                 if (confInfo.getSonIds() == null || confInfo.getSonIds().isEmpty()) {
                     sonIds = Collections.emptyList();
                 } else {
-                    String[] sonIdStrs = confInfo.getSonIds().split(REGEX_COMMA);
+                    String[] sonIdStrs = confInfo.getSonIds().split(Constant.REGEX_COMMA);
                     sonIds = new ArrayList<>();
                     for (String sonStr : sonIdStrs) {
                         sonIds.add(Long.valueOf(sonStr));
@@ -261,53 +260,69 @@ public final class IceConfCache {
                 String flowFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField();
                 node = (BaseLeafFlow) JacksonUtils.readJson(flowFiled, Class.forName(confDto.getConfName()));
-                node.setIceLogName(node.getClass().getSimpleName());
+                if (node.getIceLogName() == null) {
+                    node.setIceLogName(node.getClass().getSimpleName());
+                }
+                assembleBasicInfo(node, confDto);
                 IceBeanUtils.autowireBean(node);
-                ((BaseLeaf) node).afterPropertiesSet();
+                node.afterPropertiesSet();
                 break;
             case LEAF_RESULT:
                 String resultFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField();
                 node = (BaseLeafResult) JacksonUtils.readJson(resultFiled, Class.forName(confDto.getConfName()));
-                node.setIceLogName(node.getClass().getSimpleName());
+                if (node.getIceLogName() == null) {
+                    node.setIceLogName(node.getClass().getSimpleName());
+                }
+                assembleBasicInfo(node, confDto);
                 IceBeanUtils.autowireBean(node);
-                ((BaseLeaf) node).afterPropertiesSet();
+                node.afterPropertiesSet();
                 break;
             case LEAF_NONE:
                 String noneFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField();
                 node = (BaseLeafNone) JacksonUtils.readJson(noneFiled, Class.forName(confDto.getConfName()));
-                node.setIceLogName(node.getClass().getSimpleName());
+                if (node.getIceLogName() == null) {
+                    node.setIceLogName(node.getClass().getSimpleName());
+                }
+                assembleBasicInfo(node, confDto);
                 IceBeanUtils.autowireBean(node);
-                ((BaseLeaf) node).afterPropertiesSet();
+                node.afterPropertiesSet();
                 break;
             case NONE:
                 node = new None();
                 node.setIceLogName("None");
+                assembleBasicInfo(node, confDto);
                 break;
             case AND:
                 node = new And();
                 node.setIceLogName("And");
+                assembleBasicInfo(node, confDto);
                 break;
             case TRUE:
                 node = new True();
                 node.setIceLogName("True");
+                assembleBasicInfo(node, confDto);
                 break;
             case ALL:
                 node = new All();
                 node.setIceLogName("All");
+                assembleBasicInfo(node, confDto);
                 break;
             case ANY:
                 node = new Any();
                 node.setIceLogName("Any");
+                assembleBasicInfo(node, confDto);
                 break;
             case P_ALL:
                 node = new ParallelAll();
                 node.setIceLogName("P-All");
+                assembleBasicInfo(node, confDto);
                 break;
             case P_AND:
                 node = new ParallelAnd();
                 node.setIceLogName("P-And");
+                assembleBasicInfo(node, confDto);
                 break;
             case P_ANY:
                 node = new ParallelAny();
@@ -316,29 +331,35 @@ public final class IceConfCache {
             case P_NONE:
                 node = new ParallelNone();
                 node.setIceLogName("P-None");
+                assembleBasicInfo(node, confDto);
                 break;
             case P_TRUE:
                 node = new ParallelTrue();
                 node.setIceLogName("P-True");
+                assembleBasicInfo(node, confDto);
                 break;
             default:
                 node = (BaseNode) JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField(), Class.forName(confDto.getConfName()));
-                if (node != null) {
+                if (node != null && node.getIceLogName() == null) {
                     node.setIceLogName(node.getClass().getSimpleName());
-                }
-                IceBeanUtils.autowireBean(node);
-                if (node instanceof BaseLeaf) {
-                    ((BaseLeaf) node).afterPropertiesSet();
+                    assembleBasicInfo(node, confDto);
+                    IceBeanUtils.autowireBean(node);
+                    node.afterPropertiesSet();
                 }
                 break;
         }
+        return node;
+    }
+
+    private static void assembleBasicInfo(BaseNode node, IceConfDto confDto) {
         node.setIceNodeId(confDto.getId());
         node.setIceNodeDebug(confDto.getDebug() == null || confDto.getDebug() == 1);
         node.setIceInverse(confDto.getInverse() != null && confDto.getInverse());
         node.setIceTimeTypeEnum(TimeTypeEnum.getEnumDefaultNone(confDto.getTimeType()));
         node.setIceStart(confDto.getStart() == null ? 0 : confDto.getStart());
         node.setIceEnd(confDto.getEnd() == null ? 0 : confDto.getEnd());
-        return node;
+        node.setIceErrorStateEnum(NodeRunStateEnum.getEnumDefaultShutdown(confDto.getErrorState()));
+        node.setIceType(confDto.getType());
     }
 }

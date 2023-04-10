@@ -5,23 +5,23 @@ import com.ice.server.nio.ha.IceNioServerHa;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author waitmoon
  */
-@Component
 @Slf4j
-public class IceNioServerInit implements InitializingBean, DisposableBean {
+@Component
+public class IceNioServerInit implements CommandLineRunner, DisposableBean {
 
-    @Resource
+    @Autowired
     private IceServerProperties properties;
 
-    @Resource
+    @Autowired
     private IceServerService serverService;
 
     @Autowired(required = false)
@@ -29,8 +29,18 @@ public class IceNioServerInit implements InitializingBean, DisposableBean {
 
     private IceNioServer iceNioServer;
 
+    public static volatile boolean ready = false;
+
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void destroy() throws Exception {
+        if (iceNioServer != null) {
+            iceNioServer.destroy();
+        }
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        serverService.refresh();
         iceNioServer = new IceNioServer(properties, serverService, serverHa);
         try {
             iceNioServer.start();
@@ -38,13 +48,7 @@ public class IceNioServerInit implements InitializingBean, DisposableBean {
             iceNioServer.destroy();
             throw new RuntimeException("ice nio server start error", t);
         }
-    }
-
-    @Override
-    public void destroy() throws Exception {
-        if (iceNioServer != null) {
-            iceNioServer.destroy();
-        }
+        ready = true;
     }
 }
  

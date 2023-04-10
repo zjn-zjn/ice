@@ -14,6 +14,10 @@ public class IceConf {
 
     private String sonIds;
 
+    private String linkIds;
+
+    private String unlinkIds;
+
     private Byte type;
 
     private Byte status;
@@ -34,10 +38,13 @@ public class IceConf {
 
     private Byte debug;
 
+    private Byte errorState;
+
     private Date createAt;
 
     private Date updateAt;
 
+    //mix from update/conf
     public Long getMixId() {
         if (confId != null) {
             return confId;
@@ -45,7 +52,7 @@ public class IceConf {
         return id;
     }
 
-    public boolean isUpdate() {
+    public boolean isUpdatingConf() {
         return confId != null;
     }
 
