@@ -763,17 +763,41 @@ public class IceConfServiceImpl implements IceConfService {
             if (root == null) {
                 throw new ErrorCodeException(ErrorCode.CONF_NOT_FOUND, app, "confId", confId);
             }
-            IceShowConf showConf = new IceShowConf();
-            showConf.setApp(app);
-            showConf.setRoot(root);
-            return showConf;
+            IceShowConf serverConf = new IceShowConf();
+            serverConf.setApp(app);
+            serverConf.setRoot(root);
+            addUniqueKey(root, "r");
+            return serverConf;
         }
         IceShowConf clientConf = iceNioClientManager.getClientShowConf(app, confId, address);
         if (clientConf == null || clientConf.getRoot() == null) {
             throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, address);
         }
         assemble(app, clientConf.getRoot(), address);
+        addUniqueKey(clientConf.getRoot(), "r");
         return clientConf;
+    }
+
+    /**
+     * add uniqueKey for web ui
+     *
+     * @param node   node
+     * @param prefix prefix
+     */
+    private void addUniqueKey(IceShowNode node, String prefix) {
+        if (node == null) {
+            return;
+        }
+        String uniqueKey = prefix + "_" + node.getShowConf().getNodeId() + "_" + (node.getIndex() == null ? 0 : node.getIndex());
+        node.getShowConf().setUniqueKey(uniqueKey);
+        if (node.getForward() != null) {
+            addUniqueKey(node.getForward(), uniqueKey + "_f");
+        }
+        if (!CollectionUtils.isEmpty(node.getChildren())) {
+            for (IceShowNode child : node.getChildren()) {
+                addUniqueKey(child, uniqueKey);
+            }
+        }
     }
 
     private void assemble(Integer app, IceShowNode clientNode, String address) {

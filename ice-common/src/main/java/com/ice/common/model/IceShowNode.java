@@ -37,6 +37,8 @@ public class IceShowNode {
      */
     @Data
     public static final class NodeShowConf {
+        private String uniqueKey;
+
         private Long nodeId;
 
         private Boolean debug;
