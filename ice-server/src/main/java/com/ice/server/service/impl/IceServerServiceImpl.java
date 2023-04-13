@@ -641,6 +641,9 @@ public class IceServerServiceImpl implements IceServerService {
     }
 
     private void assembleAtlas(IceConf conf, Map<Long, Map<Long, Integer>> atlasMap) {
+        if (conf == null) {
+            return;
+        }
         atlasMap.remove(conf.getMixId());
         if (NodeTypeEnum.isRelation(conf.getType()) && StringUtils.hasLength(conf.getSonIds())) {
             String[] sonIdStrs = conf.getSonIds().split(Constant.REGEX_COMMA);
