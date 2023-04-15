@@ -34,7 +34,7 @@ public class AviatorFlow extends BaseLeafRoamFlow {
     @Override
     public void afterPropertiesSet() {
         if (exp != null) {
-            this.compiledExpression = AviatorEvaluator.compile(exp);
+            this.compiledExpression = AviatorEvaluator.compile(exp, true);
         }
     }
 
