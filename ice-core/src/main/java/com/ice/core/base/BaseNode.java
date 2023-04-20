@@ -1,8 +1,8 @@
 package com.ice.core.base;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.enums.TimeTypeEnum;
+import com.ice.core.annotation.IceIgnore;
 import com.ice.core.context.IceContext;
 import com.ice.core.utils.IceErrorHandle;
 import com.ice.core.utils.IceTimeUtils;
@@ -19,53 +19,53 @@ public abstract class BaseNode {
     /*
      * nodeId
      */
-    @JsonIgnore
+    @IceIgnore
     private long iceNodeId;
     /*
      * time type
      */
-    @JsonIgnore
+    @IceIgnore
     private TimeTypeEnum iceTimeTypeEnum;
     /*
      * node start run time
      */
-    @JsonIgnore
+    @IceIgnore
     private long iceStart;
     /*
      * node end run time
      */
-    @JsonIgnore
+    @IceIgnore
     private long iceEnd;
     /*
      * iceNodeDebug(print process info)
      */
-    @JsonIgnore
+    @IceIgnore
     private boolean iceNodeDebug;
     /*
      * inverse
      * 1.only effect TRUE&FALSE
      * 2.not effect on OUT_TIME&NONE
      */
-    @JsonIgnore
+    @IceIgnore
     private boolean iceInverse;
     /*
      * forward node
      * if forward return FALSE then this node reject run
      * forward node the same of combined with relation-and
      */
-    @JsonIgnore
+    @IceIgnore
     private BaseNode iceForward;
 
-    @JsonIgnore
+    @IceIgnore
     private String iceLogName;
     /*
      * node error handle res from config
      * this config is high priority than custom error handle method
      */
-    @JsonIgnore
+    @IceIgnore
     private NodeRunStateEnum iceErrorStateEnum;
 
-    @JsonIgnore
+    @IceIgnore
     private byte iceType;
 
     /*
