@@ -77,11 +77,13 @@ public final class IceConfCache {
                 if (confInfo.getSonIds() == null || confInfo.getSonIds().isEmpty()) {
                     sonIds = Collections.emptyList();
                 } else {
+                    BaseRelation relation = (BaseRelation) tmpConfMap.get(confInfo.getId());
                     String[] sonIdStrs = confInfo.getSonIds().split(Constant.REGEX_COMMA);
-                    sonIds = new ArrayList<>();
+                    sonIds = new ArrayList<>(sonIdStrs.length);
                     for (String sonStr : sonIdStrs) {
                         sonIds.add(Long.valueOf(sonStr));
                     }
+                    relation.setIceSonIds(sonIds);
                     for (Long sonId : sonIds) {
                         Set<Long> parentIds = parentIdsMap.get(sonId);
                         if (parentIds == null || parentIds.isEmpty()) {
@@ -98,7 +100,7 @@ public final class IceConfCache {
                             errors.add("sonId:" + sonId + " not exist conf:" + errorModeStr);
                             log.error("sonId:{} not exist please check! conf:{}", sonId, errorModeStr);
                         } else {
-                            ((BaseRelation) tmpConfMap.get(confInfo.getId())).getChildren().add(tmpNode);
+                            relation.getChildren().add(tmpNode);
                         }
                     }
                 }
@@ -186,17 +188,17 @@ public final class IceConfCache {
                     } else {
                         if (tmpParentNode instanceof BaseRelation) {
                             BaseRelation relation = (BaseRelation) tmpParentNode;
-                            IceLinkedList<BaseNode> children = relation.getChildren();
-                            if (children != null && !children.isEmpty()) {
-                                IceLinkedList.Node<BaseNode> listNode = children.getFirst();
-                                while (listNode != null) {
-                                    BaseNode node = listNode.item;
-                                    if (node != null && node.findIceNodeId() == confInfo.getId()) {
-                                        listNode.item = confMap.get(confInfo.getId());
+                            List<Long> sonIds = relation.getIceSonIds();
+                            IceLinkedList<BaseNode> children = new IceLinkedList<>();
+                            if (sonIds != null && !sonIds.isEmpty()) {
+                                for (Long sonId : relation.getIceSonIds()) {
+                                    BaseNode child = confMap.get(sonId);
+                                    if (child != null) {
+                                        children.add(child);
                                     }
-                                    listNode = listNode.next;
                                 }
                             }
+                            relation.setChildren(children);
                         } else {
                             //parent are not relation node
                             removeParentIds.add(parentId);
@@ -231,24 +233,6 @@ public final class IceConfCache {
 
     public static void delete(Collection<Long> ids) {
         for (Long id : ids) {
-            Set<Long> parentIds = parentIdsMap.get(id);
-            if (parentIds != null && !parentIds.isEmpty()) {
-                for (Long parentId : parentIds) {
-                    BaseNode parentNode = confMap.get(parentId);
-                    BaseRelation relation = (BaseRelation) parentNode;
-                    IceLinkedList<BaseNode> children = relation.getChildren();
-                    if (children != null && !children.isEmpty()) {
-                        IceLinkedList.Node<BaseNode> listNode = children.getFirst();
-                        while (listNode != null) {
-                            BaseNode node = listNode.item;
-                            if (node != null && node.findIceNodeId() == id) {
-                                children.remove(node);
-                            }
-                            listNode = listNode.next;
-                        }
-                    }
-                }
-            }
             confMap.remove(id);
         }
     }

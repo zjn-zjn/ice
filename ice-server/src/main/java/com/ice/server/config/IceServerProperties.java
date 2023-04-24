@@ -19,8 +19,6 @@ public class IceServerProperties {
     private int maxFrameLength = 16 * 1024 * 1024;
     //timeout for client response
     private int clientRspTimeOut = 3000;
-    //default recycle on 3:00 echo day
-    private String recycleCron = "0 0 3 * * ?";
     //ice thread pool
     private IceServerThreadPoolProperties pool = new IceServerThreadPoolProperties();
 

@@ -743,9 +743,10 @@ public class IceServerServiceImpl implements IceServerService {
 
     /**
      * recycle unreachable node
+     * default recycle on 3:00 echo day
      */
-    @Scheduled(cron = "${ice.recycle-cron}")
-    private void recycle() {
+    @Scheduled(cron = "${ice.recycle-cron:0 0 3 * * ?}")
+    public void recycle() {
         log.info("ice recycle start");
         long start = System.currentTimeMillis();
         //get all app to recycle
