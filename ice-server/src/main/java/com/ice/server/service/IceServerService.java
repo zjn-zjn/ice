@@ -19,6 +19,8 @@ public interface IceServerService {
 
     IceConf getActiveConfById(Integer app, Long confId);
 
+    IceConf getUpdateConfById(Integer app, Long confId, Long iceId);
+
     List<IceConf> getMixConfListByIds(Integer app, Set<Long> confSet, long iceId);
 
     IceConf getMixConfById(int app, long confId, long iceId);
@@ -35,7 +37,7 @@ public interface IceServerService {
 
     void updateLocalConfActiveCaches(Collection<IceConf> confs);
 
-    void updateLocalBaseActiveCache(IceBase base);
+    void updateLocalBaseCache(IceBase base);
 
     Map<String, Integer> getLeafClassMap(Integer app, Byte type);
 

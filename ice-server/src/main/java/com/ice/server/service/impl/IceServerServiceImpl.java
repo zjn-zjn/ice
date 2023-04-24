@@ -8,6 +8,7 @@ import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.IceShowNode;
 import com.ice.common.model.LeafNodeInfo;
+import com.ice.common.model.Pair;
 import com.ice.core.utils.JacksonUtils;
 import com.ice.server.constant.ServerConstant;
 import com.ice.server.dao.mapper.IceAppMapper;
@@ -24,6 +25,7 @@ import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.nio.IceNioClientManager;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -42,13 +44,15 @@ public class IceServerServiceImpl implements IceServerService {
 
     /*
      * key:app value baseList
+     * keep except deleted
      */
-    private Map<Integer, Map<Long, IceBase>> baseActiveMap;
+    private Map<Integer, Map<Long, IceBase>> baseMap;
     /*
+     * used avoid quote in different ice circle
      * key: confId(include updating)
      * value: linkNextMap
      */
-    private Map<Long, Map<Long, Integer>> updatingAtlasMap;
+    private Map<Long, Map<Long, Integer>> updateAtlasMap;
     /*
      * used avoid quote in different ice circle
      * key: confId(exclude updating)
@@ -59,7 +63,14 @@ public class IceServerServiceImpl implements IceServerService {
      * key:app value conf
      */
     private Map<Integer, Map<Long, IceConf>> confActiveMap;
-
+    /*
+     * key: app
+     * value:
+     *    key: iceId
+     *    value:
+     *        key:confId
+     *        value: conf
+     */
     private Map<Integer, Map<Long, Map<Long, IceConf>>> confUpdateMap;
 
     private Map<Integer, Map<Byte, Map<String, Integer>>> leafClassMap;
@@ -85,7 +96,7 @@ public class IceServerServiceImpl implements IceServerService {
     }
 
     private boolean updatingHaveCircle(Long nodeId, Long linkId) {
-        Map<Long, Integer> linkNextMap = updatingAtlasMap.get(linkId);
+        Map<Long, Integer> linkNextMap = updateAtlasMap.get(linkId);
         if (!CollectionUtils.isEmpty(linkNextMap)) {
             Set<Long> linkNext = linkNextMap.keySet();
             if (linkNext.contains(nodeId)) {
@@ -132,7 +143,7 @@ public class IceServerServiceImpl implements IceServerService {
      * nodeId next add linkId count
      */
     public synchronized void link(Long nodeId, Long linkId) {
-        link(nodeId, linkId, updatingAtlasMap);
+        link(nodeId, linkId, updateAtlasMap);
     }
 
     private synchronized void link(Long nodeId, Long linkId, Map<Long, Map<Long, Integer>> atlasMap) {
@@ -158,14 +169,14 @@ public class IceServerServiceImpl implements IceServerService {
      * nodeId next reduce linkId count
      */
     public synchronized void unlink(Long nodeId, Long linkId) {
-        Map<Long, Integer> nodeNextMap = updatingAtlasMap.get(nodeId);
+        Map<Long, Integer> nodeNextMap = updateAtlasMap.get(nodeId);
         if (nodeNextMap != null) {
             Integer nodeNextCount = nodeNextMap.get(linkId);
             if (nodeNextCount != null) {
                 if (nodeNextCount <= 1) {
                     nodeNextMap.remove(linkId);
                     if (CollectionUtils.isEmpty(nodeNextMap)) {
-                        updatingAtlasMap.remove(nodeId);
+                        updateAtlasMap.remove(nodeId);
                     }
                 } else {
                     nodeNextMap.put(linkId, nodeNextCount - 1);
@@ -303,6 +314,18 @@ public class IceServerServiceImpl implements IceServerService {
         Map<Long, IceConf> confMap = confActiveMap.get(app);
         if (!CollectionUtils.isEmpty(confMap)) {
             return confMap.get(confId);
+        }
+        return null;
+    }
+
+    @Override
+    public IceConf getUpdateConfById(Integer app, Long confId, Long iceId) {
+        Map<Long, Map<Long, IceConf>> updateMap = confUpdateMap.get(app);
+        if (!CollectionUtils.isEmpty(updateMap)) {
+            Map<Long, IceConf> confUpdateMap = updateMap.get(iceId);
+            if (!CollectionUtils.isEmpty(confUpdateMap)) {
+                return confUpdateMap.get(confId);
+            }
         }
         return null;
     }
@@ -467,7 +490,7 @@ public class IceServerServiceImpl implements IceServerService {
 
     @Override
     public synchronized IceBase getActiveBaseById(Integer app, Long iceId) {
-        Map<Long, IceBase> confMap = baseActiveMap.get(app);
+        Map<Long, IceBase> confMap = baseMap.get(app);
         if (!CollectionUtils.isEmpty(confMap)) {
             return confMap.get(iceId);
         }
@@ -498,8 +521,20 @@ public class IceServerServiceImpl implements IceServerService {
     }
 
     @Override
-    public synchronized void updateLocalBaseActiveCache(IceBase base) {
-        baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
+    public synchronized void updateLocalBaseCache(IceBase base) {
+        if (base.getStatus() == StatusEnum.DELETED.getStatus()) {
+            Map<Long, IceBase> map = baseMap.get(base.getApp());
+            if (CollectionUtils.isEmpty(map)) {
+                return;
+            }
+            map.remove(base.getId());
+            if (CollectionUtils.isEmpty(map)) {
+                baseMap.remove(base.getApp());
+                return;
+            }
+            return;
+        }
+        baseMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
     }
 
     @Override
@@ -554,11 +589,11 @@ public class IceServerServiceImpl implements IceServerService {
         /*baseList*/
         IceBaseExample baseExample = new IceBaseExample();
         IceBaseExample.Criteria baseCriteria = baseExample.createCriteria();
-        baseCriteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus());
+        baseCriteria.andStatusIn(Arrays.asList(StatusEnum.ONLINE.getStatus(), StatusEnum.OFFLINE.getStatus()));
         List<IceBase> baseList = baseMapper.selectByExample(baseExample);
         if (!CollectionUtils.isEmpty(baseList)) {
             for (IceBase base : baseList) {
-                baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
+                baseMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
             }
         }
         /*UpdateList*/
@@ -571,7 +606,7 @@ public class IceServerServiceImpl implements IceServerService {
             for (IceConf conf : confUpdateList) {
                 updateIdSet.add(conf.getMixId());
                 confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
-                assembleAtlas(conf, updatingAtlasMap);
+                assembleAtlas(conf, updateAtlasMap);
                 assembleLeafClass(conf);
             }
         }
@@ -584,7 +619,7 @@ public class IceServerServiceImpl implements IceServerService {
             for (IceConf conf : confList) {
                 confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
                 if (!updateIdSet.contains(conf.getMixId())) {
-                    assembleAtlas(conf, updatingAtlasMap);
+                    assembleAtlas(conf, updateAtlasMap);
                 }
                 assembleAtlas(conf, activeAtlasMap);
                 assembleLeafClass(conf);
@@ -594,18 +629,18 @@ public class IceServerServiceImpl implements IceServerService {
 
     @Override
     public synchronized void cleanConfigCache() {
-        baseActiveMap = new HashMap<>();
+        baseMap = new HashMap<>();
         leafClassMap = new HashMap<>();
         confUpdateMap = new HashMap<>();
         confActiveMap = new HashMap<>();
-        updatingAtlasMap = new HashMap<>();
+        updateAtlasMap = new HashMap<>();
         activeAtlasMap = new HashMap<>();
     }
 
     @Override
     public synchronized void rebuildingAtlas(Collection<IceConf> updateList, Collection<IceConf> confList) {
         Set<Long> updateIdSet = new HashSet<>();
-        Map<Long, Map<Long, Integer>> tmpAtlasMap = getAtlasMapCopy(updatingAtlasMap);
+        Map<Long, Map<Long, Integer>> tmpAtlasMap = getAtlasMapCopy(updateAtlasMap);
         Map<Long, Map<Long, Integer>> tmpRealAtlasMap = getAtlasMapCopy(activeAtlasMap);
         if (!CollectionUtils.isEmpty(updateList)) {
             for (IceConf updateConf : updateList) {
@@ -624,7 +659,7 @@ public class IceServerServiceImpl implements IceServerService {
                 }
             }
         }
-        updatingAtlasMap = tmpAtlasMap;
+        updateAtlasMap = tmpAtlasMap;
         activeAtlasMap = tmpRealAtlasMap;
     }
 
@@ -690,7 +725,7 @@ public class IceServerServiceImpl implements IceServerService {
     }
 
     public Collection<IceBaseDto> getActiveBasesByApp(Integer app) {
-        Map<Long, IceBase> map = baseActiveMap.get(app);
+        Map<Long, IceBase> map = baseMap.get(app);
         if (map == null) {
             return new ArrayList<>(1);
         }
@@ -704,5 +739,212 @@ public class IceServerServiceImpl implements IceServerService {
         transferDto.setInsertOrUpdateConfs(this.getActiveConfsByApp(app));
         transferDto.setVersion(version);
         return transferDto;
+    }
+
+    /**
+     * recycle unreachable node
+     */
+    @Scheduled(cron = "${ice.recycle-cron}")
+    private void recycle() {
+        log.info("ice recycle start");
+        long start = System.currentTimeMillis();
+        //get all app to recycle
+        Set<Integer> appSet = new HashSet<>();
+        appSet.addAll(confActiveMap.keySet());
+        appSet.addAll(confUpdateMap.keySet());
+        for (Integer app : appSet) {
+            //get unreachable node id by app
+            Pair<Set<Long>, Set<Long>> pair = getUnReachableIds(app);
+            if (!CollectionUtils.isEmpty(pair.getKey())) {
+                //recycle active conf
+                log.info("recycle app:{}, active conf ids:{}", app, Arrays.toString(pair.getKey().toArray()));
+                deleteClientConf(app, pair.getKey());
+                IceConfExample example = new IceConfExample();
+                example.createCriteria().andIdIn(pair.getKey());
+                IceConf conf = new IceConf();
+                conf.setStatus(StatusEnum.DELETED.getStatus());
+                conf.setUpdateAt(new Date());
+                confMapper.recycle(conf, example);
+                cleanActiveConf(app, pair.getKey());
+                log.info("recycle active conf success app:{}", app);
+            }
+            if (!CollectionUtils.isEmpty(pair.getValue())) {
+                //recycle update conf
+                log.info("recycle app:{}, update conf ids:{}", app, Arrays.toString(pair.getValue().toArray()));
+                IceConfExample example = new IceConfExample();
+                example.createCriteria().andConfIdIn(pair.getValue());
+                IceConf updateConf = new IceConf();
+                updateConf.setStatus(StatusEnum.DELETED.getStatus());
+                updateConf.setUpdateAt(new Date());
+                confUpdateMapper.recycle(updateConf, example);
+                cleanUpdateConf(app, pair.getValue());
+                log.info("recycle update conf success app:{}", app);
+            }
+        }
+        log.info("ice recycle end {}ms", System.currentTimeMillis() - start);
+    }
+
+    /**
+     * clean remote client`s unreachable node
+     *
+     * @param app     app
+     * @param confIds to clean node id
+     */
+    private void deleteClientConf(Integer app, Set<Long> confIds) {
+        IceTransferDto dto = new IceTransferDto();
+        dto.setDeleteConfIds(confIds);
+        dto.setVersion(getVersion());
+        iceNioClientManager.release(app, dto);
+    }
+
+    /**
+     * clean local unreachable active conf & atlas
+     *
+     * @param app     app
+     * @param confIds to clean node id
+     */
+    private synchronized void cleanActiveConf(Integer app, Set<Long> confIds) {
+        Map<Long, IceConf> map = confActiveMap.get(app);
+        if (!CollectionUtils.isEmpty(map)) {
+            for (Long id : confIds) {
+                map.remove(id);
+                activeAtlasMap.remove(id);
+            }
+            if (CollectionUtils.isEmpty(map)) {
+                confActiveMap.remove(app);
+            }
+        }
+    }
+
+    /**
+     * clean local unreachable updating conf & atlas
+     *
+     * @param app     app
+     * @param confIds to clean node id
+     */
+    private synchronized void cleanUpdateConf(Integer app, Set<Long> confIds) {
+        Map<Long, Map<Long, IceConf>> iceIdMap = confUpdateMap.get(app);
+        if (!CollectionUtils.isEmpty(iceIdMap)) {
+            for (Map.Entry<Long, Map<Long, IceConf>> entry : iceIdMap.entrySet()) {
+                if (!CollectionUtils.isEmpty(entry.getValue())) {
+                    for (Long id : confIds) {
+                        entry.getValue().remove(id);
+                        updateAtlasMap.remove(id);
+                    }
+                }
+                if (CollectionUtils.isEmpty(entry.getValue())) {
+                    iceIdMap.remove(entry.getKey());
+                }
+            }
+            if (CollectionUtils.isEmpty(iceIdMap)) {
+                confUpdateMap.remove(app);
+            }
+        }
+    }
+
+    /**
+     * get all unreachable node by app
+     *
+     * @param app app
+     * @return unreachable conf & updating
+     */
+    private synchronized Pair<Set<Long>, Set<Long>> getUnReachableIds(Integer app) {
+        Set<Long> reachableIds = getReachableIds(app);
+        Set<Long> unReachableConfIds = new HashSet<>();
+        Set<Long> unReachableUpdateConfIds = new HashSet<>();
+        if (!CollectionUtils.isEmpty(confActiveMap)) {
+            Map<Long, IceConf> map = confActiveMap.get(app);
+            if (!CollectionUtils.isEmpty(map)) {
+                for (Long confId : map.keySet()) {
+                    if (!reachableIds.contains(confId)) {
+                        //unreachable active conf
+                        unReachableConfIds.add(confId);
+                    }
+                }
+            }
+        }
+        if (!CollectionUtils.isEmpty(confUpdateMap)) {
+            Map<Long, Map<Long, IceConf>> iceIdMap = confUpdateMap.get(app);
+            if (!CollectionUtils.isEmpty(iceIdMap)) {
+                for (Map<Long, IceConf> map : iceIdMap.values()) {
+                    //no need to judge which iceId`s conf should recycle, recycle every updating unreachable node
+                    if (!CollectionUtils.isEmpty(map)) {
+                        for (Long confId : map.keySet()) {
+                            if (!reachableIds.contains(confId)) {
+                                //unreachable update conf
+                                unReachableConfIds.add(confId);
+                                unReachableUpdateConfIds.add(confId);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return new Pair<>(unReachableConfIds, unReachableUpdateConfIds);
+    }
+
+    /**
+     * get all reachable node by app
+     * get reachable from root
+     * @param app app
+     * @return all reachable node id
+     */
+    private synchronized Set<Long> getReachableIds(Integer app) {
+        Map<Long, Long> rootIdIceIdMap = getReachableRootIdIceIdMap(app);
+        if (CollectionUtils.isEmpty(rootIdIceIdMap)) {
+            return Collections.emptySet();
+        }
+        Set<Long> reachableIds = new HashSet<>();
+        for (Map.Entry<Long, Long> entry : rootIdIceIdMap.entrySet()) {
+            assembleReachableIds(reachableIds, app, entry.getValue(), entry.getKey());
+        }
+        return reachableIds;
+    }
+
+    private synchronized void assembleReachableIds(Set<Long> reachableIds, Integer app, Long iceId, Long confId) {
+        reachableIds.add(confId);
+        IceConf activeConf = getActiveConfById(app, confId);
+        //assemble active conf reachableIds
+        assembleConfReachableIds(activeConf, reachableIds, app, iceId);
+        IceConf updateConf = getUpdateConfById(app, confId, iceId);
+        //assemble update conf reachableIds
+        assembleConfReachableIds(updateConf, reachableIds, app, iceId);
+    }
+
+    private synchronized void assembleConfReachableIds(IceConf conf, Set<Long> reachableIds, Integer app, Long iceId) {
+        if (conf != null) {
+            Set<Long> sonIds = conf.getSonLongIds();
+            if (!CollectionUtils.isEmpty(sonIds)) {
+                for (Long sonId : sonIds) {
+                    assembleReachableIds(reachableIds, app, iceId, sonId);
+                }
+            }
+            if (conf.getForwardId() != null) {
+                assembleReachableIds(reachableIds, app, iceId, conf.getForwardId());
+            }
+        }
+    }
+
+    /**
+     * get all reachable root by app
+     * which base root not on delete status
+     * @param app app
+     * @return reachable root
+     */
+    private synchronized Map<Long, Long> getReachableRootIdIceIdMap(Integer app) {
+        if (CollectionUtils.isEmpty(baseMap)) {
+            return Collections.emptyMap();
+        }
+        Map<Long, IceBase> map = baseMap.get(app);
+        if (CollectionUtils.isEmpty(map)) {
+            return Collections.emptyMap();
+        }
+        Map<Long, Long> rootIdIceIdMap = new HashMap<>();
+        for (IceBase base : map.values()) {
+            if (base.getConfId() != null) {
+                rootIdIceIdMap.put(base.getId(), base.getConfId());
+            }
+        }
+        return rootIdIceIdMap;
     }
 }

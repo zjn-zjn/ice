@@ -14,6 +14,7 @@ import com.ice.common.model.LeafNodeInfo;
 import com.ice.core.utils.JacksonUtils;
 import com.ice.server.dao.model.IceBase;
 import com.ice.server.dao.model.IceConf;
+import com.ice.server.enums.StatusEnum;
 import com.ice.server.model.IceEditNode;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -119,7 +120,7 @@ public final class ServerConstant {
         base.setEnd(dto.getEnd() == null ? null : new Date(dto.getEnd()));
         base.setTimeType(dto.getTimeType() == null ? TimeTypeEnum.NONE.getType() : dto.getTimeType());
         base.setScenes(dto.getScenes());
-        base.setStatus((byte) 1);
+        base.setStatus(StatusEnum.ONLINE.getStatus());
         return base;
     }
 
@@ -144,7 +145,7 @@ public final class ServerConstant {
         }
         conf.setInverse(dto.getInverse() == null ? (byte) 0 : (dto.getInverse() ? (byte) 0 : (byte) 1));
         conf.setType(dto.getType());
-        conf.setStatus((byte) 1);
+        conf.setStatus(StatusEnum.ONLINE.getStatus());
         return conf;
     }
 

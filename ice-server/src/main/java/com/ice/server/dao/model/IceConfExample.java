@@ -153,6 +153,11 @@ public class IceConfExample {
             return (Criteria) this;
         }
 
+        public Criteria andConfIdIn(Set<Long> values) {
+            addCriterion("conf_id in", values, "conf_id");
+            return (Criteria) this;
+        }
+
         public Criteria andIdNotIn(List<Long> values) {
             addCriterion("id not in", values, "id");
             return (Criteria) this;

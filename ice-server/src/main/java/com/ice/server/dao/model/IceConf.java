@@ -1,8 +1,13 @@
 package com.ice.server.dao.model;
 
+import com.ice.common.constant.Constant;
+import com.ice.common.enums.NodeTypeEnum;
 import lombok.Data;
+import org.springframework.util.StringUtils;
 
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 public class IceConf {
@@ -13,10 +18,6 @@ public class IceConf {
     private String name;
 
     private String sonIds;
-
-    private String linkIds;
-
-    private String unlinkIds;
 
     private Byte type;
 
@@ -59,4 +60,18 @@ public class IceConf {
     //only in ice_conf_update
     private Long iceId;
     private Long confId;
+
+
+    public Set<Long> getSonLongIds() {
+        if (NodeTypeEnum.isRelation(this.getType()) && StringUtils.hasLength(this.getSonIds())) {
+            //relation node
+            String[] sonIdStrs = this.getSonIds().split(Constant.REGEX_COMMA);
+            Set<Long> sonLongIds = new HashSet<>();
+            for (String sonStr : sonIdStrs) {
+                sonLongIds.add(Long.valueOf(sonStr));
+            }
+            return sonLongIds;
+        }
+        return null;
+    }
 }

@@ -393,6 +393,16 @@
             <include refid="Example_Where_Clause"/>
         </if>
     </select>
+    <update id="recycle" parameterType="map">
+        update ice_conf_update
+        <set>
+            status = #{record.status,jdbcType=TINYINT},
+            update_at = #{record.updateAt,jdbcType=TIMESTAMP},
+        </set>
+        <if test="_parameter != null">
+            <include refid="Update_By_Example_Where_Clause"/>
+        </if>
+    </update>
     <update id="updateByExampleSelective" parameterType="map">
         update ice_conf_update
         <set>

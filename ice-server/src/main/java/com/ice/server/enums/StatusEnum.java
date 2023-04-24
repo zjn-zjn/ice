@@ -7,10 +7,11 @@ import java.util.Map;
  * @author waitmoon
  */
 public enum StatusEnum {
+    OFFLINE((byte) 0),
 
     ONLINE((byte) 1),
 
-    OFFLINE((byte) 0);
+    DELETED((byte) 2);
 
     private static final Map<Byte, StatusEnum> MAP = new HashMap<>();
 

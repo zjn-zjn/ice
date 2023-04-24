@@ -30,10 +30,8 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Set;
+
+import java.util.*;
 
 /**
  * @author waitmoon
@@ -83,7 +81,7 @@ public class IceBaseServiceImpl implements IceBaseService {
         IceBaseExample example = new IceBaseExample();
         example.setOrderByClause("update_at desc");
         IceBaseExample.Criteria criteria = example.createCriteria();
-        criteria.andStatusEqualTo((byte) 1);
+        criteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus());
         if (search.getApp() != null) {
             criteria.andAppEqualTo(search.getApp());
         }
@@ -101,12 +99,12 @@ public class IceBaseServiceImpl implements IceBaseService {
     }
 
     @Override
-//    @Transactional
+    @Transactional
     public Long baseEdit(IceBase base) {
-        timeHandle(base);
+        timeCheck(base);
         base.setDebug(base.getDebug() == null ? 0 : base.getDebug());
         base.setScenes(base.getScenes() == null ? "" : base.getScenes());
-        base.setStatus(base.getStatus() == null ? 1 : base.getStatus());
+        base.setStatus(base.getStatus() == null ? StatusEnum.ONLINE.getStatus() : base.getStatus());
         base.setTimeType(base.getTimeType() == null ? 1 : base.getTimeType());
         base.setPriority(1L);
         IceTransferDto transferDto = new IceTransferDto();
@@ -136,14 +134,18 @@ public class IceBaseServiceImpl implements IceBaseService {
             base.setConfId(origin.getConfId());
             iceBaseMapper.updateByPrimaryKey(base);
         }
-        iceServerService.updateLocalBaseActiveCache(base);
-        transferDto.setInsertOrUpdateBases(Collections.singletonList(ServerConstant.baseToDto(base)));
+        if (base.getStatus() == StatusEnum.ONLINE.getStatus()) {
+            transferDto.setInsertOrUpdateBases(Collections.singletonList(ServerConstant.baseToDto(base)));
+        } else {
+            transferDto.setDeleteBaseIds(Collections.singletonList(base.getId()));
+        }
+        iceServerService.updateLocalBaseCache(base);
         transferDto.setVersion(iceServerService.getVersion());
         iceNioClientManager.release(base.getApp(), transferDto);
         return base.getId();
     }
 
-    private static void timeHandle(IceBase base) {
+    private static void timeCheck(IceBase base) {
         base.setUpdateAt(new Date());
         TimeTypeEnum typeEnum = TimeTypeEnum.getEnum(base.getTimeType());
         if (typeEnum == null) {
@@ -300,8 +302,12 @@ public class IceBaseServiceImpl implements IceBaseService {
             transferDto.setInsertOrUpdateConfs(ServerConstant.confListToDtoList(confs));
         }
         if (base != null) {
-            iceServerService.updateLocalBaseActiveCache(base);
-            transferDto.setInsertOrUpdateBases(Collections.singletonList(ServerConstant.baseToDto(base)));
+            if (base.getStatus() == StatusEnum.ONLINE.getStatus()) {
+                transferDto.setInsertOrUpdateBases(Collections.singletonList(ServerConstant.baseToDto(base)));
+            } else {
+                transferDto.setDeleteBaseIds(Collections.singletonList(base.getId()));
+            }
+            iceServerService.updateLocalBaseCache(base);
         }
         iceClientManager.release(data.getApp(), transferDto);
     }

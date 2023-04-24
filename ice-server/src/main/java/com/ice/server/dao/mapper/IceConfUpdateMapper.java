@@ -32,4 +32,6 @@ public interface IceConfUpdateMapper {
     int updateByPrimaryKeySelective(IceConf record);
 
     int updateByPrimaryKey(IceConf record);
+
+    int recycle(@Param("record") IceConf record, @Param("example") IceConfExample example);
 }
