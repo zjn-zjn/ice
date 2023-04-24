@@ -886,6 +886,7 @@ public class IceServerServiceImpl implements IceServerService {
     /**
      * get all reachable node by app
      * get reachable from root
+     *
      * @param app app
      * @return all reachable node id
      */
@@ -928,6 +929,7 @@ public class IceServerServiceImpl implements IceServerService {
     /**
      * get all reachable root by app
      * which base root not on delete status
+     *
      * @param app app
      * @return reachable root
      */
@@ -942,7 +944,7 @@ public class IceServerServiceImpl implements IceServerService {
         Map<Long, Long> rootIdIceIdMap = new HashMap<>();
         for (IceBase base : map.values()) {
             if (base.getConfId() != null) {
-                rootIdIceIdMap.put(base.getId(), base.getConfId());
+                rootIdIceIdMap.put(base.getConfId(), base.getId());
             }
         }
         return rootIdIceIdMap;
