@@ -33,5 +33,5 @@ public interface IceConfMapper {
 
     int updateByPrimaryKey(IceConf record);
 
-    int recycle(@Param("record") IceConf record, @Param("example") IceConfExample example);
+    int softRecycle(@Param("record") IceConf record, @Param("example") IceConfExample example);
 }

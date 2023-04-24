@@ -10,6 +10,7 @@ import com.ice.common.model.IceShowNode;
 import com.ice.common.model.LeafNodeInfo;
 import com.ice.common.model.Pair;
 import com.ice.core.utils.JacksonUtils;
+import com.ice.server.config.IceServerProperties;
 import com.ice.server.constant.ServerConstant;
 import com.ice.server.dao.mapper.IceAppMapper;
 import com.ice.server.dao.mapper.IceBaseMapper;
@@ -87,6 +88,9 @@ public class IceServerServiceImpl implements IceServerService {
 
     @Autowired
     private IceNioClientManager iceNioClientManager;
+
+    @Autowired
+    private IceServerProperties properties;
 
     public synchronized boolean haveCircle(Long nodeId, Long linkId) {
         if (nodeId.equals(linkId)) {
@@ -762,10 +766,14 @@ public class IceServerServiceImpl implements IceServerService {
                 deleteClientConf(app, pair.getKey());
                 IceConfExample example = new IceConfExample();
                 example.createCriteria().andIdIn(pair.getKey());
-                IceConf conf = new IceConf();
-                conf.setStatus(StatusEnum.DELETED.getStatus());
-                conf.setUpdateAt(new Date());
-                confMapper.recycle(conf, example);
+                if ("soft".equals(properties.getRecycleWay())) {
+                    IceConf conf = new IceConf();
+                    conf.setStatus(StatusEnum.DELETED.getStatus());
+                    conf.setUpdateAt(new Date());
+                    confMapper.softRecycle(conf, example);
+                } else {
+                    confMapper.deleteByExample(example);
+                }
                 cleanActiveConf(app, pair.getKey());
                 log.info("recycle active conf success app:{}", app);
             }
@@ -774,10 +782,14 @@ public class IceServerServiceImpl implements IceServerService {
                 log.info("recycle app:{}, update conf ids:{}", app, Arrays.toString(pair.getValue().toArray()));
                 IceConfExample example = new IceConfExample();
                 example.createCriteria().andConfIdIn(pair.getValue());
-                IceConf updateConf = new IceConf();
-                updateConf.setStatus(StatusEnum.DELETED.getStatus());
-                updateConf.setUpdateAt(new Date());
-                confUpdateMapper.recycle(updateConf, example);
+                if ("soft".equals(properties.getRecycleWay())) {
+                    IceConf updateConf = new IceConf();
+                    updateConf.setStatus(StatusEnum.DELETED.getStatus());
+                    updateConf.setUpdateAt(new Date());
+                    confUpdateMapper.softRecycle(updateConf, example);
+                } else {
+                    confUpdateMapper.deleteByExample(example);
+                }
                 cleanUpdateConf(app, pair.getValue());
                 log.info("recycle update conf success app:{}", app);
             }

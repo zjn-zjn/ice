@@ -393,7 +393,7 @@
             <include refid="Example_Where_Clause"/>
         </if>
     </select>
-    <update id="recycle" parameterType="map">
+    <update id="softRecycle" parameterType="map">
         update ice_conf_update
         <set>
             status = #{record.status,jdbcType=TINYINT},
