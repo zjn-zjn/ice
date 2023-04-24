@@ -66,13 +66,13 @@ public class RelationBuilder extends BaseBuilder {
     }
 
     public RelationBuilder son(BaseNode... nodes) {
-        ((BaseRelation) this.getNode()).getChildren().addAll(nodes);
+        ((BaseRelation) this.getNode()).getIceChildren().addAll(nodes);
         return this;
     }
 
     public RelationBuilder son(BaseBuilder... builders) {
         BaseNode[] nodes = Arrays.stream(builders).map(BaseBuilder::build).toArray(BaseNode[]::new);
-        ((BaseRelation) this.getNode()).getChildren().addAll(nodes);
+        ((BaseRelation) this.getNode()).getIceChildren().addAll(nodes);
         return this;
     }
 }

@@ -21,7 +21,7 @@ public final class Any extends BaseRelation {
      */
     @Override
     protected NodeRunStateEnum processNode(IceContext ctx) {
-        IceLinkedList<BaseNode> children = this.getChildren();
+        IceLinkedList<BaseNode> children = this.getIceChildren();
         if (children == null || children.isEmpty()) {
             return NodeRunStateEnum.NONE;
         }

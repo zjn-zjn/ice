@@ -100,15 +100,15 @@ public final class IceConfCache {
                             errors.add("sonId:" + sonId + " not exist conf:" + errorModeStr);
                             log.error("sonId:{} not exist please check! conf:{}", sonId, errorModeStr);
                         } else {
-                            relation.getChildren().add(tmpNode);
+                            relation.getIceChildren().add(tmpNode);
                         }
                     }
                 }
                 if (origin instanceof BaseRelation) {
                     BaseRelation originRelation = (BaseRelation) origin;
-                    if (originRelation.getChildren() != null && !originRelation.getChildren().isEmpty()) {
+                    if (originRelation.getIceChildren() != null && !originRelation.getIceChildren().isEmpty()) {
                         Set<Long> sonIdSet = new HashSet<>(sonIds);
-                        IceLinkedList<BaseNode> children = originRelation.getChildren();
+                        IceLinkedList<BaseNode> children = originRelation.getIceChildren();
                         IceLinkedList.Node<BaseNode> listNode = children.getFirst();
                         while (listNode != null) {
                             BaseNode sonNode = listNode.item;
@@ -126,8 +126,8 @@ public final class IceConfCache {
                 //origin is relation node now not
                 if (origin instanceof BaseRelation) {
                     BaseRelation originRelation = (BaseRelation) origin;
-                    if (originRelation.getChildren() != null && !originRelation.getChildren().isEmpty()) {
-                        IceLinkedList<BaseNode> children = originRelation.getChildren();
+                    if (originRelation.getIceChildren() != null && !originRelation.getIceChildren().isEmpty()) {
+                        IceLinkedList<BaseNode> children = originRelation.getIceChildren();
                         IceLinkedList.Node<BaseNode> listNode = children.getFirst();
                         while (listNode != null) {
                             BaseNode sonNode = listNode.item;
@@ -198,7 +198,7 @@ public final class IceConfCache {
                                     }
                                 }
                             }
-                            relation.setChildren(children);
+                            relation.setIceChildren(children);
                         } else {
                             //parent are not relation node
                             removeParentIds.add(parentId);

@@ -117,7 +117,7 @@ public final class IceNioClientService {
         IceShowNode clientNode = new IceShowNode();
         if (node instanceof BaseRelation) {
             BaseRelation relation = (BaseRelation) node;
-            IceLinkedList<BaseNode> children = relation.getChildren();
+            IceLinkedList<BaseNode> children = relation.getIceChildren();
             if (children != null && !children.isEmpty()) {
                 List<IceShowNode> showChildren = new ArrayList<>(children.getSize());
                 for (IceLinkedList.Node<BaseNode> listNode = children.getFirst();

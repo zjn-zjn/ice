@@ -17,13 +17,13 @@ import java.util.List;
 public abstract class BaseRelation extends BaseNode {
 
     @JsonIgnore
-    private IceLinkedList<BaseNode> children;
+    private IceLinkedList<BaseNode> iceChildren;
 
     @JsonIgnore
     private List<Long> iceSonIds;
 
     protected BaseRelation() {
-        children = new IceLinkedList<>();
+        iceChildren = new IceLinkedList<>();
         iceSonIds = new ArrayList<>();
     }
 }
