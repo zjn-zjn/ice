@@ -1,6 +1,7 @@
 package com.ice.core.utils;
 
 import com.ice.common.enums.NodeRunStateEnum;
+import com.ice.common.exception.NodeException;
 import com.ice.core.base.BaseNode;
 import com.ice.core.context.IceContext;
 import com.ice.core.handler.IceHandler;
@@ -60,7 +61,11 @@ public abstract class IceErrorHandle {
         @Override
         protected void handle(IceHandler iceHandler, IceContext ctx, Throwable t) {
             //default log the error
-            log.error("error iceId:{} ctx:{}", iceHandler.getIceId(), JacksonUtils.toJsonString(ctx), t);
+            if (t instanceof NodeException) {
+                log.error("error iceId:{} nodeId:{} ctx:{}", iceHandler.getIceId(), JacksonUtils.toJsonString(ctx), ((NodeException) t).getNodeId(), t);
+            } else {
+                log.error("error iceId:{} ctx:{}", iceHandler.getIceId(), JacksonUtils.toJsonString(ctx), t);
+            }
         }
     }
 }
