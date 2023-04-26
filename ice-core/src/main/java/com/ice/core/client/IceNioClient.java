@@ -239,9 +239,9 @@ public final class IceNioClient {
         if (!this.startDataReady) {
             this.destroy();
             if (discovery.support()) {
-                throw new RuntimeException("ice connect server error server:" + (discovery.getServerLeaderAddress() == null ? server : discovery.getServerLeaderAddress()), startCause);
+                throw new RuntimeException("ice connect server error server: " + (discovery.getServerLeaderAddress() == null ? server : discovery.getServerLeaderAddress()), startCause);
             } else {
-                throw new RuntimeException("ice connect server error server:" + server, startCause);
+                throw new RuntimeException("ice connect server error server: " + server, startCause);
             }
         }
         //start data ready, starting cache
