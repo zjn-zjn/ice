@@ -8,6 +8,7 @@ import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
+import com.ice.core.client.IceLeafScanner;
 import com.ice.core.leaf.base.BaseLeafFlow;
 import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;
@@ -243,7 +244,7 @@ public final class IceConfCache {
             case LEAF_FLOW:
                 String flowFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField();
-                node = (BaseLeafFlow) JacksonUtils.readJson(flowFiled, Class.forName(confDto.getConfName()));
+                node = (BaseLeafFlow) JacksonUtils.readJson(flowFiled, Class.forName(confDto.getConfName(), true, IceLeafScanner.getClassLoader()));
                 if (node.getIceLogName() == null) {
                     node.setIceLogName(node.getClass().getSimpleName());
                 }
@@ -254,7 +255,7 @@ public final class IceConfCache {
             case LEAF_RESULT:
                 String resultFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField();
-                node = (BaseLeafResult) JacksonUtils.readJson(resultFiled, Class.forName(confDto.getConfName()));
+                node = (BaseLeafResult) JacksonUtils.readJson(resultFiled, Class.forName(confDto.getConfName(), true, IceLeafScanner.getClassLoader()));
                 if (node.getIceLogName() == null) {
                     node.setIceLogName(node.getClass().getSimpleName());
                 }
@@ -265,7 +266,7 @@ public final class IceConfCache {
             case LEAF_NONE:
                 String noneFiled = confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
                         confDto.getConfField();
-                node = (BaseLeafNone) JacksonUtils.readJson(noneFiled, Class.forName(confDto.getConfName()));
+                node = (BaseLeafNone) JacksonUtils.readJson(noneFiled, Class.forName(confDto.getConfName(), true, IceLeafScanner.getClassLoader()));
                 if (node.getIceLogName() == null) {
                     node.setIceLogName(node.getClass().getSimpleName());
                 }
@@ -324,7 +325,7 @@ public final class IceConfCache {
                 break;
             default:
                 node = (BaseNode) JacksonUtils.readJson(confDto.getConfField() == null || confDto.getConfField().isEmpty() ? "{}" :
-                        confDto.getConfField(), Class.forName(confDto.getConfName()));
+                        confDto.getConfField(), Class.forName(confDto.getConfName(), true, IceLeafScanner.getClassLoader()));
                 if (node != null && node.getIceLogName() == null) {
                     node.setIceLogName(node.getClass().getSimpleName());
                     assembleBasicInfo(node, confDto);
