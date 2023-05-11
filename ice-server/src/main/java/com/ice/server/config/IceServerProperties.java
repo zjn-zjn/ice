@@ -19,6 +19,8 @@ public class IceServerProperties {
     private int maxFrameLength = 16 * 1024 * 1024;
     //timeout for client response
     private int clientRspTimeOut = 3000;
+    //default recycle on 3:00 echo day
+    private String recycleCron = "0 0 3 * * ?";
     //recycle delete way: hard or soft, default hard: directly deleting the data row from the table.
     private String recycleWay = "hard";
     //ice thread pool

@@ -5,6 +5,7 @@ import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.PageResult;
 import com.ice.server.service.IceAppService;
+import com.ice.server.service.IceServerService;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,9 @@ public class IceAppController {
     @Autowired
     private IceAppService iceAppService;
 
+    @Autowired
+    private IceServerService iceServerService;
+
     @RequestMapping(value = "/ice-server/app/list", method = RequestMethod.GET)
     public PageResult<IceApp> appList(@RequestParam(defaultValue = "1") Integer pageNum,
                                       @RequestParam(defaultValue = "1000") Integer pageSize,
@@ -34,5 +38,10 @@ public class IceAppController {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app");
         }
         return iceAppService.appEdit(app);
+    }
+
+    @RequestMapping(value = "/ice-server/app/recycle", method = RequestMethod.GET)
+    public void recycle(@RequestParam(required = false) Integer app) {
+        iceServerService.recycle(app);
     }
 }

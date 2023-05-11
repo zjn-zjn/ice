@@ -565,7 +565,7 @@ public class IceServerServiceImpl implements IceServerService {
     }
 
     @Override
-    public synchronized void addLeafClass(Integer app, Byte type, String clazz) {
+    public synchronized void increaseLeafClass(Integer app, Byte type, String clazz) {
         Map<Byte, Map<String, Integer>> map = leafClassMap.get(app);
         Map<String, Integer> classMap;
         if (map == null) {
@@ -585,6 +585,30 @@ public class IceServerServiceImpl implements IceServerService {
             }
         }
         classMap.put(clazz, classMap.get(clazz) + 1);
+    }
+
+    @Override
+    public synchronized void decreaseLeafClass(Integer app, Byte type, String clazz) {
+        Map<Byte, Map<String, Integer>> map = leafClassMap.get(app);
+        if (CollectionUtils.isEmpty(map)) {
+            return;
+        }
+        Map<String, Integer> classMap = map.get(type);
+        if (CollectionUtils.isEmpty(classMap)) {
+            return;
+        }
+        Integer count = classMap.get(clazz);
+        if (count == null || count <= 1) {
+            classMap.remove(clazz);
+            if (CollectionUtils.isEmpty(classMap)) {
+                map.remove(type);
+                if (CollectionUtils.isEmpty(map)) {
+                    leafClassMap.remove(app);
+                }
+            }
+        } else {
+            classMap.put(clazz, count - 1);
+        }
     }
 
     @Override
@@ -751,50 +775,63 @@ public class IceServerServiceImpl implements IceServerService {
      */
     @Scheduled(cron = "${ice.recycle-cron:0 0 3 * * ?}")
     public void recycle() {
+        recycle(null);
+    }
+
+    @Override
+    public void recycle(Integer recycleApp) {
         log.info("ice recycle start");
         long start = System.currentTimeMillis();
+        if (recycleApp != null) {
+            recycleByApp(recycleApp);
+            return;
+        }
         //get all app to recycle
         Set<Integer> appSet = new HashSet<>();
         appSet.addAll(confActiveMap.keySet());
         appSet.addAll(confUpdateMap.keySet());
         for (Integer app : appSet) {
-            //get unreachable node id by app
-            Pair<Set<Long>, Set<Long>> pair = getUnReachableIds(app);
-            if (!CollectionUtils.isEmpty(pair.getKey())) {
-                //recycle active conf
-                log.info("recycle app:{}, active conf ids:{}", app, Arrays.toString(pair.getKey().toArray()));
-                deleteClientConf(app, pair.getKey());
-                IceConfExample example = new IceConfExample();
-                example.createCriteria().andIdIn(pair.getKey());
-                if ("soft".equals(properties.getRecycleWay())) {
-                    IceConf conf = new IceConf();
-                    conf.setStatus(StatusEnum.DELETED.getStatus());
-                    conf.setUpdateAt(new Date());
-                    confMapper.softRecycle(conf, example);
-                } else {
-                    confMapper.deleteByExample(example);
-                }
-                cleanActiveConf(app, pair.getKey());
-                log.info("recycle active conf success app:{}", app);
-            }
-            if (!CollectionUtils.isEmpty(pair.getValue())) {
-                //recycle update conf
-                log.info("recycle app:{}, update conf ids:{}", app, Arrays.toString(pair.getValue().toArray()));
-                IceConfExample example = new IceConfExample();
-                example.createCriteria().andConfIdIn(pair.getValue());
-                if ("soft".equals(properties.getRecycleWay())) {
-                    IceConf updateConf = new IceConf();
-                    updateConf.setStatus(StatusEnum.DELETED.getStatus());
-                    updateConf.setUpdateAt(new Date());
-                    confUpdateMapper.softRecycle(updateConf, example);
-                } else {
-                    confUpdateMapper.deleteByExample(example);
-                }
-                cleanUpdateConf(app, pair.getValue());
-                log.info("recycle update conf success app:{}", app);
-            }
+            recycleByApp(app);
         }
         log.info("ice recycle end {}ms", System.currentTimeMillis() - start);
+    }
+
+    private void recycleByApp(Integer app) {
+        //get unreachable node id by app
+        Pair<Set<Long>, Set<Long>> pair = getUnReachableIds(app);
+        if (!CollectionUtils.isEmpty(pair.getKey())) {
+            //recycle active conf
+            log.info("recycle app:{}, active conf ids:{}", app, Arrays.toString(pair.getKey().toArray()));
+            deleteClientConf(app, pair.getKey());
+            IceConfExample example = new IceConfExample();
+            example.createCriteria().andIdIn(pair.getKey());
+            if ("soft".equals(properties.getRecycleWay())) {
+                IceConf conf = new IceConf();
+                conf.setStatus(StatusEnum.DELETED.getStatus());
+                conf.setUpdateAt(new Date());
+                confMapper.softRecycle(conf, example);
+            } else {
+                confMapper.deleteByExample(example);
+            }
+            cleanActiveConf(app, pair.getKey());
+            log.info("recycle active conf success app:{}", app);
+        }
+        if (!CollectionUtils.isEmpty(pair.getValue())) {
+            //recycle update conf
+            log.info("recycle app:{}, update conf ids:{}", app, Arrays.toString(pair.getValue().toArray()));
+            IceConfExample example = new IceConfExample();
+            example.createCriteria().andConfIdIn(pair.getValue());
+            if ("soft".equals(properties.getRecycleWay())) {
+                IceConf updateConf = new IceConf();
+                updateConf.setStatus(StatusEnum.DELETED.getStatus());
+                updateConf.setUpdateAt(new Date());
+                confUpdateMapper.softRecycle(updateConf, example);
+            } else {
+                confUpdateMapper.deleteByExample(example);
+            }
+            cleanUpdateConf(app, pair.getValue());
+            log.info("recycle update conf success app:{}", app);
+        }
     }
 
     /**
@@ -820,6 +857,10 @@ public class IceServerServiceImpl implements IceServerService {
         Map<Long, IceConf> map = confActiveMap.get(app);
         if (!CollectionUtils.isEmpty(map)) {
             for (Long id : confIds) {
+                IceConf conf = map.get(id);
+                if (conf != null && NodeTypeEnum.isLeaf(conf.getType())) {
+                    decreaseLeafClass(conf.getApp(), conf.getType(), conf.getConfName());
+                }
                 map.remove(id);
                 activeAtlasMap.remove(id);
             }
@@ -841,6 +882,10 @@ public class IceServerServiceImpl implements IceServerService {
             for (Map.Entry<Long, Map<Long, IceConf>> entry : iceIdMap.entrySet()) {
                 if (!CollectionUtils.isEmpty(entry.getValue())) {
                     for (Long id : confIds) {
+                        IceConf conf = entry.getValue().get(id);
+                        if (conf != null && NodeTypeEnum.isLeaf(conf.getType())) {
+                            decreaseLeafClass(conf.getApp(), conf.getType(), conf.getConfName());
+                        }
                         entry.getValue().remove(id);
                         updateAtlasMap.remove(id);
                     }

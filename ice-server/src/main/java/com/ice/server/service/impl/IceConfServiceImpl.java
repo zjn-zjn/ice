@@ -665,38 +665,38 @@ public class IceConfServiceImpl implements IceConfService {
                     result.add(leafClass);
                 }
             }
-            return result;
-        }
-        if (leafClassDBMap != null) {
-            for (Map.Entry<String, LeafNodeInfo> leafNodeInfoEntry : clientClazzInfoMap.entrySet()) {
-                if (!leafClassDBMap.containsKey(leafNodeInfoEntry.getKey())) {
-                    //add not used leaf class
+        } else {
+            if (leafClassDBMap != null) {
+                for (Map.Entry<String, LeafNodeInfo> leafNodeInfoEntry : clientClazzInfoMap.entrySet()) {
+                    if (!leafClassDBMap.containsKey(leafNodeInfoEntry.getKey())) {
+                        //add not used leaf class
+                        IceLeafClass leafClass = new IceLeafClass();
+                        leafClass.setFullName(leafNodeInfoEntry.getKey());
+                        leafClass.setName(leafNodeInfoEntry.getValue().getName());
+                        leafClass.setCount(0);
+                        result.add(leafClass);
+                    }
+                }
+                for (Map.Entry<String, Integer> entry : leafClassDBMap.entrySet()) {
+                    //used to assembly by used cnt from db config
+                    LeafNodeInfo nodeInfo = clientClazzInfoMap.get(entry.getKey());
+                    if (nodeInfo != null) {
+                        //add only class found from client
+                        IceLeafClass leafClass = new IceLeafClass();
+                        leafClass.setFullName(entry.getKey());
+                        leafClass.setCount(entry.getValue());
+                        leafClass.setName(nodeInfo.getName());
+                        result.add(leafClass);
+                    }
+                }
+            } else {
+                for (Map.Entry<String, LeafNodeInfo> leafNodeInfoEntry : clientClazzInfoMap.entrySet()) {
                     IceLeafClass leafClass = new IceLeafClass();
                     leafClass.setFullName(leafNodeInfoEntry.getKey());
                     leafClass.setName(leafNodeInfoEntry.getValue().getName());
                     leafClass.setCount(0);
                     result.add(leafClass);
                 }
-            }
-            for (Map.Entry<String, Integer> entry : leafClassDBMap.entrySet()) {
-                //used to assembly by used cnt from db config
-                LeafNodeInfo nodeInfo = clientClazzInfoMap.get(entry.getKey());
-                if (nodeInfo != null) {
-                    //add only class found from client
-                    IceLeafClass leafClass = new IceLeafClass();
-                    leafClass.setFullName(entry.getKey());
-                    leafClass.setCount(entry.getValue());
-                    leafClass.setName(nodeInfo.getName());
-                    result.add(leafClass);
-                }
-            }
-        } else {
-            for (Map.Entry<String, LeafNodeInfo> leafNodeInfoEntry : clientClazzInfoMap.entrySet()) {
-                IceLeafClass leafClass = new IceLeafClass();
-                leafClass.setFullName(leafNodeInfoEntry.getKey());
-                leafClass.setName(leafNodeInfoEntry.getValue().getName());
-                leafClass.setCount(0);
-                result.add(leafClass);
             }
         }
         result.sort(Comparator.comparingInt(IceLeafClass::sortNegativeCount));
@@ -711,7 +711,7 @@ public class IceConfServiceImpl implements IceConfService {
         }
         try {
             LeafNodeInfo leafNodeInfo = confClazzCheck(app, clazz, type);
-            iceServerService.addLeafClass(app, type, clazz);
+            iceServerService.increaseLeafClass(app, type, clazz);
             return leafNodeInfo;
         } catch (Exception e) {
             iceServerService.removeLeafClass(app, type, clazz);

@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import org.springframework.beans.factory.annotation.Autowired;
+
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -320,11 +321,11 @@ public final class IceNioClientManager implements InitializingBean {
         }
         Map<String, Map<String, LeafNodeInfo>> addressLeafClazzMap = appAddressLeafClazzMap.get(app);
         if (addressLeafClazzMap == null) {
-            return getNodeInfoFromAllClient(app, clazz, type);
+            return null;
         }
         Map<String, LeafNodeInfo> clazzMap = addressLeafClazzMap.get(address);
         if (clazzMap == null) {
-            return getNodeInfoFromAllClient(app, clazz, type);
+            return null;
         }
         return nodeInfoCopy(clazzMap.get(clazz));
     }

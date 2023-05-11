@@ -41,7 +41,9 @@ public interface IceServerService {
 
     Map<String, Integer> getLeafClassMap(Integer app, Byte type);
 
-    void addLeafClass(Integer app, Byte type, String clazz);
+    void increaseLeafClass(Integer app, Byte type, String clazz);
+
+    void decreaseLeafClass(Integer app, Byte type, String clazz);
 
     void removeLeafClass(Integer app, Byte type, String clazz);
 
@@ -74,5 +76,7 @@ public interface IceServerService {
     void cleanConfigCache();
 
     void rebuildingAtlas(Collection<IceConf> updateList, Collection<IceConf> confList);
+
+    void recycle(Integer app);
 
 }
