@@ -87,7 +87,7 @@ public class IceConfServiceImpl implements IceConfService {
             if (!StringUtils.hasLength(parent.getSonIds())) {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent no child");
             }
-            if (!NodeTypeEnum.isRelation(parent.getType())) {
+            if (NodeTypeEnum.isLeaf(parent.getType())) {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parentId not parent");
             }
             String[] sonIds = parent.getSonIds().split(Constant.REGEX_COMMA);
@@ -157,7 +157,7 @@ public class IceConfServiceImpl implements IceConfService {
                 if (moveToParent == null) {
                     throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "moveToParentId", editNode.getMoveToParentId());
                 }
-                if (!NodeTypeEnum.isRelation(moveToParent.getType())) {
+                if (NodeTypeEnum.isLeaf(moveToParent.getType())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "move to parentId not parent");
                 }
                 if (iceServerService.haveCircle(moveToParent.getMixId(), editNode.getSelectId())) {
@@ -245,7 +245,7 @@ public class IceConfServiceImpl implements IceConfService {
                 if (moveToParent == null) {
                     throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "moveToParentId", editNode.getMoveToParentId());
                 }
-                if (!NodeTypeEnum.isRelation(moveToParent.getType())) {
+                if (NodeTypeEnum.isLeaf(moveToParent.getType())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "move to parentId not parent");
                 }
                 if (iceServerService.haveCircle(moveToParent.getMixId(), editNode.getSelectId())) {
@@ -375,7 +375,7 @@ public class IceConfServiceImpl implements IceConfService {
         operateConf.setApp(app);
         //use old name
         operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? operateConf.getName() : editNode.getName());
-        if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+        if (NodeTypeEnum.isLeaf(editNode.getNodeType())) {
             LeafNodeInfo leafNodeInfo = leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
             if (StringUtils.hasLength(editNode.getConfField())) {
                 String checkRes = ServerConstant.checkIllegalAndAdjustJson(editNode, leafNodeInfo);
@@ -385,6 +385,7 @@ public class IceConfServiceImpl implements IceConfService {
             }
             operateConf.setConfName(editNode.getConfName());
             operateConf.setConfField(editNode.getConfField());
+            iceServerService.increaseLeafClass(app, editNode.getNodeType(), editNode.getConfName());
         }
         update(operateConf, iceId);
         return operateConf.getMixId();
@@ -424,7 +425,7 @@ public class IceConfServiceImpl implements IceConfService {
         createConf.setType(editNode.getNodeType());
         createConf.setApp(app);
         createConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
-        if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+        if (NodeTypeEnum.isLeaf(editNode.getNodeType())) {
             LeafNodeInfo leafNodeInfo = leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
             if (StringUtils.hasLength(editNode.getConfField())) {
                 String checkRes = ServerConstant.checkIllegalAndAdjustJson(editNode, leafNodeInfo);
@@ -434,6 +435,7 @@ public class IceConfServiceImpl implements IceConfService {
             }
             createConf.setConfName(editNode.getConfName());
             createConf.setConfField(editNode.getConfField());
+            iceServerService.increaseLeafClass(app, editNode.getNodeType(), editNode.getConfName());
         }
         createConf.setUpdateAt(new Date());
         createConf.setStatus(StatusEnum.OFFLINE.getStatus());
@@ -509,8 +511,8 @@ public class IceConfServiceImpl implements IceConfService {
         operateConf.setEnd(editNode.getEnd() == null ? null : new Date(editNode.getEnd()));
         operateConf.setInverse(editNode.getInverse() ? (byte) 1 : (byte) 0);
         operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
-        if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
-            LeafNodeInfo leafNodeInfo = leafClassCheck(app, operateConf.getConfName(), editNode.getNodeType());
+        if (NodeTypeEnum.isLeaf(operateConf.getType())) {
+            LeafNodeInfo leafNodeInfo = leafClassCheck(app, operateConf.getConfName(), operateConf.getType());
             if (StringUtils.hasLength(editNode.getConfField())) {
                 String checkRes = ServerConstant.checkIllegalAndAdjustJson(editNode, leafNodeInfo);
                 if (checkRes != null) {
@@ -530,7 +532,7 @@ public class IceConfServiceImpl implements IceConfService {
         if (operateConf == null) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "selectId", editNode.getSelectId());
         }
-        if (!NodeTypeEnum.isRelation(operateConf.getType())) {
+        if (NodeTypeEnum.isLeaf(operateConf.getType())) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "only relation can have son id:" + editNode.getSelectId());
         }
         if (StringUtils.hasLength(editNode.getMultiplexIds())) {
@@ -566,7 +568,7 @@ public class IceConfServiceImpl implements IceConfService {
         createConf.setApp(app);
         createConf.setType(editNode.getNodeType());
         createConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
-        if (!NodeTypeEnum.isRelation(editNode.getNodeType())) {
+        if (NodeTypeEnum.isLeaf(editNode.getNodeType())) {
             LeafNodeInfo leafNodeInfo = leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
             if (StringUtils.hasLength(editNode.getConfField())) {
                 String checkRes = ServerConstant.checkIllegalAndAdjustJson(editNode, leafNodeInfo);
@@ -574,9 +576,9 @@ public class IceConfServiceImpl implements IceConfService {
                     throw new ErrorCodeException(ErrorCode.CONFIG_FILED_ILLEGAL, checkRes);
                 }
             }
-            leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
             createConf.setConfName(editNode.getConfName());
             createConf.setConfField(editNode.getConfField());
+            iceServerService.increaseLeafClass(app, editNode.getNodeType(), editNode.getConfName());
         }
         createConf.setUpdateAt(new Date());
         createConf.setStatus(StatusEnum.OFFLINE.getStatus());
@@ -709,14 +711,7 @@ public class IceConfServiceImpl implements IceConfService {
         if (!StringUtils.hasLength(clazz) || typeEnum == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|clazz|type");
         }
-        try {
-            LeafNodeInfo leafNodeInfo = confClazzCheck(app, clazz, type);
-            iceServerService.increaseLeafClass(app, type, clazz);
-            return leafNodeInfo;
-        } catch (Exception e) {
-            iceServerService.removeLeafClass(app, type, clazz);
-            throw e;
-        }
+        return confClazzCheck(app, clazz, type);
     }
 
     private synchronized LeafNodeInfo confClazzCheck(int app, String clazz, byte type) {
