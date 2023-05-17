@@ -9,9 +9,7 @@ import com.ice.core.context.IceContext;
 import com.ice.core.utils.IceExecutor;
 import com.ice.core.utils.IceLinkedList;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Future;
 
 /**
@@ -52,7 +50,7 @@ public final class ParallelAnd extends BaseRelation {
         long nodeId = 0;
         try {
             while (size > 0) {
-                List<Pair<Long, Future<NodeRunStateEnum>>> removeFuturePairs = new ArrayList<>(size);
+                Set<Pair<Long, Future<NodeRunStateEnum>>> doneFuturePairs = new HashSet<>();
                 for (Pair<Long, Future<NodeRunStateEnum>> pair : futurePairs) {
                     nodeId = pair.getKey();
                     Future<NodeRunStateEnum> future = pair.getValue();
@@ -65,12 +63,12 @@ public final class ParallelAnd extends BaseRelation {
                         if (!hasTrue) {
                             hasTrue = stateEnum == NodeRunStateEnum.TRUE;
                         }
-                        removeFuturePairs.add(pair);
+                        doneFuturePairs.add(pair);
                         size--;
                     }
                 }
                 if (size > 0) {
-                    for (Pair<Long, Future<NodeRunStateEnum>> pair : removeFuturePairs) {
+                    for (Pair<Long, Future<NodeRunStateEnum>> pair : doneFuturePairs) {
                         futurePairs.remove(pair);
                     }
                     Thread.yield();
