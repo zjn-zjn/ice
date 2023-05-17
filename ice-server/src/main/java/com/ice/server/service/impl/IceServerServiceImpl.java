@@ -12,7 +12,6 @@ import com.ice.common.model.Pair;
 import com.ice.core.utils.JacksonUtils;
 import com.ice.server.config.IceServerProperties;
 import com.ice.server.constant.ServerConstant;
-import com.ice.server.dao.mapper.IceAppMapper;
 import com.ice.server.dao.mapper.IceBaseMapper;
 import com.ice.server.dao.mapper.IceConfMapper;
 import com.ice.server.dao.mapper.IceConfUpdateMapper;
@@ -26,13 +25,12 @@ import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.nio.IceNioClientManager;
 import com.ice.server.service.IceServerService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.*;
 
@@ -83,8 +81,6 @@ public class IceServerServiceImpl implements IceServerService {
     private IceConfMapper confMapper;
     @Autowired
     private IceConfUpdateMapper confUpdateMapper;
-    @Autowired
-    private IceAppMapper iceAppMapper;
 
     @Autowired
     private IceNioClientManager iceNioClientManager;
@@ -744,7 +740,7 @@ public class IceServerServiceImpl implements IceServerService {
         }
     }
 
-    public Collection<IceConfDto> getActiveConfsByApp(Integer app) {
+    public Collection<IceConfDto> getActiveConfListByApp(Integer app) {
         Map<Long, IceConf> map = confActiveMap.get(app);
         if (map == null) {
             return new ArrayList<>(1);
@@ -764,7 +760,7 @@ public class IceServerServiceImpl implements IceServerService {
     public synchronized IceTransferDto getInitConfig(Integer app) {
         IceTransferDto transferDto = new IceTransferDto();
         transferDto.setInsertOrUpdateBases(this.getActiveBasesByApp(app));
-        transferDto.setInsertOrUpdateConfs(this.getActiveConfsByApp(app));
+        transferDto.setInsertOrUpdateConfs(this.getActiveConfListByApp(app));
         transferDto.setVersion(version);
         return transferDto;
     }
@@ -879,6 +875,7 @@ public class IceServerServiceImpl implements IceServerService {
     private synchronized void cleanUpdateConf(Integer app, Set<Long> confIds) {
         Map<Long, Map<Long, IceConf>> iceIdMap = confUpdateMap.get(app);
         if (!CollectionUtils.isEmpty(iceIdMap)) {
+            Set<Long> removeIceIdSet = new HashSet<>();
             for (Map.Entry<Long, Map<Long, IceConf>> entry : iceIdMap.entrySet()) {
                 if (!CollectionUtils.isEmpty(entry.getValue())) {
                     for (Long id : confIds) {
@@ -891,8 +888,11 @@ public class IceServerServiceImpl implements IceServerService {
                     }
                 }
                 if (CollectionUtils.isEmpty(entry.getValue())) {
-                    iceIdMap.remove(entry.getKey());
+                    removeIceIdSet.add(entry.getKey());
                 }
+            }
+            for (Long removeIceId : removeIceIdSet) {
+                iceIdMap.remove(removeIceId);
             }
             if (CollectionUtils.isEmpty(iceIdMap)) {
                 confUpdateMap.remove(app);
