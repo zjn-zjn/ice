@@ -29,6 +29,8 @@ public interface IceBaseMapper {
 
     int updateByExample(@Param("record") IceBase record, @Param("example") IceBaseExample example);
 
+    int softRecycle(@Param("record") IceBase record, @Param("example") IceBaseExample example);
+
     int updateByPrimaryKeySelective(IceBase record);
 
     int updateByPrimaryKey(IceBase record);

@@ -45,7 +45,7 @@ public class IceServerServiceImpl implements IceServerService {
      * key:app value baseList
      * keep except deleted
      */
-    private Map<Integer, Map<Long, IceBase>> baseMap;
+    private Map<Integer, Map<Long, IceBase>> baseActiveMap;
     /*
      * used avoid quote in different ice circle
      * key: confId(include updating)
@@ -490,7 +490,7 @@ public class IceServerServiceImpl implements IceServerService {
 
     @Override
     public synchronized IceBase getActiveBaseById(Integer app, Long iceId) {
-        Map<Long, IceBase> confMap = baseMap.get(app);
+        Map<Long, IceBase> confMap = baseActiveMap.get(app);
         if (!CollectionUtils.isEmpty(confMap)) {
             return confMap.get(iceId);
         }
@@ -522,19 +522,19 @@ public class IceServerServiceImpl implements IceServerService {
 
     @Override
     public synchronized void updateLocalBaseCache(IceBase base) {
-        if (base.getStatus() == StatusEnum.DELETED.getStatus()) {
-            Map<Long, IceBase> map = baseMap.get(base.getApp());
+        if (base.getStatus() == StatusEnum.DELETED.getStatus() || base.getStatus() == StatusEnum.OFFLINE.getStatus()) {
+            Map<Long, IceBase> map = baseActiveMap.get(base.getApp());
             if (CollectionUtils.isEmpty(map)) {
                 return;
             }
             map.remove(base.getId());
             if (CollectionUtils.isEmpty(map)) {
-                baseMap.remove(base.getApp());
+                baseActiveMap.remove(base.getApp());
                 return;
             }
             return;
         }
-        baseMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
+        baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
     }
 
     @Override
@@ -617,7 +617,7 @@ public class IceServerServiceImpl implements IceServerService {
         List<IceBase> baseList = baseMapper.selectByExample(baseExample);
         if (!CollectionUtils.isEmpty(baseList)) {
             for (IceBase base : baseList) {
-                baseMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
+                baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
             }
         }
         /*UpdateList*/
@@ -653,7 +653,7 @@ public class IceServerServiceImpl implements IceServerService {
 
     @Override
     public synchronized void cleanConfigCache() {
-        baseMap = new HashMap<>();
+        baseActiveMap = new HashMap<>();
         leafClassMap = new HashMap<>();
         confUpdateMap = new HashMap<>();
         confActiveMap = new HashMap<>();
@@ -749,7 +749,7 @@ public class IceServerServiceImpl implements IceServerService {
     }
 
     public Collection<IceBaseDto> getActiveBasesByApp(Integer app) {
-        Map<Long, IceBase> map = baseMap.get(app);
+        Map<Long, IceBase> map = baseActiveMap.get(app);
         if (map == null) {
             return new ArrayList<>(1);
         }
@@ -827,6 +827,23 @@ public class IceServerServiceImpl implements IceServerService {
             }
             cleanUpdateConf(app, pair.getValue());
             log.info("recycle update conf success app:{}", app);
+        }
+        //delete unreachable base
+        IceBaseExample example = new IceBaseExample();
+        example.createCriteria().andAppEqualTo(app).andStatusEqualTo(StatusEnum.OFFLINE.getStatus());
+        if ("soft".equals(properties.getRecycleWay())) {
+            IceBase base = new IceBase();
+            base.setStatus(StatusEnum.DELETED.getStatus());
+            base.setUpdateAt(new Date());
+            int count = baseMapper.updateByExample(base, example);
+            if (count > 0) {
+                log.info("recycle base success app:{} cnt:{}", app, count);
+            }
+        } else {
+            int count = baseMapper.deleteByExample(example);
+            if (count > 0) {
+                log.info("recycle base success app:{} cnt:{}", app, count);
+            }
         }
     }
 
@@ -992,16 +1009,16 @@ public class IceServerServiceImpl implements IceServerService {
      * @return reachable root
      */
     private synchronized Map<Long, Long> getReachableRootIdIceIdMap(Integer app) {
-        if (CollectionUtils.isEmpty(baseMap)) {
+        if (CollectionUtils.isEmpty(baseActiveMap)) {
             return Collections.emptyMap();
         }
-        Map<Long, IceBase> map = baseMap.get(app);
+        Map<Long, IceBase> map = baseActiveMap.get(app);
         if (CollectionUtils.isEmpty(map)) {
             return Collections.emptyMap();
         }
         Map<Long, Long> rootIdIceIdMap = new HashMap<>();
         for (IceBase base : map.values()) {
-            if (base.getConfId() != null) {
+            if (base.getConfId() != null && base.getStatus() == StatusEnum.ONLINE.getStatus()) {
                 rootIdIceIdMap.put(base.getConfId(), base.getId());
             }
         }
