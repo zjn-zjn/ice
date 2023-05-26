@@ -835,7 +835,7 @@ public class IceServerServiceImpl implements IceServerService {
             IceBase base = new IceBase();
             base.setStatus(StatusEnum.DELETED.getStatus());
             base.setUpdateAt(new Date());
-            int count = baseMapper.updateByExample(base, example);
+            int count = baseMapper.softRecycle(base, example);
             if (count > 0) {
                 log.info("recycle base success app:{} cnt:{}", app, count);
             }
