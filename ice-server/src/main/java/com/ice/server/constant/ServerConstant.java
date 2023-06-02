@@ -72,9 +72,7 @@ public final class ServerConstant {
         if (conf.getDebug() != null && conf.getDebug() != 1) {
             dto.setDebug(conf.getDebug());
         }
-        if (conf.getErrorState() != null && conf.getErrorState() != NodeRunStateEnum.SHUT_DOWN.getState()) {
-            dto.setErrorState(conf.getErrorState());
-        }
+        dto.setErrorState(conf.getErrorState());
         dto.setId(conf.getId());
         dto.setConfId(conf.getConfId());
         dto.setIceId(conf.getIceId());
@@ -132,7 +130,7 @@ public final class ServerConstant {
         conf.setName(dto.getName());
         conf.setForwardId(dto.getForwardId());
         conf.setDebug(dto.getDebug() == null ? 1 : dto.getDebug());
-        conf.setErrorState(dto.getErrorState() == null ? NodeRunStateEnum.SHUT_DOWN.getState() : dto.getErrorState());
+        conf.setErrorState(dto.getErrorState());
         conf.setId(dto.getId());
         conf.setStart(dto.getStart() == null ? null : new Date(dto.getStart()));
         conf.setEnd(dto.getEnd() == null ? null : new Date(dto.getEnd()));
@@ -156,7 +154,7 @@ public final class ServerConstant {
         show.setForwardId(conf.getForwardId());
         nodeShowConf.setDebug(conf.getDebug() == null || conf.getDebug() == 1);
         nodeShowConf.setNodeId(conf.getMixId());
-        nodeShowConf.setErrorState(conf.getErrorState() == null ? NodeRunStateEnum.SHUT_DOWN.getState() : conf.getErrorState());
+        nodeShowConf.setErrorState(conf.getErrorState());
         show.setStart(conf.getStart() == null ? null : conf.getStart().getTime());
         show.setEnd(conf.getEnd() == null ? null : conf.getEnd().getTime());
         if (conf.getTimeType() != null && conf.getTimeType() != TimeTypeEnum.NONE.getType()) {

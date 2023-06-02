@@ -43,8 +43,7 @@ public enum NodeRunStateEnum {
 
     public static NodeRunStateEnum getEnumDefaultShutdown(Byte state) {
         if (state == null) {
-            //default shutdown
-            return SHUT_DOWN;
+            return null;
         }
         return MAP.get(state);
     }

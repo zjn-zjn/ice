@@ -151,7 +151,7 @@ public final class IceNioClientService {
         clientNode.setEnd(node.getIceEnd() == 0 ? null : node.getIceEnd());
         nodeShowConf.setDebug(node.isIceNodeDebug() ? null : node.isIceNodeDebug());
         nodeShowConf.setInverse(node.isIceInverse() ? node.isIceInverse() : null);
-        if (node.getIceErrorStateEnum() != null && node.getIceErrorStateEnum() != NodeRunStateEnum.SHUT_DOWN) {
+        if (node.getIceErrorStateEnum() != null) {
             nodeShowConf.setErrorState(node.getIceErrorStateEnum().getState());
         }
         nodeShowConf.setNodeType(node.getIceType());

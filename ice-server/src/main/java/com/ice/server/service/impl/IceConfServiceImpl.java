@@ -874,9 +874,6 @@ public class IceConfServiceImpl implements IceConfService {
         if (nodeShowConf.getDebug() == null) {
             nodeShowConf.setDebug(true);
         }
-        if (nodeShowConf.getErrorState() == null) {
-            nodeShowConf.setErrorState(NodeRunStateEnum.SHUT_DOWN.getState());
-        }
         //assemble name from server
         IceConf iceConf = iceServerService.getActiveConfById(app, nodeId);
         if (iceConf != null) {
