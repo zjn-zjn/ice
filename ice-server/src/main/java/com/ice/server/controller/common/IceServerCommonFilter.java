@@ -23,6 +23,8 @@ public class IceServerCommonFilter implements Filter {
     @Autowired(required = false)
     private IceNioServerHa serverHa;
 
+    public static final String HTTP_PREFIX = "http://";
+
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
 
@@ -37,11 +39,14 @@ public class IceServerCommonFilter implements Filter {
                 log.info("redirect to leader, {}", leaderWebAddress);
 
                 HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
-                String queryString = httpServletRequest.getQueryString();
-                queryString = StringUtil.isNullOrEmpty(queryString) ? "" : "?" + queryString;
-                String pathUri = httpServletRequest.getRequestURI();
-                pathUri = Objects.equals("/", pathUri) ? "" : pathUri;
-                ((HttpServletResponse) servletResponse).sendRedirect(String.format("http://%s%s%s", leaderWebAddress, pathUri, queryString));
+                String queryString = getQueryString(httpServletRequest);
+
+                String requestFullUrl = getProtocol(httpServletRequest) +
+                        leaderWebAddress +
+                        getUri(httpServletRequest) +
+                        queryString;
+
+                ((HttpServletResponse) servletResponse).sendRedirect(requestFullUrl);
             } catch (Exception e) {
                 log.error("not leader response error", e);
             }
@@ -49,4 +54,20 @@ public class IceServerCommonFilter implements Filter {
             filterChain.doFilter(servletRequest, servletResponse);
         }
     }
+
+    private String getUri(HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+        return Objects.equals("/", requestURI) ? "" : requestURI;
+    }
+
+    private String getProtocol(HttpServletRequest request) {
+        return request.getScheme() + "://";
+    }
+
+    private String getQueryString(HttpServletRequest request) {
+        String queryString = request.getQueryString();
+        queryString = StringUtil.isNullOrEmpty(queryString) ? "" : "?" + queryString;
+        return queryString;
+    }
+
 }
