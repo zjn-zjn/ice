@@ -138,14 +138,11 @@ public class IceConfServiceImpl implements IceConfService {
                     parent.setSonIds(sb.toString() + editNode.getSelectId());
                 } else {
                     for (int i = 0; i < sonIds.length; i++) {
-                        if (editNode.getMoveTo() < index && editNode.getMoveTo().equals(i)) {
+                        if (editNode.getMoveTo().equals(i)) {
                             sb.append(editNode.getSelectId()).append(Constant.REGEX_COMMA);
                         }
                         if (index != i) {
                             sb.append(sonIds[i]).append(Constant.REGEX_COMMA);
-                        }
-                        if (editNode.getMoveTo() > index && editNode.getMoveTo().equals(i)) {
-                            sb.append(editNode.getSelectId()).append(Constant.REGEX_COMMA);
                         }
                     }
                     parent.setSonIds(Constant.removeLast(sb));
