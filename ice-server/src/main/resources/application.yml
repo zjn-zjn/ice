@@ -5,18 +5,21 @@ server:
 spring:
   profiles:
     active: dev
-  resources:
-    static-locations: classpath:static/
+  web:
+    resources:
+      static-locations: classpath:static/
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.zaxxer.hikari.HikariDataSource
-    initialization-mode: always
-    schema:
-      - classpath:sql/ice.sql
-    continue-on-error: false
-    platform: mysql
-    sql-script-encoding: UTF-8
-    separator: ;
+  sql:
+    init:
+      mode: always
+      schema-locations:
+        - classpath:sql/ice.sql
+      continue-on-error: false
+      platform: mysql
+      encoding: UTF-8
+      separator: ;
   jackson:
     default-property-inclusion: non_null
 mybatis:
