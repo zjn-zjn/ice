@@ -12,16 +12,11 @@
 
     <name>ice</name>
 
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.6.8</version>
-        <relativePath/>
-    </parent>
-
     <properties>
+        <spring-boot-2.version>2.6.8</spring-boot-2.version>
+        <spring-boot-3.version>3.0.0</spring-boot-3.version>
         <java.version>1.8</java.version>
-        <lombok.version>1.18.24</lombok.version>
+        <lombok.version>1.18.30</lombok.version>
         <mybatis.version>2.2.2</mybatis.version>
         <logback.version>1.2.11</logback.version>
         <pagehelper.version>1.4.2</pagehelper.version>
@@ -29,33 +24,21 @@
         <netty.version>4.1.78.Final</netty.version>
         <curator.version>5.2.1</curator.version>
         <jackson.version>2.13.3</jackson.version>
+        <aviator.version>5.3.1</aviator.version>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-    </dependencies>
-
+    
     <modules>
         <module>ice-common</module>
+        <module>ice-core</module>
         <module>ice-client</module>
         <module>ice-server</module>
+        <module>ice-spring-boot</module>
         <module>ice-test</module>
-        <module>ice-core</module>
-        <module>ice-client-spring-boot-starter</module>
-        <module>ice-client-spring-boot-autoconfigure</module>
     </modules>
 
     <!--License-->
@@ -145,6 +128,16 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -9,14 +9,14 @@
         <version>1.5.0</version>
     </parent>
 
-    <artifactId>ice-test</artifactId>
+    <artifactId>ice-spring-boot</artifactId>
     <packaging>pom</packaging>
 
-    <name>ice-test</name>
+    <name>ice-spring-boot</name>
 
     <modules>
-        <module>ice-test-2</module>
-        <module>ice-test-3</module>
+        <module>ice-spring-boot-2</module>
+        <module>ice-spring-boot-3</module>
     </modules>
 
     <properties>

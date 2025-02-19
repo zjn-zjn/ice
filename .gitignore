@@ -11,3 +11,4 @@ ignore/
 *.war
 *.versionsBackup
 *.log*
+.vscode
