@@ -13,18 +13,15 @@
     <name>ice</name>
 
     <properties>
-        <spring-boot-2.version>2.6.8</spring-boot-2.version>
-        <spring-boot-3.version>3.0.0</spring-boot-3.version>
+        <spring-boot-2.version>2.7.18</spring-boot-2.version>
+        <spring-boot-3.version>3.4.2</spring-boot-3.version>
         <java.version>1.8</java.version>
-        <lombok.version>1.18.30</lombok.version>
-        <mybatis.version>2.2.2</mybatis.version>
+        <lombok.version>1.18.36</lombok.version>
         <logback.version>1.2.11</logback.version>
-        <pagehelper.version>1.4.2</pagehelper.version>
         <slf4j.version>1.7.36</slf4j.version>
         <netty.version>4.1.78.Final</netty.version>
-        <curator.version>5.2.1</curator.version>
-        <jackson.version>2.13.3</jackson.version>
-        <aviator.version>5.3.1</aviator.version>
+        <curator.version>5.7.1</curator.version>
+        <jackson.version>2.18.2</jackson.version>
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>

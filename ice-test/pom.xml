@@ -14,14 +14,15 @@
 
     <name>ice-test</name>
 
+    <properties>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <aviator.version>5.4.3</aviator.version>
+    </properties>
+
     <modules>
         <module>ice-test-2</module>
         <module>ice-test-3</module>
     </modules>
-
-    <properties>
-        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-    </properties>
 
     <build>
         <plugins>
