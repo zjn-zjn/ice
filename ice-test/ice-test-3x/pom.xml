@@ -9,10 +9,10 @@
         <version>1.5.0</version>
     </parent>
 
-    <artifactId>ice-test-3</artifactId>
+    <artifactId>ice-test-3x</artifactId>
     <packaging>jar</packaging>
 
-    <name>ice-test-3</name>
+    <name>ice-test-3x</name>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
@@ -63,6 +63,6 @@
                 <version>${spring-boot-3x.version}</version>
             </plugin>
         </plugins>
-        <finalName>ice-test-3</finalName>
+        <finalName>ice-test-3x</finalName>
     </build>
 </project>

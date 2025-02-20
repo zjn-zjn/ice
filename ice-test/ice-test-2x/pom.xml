@@ -9,10 +9,10 @@
         <version>1.5.0</version>
     </parent>
 
-    <artifactId>ice-test-2</artifactId>
+    <artifactId>ice-test-2x</artifactId>
     <packaging>jar</packaging>
 
-    <name>ice-test-2</name>
+    <name>ice-test-2x</name>
 
     <properties>
         <java.version>1.8</java.version>
@@ -67,6 +67,6 @@
                 <version>${maven-compiler-plugin.version}</version>
             </plugin>
         </plugins>
-        <finalName>ice-test-2</finalName>
+        <finalName>ice-test-2x</finalName>
     </build>
 </project>

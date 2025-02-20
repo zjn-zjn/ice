@@ -15,7 +15,7 @@
     <name>ice-test</name>
 
     <modules>
-        <module>ice-test-2</module>
-        <module>ice-test-3</module>
+        <module>ice-test-2x</module>
+        <module>ice-test-3x</module>
     </modules>
 </project>
