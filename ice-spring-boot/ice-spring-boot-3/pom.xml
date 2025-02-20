@@ -11,6 +11,11 @@
     
     <artifactId>ice-spring-boot-3</artifactId>
     <packaging>pom</packaging>
+
+    <modules>
+        <module>ice-client-spring-boot-starter-3</module>
+        <module>ice-client-spring-boot-autoconfigure-3</module>
+    </modules>
     
     <properties>
         <spring-boot.version>${spring-boot-3.version}</spring-boot.version>
@@ -21,20 +26,10 @@
     
     <dependencies>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-autoconfigure</artifactId>
-            <version>${spring-boot.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.waitmoon.ice</groupId>
-            <artifactId>ice-core</artifactId>
-            <version>${project.version}</version>
         </dependency>
     </dependencies>
 

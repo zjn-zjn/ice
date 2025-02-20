@@ -11,6 +11,11 @@
     
     <artifactId>ice-spring-boot-2</artifactId>
     <packaging>pom</packaging>
+
+    <modules>
+        <module>ice-client-spring-boot-starter-2</module>
+        <module>ice-client-spring-boot-autoconfigure-2</module>
+    </modules>
     
     <properties>
         <spring-boot.version>${spring-boot-2.version}</spring-boot.version>
@@ -22,11 +27,6 @@
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.waitmoon.ice</groupId>
-            <artifactId>ice-core</artifactId>
-            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

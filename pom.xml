@@ -19,7 +19,7 @@
         <lombok.version>1.18.36</lombok.version>
         <logback.version>1.2.11</logback.version>
         <slf4j.version>1.7.36</slf4j.version>
-        <netty.version>4.1.78.Final</netty.version>
+        <netty.version>4.1.107.Final</netty.version>
         <curator.version>5.7.1</curator.version>
         <jackson.version>2.18.2</jackson.version>
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
