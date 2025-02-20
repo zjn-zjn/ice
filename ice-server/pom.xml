@@ -88,7 +88,15 @@
                 <version>${spring-boot-2x.version}</version>
                 <configuration>
                     <mainClass>com.ice.server.IceServerApplication</mainClass>
+                    <layout>ZIP</layout>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
         <finalName>ice-server</finalName>
