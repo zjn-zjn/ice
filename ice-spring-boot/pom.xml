@@ -15,13 +15,17 @@
     <name>ice-spring-boot</name>
 
     <modules>
-        <module>ice-spring-boot-2</module>
-        <module>ice-spring-boot-3</module>
+        <module>ice-spring-boot-starter-2x</module>
+        <module>ice-spring-boot-starter-3x</module>
     </modules>
 
-    <properties>
-        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>com.waitmoon.ice</groupId>
+            <artifactId>ice-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>

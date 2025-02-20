@@ -25,7 +25,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot-2.version}</version>
+                <version>${spring-boot-2x.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -37,12 +37,6 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.waitmoon.ice</groupId>
@@ -91,7 +85,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring-boot-2.version}</version>
+                <version>${spring-boot-2x.version}</version>
                 <configuration>
                     <mainClass>com.ice.server.IceServerApplication</mainClass>
                 </configuration>

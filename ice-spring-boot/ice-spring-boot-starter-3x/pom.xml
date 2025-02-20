@@ -5,19 +5,21 @@
 
     <parent>
         <groupId>com.waitmoon.ice</groupId>
-        <artifactId>ice-spring-boot-3</artifactId>
+        <artifactId>ice-spring-boot</artifactId>
         <version>1.5.0</version>
     </parent>
-    
-    <artifactId>ice-client-spring-boot-starter-3</artifactId>
+
+    <properties>
+        <spring-boot.version>${spring-boot-3x.version}</spring-boot.version>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+
+    <artifactId>ice-spring-boot-starter-3x</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
-        <dependency>
-            <groupId>com.waitmoon.ice</groupId>
-            <artifactId>ice-client-spring-boot-autoconfigure-3</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>

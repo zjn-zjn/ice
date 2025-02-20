@@ -13,13 +13,13 @@
     <name>ice</name>
 
     <properties>
-        <spring-boot-2.version>2.7.18</spring-boot-2.version>
-        <spring-boot-3.version>3.4.2</spring-boot-3.version>
+        <spring-boot-2x.version>2.7.18</spring-boot-2x.version>
+        <spring-boot-3x.version>3.4.2</spring-boot-3x.version>
         <java.version>1.8</java.version>
         <lombok.version>1.18.36</lombok.version>
         <logback.version>1.2.11</logback.version>
         <slf4j.version>1.7.36</slf4j.version>
-        <netty.version>4.1.107.Final</netty.version>
+        <netty.version>4.1.118.Final</netty.version>
         <curator.version>5.7.1</curator.version>
         <jackson.version>2.18.2</jackson.version>
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
@@ -28,11 +28,10 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
-    
+
     <modules>
         <module>ice-common</module>
         <module>ice-core</module>
-        <module>ice-client</module>
         <module>ice-server</module>
         <module>ice-spring-boot</module>
         <module>ice-test</module>
