@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.PropertyWriter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ice.core.annotation.IceIgnore;
 
 import java.io.IOException;
@@ -33,6 +34,7 @@ public final class JacksonUtils {
             .configure(JsonReadFeature.ALLOW_MISSING_VALUES.mappedFeature(), true)
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
             .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+            .addModule(new JavaTimeModule())
             .build();
     private final static ObjectMapper withNullMapper = JsonMapper.builder()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -41,6 +43,7 @@ public final class JacksonUtils {
             .configure(JsonReadFeature.ALLOW_MISSING_VALUES.mappedFeature(), true)
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
             .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
+            .addModule(new JavaTimeModule())
             .build();
 
     public static String toJsonString(Object obj) {
