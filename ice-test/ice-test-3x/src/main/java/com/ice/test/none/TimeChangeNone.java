@@ -7,7 +7,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+
 
 /**
  * @author waitmoon
@@ -16,8 +18,8 @@ import java.util.Date;
 @EqualsAndHashCode(callSuper = true)
 public final class TimeChangeNone extends BaseLeafPackNone {
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
-    private Date time;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime time;
 
     private long cursorMills;
 
@@ -33,7 +35,7 @@ public final class TimeChangeNone extends BaseLeafPackNone {
     protected void doPackNone(IcePack pack) {
         if (!"prod".equals(environment)) {
             if (time != null) {
-                pack.setRequestTime(time.getTime());
+                pack.setRequestTime(time.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             } else {
                 pack.setRequestTime(pack.getRequestTime() + cursorMills);
             }
