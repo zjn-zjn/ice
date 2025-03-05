@@ -77,6 +77,7 @@ public final class IceHandler {
             }
         } catch (Throwable t) {
             IceErrorHandle.errorHandle(this, ctx, t);
+            throw t;
         }
     }
 
