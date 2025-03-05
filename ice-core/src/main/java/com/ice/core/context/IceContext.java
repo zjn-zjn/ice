@@ -1,6 +1,7 @@
 package com.ice.core.context;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.io.Serializable;
@@ -11,6 +12,7 @@ import java.io.Serializable;
  */
 @Data
 @ToString
+@NoArgsConstructor
 public final class IceContext implements Serializable {
 
     /*
