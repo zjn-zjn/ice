@@ -102,19 +102,15 @@
             <include refid="Example_Where_Clause"/>
         </if>
     </delete>
-    <insert id="insert" parameterType="com.ice.server.dao.model.IceApp">
-        <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
-            SELECT LAST_INSERT_ID()
-        </selectKey>
+    <insert id="insert" parameterType="com.ice.server.dao.model.IceApp" useGeneratedKeys="true" keyProperty="id">
+        <!-- 使用useGeneratedKeys="true"和keyProperty="id"让MyBatis自动获取自增ID -->
         insert into "ice_app" ("name", "info", "status",
         "create_at", "update_at")
         values (#{name,jdbcType=VARCHAR}, #{info,jdbcType=VARCHAR}, #{status,jdbcType=BIT},
         #{createAt,jdbcType=TIMESTAMP}, #{updateAt,jdbcType=TIMESTAMP})
     </insert>
-    <insert id="insertSelective" parameterType="com.ice.server.dao.model.IceApp">
-        <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
-            SELECT LAST_INSERT_ID()
-        </selectKey>
+    <insert id="insertSelective" parameterType="com.ice.server.dao.model.IceApp" useGeneratedKeys="true" keyProperty="id">
+        <!-- 使用useGeneratedKeys="true"和keyProperty="id"让MyBatis自动获取自增ID -->
         insert into "ice_app"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="name != null">

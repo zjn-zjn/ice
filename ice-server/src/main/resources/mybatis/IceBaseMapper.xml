@@ -120,10 +120,8 @@
             <include refid="Update_By_Example_Where_Clause"/>
         </if>
     </update>
-    <insert id="insert" parameterType="com.ice.server.dao.model.IceBase">
-        <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
-            SELECT LAST_INSERT_ID()
-        </selectKey>
+    <insert id="insert" parameterType="com.ice.server.dao.model.IceBase" useGeneratedKeys="true" keyProperty="id">
+        <!-- 使用useGeneratedKeys="true"和keyProperty="id"让MyBatis自动获取自增ID -->
         insert into "ice_base" ("name", "app", "scenes",
         "status", "conf_id", "time_type",
         "start", "end", "debug",
@@ -148,10 +146,8 @@
         #{priority,jdbcType=BIGINT}, #{updateAt,jdbcType=TIMESTAMP}
         )
     </insert>
-    <insert id="insertSelective" parameterType="com.ice.server.dao.model.IceBase">
-        <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
-            SELECT LAST_INSERT_ID()
-        </selectKey>
+    <insert id="insertSelective" parameterType="com.ice.server.dao.model.IceBase" useGeneratedKeys="true" keyProperty="id">
+        <!-- 使用useGeneratedKeys="true"和keyProperty="id"让MyBatis自动获取自增ID -->
         insert into "ice_base"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="name != null">

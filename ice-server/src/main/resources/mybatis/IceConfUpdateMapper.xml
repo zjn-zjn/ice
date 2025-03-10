@@ -116,10 +116,8 @@
             <include refid="Example_Where_Clause"/>
         </if>
     </delete>
-    <insert id="insert" parameterType="com.ice.server.dao.model.IceConf">
-        <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
-            SELECT LAST_INSERT_ID()
-        </selectKey>
+    <insert id="insert" parameterType="com.ice.server.dao.model.IceConf" useGeneratedKeys="true" keyProperty="id">
+        <!-- 使用useGeneratedKeys="true"和keyProperty="id"让MyBatis自动获取自增ID -->
         insert into "ice_conf_update" ("app", "ice_id", "conf_id", "name", "son_ids",
         "type", "status", "inverse",
         "conf_name", "conf_field", "forward_id",
@@ -148,10 +146,8 @@
         #{timeType,jdbcType=TINYINT}, #{start,jdbcType=TIMESTAMP}, #{end,jdbcType=TIMESTAMP}, #{debug,jdbcType=TINYINT},
         #{errorState,jdbcType=TINYINT}, #{updateAt,jdbcType=TIMESTAMP})
     </insert>
-    <insert id="insertSelective" parameterType="com.ice.server.dao.model.IceConf">
-        <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
-            SELECT LAST_INSERT_ID()
-        </selectKey>
+    <insert id="insertSelective" parameterType="com.ice.server.dao.model.IceConf" useGeneratedKeys="true" keyProperty="id">
+        <!-- 使用useGeneratedKeys="true"和keyProperty="id"让MyBatis自动获取自增ID -->
         insert into "ice_conf_update"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="app != null">

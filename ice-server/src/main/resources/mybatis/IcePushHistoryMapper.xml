@@ -128,10 +128,8 @@
             <include refid="Example_Where_Clause"/>
         </if>
     </delete>
-    <insert id="insert" parameterType="com.ice.server.dao.model.IcePushHistory">
-        <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
-            SELECT LAST_INSERT_ID()
-        </selectKey>
+    <insert id="insert" parameterType="com.ice.server.dao.model.IcePushHistory" useGeneratedKeys="true" keyProperty="id">
+        <!-- 使用useGeneratedKeys="true"和keyProperty="id"让MyBatis自动获取自增ID -->
         insert into "ice_push_history" ("app", "ice_id", "reason",
         "operator", "create_at", "push_data"
         )
@@ -139,10 +137,8 @@
         #{operator,jdbcType=VARCHAR}, #{createAt,jdbcType=TIMESTAMP}, #{pushData,jdbcType=LONGVARCHAR}
         )
     </insert>
-    <insert id="insertSelective" parameterType="com.ice.server.dao.model.IcePushHistory">
-        <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
-            SELECT LAST_INSERT_ID()
-        </selectKey>
+    <insert id="insertSelective" parameterType="com.ice.server.dao.model.IcePushHistory" useGeneratedKeys="true" keyProperty="id">
+        <!-- 使用useGeneratedKeys="true"和keyProperty="id"让MyBatis自动获取自增ID -->
         insert into "ice_push_history"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="app != null">
