@@ -16,7 +16,43 @@ public class IceAppExample {
     }
 
     public void setOrderByClause(String orderByClause) {
-        this.orderByClause = orderByClause;
+        if (orderByClause != null) {
+            this.orderByClause = addQuotesToOrderByFields(orderByClause);
+        } else {
+            this.orderByClause = null;
+        }
+    }
+    
+    private String addQuotesToOrderByFields(String orderByClause) {
+        StringBuilder result = new StringBuilder();
+        // 按逗号分隔ORDER BY子句
+        String[] orderItems = orderByClause.split(",");
+        
+        for (int i = 0; i < orderItems.length; i++) {
+            String item = orderItems[i].trim();
+            if (i > 0) {
+                result.append(", ");
+            }
+            
+            // 处理每个排序项，格式通常是"字段名 排序方向"
+            String[] parts = item.split("\\s+");
+            if (parts.length > 0) {
+                String fieldName = parts[0].trim();
+                // 如果字段名没有双引号，添加双引号
+                if (!fieldName.startsWith("\"") && !fieldName.endsWith("\"")) {
+                    result.append("\"").append(fieldName).append("\"");
+                } else {
+                    result.append(fieldName);
+                }
+                
+                // 添加排序方向（ASC/DESC）
+                for (int j = 1; j < parts.length; j++) {
+                    result.append(" ").append(parts[j]);
+                }
+            }
+        }
+        
+        return result.toString();
     }
 
     public String getOrderByClause() {
@@ -88,21 +124,45 @@ public class IceAppExample {
             if (condition == null) {
                 throw new RuntimeException("Value for condition cannot be null");
             }
-            criteria.add(new Criterion(condition));
+            // 处理条件中的列名，添加双引号
+            String processedCondition = addQuotesToColumnName(condition);
+            criteria.add(new Criterion(processedCondition));
+        }
+        
+        private String addQuotesToColumnName(String condition) {
+            // 查找条件中的列名并添加双引号
+            // 列名通常在操作符（如 =, <>, >, <, >=, <=, is null, is not null, in, not in, between, not between）之前
+            String[] operatorsPatterns = {" =", " <>", " >", " <", " >=", " <=", " is null", " is not null", " in", " not in", " between", " not between"};
+            
+            for (String op : operatorsPatterns) {
+                if (condition.contains(op)) {
+                    int opIndex = condition.indexOf(op);
+                    String columnName = condition.substring(0, opIndex).trim();
+                    if (!columnName.startsWith("\"") && !columnName.endsWith("\"")) {
+                        return "\"" + columnName + "\"" + condition.substring(opIndex);
+                    }
+                    return condition;
+                }
+            }
+            return condition;
         }
 
         protected void addCriterion(String condition, Object value, String property) {
             if (value == null) {
                 throw new RuntimeException("Value for " + property + " cannot be null");
             }
-            criteria.add(new Criterion(condition, value));
+            // 处理条件中的列名，添加双引号
+            String processedCondition = addQuotesToColumnName(condition);
+            criteria.add(new Criterion(processedCondition, value));
         }
 
         protected void addCriterion(String condition, Object value1, Object value2, String property) {
             if (value1 == null || value2 == null) {
                 throw new RuntimeException("Between values for " + property + " cannot be null");
             }
-            criteria.add(new Criterion(condition, value1, value2));
+            // 处理条件中的列名，添加双引号
+            String processedCondition = addQuotesToColumnName(condition);
+            criteria.add(new Criterion(processedCondition, value1, value2));
         }
 
         public Criteria andIdIsNull() {
