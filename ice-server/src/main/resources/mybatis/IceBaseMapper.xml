@@ -77,8 +77,8 @@
         </where>
     </sql>
     <sql id="Base_Column_List">
-        id, name, app, scenes, status, conf_id, time_type, start, end, debug, priority, create_at,
-        update_at
+        "id", "name", "app", "scenes", "status", "conf_id", "time_type", "start", "end", "debug", "priority", "create_at",
+        "update_at"
     </sql>
     <select id="selectByExample" parameterType="com.ice.server.dao.model.IceBaseExample" resultMap="BaseResultMap">
         select
@@ -86,7 +86,7 @@
             distinct
         </if>
         <include refid="Base_Column_List"/>
-        from ice_base
+        from "ice_base"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
@@ -97,24 +97,24 @@
     <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
         select
         <include refid="Base_Column_List"/>
-        from ice_base
-        where id = #{id,jdbcType=BIGINT}
+        from "ice_base"
+        where "id" = #{id,jdbcType=BIGINT}
     </select>
     <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
-        delete from ice_base
-        where id = #{id,jdbcType=BIGINT}
+        delete from "ice_base"
+        where "id" = #{id,jdbcType=BIGINT}
     </delete>
     <delete id="deleteByExample" parameterType="com.ice.server.dao.model.IceBaseExample">
-        delete from ice_base
+        delete from "ice_base"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
     </delete>
     <update id="softRecycle" parameterType="map">
-        update ice_conf
+        update "ice_base"
         <set>
-            status = #{record.status,jdbcType=TINYINT},
-            update_at = #{record.updateAt,jdbcType=TIMESTAMP},
+            "status" = #{record.status,jdbcType=TINYINT},
+            "update_at" = #{record.updateAt,jdbcType=TIMESTAMP},
         </set>
         <if test="_parameter != null">
             <include refid="Update_By_Example_Where_Clause"/>
@@ -124,10 +124,10 @@
         <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
             SELECT LAST_INSERT_ID()
         </selectKey>
-        insert into ice_base (name, app, scenes,
-        status, conf_id, time_type,
-        start, end, debug,
-        priority, create_at, update_at
+        insert into "ice_base" ("name", "app", "scenes",
+        "status", "conf_id", "time_type",
+        "start", "end", "debug",
+        "priority", "create_at", "update_at"
         )
         values (#{name,jdbcType=VARCHAR}, #{app,jdbcType=INTEGER}, #{scenes,jdbcType=VARCHAR},
         #{status,jdbcType=TINYINT}, #{confId,jdbcType=BIGINT}, #{timeType,jdbcType=TINYINT},
@@ -137,10 +137,10 @@
     </insert>
 
     <insert id="insertWithId" parameterType="com.ice.server.dao.model.IceBase">
-        insert into ice_base (id,name, app, scenes,
-        status, conf_id, time_type,
-        start, end, debug,
-        priority, update_at
+        insert into "ice_base" ("id","name", "app", "scenes",
+        "status", "conf_id", "time_type",
+        "start", "end", "debug",
+        "priority", "update_at"
         )
         values (#{id,jdbcType=BIGINT},#{name,jdbcType=VARCHAR}, #{app,jdbcType=INTEGER}, #{scenes,jdbcType=VARCHAR},
         #{status,jdbcType=TINYINT}, #{confId,jdbcType=BIGINT}, #{timeType,jdbcType=TINYINT},
@@ -152,43 +152,43 @@
         <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
             SELECT LAST_INSERT_ID()
         </selectKey>
-        insert into ice_base
+        insert into "ice_base"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="name != null">
-                name,
+                "name",
             </if>
             <if test="app != null">
-                app,
+                "app",
             </if>
             <if test="scenes != null">
-                scenes,
+                "scenes",
             </if>
             <if test="status != null">
-                status,
+                "status",
             </if>
             <if test="confId != null">
-                conf_id,
+                "conf_id",
             </if>
             <if test="timeType != null">
-                time_type,
+                "time_type",
             </if>
             <if test="start != null">
-                start,
+                "start",
             </if>
             <if test="end != null">
-                end,
+                "end",
             </if>
             <if test="debug != null">
-                debug,
+                "debug",
             </if>
             <if test="priority != null">
-                priority,
+                "priority",
             </if>
             <if test="createAt != null">
-                create_at,
+                "create_at",
             </if>
             <if test="updateAt != null">
-                update_at,
+                "update_at",
             </if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
@@ -231,46 +231,46 @@
         </trim>
     </insert>
     <insert id="insertSelectiveWithId" parameterType="com.ice.server.dao.model.IceBase">
-        insert into ice_base
+        insert into "ice_base"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">
-                id,
+                "id",
             </if>
             <if test="name != null">
-                name,
+                "name",
             </if>
             <if test="app != null">
-                app,
+                "app",
             </if>
             <if test="scenes != null">
-                scenes,
+                "scenes",
             </if>
             <if test="status != null">
-                status,
+                "status",
             </if>
             <if test="confId != null">
-                conf_id,
+                "conf_id",
             </if>
             <if test="timeType != null">
-                time_type,
+                "time_type",
             </if>
             <if test="start != null">
-                start,
+                "start",
             </if>
             <if test="end != null">
-                end,
+                "end",
             </if>
             <if test="debug != null">
-                debug,
+                "debug",
             </if>
             <if test="priority != null">
-                priority,
+                "priority",
             </if>
             <if test="createAt != null">
-                create_at,
+                "create_at",
             </if>
             <if test="updateAt != null">
-                update_at,
+                "update_at",
             </if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
@@ -316,52 +316,52 @@
         </trim>
     </insert>
     <select id="countByExample" parameterType="com.ice.server.dao.model.IceBaseExample" resultType="java.lang.Long">
-        select count(*) from ice_base
+        select count(*) from "ice_base"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
     </select>
     <update id="updateByExampleSelective" parameterType="map">
-        update ice_base
+        update "ice_base"
         <set>
             <if test="record.id != null">
-                id = #{record.id,jdbcType=BIGINT},
+                "id" = #{record.id,jdbcType=BIGINT},
             </if>
             <if test="record.name != null">
-                name = #{record.name,jdbcType=VARCHAR},
+                "name" = #{record.name,jdbcType=VARCHAR},
             </if>
             <if test="record.app != null">
-                app = #{record.app,jdbcType=INTEGER},
+                "app" = #{record.app,jdbcType=INTEGER},
             </if>
             <if test="record.scenes != null">
-                scenes = #{record.scenes,jdbcType=VARCHAR},
+                "scenes" = #{record.scenes,jdbcType=VARCHAR},
             </if>
             <if test="record.status != null">
-                status = #{record.status,jdbcType=TINYINT},
+                "status" = #{record.status,jdbcType=TINYINT},
             </if>
             <if test="record.confId != null">
-                conf_id = #{record.confId,jdbcType=BIGINT},
+                "conf_id" = #{record.confId,jdbcType=BIGINT},
             </if>
             <if test="record.timeType != null">
-                time_type = #{record.timeType,jdbcType=TINYINT},
+                "time_type" = #{record.timeType,jdbcType=TINYINT},
             </if>
             <if test="record.start != null">
-                start = #{record.start,jdbcType=TIMESTAMP},
+                "start" = #{record.start,jdbcType=TIMESTAMP},
             </if>
             <if test="record.end != null">
-                end = #{record.end,jdbcType=TIMESTAMP},
+                "end" = #{record.end,jdbcType=TIMESTAMP},
             </if>
             <if test="record.debug != null">
-                debug = #{record.debug,jdbcType=TINYINT},
+                "debug" = #{record.debug,jdbcType=TINYINT},
             </if>
             <if test="record.priority != null">
-                priority = #{record.priority,jdbcType=BIGINT},
+                "priority" = #{record.priority,jdbcType=BIGINT},
             </if>
             <if test="record.createAt != null">
-                create_at = #{record.createAt,jdbcType=TIMESTAMP},
+                "create_at" = #{record.createAt,jdbcType=TIMESTAMP},
             </if>
             <if test="record.updateAt != null">
-                update_at = #{record.updateAt,jdbcType=TIMESTAMP},
+                "update_at" = #{record.updateAt,jdbcType=TIMESTAMP},
             </if>
         </set>
         <if test="_parameter != null">
@@ -369,79 +369,79 @@
         </if>
     </update>
     <update id="updateByExample" parameterType="map">
-        update ice_base
-        set id = #{record.id,jdbcType=BIGINT},
-        name = #{record.name,jdbcType=VARCHAR},
-        app = #{record.app,jdbcType=INTEGER},
-        scenes = #{record.scenes,jdbcType=VARCHAR},
-        status = #{record.status,jdbcType=TINYINT},
-        conf_id = #{record.confId,jdbcType=BIGINT},
-        time_type = #{record.timeType,jdbcType=TINYINT},
-        start = #{record.start,jdbcType=TIMESTAMP},
-        end = #{record.end,jdbcType=TIMESTAMP},
-        debug = #{record.debug,jdbcType=TINYINT},
-        priority = #{record.priority,jdbcType=BIGINT},
-        create_at = #{record.createAt,jdbcType=TIMESTAMP},
-        update_at = #{record.updateAt,jdbcType=TIMESTAMP}
+        update "ice_base"
+        set "id" = #{record.id,jdbcType=BIGINT},
+        "name" = #{record.name,jdbcType=VARCHAR},
+        "app" = #{record.app,jdbcType=INTEGER},
+        "scenes" = #{record.scenes,jdbcType=VARCHAR},
+        "status" = #{record.status,jdbcType=TINYINT},
+        "conf_id" = #{record.confId,jdbcType=BIGINT},
+        "time_type" = #{record.timeType,jdbcType=TINYINT},
+        "start" = #{record.start,jdbcType=TIMESTAMP},
+        "end" = #{record.end,jdbcType=TIMESTAMP},
+        "debug" = #{record.debug,jdbcType=TINYINT},
+        "priority" = #{record.priority,jdbcType=BIGINT},
+        "create_at" = #{record.createAt,jdbcType=TIMESTAMP},
+        "update_at" = #{record.updateAt,jdbcType=TIMESTAMP}
         <if test="_parameter != null">
             <include refid="Update_By_Example_Where_Clause"/>
         </if>
     </update>
     <update id="updateByPrimaryKeySelective" parameterType="com.ice.server.dao.model.IceBase">
-        update ice_base
+        update "ice_base"
         <set>
             <if test="name != null">
-                name = #{name,jdbcType=VARCHAR},
+                "name" = #{name,jdbcType=VARCHAR},
             </if>
             <if test="app != null">
-                app = #{app,jdbcType=INTEGER},
+                "app" = #{app,jdbcType=INTEGER},
             </if>
             <if test="scenes != null">
-                scenes = #{scenes,jdbcType=VARCHAR},
+                "scenes" = #{scenes,jdbcType=VARCHAR},
             </if>
             <if test="status != null">
-                status = #{status,jdbcType=TINYINT},
+                "status" = #{status,jdbcType=TINYINT},
             </if>
             <if test="confId != null">
-                conf_id = #{confId,jdbcType=BIGINT},
+                "conf_id" = #{confId,jdbcType=BIGINT},
             </if>
             <if test="timeType != null">
-                time_type = #{timeType,jdbcType=TINYINT},
+                "time_type" = #{timeType,jdbcType=TINYINT},
             </if>
             <if test="start != null">
-                start = #{start,jdbcType=TIMESTAMP},
+                "start" = #{start,jdbcType=TIMESTAMP},
             </if>
             <if test="end != null">
-                end = #{end,jdbcType=TIMESTAMP},
+                "end" = #{end,jdbcType=TIMESTAMP},
             </if>
             <if test="debug != null">
-                debug = #{debug,jdbcType=TINYINT},
+                "debug" = #{debug,jdbcType=TINYINT},
             </if>
             <if test="priority != null">
-                priority = #{priority,jdbcType=BIGINT},
+                "priority" = #{priority,jdbcType=BIGINT},
             </if>
             <if test="createAt != null">
                 create_at = #{createAt,jdbcType=TIMESTAMP},
             </if>
             <if test="updateAt != null">
-                update_at = #{updateAt,jdbcType=TIMESTAMP},
+                "update_at" = #{updateAt,jdbcType=TIMESTAMP},
             </if>
         </set>
-        where id = #{id,jdbcType=BIGINT}
+        where "id" = #{id,jdbcType=BIGINT}
     </update>
     <update id="updateByPrimaryKey" parameterType="com.ice.server.dao.model.IceBase">
-        update ice_base
-        set name = #{name,jdbcType=VARCHAR},
-        app = #{app,jdbcType=INTEGER},
-        scenes = #{scenes,jdbcType=VARCHAR},
-        status = #{status,jdbcType=TINYINT},
-        conf_id = #{confId,jdbcType=BIGINT},
-        time_type = #{timeType,jdbcType=TINYINT},
-        start = #{start,jdbcType=TIMESTAMP},
-        end = #{end,jdbcType=TIMESTAMP},
-        debug = #{debug,jdbcType=TINYINT},
-        priority = #{priority,jdbcType=BIGINT},
-        update_at = #{updateAt,jdbcType=TIMESTAMP}
-        where id = #{id,jdbcType=BIGINT}
+        update "ice_base"
+        set "name" = #{name,jdbcType=VARCHAR},
+        "app" = #{app,jdbcType=INTEGER},
+        "scenes" = #{scenes,jdbcType=VARCHAR},
+        "status" = #{status,jdbcType=TINYINT},
+        "conf_id" = #{confId,jdbcType=BIGINT},
+        "time_type" = #{timeType,jdbcType=TINYINT},
+        "start" = #{start,jdbcType=TIMESTAMP},
+        "end" = #{end,jdbcType=TIMESTAMP},
+        "debug" = #{debug,jdbcType=TINYINT},
+        "priority" = #{priority,jdbcType=BIGINT},
+        "update_at" = #{updateAt,jdbcType=TIMESTAMP}
+        where "id" = #{id,jdbcType=BIGINT}
     </update>
 </mapper>

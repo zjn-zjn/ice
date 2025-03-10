@@ -81,8 +81,8 @@
         </where>
     </sql>
     <sql id="Base_Column_List">
-        id, app, name, son_ids, type, status, inverse, conf_name, conf_field, forward_id,
-        time_type, start, end, debug, error_state, create_at, update_at
+        "id", "app", "name", "son_ids", "type", "status", "inverse", "conf_name", "conf_field", "forward_id",
+        "time_type", "start", "end", "debug", "error_state", "create_at", "update_at"
     </sql>
     <select id="selectByExample" parameterType="com.ice.server.dao.model.IceConfExample" resultMap="BaseResultMap">
         select
@@ -90,7 +90,7 @@
             distinct
         </if>
         <include refid="Base_Column_List"/>
-        from ice_conf
+        from "ice_conf"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
@@ -101,15 +101,15 @@
     <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
         select
         <include refid="Base_Column_List"/>
-        from ice_conf
-        where id = #{id,jdbcType=BIGINT}
+        from "ice_conf"
+        where "id" = #{id,jdbcType=BIGINT}
     </select>
     <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
-        delete from ice_conf
-        where id = #{id,jdbcType=BIGINT}
+        delete from "ice_conf"
+        where "id" = #{id,jdbcType=BIGINT}
     </delete>
     <delete id="deleteByExample" parameterType="com.ice.server.dao.model.IceConfExample">
-        delete from ice_conf
+        delete from "ice_conf"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
@@ -118,11 +118,11 @@
         <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
             SELECT LAST_INSERT_ID()
         </selectKey>
-        insert into ice_conf (app, name, son_ids,
-        type, status, inverse,
-        conf_name, conf_field, forward_id,
-        time_type, start, end, debug, error_state, create_at,
-        update_at)
+        insert into "ice_conf" ("app", "name", "son_ids",
+        "type", "status", "inverse",
+        "conf_name", "conf_field", "forward_id",
+        "time_type", "start", "end", "debug", "error_state", "create_at",
+        "update_at")
         values (#{app,jdbcType=INTEGER}, #{name,jdbcType=VARCHAR}, #{sonIds,jdbcType=VARCHAR},
         #{type,jdbcType=TINYINT}, #{status,jdbcType=TINYINT}, #{inverse,jdbcType=TINYINT},
         #{confName,jdbcType=VARCHAR}, #{confField,jdbcType=VARCHAR}, #{forwardId,jdbcType=BIGINT},
@@ -132,11 +132,11 @@
     </insert>
 
     <insert id="insertWithId" parameterType="com.ice.server.dao.model.IceConf">
-        insert into ice_conf (id, app, name, son_ids,
-        type, status, inverse,
-        conf_name, conf_field, forward_id,
-        time_type, start, end, debug,error_state,
-        update_at)
+        insert into "ice_conf" ("id", "app", "name", "son_ids",
+        "type", "status", "inverse",
+        "conf_name", "conf_field", "forward_id",
+        "time_type", "start", "end", "debug", "error_state",
+        "update_at")
         values (#{id,jdbcType=BIGINT}, #{app,jdbcType=INTEGER}, #{name,jdbcType=VARCHAR}, #{sonIds,jdbcType=VARCHAR},
         #{type,jdbcType=TINYINT}, #{status,jdbcType=TINYINT}, #{inverse,jdbcType=TINYINT},
         #{confName,jdbcType=VARCHAR}, #{confField,jdbcType=VARCHAR}, #{forwardId,jdbcType=BIGINT},
@@ -147,55 +147,55 @@
         <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
             SELECT LAST_INSERT_ID()
         </selectKey>
-        insert into ice_conf
+        insert into "ice_conf"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="app != null">
-                app,
+                "app",
             </if>
             <if test="name != null">
-                name,
+                "name",
             </if>
             <if test="sonIds != null">
-                son_ids,
+                "son_ids",
             </if>
             <if test="type != null">
-                type,
+                "type",
             </if>
             <if test="status != null">
-                status,
+                "status",
             </if>
             <if test="inverse != null">
-                inverse,
+                "inverse",
             </if>
             <if test="confName != null">
-                conf_name,
+                "conf_name",
             </if>
             <if test="confField != null">
-                conf_field,
+                "conf_field",
             </if>
             <if test="forwardId != null">
-                forward_id,
+                "forward_id",
             </if>
             <if test="timeType != null">
-                time_type,
+                "time_type",
             </if>
             <if test="start != null">
-                start,
+                "start",
             </if>
             <if test="end != null">
-                end,
+                "end",
             </if>
             <if test="debug != null">
-                debug,
+                "debug",
             </if>
             <if test="errorState != null">
-                error_state,
+                "error_state",
             </if>
             <if test="createAt != null">
-                create_at,
+                "create_at",
             </if>
             <if test="updateAt != null">
-                update_at,
+                "update_at",
             </if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
@@ -250,58 +250,58 @@
         </trim>
     </insert>
     <insert id="insertSelectiveWithId" parameterType="com.ice.server.dao.model.IceConf">
-        insert into ice_conf
+        insert into "ice_conf"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="id != null">
-                id,
+                "id",
             </if>
             <if test="app != null">
-                app,
+                "app",
             </if>
             <if test="name != null">
-                name,
+                "name",
             </if>
             <if test="sonIds != null">
-                son_ids,
+                "son_ids",
             </if>
             <if test="type != null">
-                type,
+                "type",
             </if>
             <if test="status != null">
-                status,
+                "status",
             </if>
             <if test="inverse != null">
-                inverse,
+                "inverse",
             </if>
             <if test="confName != null">
-                conf_name,
+                "conf_name",
             </if>
             <if test="confField != null">
-                conf_field,
+                "conf_field",
             </if>
             <if test="forwardId != null">
-                forward_id,
+                "forward_id",
             </if>
             <if test="timeType != null">
-                time_type,
+                "time_type",
             </if>
             <if test="start != null">
-                start,
+                "start",
             </if>
             <if test="end != null">
-                end,
+                "end",
             </if>
             <if test="debug != null">
-                debug,
+                "debug",
             </if>
             <if test="errorState != null">
-                error_state,
+                "error_state",
             </if>
             <if test="createAt != null">
-                create_at,
+                "create_at",
             </if>
             <if test="updateAt != null">
-                update_at,
+                "update_at",
             </if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
@@ -359,13 +359,13 @@
         </trim>
     </insert>
     <select id="countByExample" parameterType="com.ice.server.dao.model.IceConfExample" resultType="java.lang.Long">
-        select count(*) from ice_conf
+        select count(*) from "ice_conf"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
     </select>
     <update id="softRecycle" parameterType="map">
-        update ice_conf
+        update "ice_conf"
         <set>
             status = #{record.status,jdbcType=TINYINT},
             update_at = #{record.updateAt,jdbcType=TIMESTAMP},
@@ -375,58 +375,58 @@
         </if>
     </update>
     <update id="updateByExampleSelective" parameterType="map">
-        update ice_conf
+        update "ice_conf"
         <set>
             <if test="record.id != null">
-                id = #{record.id,jdbcType=BIGINT},
+                "id" = #{record.id,jdbcType=BIGINT},
             </if>
             <if test="record.app != null">
-                app = #{record.app,jdbcType=INTEGER},
+                "app" = #{record.app,jdbcType=INTEGER},
             </if>
             <if test="record.name != null">
-                name = #{record.name,jdbcType=VARCHAR},
+                "name" = #{record.name,jdbcType=VARCHAR},
             </if>
             <if test="record.sonIds != null">
-                son_ids = #{record.sonIds,jdbcType=VARCHAR},
+                "son_ids" = #{record.sonIds,jdbcType=VARCHAR},
             </if>
             <if test="record.type != null">
-                type = #{record.type,jdbcType=TINYINT},
+                "type" = #{record.type,jdbcType=TINYINT},
             </if>
             <if test="record.status != null">
-                status = #{record.status,jdbcType=TINYINT},
+                "status" = #{record.status,jdbcType=TINYINT},
             </if>
             <if test="record.inverse != null">
-                inverse = #{record.inverse,jdbcType=TINYINT},
+                "inverse" = #{record.inverse,jdbcType=TINYINT},
             </if>
             <if test="record.confName != null">
-                conf_name = #{record.confName,jdbcType=VARCHAR},
+                "conf_name" = #{record.confName,jdbcType=VARCHAR},
             </if>
             <if test="record.confField != null">
-                conf_field = #{record.confField,jdbcType=VARCHAR},
+                "conf_field" = #{record.confField,jdbcType=VARCHAR},
             </if>
             <!--      <if test="record.forwardId != null">-->
-            forward_id = #{record.forwardId,jdbcType=BIGINT},
+            "forward_id" = #{record.forwardId,jdbcType=BIGINT},
             <!--      </if>-->
             <if test="record.timeType != null">
-                time_type = #{record.timeType,jdbcType=TINYINT},
+                "time_type" = #{record.timeType,jdbcType=TINYINT},
             </if>
             <if test="record.start != null">
-                start = #{record.start,jdbcType=TIMESTAMP},
+                "start" = #{record.start,jdbcType=TIMESTAMP},
             </if>
             <if test="record.end != null">
-                end = #{record.end,jdbcType=TIMESTAMP},
+                "end" = #{record.end,jdbcType=TIMESTAMP},
             </if>
             <if test="record.debug != null">
-                debug = #{record.debug,jdbcType=TINYINT},
+                "debug" = #{record.debug,jdbcType=TINYINT},
             </if>
             <if test="record.errorState != null">
-                error_state = #{record.errorState,jdbcType=TINYINT},
+                "error_state" = #{record.errorState,jdbcType=TINYINT},
             </if>
             <if test="record.createAt != null">
-                create_at = #{record.createAt,jdbcType=TIMESTAMP},
+                "create_at" = #{record.createAt,jdbcType=TIMESTAMP},
             </if>
             <if test="record.updateAt != null">
-                update_at = #{record.updateAt,jdbcType=TIMESTAMP},
+                "update_at" = #{record.updateAt,jdbcType=TIMESTAMP},
             </if>
         </set>
         <if test="_parameter != null">
@@ -434,99 +434,99 @@
         </if>
     </update>
     <update id="updateByExample" parameterType="map">
-        update ice_conf
-        set id = #{record.id,jdbcType=BIGINT},
-        app = #{record.app,jdbcType=INTEGER},
-        name = #{record.name,jdbcType=VARCHAR},
-        son_ids = #{record.sonIds,jdbcType=VARCHAR},
-        type = #{record.type,jdbcType=TINYINT},
-        status = #{record.status,jdbcType=TINYINT},
-        inverse = #{record.inverse,jdbcType=TINYINT},
-        conf_name = #{record.confName,jdbcType=VARCHAR},
-        conf_field = #{record.confField,jdbcType=VARCHAR},
-        forward_id = #{record.forwardId,jdbcType=BIGINT},
-        time_type = #{record.timeType,jdbcType=TINYINT},
-        start = #{record.start,jdbcType=TIMESTAMP},
-        end = #{record.end,jdbcType=TIMESTAMP},
-        debug = #{record.debug,jdbcType=TINYINT},
-        error_state = #{record.errorState,jdbcType=TINYINT},
-        create_at = #{record.createAt,jdbcType=TIMESTAMP},
-        update_at = #{record.updateAt,jdbcType=TIMESTAMP}
+        update "ice_conf"
+        set "id" = #{record.id,jdbcType=BIGINT},
+        "app" = #{record.app,jdbcType=INTEGER},
+        "name" = #{record.name,jdbcType=VARCHAR},
+        "son_ids" = #{record.sonIds,jdbcType=VARCHAR},
+        "type" = #{record.type,jdbcType=TINYINT},
+        "status" = #{record.status,jdbcType=TINYINT},
+        "inverse" = #{record.inverse,jdbcType=TINYINT},
+        "conf_name" = #{record.confName,jdbcType=VARCHAR},
+        "conf_field" = #{record.confField,jdbcType=VARCHAR},
+        "forward_id" = #{record.forwardId,jdbcType=BIGINT},
+        "time_type" = #{record.timeType,jdbcType=TINYINT},
+        "start" = #{record.start,jdbcType=TIMESTAMP},
+        "end" = #{record.end,jdbcType=TIMESTAMP},
+        "debug" = #{record.debug,jdbcType=TINYINT},
+        "error_state" = #{record.errorState,jdbcType=TINYINT},
+        "create_at" = #{record.createAt,jdbcType=TIMESTAMP},
+        "update_at" = #{record.updateAt,jdbcType=TIMESTAMP}
         <if test="_parameter != null">
             <include refid="Update_By_Example_Where_Clause"/>
         </if>
     </update>
     <update id="updateByPrimaryKeySelective" parameterType="com.ice.server.dao.model.IceConf">
-        update ice_conf
+        update "ice_conf"
         <set>
             <if test="app != null">
-                app = #{app,jdbcType=INTEGER},
+                "app" = #{app,jdbcType=INTEGER},
             </if>
             <if test="name != null">
-                name = #{name,jdbcType=VARCHAR},
+                "name" = #{name,jdbcType=VARCHAR},
             </if>
             <if test="sonIds != null">
-                son_ids = #{sonIds,jdbcType=VARCHAR},
+                "son_ids" = #{sonIds,jdbcType=VARCHAR},
             </if>
             <if test="type != null">
-                type = #{type,jdbcType=TINYINT},
+                "type" = #{type,jdbcType=TINYINT},
             </if>
             <if test="status != null">
-                status = #{status,jdbcType=TINYINT},
+                "status" = #{status,jdbcType=TINYINT},
             </if>
             <if test="inverse != null">
-                inverse = #{inverse,jdbcType=TINYINT},
+                "inverse" = #{inverse,jdbcType=TINYINT},
             </if>
             <if test="confName != null">
-                conf_name = #{confName,jdbcType=VARCHAR},
+                "conf_name" = #{confName,jdbcType=VARCHAR},
             </if>
             <if test="confField != null">
-                conf_field = #{confField,jdbcType=VARCHAR},
+                "conf_field" = #{confField,jdbcType=VARCHAR},
             </if>
             <if test="forwardId != null">
-                forward_id = #{forwardId,jdbcType=BIGINT},
+                "forward_id" = #{forwardId,jdbcType=BIGINT},
             </if>
             <if test="timeType != null">
-                time_type = #{timeType,jdbcType=TINYINT},
+                "time_type" = #{timeType,jdbcType=TINYINT},
             </if>
             <if test="start != null">
-                start = #{start,jdbcType=TIMESTAMP},
+                "start" = #{start,jdbcType=TIMESTAMP},
             </if>
             <if test="end != null">
-                end = #{end,jdbcType=TIMESTAMP},
+                "end" = #{end,jdbcType=TIMESTAMP},
             </if>
             <if test="debug != null">
-                debug = #{debug,jdbcType=TINYINT},
+                "debug" = #{debug,jdbcType=TINYINT},
             </if>
             <if test="errorState != null">
-                error_state = #{errorState,jdbcType=TINYINT},
+                "error_state" = #{errorState,jdbcType=TINYINT},
             </if>
             <if test="createAt != null">
-                create_at = #{createAt,jdbcType=TIMESTAMP},
+                "create_at" = #{createAt,jdbcType=TIMESTAMP},
             </if>
             <if test="updateAt != null">
-                update_at = #{updateAt,jdbcType=TIMESTAMP},
+                "update_at" = #{updateAt,jdbcType=TIMESTAMP},
             </if>
         </set>
-        where id = #{id,jdbcType=BIGINT}
+        where "id" = #{id,jdbcType=BIGINT}
     </update>
     <update id="updateByPrimaryKey" parameterType="com.ice.server.dao.model.IceConf">
-        update ice_conf
-        set app = #{app,jdbcType=INTEGER},
-        name = #{name,jdbcType=VARCHAR},
-        son_ids = #{sonIds,jdbcType=VARCHAR},
-        type = #{type,jdbcType=TINYINT},
-        status = #{status,jdbcType=TINYINT},
-        inverse = #{inverse,jdbcType=TINYINT},
-        conf_name = #{confName,jdbcType=VARCHAR},
-        conf_field = #{confField,jdbcType=VARCHAR},
-        forward_id = #{forwardId,jdbcType=BIGINT},
-        time_type = #{timeType,jdbcType=TINYINT},
-        start = #{start,jdbcType=TIMESTAMP},
-        end = #{end,jdbcType=TIMESTAMP},
-        debug = #{debug,jdbcType=TINYINT},
-        error_state = #{errorState,jdbcType=TINYINT},
-        update_at = #{updateAt,jdbcType=TIMESTAMP}
-        where id = #{id,jdbcType=BIGINT}
+        update "ice_conf"
+        set "app" = #{app,jdbcType=INTEGER},
+        "name" = #{name,jdbcType=VARCHAR},
+        "son_ids" = #{sonIds,jdbcType=VARCHAR},
+        "type" = #{type,jdbcType=TINYINT},
+        "status" = #{status,jdbcType=TINYINT},
+        "inverse" = #{inverse,jdbcType=TINYINT},
+        "conf_name" = #{confName,jdbcType=VARCHAR},
+        "conf_field" = #{confField,jdbcType=VARCHAR},
+        "forward_id" = #{forwardId,jdbcType=BIGINT},
+        "time_type" = #{timeType,jdbcType=TINYINT},
+        "start" = #{start,jdbcType=TIMESTAMP},
+        "end" = #{end,jdbcType=TIMESTAMP},
+        "debug" = #{debug,jdbcType=TINYINT},
+        "error_state" = #{errorState,jdbcType=TINYINT},
+        "update_at" = #{updateAt,jdbcType=TIMESTAMP}
+        where "id" = #{id,jdbcType=BIGINT}
     </update>
 </mapper>

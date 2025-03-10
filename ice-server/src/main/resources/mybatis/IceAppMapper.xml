@@ -70,7 +70,7 @@
         </where>
     </sql>
     <sql id="Base_Column_List">
-        id, name, info, status, create_at, update_at
+        "id", "name", "info", "status", "create_at", "update_at"
     </sql>
     <select id="selectByExample" parameterType="com.ice.server.dao.model.IceAppExample" resultMap="BaseResultMap">
         select
@@ -78,7 +78,7 @@
             distinct
         </if>
         <include refid="Base_Column_List"/>
-        from ice_app
+        from "ice_app"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
@@ -89,15 +89,15 @@
     <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
         select
         <include refid="Base_Column_List"/>
-        from ice_app
-        where id = #{id,jdbcType=BIGINT}
+        from "ice_app"
+        where "id" = #{id,jdbcType=BIGINT}
     </select>
     <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
-        delete from ice_app
-        where id = #{id,jdbcType=BIGINT}
+        delete from "ice_app"
+        where "id" = #{id,jdbcType=BIGINT}
     </delete>
     <delete id="deleteByExample" parameterType="com.ice.server.dao.model.IceAppExample">
-        delete from ice_app
+        delete from "ice_app"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
@@ -106,8 +106,8 @@
         <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
             SELECT LAST_INSERT_ID()
         </selectKey>
-        insert into ice_app (name, info, status,
-        create_at, update_at)
+        insert into "ice_app" ("name", "info", "status",
+        "create_at", "update_at")
         values (#{name,jdbcType=VARCHAR}, #{info,jdbcType=VARCHAR}, #{status,jdbcType=BIT},
         #{createAt,jdbcType=TIMESTAMP}, #{updateAt,jdbcType=TIMESTAMP})
     </insert>
@@ -115,22 +115,22 @@
         <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
             SELECT LAST_INSERT_ID()
         </selectKey>
-        insert into ice_app
+        insert into "ice_app"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="name != null">
-                name,
+                "name",
             </if>
             <if test="info != null">
-                info,
+                "info",
             </if>
             <if test="status != null">
-                status,
+                "status",
             </if>
             <if test="createAt != null">
-                create_at,
+                "create_at",
             </if>
             <if test="updateAt != null">
-                update_at,
+                "update_at",
             </if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
@@ -152,31 +152,31 @@
         </trim>
     </insert>
     <select id="countByExample" parameterType="com.ice.server.dao.model.IceAppExample" resultType="java.lang.Long">
-        select count(*) from ice_app
+        select count(*) from "ice_app"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
     </select>
     <update id="updateByExampleSelective" parameterType="map">
-        update ice_app
+        update "ice_app"
         <set>
             <if test="record.id != null">
-                id = #{record.id,jdbcType=BIGINT},
+                "id" = #{record.id,jdbcType=BIGINT},
             </if>
             <if test="record.name != null">
-                name = #{record.name,jdbcType=VARCHAR},
+                "name" = #{record.name,jdbcType=VARCHAR},
             </if>
             <if test="record.info != null">
-                info = #{record.info,jdbcType=VARCHAR},
+                "info" = #{record.info,jdbcType=VARCHAR},
             </if>
             <if test="record.status != null">
-                status = #{record.status,jdbcType=BIT},
+                "status" = #{record.status,jdbcType=BIT},
             </if>
             <if test="record.createAt != null">
-                create_at = #{record.createAt,jdbcType=TIMESTAMP},
+                "create_at" = #{record.createAt,jdbcType=TIMESTAMP},
             </if>
             <if test="record.updateAt != null">
-                update_at = #{record.updateAt,jdbcType=TIMESTAMP},
+                "update_at" = #{record.updateAt,jdbcType=TIMESTAMP},
             </if>
         </set>
         <if test="_parameter != null">
@@ -184,45 +184,45 @@
         </if>
     </update>
     <update id="updateByExample" parameterType="map">
-        update ice_app
-        set id = #{record.id,jdbcType=BIGINT},
-        name = #{record.name,jdbcType=VARCHAR},
-        info = #{record.info,jdbcType=VARCHAR},
-        status = #{record.status,jdbcType=BIT},
-        create_at = #{record.createAt,jdbcType=TIMESTAMP},
-        update_at = #{record.updateAt,jdbcType=TIMESTAMP}
+        update "ice_app"
+        set "id" = #{record.id,jdbcType=BIGINT},
+        "name" = #{record.name,jdbcType=VARCHAR},
+        "info" = #{record.info,jdbcType=VARCHAR},
+        "status" = #{record.status,jdbcType=BIT},
+        "create_at" = #{record.createAt,jdbcType=TIMESTAMP},
+        "update_at" = #{record.updateAt,jdbcType=TIMESTAMP}
         <if test="_parameter != null">
             <include refid="Update_By_Example_Where_Clause"/>
         </if>
     </update>
     <update id="updateByPrimaryKeySelective" parameterType="com.ice.server.dao.model.IceApp">
-        update ice_app
+        update "ice_app"
         <set>
             <if test="name != null">
-                name = #{name,jdbcType=VARCHAR},
+                "name" = #{name,jdbcType=VARCHAR},
             </if>
             <if test="info != null">
-                info = #{info,jdbcType=VARCHAR},
+                "info" = #{info,jdbcType=VARCHAR},
             </if>
             <if test="status != null">
-                status = #{status,jdbcType=BIT},
+                "status" = #{status,jdbcType=BIT},
             </if>
             <if test="createAt != null">
-                create_at = #{createAt,jdbcType=TIMESTAMP},
+                "create_at" = #{createAt,jdbcType=TIMESTAMP},
             </if>
             <if test="updateAt != null">
-                update_at = #{updateAt,jdbcType=TIMESTAMP},
+                "update_at" = #{updateAt,jdbcType=TIMESTAMP},
             </if>
         </set>
-        where id = #{id,jdbcType=BIGINT}
+        where "id" = #{id,jdbcType=BIGINT}
     </update>
     <update id="updateByPrimaryKey" parameterType="com.ice.server.dao.model.IceApp">
-        update ice_app
-        set name = #{name,jdbcType=VARCHAR},
-        info = #{info,jdbcType=VARCHAR},
-        status = #{status,jdbcType=BIT},
-        create_at = #{createAt,jdbcType=TIMESTAMP},
-        update_at = #{updateAt,jdbcType=TIMESTAMP}
-        where id = #{id,jdbcType=BIGINT}
+        update "ice_app"
+        set "name" = #{name,jdbcType=VARCHAR},
+        "info" = #{info,jdbcType=VARCHAR},
+        "status" = #{status,jdbcType=BIT},
+        "create_at" = #{createAt,jdbcType=TIMESTAMP},
+        "update_at" = #{updateAt,jdbcType=TIMESTAMP}
+        where "id" = #{id,jdbcType=BIGINT}
     </update>
 </mapper>

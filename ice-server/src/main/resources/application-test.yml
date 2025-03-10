@@ -2,7 +2,7 @@ server:
   port: 8121
 spring:
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/ice?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
+    url: jdbc:dm://127.0.0.1:5236/ice?schema=ICE&useUnicode=true&characterEncoding=UTF-8
     username: waitmoon
     password: waitmoon
 ice:

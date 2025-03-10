@@ -73,10 +73,10 @@
         </where>
     </sql>
     <sql id="Base_Column_List">
-        id, app, ice_id, reason, operator, create_at
+        "id", "app", "ice_id", "reason", "operator", "create_at"
     </sql>
     <sql id="Blob_Column_List">
-        push_data
+        "push_data"
     </sql>
     <select id="selectByExampleWithBLOBs" parameterType="com.ice.server.dao.model.IcePushHistoryExample"
             resultMap="ResultMapWithBLOBs">
@@ -87,7 +87,7 @@
         <include refid="Base_Column_List"/>
         ,
         <include refid="Blob_Column_List"/>
-        from ice_push_history
+        from "ice_push_history"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
@@ -102,7 +102,7 @@
             distinct
         </if>
         <include refid="Base_Column_List"/>
-        from ice_push_history
+        from "ice_push_history"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
@@ -115,15 +115,15 @@
         <include refid="Base_Column_List"/>
         ,
         <include refid="Blob_Column_List"/>
-        from ice_push_history
-        where id = #{id,jdbcType=BIGINT}
+        from "ice_push_history"
+        where "id" = #{id,jdbcType=BIGINT}
     </select>
     <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
-        delete from ice_push_history
-        where id = #{id,jdbcType=BIGINT}
+        delete from "ice_push_history"
+        where "id" = #{id,jdbcType=BIGINT}
     </delete>
     <delete id="deleteByExample" parameterType="com.ice.server.dao.model.IcePushHistoryExample">
-        delete from ice_push_history
+        delete from "ice_push_history"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
@@ -132,8 +132,8 @@
         <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
             SELECT LAST_INSERT_ID()
         </selectKey>
-        insert into ice_push_history (app, ice_id, reason,
-        operator, create_at, push_data
+        insert into "ice_push_history" ("app", "ice_id", "reason",
+        "operator", "create_at", "push_data"
         )
         values (#{app,jdbcType=INTEGER}, #{iceId,jdbcType=BIGINT}, #{reason,jdbcType=VARCHAR},
         #{operator,jdbcType=VARCHAR}, #{createAt,jdbcType=TIMESTAMP}, #{pushData,jdbcType=LONGVARCHAR}
@@ -143,25 +143,25 @@
         <selectKey keyProperty="id" order="AFTER" resultType="java.lang.Long">
             SELECT LAST_INSERT_ID()
         </selectKey>
-        insert into ice_push_history
+        insert into "ice_push_history"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="app != null">
-                app,
+                "app",
             </if>
             <if test="iceId != null">
-                ice_id,
+                "ice_id",
             </if>
             <if test="reason != null">
-                reason,
+                "reason",
             </if>
             <if test="operator != null">
-                operator,
+                "operator",
             </if>
             <if test="createAt != null">
-                create_at,
+                "create_at",
             </if>
             <if test="pushData != null">
-                push_data,
+                "push_data",
             </if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
@@ -187,34 +187,34 @@
     </insert>
     <select id="countByExample" parameterType="com.ice.server.dao.model.IcePushHistoryExample"
             resultType="java.lang.Long">
-        select count(*) from ice_push_history
+        select count(*) from "ice_push_history"
         <if test="_parameter != null">
             <include refid="Example_Where_Clause"/>
         </if>
     </select>
     <update id="updateByExampleSelective" parameterType="map">
-        update ice_push_history
+        update "ice_push_history"
         <set>
             <if test="record.id != null">
-                id = #{record.id,jdbcType=BIGINT},
+                "id" = #{record.id,jdbcType=BIGINT},
             </if>
             <if test="record.app != null">
-                app = #{record.app,jdbcType=INTEGER},
+                "app" = #{record.app,jdbcType=INTEGER},
             </if>
             <if test="record.iceId != null">
-                ice_id = #{record.iceId,jdbcType=BIGINT},
+                "ice_id" = #{record.iceId,jdbcType=BIGINT},
             </if>
             <if test="record.reason != null">
-                reason = #{record.reason,jdbcType=VARCHAR},
+                "reason" = #{record.reason,jdbcType=VARCHAR},
             </if>
             <if test="record.operator != null">
-                operator = #{record.operator,jdbcType=VARCHAR},
+                "operator" = #{record.operator,jdbcType=VARCHAR},
             </if>
             <if test="record.createAt != null">
-                create_at = #{record.createAt,jdbcType=TIMESTAMP},
+                "create_at" = #{record.createAt,jdbcType=TIMESTAMP},
             </if>
             <if test="record.pushData != null">
-                push_data = #{record.pushData,jdbcType=LONGVARCHAR},
+                "push_data" = #{record.pushData,jdbcType=LONGVARCHAR},
             </if>
         </set>
         <if test="_parameter != null">
@@ -222,71 +222,71 @@
         </if>
     </update>
     <update id="updateByExampleWithBLOBs" parameterType="map">
-        update ice_push_history
-        set id = #{record.id,jdbcType=BIGINT},
-        app = #{record.app,jdbcType=INTEGER},
-        ice_id = #{record.iceId,jdbcType=BIGINT},
-        reason = #{record.reason,jdbcType=VARCHAR},
-        operator = #{record.operator,jdbcType=VARCHAR},
-        create_at = #{record.createAt,jdbcType=TIMESTAMP},
-        push_data = #{record.pushData,jdbcType=LONGVARCHAR}
+        update "ice_push_history"
+        set "id" = #{record.id,jdbcType=BIGINT},
+        "app" = #{record.app,jdbcType=INTEGER},
+        "ice_id" = #{record.iceId,jdbcType=BIGINT},
+        "reason" = #{record.reason,jdbcType=VARCHAR},
+        "operator" = #{record.operator,jdbcType=VARCHAR},
+        "create_at" = #{record.createAt,jdbcType=TIMESTAMP},
+        "push_data" = #{record.pushData,jdbcType=LONGVARCHAR}
         <if test="_parameter != null">
             <include refid="Update_By_Example_Where_Clause"/>
         </if>
     </update>
     <update id="updateByExample" parameterType="map">
-        update ice_push_history
-        set id = #{record.id,jdbcType=BIGINT},
-        app = #{record.app,jdbcType=INTEGER},
-        ice_id = #{record.iceId,jdbcType=BIGINT},
-        reason = #{record.reason,jdbcType=VARCHAR},
-        operator = #{record.operator,jdbcType=VARCHAR},
-        create_at = #{record.createAt,jdbcType=TIMESTAMP}
+        update "ice_push_history"
+        set "id" = #{record.id,jdbcType=BIGINT},
+        "app" = #{record.app,jdbcType=INTEGER},
+        "ice_id" = #{record.iceId,jdbcType=BIGINT},
+        "reason" = #{record.reason,jdbcType=VARCHAR},
+        "operator" = #{record.operator,jdbcType=VARCHAR},
+        "create_at" = #{record.createAt,jdbcType=TIMESTAMP}
         <if test="_parameter != null">
             <include refid="Update_By_Example_Where_Clause"/>
         </if>
     </update>
     <update id="updateByPrimaryKeySelective" parameterType="com.ice.server.dao.model.IcePushHistory">
-        update ice_push_history
+        update "ice_push_history"
         <set>
             <if test="app != null">
-                app = #{app,jdbcType=INTEGER},
+                "app" = #{app,jdbcType=INTEGER},
             </if>
             <if test="iceId != null">
-                ice_id = #{iceId,jdbcType=BIGINT},
+                "ice_id" = #{iceId,jdbcType=BIGINT},
             </if>
             <if test="reason != null">
-                reason = #{reason,jdbcType=VARCHAR},
+                "reason" = #{reason,jdbcType=VARCHAR},
             </if>
             <if test="operator != null">
-                operator = #{operator,jdbcType=VARCHAR},
+                "operator" = #{operator,jdbcType=VARCHAR},
             </if>
             <if test="createAt != null">
-                create_at = #{createAt,jdbcType=TIMESTAMP},
+                "create_at" = #{createAt,jdbcType=TIMESTAMP},
             </if>
             <if test="pushData != null">
-                push_data = #{pushData,jdbcType=LONGVARCHAR},
+                "push_data" = #{pushData,jdbcType=LONGVARCHAR},
             </if>
         </set>
-        where id = #{id,jdbcType=BIGINT}
+        where "id" = #{id,jdbcType=BIGINT}
     </update>
     <update id="updateByPrimaryKeyWithBLOBs" parameterType="com.ice.server.dao.model.IcePushHistory">
-        update ice_push_history
-        set app = #{app,jdbcType=INTEGER},
-        ice_id = #{iceId,jdbcType=BIGINT},
-        reason = #{reason,jdbcType=VARCHAR},
-        operator = #{operator,jdbcType=VARCHAR},
-        create_at = #{createAt,jdbcType=TIMESTAMP},
-        push_data = #{pushData,jdbcType=LONGVARCHAR}
-        where id = #{id,jdbcType=BIGINT}
+        update "ice_push_history"
+        set "app" = #{app,jdbcType=INTEGER},
+        "ice_id" = #{iceId,jdbcType=BIGINT},
+        "reason" = #{reason,jdbcType=VARCHAR},
+        "operator" = #{operator,jdbcType=VARCHAR},
+        "create_at" = #{createAt,jdbcType=TIMESTAMP},
+        "push_data" = #{pushData,jdbcType=LONGVARCHAR}
+        where "id" = #{id,jdbcType=BIGINT}
     </update>
     <update id="updateByPrimaryKey" parameterType="com.ice.server.dao.model.IcePushHistory">
-        update ice_push_history
-        set app = #{app,jdbcType=INTEGER},
-        ice_id = #{iceId,jdbcType=BIGINT},
-        reason = #{reason,jdbcType=VARCHAR},
-        operator = #{operator,jdbcType=VARCHAR},
-        create_at = #{createAt,jdbcType=TIMESTAMP}
-        where id = #{id,jdbcType=BIGINT}
+        update "ice_push_history"
+        set "app" = #{app,jdbcType=INTEGER},
+        "ice_id" = #{iceId,jdbcType=BIGINT},
+        "reason" = #{reason,jdbcType=VARCHAR},
+        "operator" = #{operator,jdbcType=VARCHAR},
+        "create_at" = #{createAt,jdbcType=TIMESTAMP}
+        where "id" = #{id,jdbcType=BIGINT}
     </update>
 </mapper>

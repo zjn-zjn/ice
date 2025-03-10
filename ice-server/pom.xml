@@ -15,7 +15,7 @@
     <name>ice-server</name>
 
     <properties>
-        <mysql.version>8.0.33</mysql.version>
+        <dameng.version>8.1.2.141</dameng.version>
         <mybatis.version>2.2.2</mybatis.version>
         <pagehelper.version>1.4.2</pagehelper.version>
     </properties>
@@ -64,9 +64,9 @@
             <version>${mybatis.version}</version>
         </dependency>
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>${mysql.version}</version>
+            <groupId>com.dameng</groupId>
+            <artifactId>DmJdbcDriver18</artifactId>
+            <version>${dameng.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
