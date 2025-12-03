@@ -84,19 +84,20 @@ public class IceBaseController {
     }
 
     @RequestMapping(value = "/ice-server/base/backup/delete", method = RequestMethod.GET)
-    public void delete(@RequestParam Long pushId) {
-        iceBaseService.delete(pushId);
+    public void delete(@RequestParam Integer app, @RequestParam Long pushId) {
+        iceBaseService.delete(app, pushId);
     }
 
     @RequestMapping(value = "/ice-server/base/export", method = RequestMethod.GET)
-    public WebResult<String> export(@RequestParam Long iceId,
+    public WebResult<String> export(@RequestParam Integer app,
+                                    @RequestParam Long iceId,
                                     @RequestParam(required = false) Long pushId) {
-        return WebResult.success(iceBaseService.exportData(iceId, pushId));
+        return WebResult.success(iceBaseService.exportData(app, iceId, pushId));
     }
 
     @RequestMapping(value = "/ice-server/base/rollback", method = RequestMethod.GET)
-    public void rollback(@RequestParam Long pushId) throws JsonProcessingException {
-        iceBaseService.rollback(pushId);
+    public void rollback(@RequestParam Integer app, @RequestParam Long pushId) throws JsonProcessingException {
+        iceBaseService.rollback(app, pushId);
     }
 
     @RequestMapping(value = "/ice-server/base/import", method = RequestMethod.POST)
