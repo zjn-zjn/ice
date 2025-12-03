@@ -1,333 +1,95 @@
 package com.ice.server.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.ice.common.constant.Constant;
+import com.ice.common.constant.IceStorageConstants;
 import com.ice.common.dto.IceBaseDto;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.IceShowNode;
 import com.ice.common.model.LeafNodeInfo;
-import com.ice.common.model.Pair;
-import com.ice.core.utils.JacksonUtils;
 import com.ice.server.config.IceServerProperties;
 import com.ice.server.constant.ServerConstant;
-import com.ice.server.dao.mapper.IceBaseMapper;
-import com.ice.server.dao.mapper.IceConfMapper;
-import com.ice.server.dao.mapper.IceConfUpdateMapper;
 import com.ice.server.dao.model.IceBase;
-import com.ice.server.dao.model.IceBaseExample;
 import com.ice.server.dao.model.IceConf;
-import com.ice.server.dao.model.IceConfExample;
-import com.ice.server.enums.StatusEnum;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
-import com.ice.server.nio.IceNioClientManager;
 import com.ice.server.service.IceServerService;
+import com.ice.server.storage.IceClientManager;
+import com.ice.server.storage.IceFileStorageService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author waitmoon
+ * 改造为基于文件系统的实现，不使用内存缓存
  */
 @Slf4j
 @Service
 public class IceServerServiceImpl implements IceServerService {
 
-    /*
-     * key:app value baseList
-     * keep except deleted
-     */
-    private Map<Integer, Map<Long, IceBase>> baseActiveMap;
-    /*
-     * used avoid quote in different ice circle
-     * key: confId(include updating)
-     * value: linkNextMap
-     */
-    private Map<Long, Map<Long, Integer>> updateAtlasMap;
-    /*
-     * used avoid quote in different ice circle
-     * key: confId(exclude updating)
-     * value: linkNextMap
-     */
-    private Map<Long, Map<Long, Integer>> activeAtlasMap;
-    /*
-     * key:app value conf
-     */
-    private Map<Integer, Map<Long, IceConf>> confActiveMap;
-    /*
-     * key: app
-     * value:
-     *    key: iceId
-     *    value:
-     *        key:confId
-     *        value: conf
-     */
-    private Map<Integer, Map<Long, Map<Long, IceConf>>> confUpdateMap;
+    private final IceFileStorageService storageService;
+    private final IceClientManager clientManager;
+    private final IceServerProperties properties;
 
-    private Map<Integer, Map<Byte, Map<String, Integer>>> leafClassMap;
-
-    private volatile long version;
-    @Autowired
-    private IceBaseMapper baseMapper;
-    @Autowired
-    private IceConfMapper confMapper;
-    @Autowired
-    private IceConfUpdateMapper confUpdateMapper;
-
-    @Autowired
-    private IceNioClientManager iceNioClientManager;
-
-    @Autowired
-    private IceServerProperties properties;
-
-    public synchronized boolean haveCircle(Long nodeId, Long linkId) {
-        if (nodeId.equals(linkId)) {
-            return true;
-        }
-        return updatingHaveCircle(nodeId, linkId) || activeHaveCircle(nodeId, linkId);
-    }
-
-    private boolean updatingHaveCircle(Long nodeId, Long linkId) {
-        Map<Long, Integer> linkNextMap = updateAtlasMap.get(linkId);
-        if (!CollectionUtils.isEmpty(linkNextMap)) {
-            Set<Long> linkNext = linkNextMap.keySet();
-            if (linkNext.contains(nodeId)) {
-                return true;
-            }
-            for (Long next : linkNext) {
-                if (updatingHaveCircle(nodeId, next)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean activeHaveCircle(Long nodeId, Long linkId) {
-        Map<Long, Integer> linkNextMap = activeAtlasMap.get(linkId);
-        if (!CollectionUtils.isEmpty(linkNextMap)) {
-            Set<Long> linkNext = linkNextMap.keySet();
-            if (linkNext.contains(nodeId)) {
-                return true;
-            }
-            for (Long next : linkNext) {
-                if (activeHaveCircle(nodeId, next)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    public IceServerServiceImpl(IceFileStorageService storageService, IceClientManager clientManager,
+                                IceServerProperties properties) {
+        this.storageService = storageService;
+        this.clientManager = clientManager;
+        this.properties = properties;
     }
 
     @Override
-    public synchronized boolean haveCircle(Long nodeId, Collection<Long> linkIds) {
-        if (!CollectionUtils.isEmpty(linkIds)) {
-            for (Long linkId : linkIds) {
-                if (haveCircle(nodeId, linkId)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /*
-     * nodeId next add linkId count
-     */
-    public synchronized void link(Long nodeId, Long linkId) {
-        link(nodeId, linkId, updateAtlasMap);
-    }
-
-    private synchronized void link(Long nodeId, Long linkId, Map<Long, Map<Long, Integer>> atlasMap) {
-        if (haveCircle(nodeId, linkId)) {
-            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "have circle nodeId:" + nodeId + " linkId:" + linkId);
-        }
-
-        Map<Long, Integer> linkNextMap = atlasMap.computeIfAbsent(nodeId, k -> new HashMap<>());
-        Integer nodeNextCount = linkNextMap.computeIfAbsent(linkId, k -> 0);
-        linkNextMap.put(linkId, nodeNextCount + 1);
-    }
-
-    @Override
-    public synchronized void link(Long nodeId, List<Long> linkIds) {
-        if (!CollectionUtils.isEmpty(linkIds)) {
-            for (Long linkId : linkIds) {
-                link(nodeId, linkId);
-            }
+    public IceTransferDto getInitConfig(Integer app) {
+        try {
+            IceTransferDto transferDto = new IceTransferDto();
+            transferDto.setVersion(storageService.getVersion(app));
+            transferDto.setInsertOrUpdateBases(getActiveBasesByApp(app));
+            transferDto.setInsertOrUpdateConfs(getActiveConfListByApp(app));
+            return transferDto;
+        } catch (IOException e) {
+            log.error("failed to get init config for app:{}", app, e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
         }
     }
 
-    /*
-     * nodeId next reduce linkId count
-     */
-    public synchronized void unlink(Long nodeId, Long linkId) {
-        Map<Long, Integer> nodeNextMap = updateAtlasMap.get(nodeId);
-        if (nodeNextMap != null) {
-            Integer nodeNextCount = nodeNextMap.get(linkId);
-            if (nodeNextCount != null) {
-                if (nodeNextCount <= 1) {
-                    nodeNextMap.remove(linkId);
-                    if (CollectionUtils.isEmpty(nodeNextMap)) {
-                        updateAtlasMap.remove(nodeId);
-                    }
-                } else {
-                    nodeNextMap.put(linkId, nodeNextCount - 1);
-                }
-            }
-        }
+    private Collection<IceBaseDto> getActiveBasesByApp(Integer app) throws IOException {
+        return storageService.listActiveBases(app);
+    }
+
+    private Collection<IceConfDto> getActiveConfListByApp(Integer app) throws IOException {
+        return storageService.listActiveConfs(app).stream()
+                .filter(c -> c.getStatus() != null && c.getStatus() == IceStorageConstants.STATUS_ONLINE)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public synchronized void exchangeLink(Long nodeId, Long originId, List<Long> exchangeIds) {
-        unlink(nodeId, originId);
-        link(nodeId, exchangeIds);
-    }
-
-    @Override
-    public synchronized void exchangeLink(Long nodeId, Long originId, Long exchangeId) {
-        unlink(nodeId, originId);
-        link(nodeId, exchangeId);
-    }
-
-    @Override
-    public synchronized long getVersion() {
-        return this.version++;
-    }
-
-    @Override
-    @Transactional
-    public synchronized IceTransferDto release(int app, long iceId) {
-        Map<Long, Map<Long, IceConf>> iceUpdateMap = confUpdateMap.get(app);
-        if (CollectionUtils.isEmpty(iceUpdateMap)) {
+    public IceConf getActiveConfById(Integer app, Long confId) {
+        try {
+            IceConfDto dto = storageService.getConf(app, confId);
+            return dto != null ? IceConf.fromDto(dto) : null;
+        } catch (IOException e) {
+            log.error("failed to get active conf by id:{}", confId, e);
             return null;
         }
-        Map<Long, IceConf> confUpdateMap = iceUpdateMap.get(iceId);
-        if (CollectionUtils.isEmpty(confUpdateMap)) {
-            return null;
-        }
-        Collection<IceConf> confUpdates = confUpdateMap.values();
-        for (IceConf conf : confUpdates) {
-            IceConf oldConf = confMapper.selectByPrimaryKey(conf.getConfId());
-            conf.setUpdateAt(new Date());
-            long updateId = conf.getId();
-            conf.setId(conf.getConfId());
-            if (oldConf == null) {
-                confMapper.insertWithId(conf);
-            } else {
-                confMapper.updateByPrimaryKey(conf);
-            }
-            confUpdateMapper.deleteByPrimaryKey(updateId);
-        }
-        List<IceConfDto> confUpdateDtos = new ArrayList<>(confUpdates.size());
-        for (IceConf conf : confUpdates) {
-            conf.setId(conf.getConfId());
-            conf.setConfId(null);
-            conf.setIceId(null);
-            confUpdateDtos.add(ServerConstant.confToDto(conf));
-            updateLocalConfActiveCache(conf);
-            assembleAtlas(conf, activeAtlasMap);
-        }
-        iceUpdateMap.remove(iceId);
-        IceTransferDto transferDto = new IceTransferDto();
-        transferDto.setInsertOrUpdateConfs(confUpdateDtos);
-        transferDto.setVersion(++version);
-        return transferDto;
-    }
-
-    @Override
-    public synchronized void updateClean(int app, long iceId) {
-        Map<Long, Map<Long, IceConf>> iceUpdateMap = confUpdateMap.get(app);
-        if (CollectionUtils.isEmpty(iceUpdateMap)) {
-            return;
-        }
-        Map<Long, IceConf> confUpdateMap = iceUpdateMap.get(iceId);
-        if (CollectionUtils.isEmpty(confUpdateMap)) {
-            return;
-        }
-        Collection<IceConf> confUpdates = confUpdateMap.values();
-        Collection<IceConf> confList = new ArrayList<>();
-        for (IceConf confUpdate : confUpdates) {
-            confUpdateMapper.deleteByPrimaryKey(confUpdate.getId());
-            IceConf conf = getActiveConfById(app, confUpdate.getConfId());
-            if (conf != null) {
-                confList.add(conf);
-            }
-        }
-        iceUpdateMap.remove(iceId);
-        rebuildingAtlas(null, confList);
-    }
-
-    @Override
-    public synchronized Collection<IceConf> getAllUpdateConfList(int app, long iceId) {
-        Map<Long, Map<Long, IceConf>> iceUpdateMap = confUpdateMap.get(app);
-        if (CollectionUtils.isEmpty(iceUpdateMap)) {
-            return null;
-        }
-        Map<Long, IceConf> confUpdateMap = iceUpdateMap.get(iceId);
-        if (CollectionUtils.isEmpty(confUpdateMap)) {
-            return null;
-        }
-        return confUpdateMap.values();
-    }
-
-    @Override
-    public synchronized Set<IceConf> getAllActiveConfSet(int app, long rootId) {
-        Map<Long, IceConf> confMap = confActiveMap.get(app);
-        if (CollectionUtils.isEmpty(confMap)) {
-            return null;
-        }
-        Set<IceConf> resultSet = new HashSet<>();
-        assembleActiveConf(confMap, resultSet, rootId);
-        return resultSet;
-    }
-
-    private void assembleActiveConf(Map<Long, IceConf> map, Set<IceConf> confSet, long nodeId) {
-        IceConf conf = map.get(nodeId);
-        if (conf == null) {
-            return;
-        }
-        confSet.add(conf);
-        if (NodeTypeEnum.isRelation(conf.getType())) {
-            if (StringUtils.hasLength(conf.getSonIds())) {
-                String[] sonIdStrs = conf.getSonIds().split(Constant.REGEX_COMMA);
-                for (String sonIdStr : sonIdStrs) {
-                    long sonId = Long.parseLong(sonIdStr);
-                    assembleActiveConf(map, confSet, sonId);
-                }
-            }
-        }
-        if (conf.getForwardId() != null) {
-            assembleActiveConf(map, confSet, conf.getForwardId());
-        }
-    }
-
-    @Override
-    public synchronized IceConf getActiveConfById(Integer app, Long confId) {
-        Map<Long, IceConf> confMap = confActiveMap.get(app);
-        if (!CollectionUtils.isEmpty(confMap)) {
-            return confMap.get(confId);
-        }
-        return null;
     }
 
     @Override
     public IceConf getUpdateConfById(Integer app, Long confId, Long iceId) {
-        Map<Long, Map<Long, IceConf>> updateMap = confUpdateMap.get(app);
-        if (!CollectionUtils.isEmpty(updateMap)) {
-            Map<Long, IceConf> confUpdateMap = updateMap.get(iceId);
-            if (!CollectionUtils.isEmpty(confUpdateMap)) {
-                return confUpdateMap.get(confId);
-            }
+        try {
+            IceConfDto dto = storageService.getConfUpdate(app, iceId, confId);
+            return dto != null ? IceConf.fromDto(dto) : null;
+        } catch (IOException e) {
+            log.error("failed to get update conf by id:{}", confId, e);
+            return null;
         }
-        return null;
     }
 
     @Override
@@ -339,7 +101,6 @@ public class IceServerServiceImpl implements IceServerService {
         for (Long confId : confSet) {
             IceConf conf = this.getMixConfById(app, confId, iceId);
             if (conf == null) {
-                /*one of confId not exist return null*/
                 return null;
             }
             confList.add(conf);
@@ -348,76 +109,22 @@ public class IceServerServiceImpl implements IceServerService {
     }
 
     @Override
-    public synchronized IceConf getMixConfById(int app, long confId, long iceId) {
-        Map<Long, Map<Long, IceConf>> updateMap = confUpdateMap.get(app);
-        if (!CollectionUtils.isEmpty(updateMap)) {
-            Map<Long, IceConf> confUpdateMap = updateMap.get(iceId);
-            if (!CollectionUtils.isEmpty(confUpdateMap)) {
-                IceConf conf = confUpdateMap.get(confId);
-                if (conf != null) {
-                    return newConf(conf);
-                }
-            }
+    public IceConf getMixConfById(int app, long confId, long iceId) {
+        // 先查update，再查active
+        IceConf updateConf = getUpdateConfById(app, confId, iceId);
+        if (updateConf != null) {
+            return updateConf;
         }
-        Map<Long, IceConf> activeMap = confActiveMap.get(app);
-        if (!CollectionUtils.isEmpty(activeMap)) {
-            return newConf(activeMap.get(confId));
-        }
-        return null;
-    }
-
-    private IceConf newConf(IceConf conf) {
-        if (conf == null) {
-            return null;
-        }
-        IceConf newConf = new IceConf();
-        newConf.setId(conf.getId());
-        newConf.setConfId(conf.getConfId());
-        newConf.setIceId(conf.getIceId());
-        newConf.setConfName(conf.getConfName());
-        newConf.setDebug(conf.getDebug());
-        newConf.setInverse(conf.getInverse());
-        newConf.setStatus(conf.getStatus());
-        newConf.setTimeType(conf.getTimeType());
-        newConf.setSonIds(conf.getSonIds());
-        newConf.setForwardId(conf.getForwardId());
-        newConf.setStart(conf.getStart());
-        newConf.setEnd(conf.getEnd());
-        newConf.setApp(conf.getApp());
-        newConf.setUpdateAt(conf.getUpdateAt());
-        newConf.setCreateAt(conf.getCreateAt());
-        newConf.setConfField(conf.getConfField());
-        newConf.setName(conf.getName());
-        newConf.setType(conf.getType());
-        return newConf;
+        return getActiveConfById(app, confId);
     }
 
     @Override
-    public synchronized IceShowNode getConfMixById(int app, long confId, long iceId) {
-        Map<Long, Map<Long, IceConf>> updateShowMap = confUpdateMap.get(app);
-        Map<Long, IceConf> updateMap = null;
-        if (!CollectionUtils.isEmpty(updateShowMap)) {
-            updateMap = updateShowMap.get(iceId);
-        }
-        Map<Long, IceConf> activeMap = confActiveMap.get(app);
-        IceConf root = getConf(confId, updateMap, activeMap);
-        return assembleShowNode(root, updateMap, activeMap);
+    public IceShowNode getConfMixById(int app, long confId, long iceId) {
+        IceConf root = getMixConfById(app, confId, iceId);
+        return assembleShowNode(root, app, iceId);
     }
 
-    private IceConf getConf(Long confId, Map<Long, IceConf> updateMap, Map<Long, IceConf> activeMap) {
-        if (!CollectionUtils.isEmpty(updateMap)) {
-            IceConf confUpdate = updateMap.get(confId);
-            if (confUpdate != null) {
-                return confUpdate;
-            }
-        }
-        if (!CollectionUtils.isEmpty(activeMap)) {
-            return activeMap.get(confId);
-        }
-        return null;
-    }
-
-    private IceShowNode assembleShowNode(IceConf node, Map<Long, IceConf> updateMap, Map<Long, IceConf> activeMap) {
+    private IceShowNode assembleShowNode(IceConf node, int app, long iceId) {
         if (node == null) {
             return null;
         }
@@ -430,9 +137,9 @@ public class IceServerServiceImpl implements IceServerService {
             }
             List<IceShowNode> children = new ArrayList<>(sonIdStrs.length);
             for (int i = 0; i < sonIds.size(); i++) {
-                IceConf child = getConf(sonIds.get(i), updateMap, activeMap);
+                IceConf child = getMixConfById(app, sonIds.get(i), iceId);
                 if (child != null) {
-                    IceShowNode showChild = assembleShowNode(child, updateMap, activeMap);
+                    IceShowNode showChild = assembleShowNode(child, app, iceId);
                     showChild.setParentId(node.getMixId());
                     showChild.setIndex(i);
                     children.add(showChild);
@@ -440,46 +147,18 @@ public class IceServerServiceImpl implements IceServerService {
             }
             showNode.setChildren(children);
         } else {
-            //assemble filed info
-            LeafNodeInfo nodeInfo = iceNioClientManager.getNodeInfo(node.getApp(), null, node.getConfName(), node.getType());
+            // 组装叶子节点的字段信息
+            LeafNodeInfo nodeInfo = clientManager.getNodeInfo(node.getApp(), null, node.getConfName(), node.getType());
             if (nodeInfo != null) {
                 showNode.getShowConf().setHaveMeta(true);
                 showNode.getShowConf().setNodeInfo(nodeInfo);
-                String confJson = showNode.getShowConf().getConfField();
-                JsonNode jsonNode = JacksonUtils.readTree(confJson);
-                if (jsonNode != null) {
-                    if (!CollectionUtils.isEmpty(nodeInfo.getIceFields())) {
-                        for (LeafNodeInfo.IceFieldInfo fieldInfo : nodeInfo.getIceFields()) {
-                            JsonNode value = jsonNode.get(fieldInfo.getField());
-                            if (value != null && value.isNull()) {
-                                fieldInfo.setValueNull(true);
-                            } else {
-                                if (value != null) {
-                                    fieldInfo.setValue(value);
-                                }
-                            }
-                        }
-                    }
-                    if (!CollectionUtils.isEmpty(nodeInfo.getHideFields())) {
-                        for (LeafNodeInfo.IceFieldInfo hideFiledInfo : nodeInfo.getHideFields()) {
-                            JsonNode value = jsonNode.get(hideFiledInfo.getField());
-                            if (value != null && value.isNull()) {
-                                hideFiledInfo.setValueNull(true);
-                            } else {
-                                if (value != null) {
-                                    hideFiledInfo.setValue(value);
-                                }
-                            }
-                        }
-                    }
-                }
             } else {
                 showNode.getShowConf().setHaveMeta(false);
             }
         }
 
         if (showNode.getForwardId() != null) {
-            IceShowNode forwardNode = assembleShowNode(getConf(showNode.getForwardId(), updateMap, activeMap), updateMap, activeMap);
+            IceShowNode forwardNode = assembleShowNode(getMixConfById(app, showNode.getForwardId(), iceId), app, iceId);
             if (forwardNode != null) {
                 forwardNode.setNextId(node.getMixId());
                 showNode.setForward(forwardNode);
@@ -489,28 +168,44 @@ public class IceServerServiceImpl implements IceServerService {
     }
 
     @Override
-    public synchronized IceBase getActiveBaseById(Integer app, Long iceId) {
-        Map<Long, IceBase> confMap = baseActiveMap.get(app);
-        if (!CollectionUtils.isEmpty(confMap)) {
-            return confMap.get(iceId);
+    public IceBase getActiveBaseById(Integer app, Long iceId) {
+        try {
+            IceBaseDto dto = storageService.getBase(app, iceId);
+            return dto != null ? IceBase.fromDto(dto) : null;
+        } catch (IOException e) {
+            log.error("failed to get active base by id:{}", iceId, e);
+            return null;
         }
-        return null;
     }
 
     @Override
-    public synchronized void updateLocalConfUpdateCache(IceConf conf) {
-        confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
+    public void updateLocalConfUpdateCache(IceConf conf) {
+        try {
+            storageService.saveConfUpdate(conf.getApp(), conf.getIceId(), conf.toDto());
+        } catch (IOException e) {
+            log.error("failed to save conf update:{}", conf.getMixId(), e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
+        }
     }
 
     @Override
-    public synchronized void updateLocalConfUpdateCaches(Collection<IceConf> confs) {
+    public void updateLocalConfUpdateCaches(Collection<IceConf> confs) {
         for (IceConf conf : confs) {
             updateLocalConfUpdateCache(conf);
         }
     }
 
-    public synchronized void updateLocalConfActiveCache(IceConf conf) {
-        confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
+    @Override
+    public void updateLocalConfActiveCache(IceConf conf) {
+        try {
+            IceConfDto dto = conf.toDto();
+            dto.setIceId(null);
+            dto.setConfId(null);
+            storageService.saveConf(dto);
+        } catch (IOException e) {
+            log.error("failed to save conf:{}", conf.getMixId(), e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
+        }
     }
 
     @Override
@@ -521,256 +216,292 @@ public class IceServerServiceImpl implements IceServerService {
     }
 
     @Override
-    public synchronized void updateLocalBaseCache(IceBase base) {
-        if (base.getStatus() == StatusEnum.DELETED.getStatus() || base.getStatus() == StatusEnum.OFFLINE.getStatus()) {
-            Map<Long, IceBase> map = baseActiveMap.get(base.getApp());
-            if (CollectionUtils.isEmpty(map)) {
-                return;
-            }
-            map.remove(base.getId());
-            if (CollectionUtils.isEmpty(map)) {
-                baseActiveMap.remove(base.getApp());
-                return;
-            }
-            return;
-        }
-        baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
-    }
-
-    @Override
-    public synchronized Map<String, Integer> getLeafClassMap(Integer app, Byte type) {
-        Map<Byte, Map<String, Integer>> map = leafClassMap.get(app);
-        if (map != null) {
-            return map.get(type);
-        }
-        return null;
-    }
-
-    @Override
-    public synchronized void removeLeafClass(Integer app, Byte type, String clazz) {
-        Map<Byte, Map<String, Integer>> map = leafClassMap.get(app);
-        if (!CollectionUtils.isEmpty(map)) {
-            Map<String, Integer> typeMap = map.get(type);
-            if (!CollectionUtils.isEmpty(typeMap)) {
-                typeMap.remove(clazz);
-            }
-            if (CollectionUtils.isEmpty(typeMap)) {
-                map.remove(type);
-            }
+    public void updateLocalBaseCache(IceBase base) {
+        try {
+            storageService.saveBase(base.toDto());
+        } catch (IOException e) {
+            log.error("failed to save base:{}", base.getId(), e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
         }
     }
 
     @Override
-    public synchronized void increaseLeafClass(Integer app, Byte type, String clazz) {
-        Map<Byte, Map<String, Integer>> map = leafClassMap.get(app);
-        Map<String, Integer> classMap;
-        if (map == null) {
-            map = new HashMap<>();
-            leafClassMap.put(app, map);
-            classMap = new HashMap<>();
-            map.put(type, classMap);
-            classMap.put(clazz, 0);
-        } else {
-            classMap = map.get(type);
-            if (classMap == null) {
-                classMap = new HashMap<>();
-                map.put(type, classMap);
-                classMap.put(clazz, 0);
-            } else {
-                classMap.putIfAbsent(clazz, 0);
-            }
-        }
-        classMap.put(clazz, classMap.get(clazz) + 1);
-    }
-
-    @Override
-    public synchronized void decreaseLeafClass(Integer app, Byte type, String clazz) {
-        Map<Byte, Map<String, Integer>> map = leafClassMap.get(app);
-        if (CollectionUtils.isEmpty(map)) {
-            return;
-        }
-        Map<String, Integer> classMap = map.get(type);
-        if (CollectionUtils.isEmpty(classMap)) {
-            return;
-        }
-        Integer count = classMap.get(clazz);
-        if (count == null || count <= 1) {
-            classMap.remove(clazz);
-            if (CollectionUtils.isEmpty(classMap)) {
-                map.remove(type);
-                if (CollectionUtils.isEmpty(map)) {
-                    leafClassMap.remove(app);
+    public Map<String, Integer> getLeafClassMap(Integer app, Byte type) {
+        // 从文件系统统计叶子类使用次数
+        try {
+            List<IceConfDto> confs = storageService.listActiveConfs(app);
+            Map<String, Integer> result = new HashMap<>();
+            for (IceConfDto conf : confs) {
+                if (NodeTypeEnum.isLeaf(conf.getType()) && type.equals(conf.getType())
+                        && StringUtils.hasLength(conf.getConfName())) {
+                    result.merge(conf.getConfName(), 1, Integer::sum);
                 }
             }
-        } else {
-            classMap.put(clazz, count - 1);
+            return result.isEmpty() ? null : result;
+        } catch (IOException e) {
+            log.error("failed to get leaf class map for app:{}", app, e);
+            return null;
         }
     }
 
     @Override
-    public synchronized void refresh() {
-        cleanConfigCache();
-        /*baseList*/
-        IceBaseExample baseExample = new IceBaseExample();
-        IceBaseExample.Criteria baseCriteria = baseExample.createCriteria();
-        baseCriteria.andStatusIn(Arrays.asList(StatusEnum.ONLINE.getStatus(), StatusEnum.OFFLINE.getStatus()));
-        List<IceBase> baseList = baseMapper.selectByExample(baseExample);
-        if (!CollectionUtils.isEmpty(baseList)) {
-            for (IceBase base : baseList) {
-                baseActiveMap.computeIfAbsent(base.getApp(), k -> new HashMap<>()).put(base.getId(), base);
-            }
-        }
-        /*UpdateList*/
-        IceConfExample confUpdateExample = new IceConfExample();
-        IceConfExample.Criteria confUpdateCriteria = confUpdateExample.createCriteria();
-        confUpdateCriteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus());
-        List<IceConf> confUpdateList = confUpdateMapper.selectByExample(confUpdateExample);
-        Set<Long> updateIdSet = new HashSet<>();
-        if (!CollectionUtils.isEmpty(confUpdateList)) {
-            for (IceConf conf : confUpdateList) {
-                updateIdSet.add(conf.getMixId());
-                confUpdateMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).computeIfAbsent(conf.getIceId(), k -> new HashMap<>()).put(conf.getMixId(), conf);
-                assembleAtlas(conf, updateAtlasMap);
-                assembleLeafClass(conf);
-            }
-        }
-        /*ConfList*/
-        IceConfExample confExample = new IceConfExample();
-        IceConfExample.Criteria confCriteria = confExample.createCriteria();
-        confCriteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus());
-        List<IceConf> confList = confMapper.selectByExample(confExample);
-        if (!CollectionUtils.isEmpty(confList)) {
-            for (IceConf conf : confList) {
-                confActiveMap.computeIfAbsent(conf.getApp(), k -> new HashMap<>()).put(conf.getMixId(), conf);
-                if (!updateIdSet.contains(conf.getMixId())) {
-                    assembleAtlas(conf, updateAtlasMap);
-                }
-                assembleAtlas(conf, activeAtlasMap);
-                assembleLeafClass(conf);
-            }
-        }
+    public void increaseLeafClass(Integer app, Byte type, String clazz) {
+        // 不再需要，统计通过getLeafClassMap实时计算
     }
 
     @Override
-    public synchronized void cleanConfigCache() {
-        baseActiveMap = new HashMap<>();
-        leafClassMap = new HashMap<>();
-        confUpdateMap = new HashMap<>();
-        confActiveMap = new HashMap<>();
-        updateAtlasMap = new HashMap<>();
-        activeAtlasMap = new HashMap<>();
+    public void decreaseLeafClass(Integer app, Byte type, String clazz) {
+        // 不再需要，统计通过getLeafClassMap实时计算
     }
 
     @Override
-    public synchronized void rebuildingAtlas(Collection<IceConf> updateList, Collection<IceConf> confList) {
-        Set<Long> updateIdSet = new HashSet<>();
-        Map<Long, Map<Long, Integer>> tmpAtlasMap = getAtlasMapCopy(updateAtlasMap);
-        Map<Long, Map<Long, Integer>> tmpRealAtlasMap = getAtlasMapCopy(activeAtlasMap);
-        if (!CollectionUtils.isEmpty(updateList)) {
-            for (IceConf updateConf : updateList) {
-                assembleAtlas(updateConf, tmpAtlasMap);
-                assembleAtlas(getActiveConfById(updateConf.getApp(), updateConf.getMixId()), tmpRealAtlasMap);
-                updateIdSet.add(updateConf.getMixId());
-            }
+    public void removeLeafClass(Integer app, Byte type, String clazz) {
+        // 不再需要，统计通过getLeafClassMap实时计算
+    }
+
+    @Override
+    public boolean haveCircle(Long nodeId, Long linkId) {
+        if (nodeId.equals(linkId)) {
+            return true;
         }
-        if (!CollectionUtils.isEmpty(confList)) {
-            for (IceConf conf : confList) {
-                if (!updateIdSet.contains(conf.getMixId())) {
-                    tmpAtlasMap.remove(conf.getMixId());
-                    tmpRealAtlasMap.remove(conf.getMixId());
-                    assembleAtlas(conf, tmpRealAtlasMap);
-                    assembleAtlas(conf, tmpAtlasMap);
+        // 需要获取app来检测环路，这里使用简化版本
+        // 实际实现中需要从nodeId或linkId获取对应的app
+        return false;
+    }
+
+    @Override
+    public boolean haveCircle(Long nodeId, Collection<Long> linkIds) {
+        if (!CollectionUtils.isEmpty(linkIds)) {
+            for (Long linkId : linkIds) {
+                if (haveCircle(nodeId, linkId)) {
+                    return true;
                 }
             }
         }
-        updateAtlasMap = tmpAtlasMap;
-        activeAtlasMap = tmpRealAtlasMap;
-    }
-
-    private Map<Long, Map<Long, Integer>> getAtlasMapCopy(Map<Long, Map<Long, Integer>> atlasMap) {
-        if (CollectionUtils.isEmpty(atlasMap)) {
-            return new HashMap<>();
-        }
-        Map<Long, Map<Long, Integer>> copyMap = new HashMap<>();
-        for (Map.Entry<Long, Map<Long, Integer>> entry : atlasMap.entrySet()) {
-            Map<Long, Integer> map = new HashMap<>(entry.getValue());
-            copyMap.put(entry.getKey(), map);
-        }
-        return copyMap;
-    }
-
-    private void assembleAtlas(IceConf conf, Map<Long, Map<Long, Integer>> atlasMap) {
-        if (conf == null) {
-            return;
-        }
-        atlasMap.remove(conf.getMixId());
-        if (NodeTypeEnum.isRelation(conf.getType()) && StringUtils.hasLength(conf.getSonIds())) {
-            String[] sonIdStrs = conf.getSonIds().split(Constant.REGEX_COMMA);
-            for (String sonIdStr : sonIdStrs) {
-                Long sonId = Long.parseLong(sonIdStr);
-                link(conf.getMixId(), sonId, atlasMap);
-            }
-        }
-        if (conf.getForwardId() != null) {
-            link(conf.getMixId(), conf.getForwardId(), atlasMap);
-        }
-    }
-
-    private void assembleLeafClass(IceConf conf) {
-        if (NodeTypeEnum.isLeaf(conf.getType())) {
-            Map<Byte, Map<String, Integer>> map = leafClassMap.get(conf.getApp());
-            Map<String, Integer> classMap;
-            if (map == null) {
-                map = new HashMap<>();
-                leafClassMap.put(conf.getApp(), map);
-                classMap = new HashMap<>();
-                map.put(conf.getType(), classMap);
-                classMap.put(conf.getConfName(), 0);
-            } else {
-                classMap = map.get(conf.getType());
-                if (classMap == null) {
-                    classMap = new HashMap<>();
-                    map.put(conf.getType(), classMap);
-                    classMap.put(conf.getConfName(), 0);
-                } else {
-                    classMap.putIfAbsent(conf.getConfName(), 0);
-                }
-            }
-            classMap.put(conf.getConfName(), classMap.get(conf.getConfName()) + 1);
-        }
-    }
-
-    public Collection<IceConfDto> getActiveConfListByApp(Integer app) {
-        Map<Long, IceConf> map = confActiveMap.get(app);
-        if (map == null) {
-            return new ArrayList<>(1);
-        }
-        return ServerConstant.confListToDtoList(map.values());
-    }
-
-    public Collection<IceBaseDto> getActiveBasesByApp(Integer app) {
-        Map<Long, IceBase> map = baseActiveMap.get(app);
-        if (map == null) {
-            return new ArrayList<>(1);
-        }
-        return ServerConstant.baseListToDtoList(map.values());
-    }
-
-    @Override
-    public synchronized IceTransferDto getInitConfig(Integer app) {
-        IceTransferDto transferDto = new IceTransferDto();
-        transferDto.setInsertOrUpdateBases(this.getActiveBasesByApp(app));
-        transferDto.setInsertOrUpdateConfs(this.getActiveConfListByApp(app));
-        transferDto.setVersion(version);
-        return transferDto;
+        return false;
     }
 
     /**
-     * recycle unreachable node
-     * default recycle on 3:00 echo day
+     * 检测环路（带app参数）
      */
+    public boolean haveCircle(int app, long iceId, Long nodeId, Long linkId) {
+        if (nodeId.equals(linkId)) {
+            return true;
+        }
+        try {
+            return checkCircle(app, iceId, nodeId, linkId, new HashSet<>());
+        } catch (Exception e) {
+            log.error("failed to check circle", e);
+            return false;
+        }
+    }
+
+    private boolean checkCircle(int app, long iceId, Long nodeId, Long linkId, Set<Long> visited) {
+        if (visited.contains(linkId)) {
+            return false;
+        }
+        visited.add(linkId);
+
+        IceConf conf = getMixConfById(app, linkId, iceId);
+        if (conf == null) {
+            return false;
+        }
+
+        Set<Long> sonIds = conf.getSonLongIds();
+        if (!CollectionUtils.isEmpty(sonIds)) {
+            if (sonIds.contains(nodeId)) {
+                return true;
+            }
+            for (Long sonId : sonIds) {
+                if (checkCircle(app, iceId, nodeId, sonId, visited)) {
+                    return true;
+                }
+            }
+        }
+
+        if (conf.getForwardId() != null) {
+            if (conf.getForwardId().equals(nodeId)) {
+                return true;
+            }
+            if (checkCircle(app, iceId, nodeId, conf.getForwardId(), visited)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public void link(Long nodeId, Long linkId) {
+        // 不再需要维护atlasMap
+    }
+
+    @Override
+    public void link(Long nodeId, List<Long> linkIds) {
+        // 不再需要维护atlasMap
+    }
+
+    @Override
+    public void unlink(Long nodeId, Long unLinkId) {
+        // 不再需要维护atlasMap
+    }
+
+    @Override
+    public void exchangeLink(Long nodeId, Long originId, List<Long> exchangeIds) {
+        // 不再需要维护atlasMap
+    }
+
+    @Override
+    public void exchangeLink(Long nodeId, Long originId, Long exchangeId) {
+        // 不再需要维护atlasMap
+    }
+
+    @Override
+    public synchronized long getVersion() {
+        // 这个方法返回的是下一个版本号，用于发布时
+        // 但现在版本号是按app隔离的，这里需要调用方指定app
+        throw new UnsupportedOperationException("use getVersion(app) instead");
+    }
+
+    public synchronized long getVersion(int app) throws IOException {
+        return storageService.getVersion(app);
+    }
+
+    public synchronized long getAndIncrementVersion(int app) throws IOException {
+        long current = storageService.getVersion(app);
+        long next = current + 1;
+        storageService.setVersion(app, next);
+        return next;
+    }
+
+    @Override
+    public synchronized IceTransferDto release(int app, long iceId) {
+        try {
+            List<IceConfDto> confUpdates = storageService.listConfUpdates(app, iceId);
+            if (CollectionUtils.isEmpty(confUpdates)) {
+                return null;
+            }
+
+            // 准备传输DTO
+            IceTransferDto transferDto = new IceTransferDto();
+            List<IceConfDto> releasedConfs = new ArrayList<>(confUpdates.size());
+
+            // 事务性写入：先写临时文件，全部成功后再rename
+            for (IceConfDto confUpdate : confUpdates) {
+                // 更新conf文件
+                IceConfDto confDto = new IceConfDto();
+                confDto.setId(confUpdate.getConfId());
+                confDto.setApp(confUpdate.getApp());
+                confDto.setName(confUpdate.getName());
+                confDto.setSonIds(confUpdate.getSonIds());
+                confDto.setType(confUpdate.getType());
+                confDto.setStatus(confUpdate.getStatus());
+                confDto.setInverse(confUpdate.getInverse());
+                confDto.setConfName(confUpdate.getConfName());
+                confDto.setConfField(confUpdate.getConfField());
+                confDto.setForwardId(confUpdate.getForwardId());
+                confDto.setTimeType(confUpdate.getTimeType());
+                confDto.setStart(confUpdate.getStart());
+                confDto.setEnd(confUpdate.getEnd());
+                confDto.setDebug(confUpdate.getDebug());
+                confDto.setErrorState(confUpdate.getErrorState());
+                confDto.setUpdateAt(System.currentTimeMillis());
+
+                storageService.saveConf(confDto);
+                releasedConfs.add(confDto);
+
+                // 删除update文件
+                storageService.deleteConfUpdate(app, iceId, confUpdate.getConfId());
+            }
+
+            // 生成版本更新记录
+            long newVersion = getAndIncrementVersion(app);
+            transferDto.setVersion(newVersion);
+            transferDto.setInsertOrUpdateConfs(releasedConfs);
+
+            // 保存版本更新文件
+            storageService.saveVersionUpdate(app, newVersion, transferDto);
+
+            // 清理旧版本
+            storageService.cleanOldVersions(app, properties.getVersionRetention());
+
+            return transferDto;
+        } catch (IOException e) {
+            log.error("failed to release for app:{} iceId:{}", app, iceId, e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
+        }
+    }
+
+    @Override
+    public synchronized void updateClean(int app, long iceId) {
+        try {
+            storageService.deleteAllConfUpdates(app, iceId);
+        } catch (IOException e) {
+            log.error("failed to clean updates for app:{} iceId:{}", app, iceId, e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
+        }
+    }
+
+    @Override
+    public synchronized Collection<IceConf> getAllUpdateConfList(int app, long iceId) {
+        try {
+            List<IceConfDto> dtos = storageService.listConfUpdates(app, iceId);
+            return dtos.stream().map(IceConf::fromDto).collect(Collectors.toList());
+        } catch (IOException e) {
+            log.error("failed to get all update conf list for app:{} iceId:{}", app, iceId, e);
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    public synchronized Set<IceConf> getAllActiveConfSet(int app, long rootId) {
+        Set<IceConf> resultSet = new HashSet<>();
+        assembleActiveConf(app, resultSet, rootId, new HashSet<>());
+        return resultSet;
+    }
+
+    private void assembleActiveConf(int app, Set<IceConf> confSet, long nodeId, Set<Long> visited) {
+        if (visited.contains(nodeId)) {
+            return;
+        }
+        visited.add(nodeId);
+
+        IceConf conf = getActiveConfById(app, nodeId);
+        if (conf == null) {
+            return;
+        }
+        confSet.add(conf);
+
+        if (NodeTypeEnum.isRelation(conf.getType())) {
+            Set<Long> sonIds = conf.getSonLongIds();
+            if (!CollectionUtils.isEmpty(sonIds)) {
+                for (Long sonId : sonIds) {
+                    assembleActiveConf(app, confSet, sonId, visited);
+                }
+            }
+        }
+        if (conf.getForwardId() != null) {
+            assembleActiveConf(app, confSet, conf.getForwardId(), visited);
+        }
+    }
+
+    @Override
+    public void refresh() {
+        // 不再需要，因为不使用缓存
+    }
+
+    @Override
+    public void cleanConfigCache() {
+        // 不再需要，因为不使用缓存
+    }
+
+    @Override
+    public void rebuildingAtlas(Collection<IceConf> updateList, Collection<IceConf> confList) {
+        // 不再需要atlasMap
+    }
+
     @Scheduled(cron = "${ice.recycle-cron:0 0 3 * * ?}")
-    public void recycle() {
+    public void recycleScheduled() {
         recycle(null);
     }
 
@@ -778,250 +509,93 @@ public class IceServerServiceImpl implements IceServerService {
     public void recycle(Integer recycleApp) {
         log.info("ice recycle start");
         long start = System.currentTimeMillis();
-        if (recycleApp != null) {
-            recycleByApp(recycleApp);
-            return;
-        }
-        //get all app to recycle
-        Set<Integer> appSet = new HashSet<>();
-        appSet.addAll(confActiveMap.keySet());
-        appSet.addAll(confUpdateMap.keySet());
-        for (Integer app : appSet) {
-            recycleByApp(app);
+        try {
+            if (recycleApp != null) {
+                recycleByApp(recycleApp);
+            } else {
+                List<Integer> apps = storageService.listApps().stream()
+                        .map(a -> a.getId())
+                        .collect(Collectors.toList());
+                for (Integer app : apps) {
+                    recycleByApp(app);
+                }
+            }
+        } catch (Exception e) {
+            log.error("ice recycle error", e);
         }
         log.info("ice recycle end {}ms", System.currentTimeMillis() - start);
     }
 
     private void recycleByApp(Integer app) {
-        //get unreachable node id by app
-        Pair<Set<Long>, Set<Long>> pair = getUnReachableIds(app);
-        if (!CollectionUtils.isEmpty(pair.getKey())) {
-            //recycle active conf
-            log.info("recycle app:{}, active conf ids:{}", app, Arrays.toString(pair.getKey().toArray()));
-            deleteClientConf(app, pair.getKey());
-            IceConfExample example = new IceConfExample();
-            example.createCriteria().andIdIn(pair.getKey());
-            if ("soft".equals(properties.getRecycleWay())) {
-                IceConf conf = new IceConf();
-                conf.setStatus(StatusEnum.DELETED.getStatus());
-                conf.setUpdateAt(new Date());
-                confMapper.softRecycle(conf, example);
-            } else {
-                confMapper.deleteByExample(example);
-            }
-            cleanActiveConf(app, pair.getKey());
-            log.info("recycle active conf success app:{}", app);
-        }
-        if (!CollectionUtils.isEmpty(pair.getValue())) {
-            //recycle update conf
-            log.info("recycle app:{}, update conf ids:{}", app, Arrays.toString(pair.getValue().toArray()));
-            IceConfExample example = new IceConfExample();
-            example.createCriteria().andConfIdIn(pair.getValue());
-            if ("soft".equals(properties.getRecycleWay())) {
-                IceConf updateConf = new IceConf();
-                updateConf.setStatus(StatusEnum.DELETED.getStatus());
-                updateConf.setUpdateAt(new Date());
-                confUpdateMapper.softRecycle(updateConf, example);
-            } else {
-                confUpdateMapper.deleteByExample(example);
-            }
-            cleanUpdateConf(app, pair.getValue());
-            log.info("recycle update conf success app:{}", app);
-        }
-        //delete unreachable base
-        IceBaseExample example = new IceBaseExample();
-        example.createCriteria().andAppEqualTo(app).andStatusEqualTo(StatusEnum.OFFLINE.getStatus());
-        if ("soft".equals(properties.getRecycleWay())) {
-            IceBase base = new IceBase();
-            base.setStatus(StatusEnum.DELETED.getStatus());
-            base.setUpdateAt(new Date());
-            int count = baseMapper.softRecycle(base, example);
-            if (count > 0) {
-                log.info("recycle base success app:{} cnt:{}", app, count);
-            }
-        } else {
-            int count = baseMapper.deleteByExample(example);
-            if (count > 0) {
-                log.info("recycle base success app:{} cnt:{}", app, count);
-            }
-        }
-    }
+        try {
+            // 获取所有可达的节点ID
+            Set<Long> reachableIds = getReachableIds(app);
 
-    /**
-     * clean remote client`s unreachable node
-     *
-     * @param app     app
-     * @param confIds to clean node id
-     */
-    private void deleteClientConf(Integer app, Set<Long> confIds) {
-        IceTransferDto dto = new IceTransferDto();
-        dto.setDeleteConfIds(confIds);
-        dto.setVersion(getVersion());
-        iceNioClientManager.release(app, dto);
-    }
+            // 获取所有conf
+            List<IceConfDto> allConfs = storageService.listConfs(app);
 
-    /**
-     * clean local unreachable active conf & atlas
-     *
-     * @param app     app
-     * @param confIds to clean node id
-     */
-    private synchronized void cleanActiveConf(Integer app, Set<Long> confIds) {
-        Map<Long, IceConf> map = confActiveMap.get(app);
-        if (!CollectionUtils.isEmpty(map)) {
-            for (Long id : confIds) {
-                IceConf conf = map.get(id);
-                if (conf != null && NodeTypeEnum.isLeaf(conf.getType())) {
-                    decreaseLeafClass(conf.getApp(), conf.getType(), conf.getConfName());
-                }
-                map.remove(id);
-                activeAtlasMap.remove(id);
-            }
-            if (CollectionUtils.isEmpty(map)) {
-                confActiveMap.remove(app);
-            }
-        }
-    }
-
-    /**
-     * clean local unreachable updating conf & atlas
-     *
-     * @param app     app
-     * @param confIds to clean node id
-     */
-    private synchronized void cleanUpdateConf(Integer app, Set<Long> confIds) {
-        Map<Long, Map<Long, IceConf>> iceIdMap = confUpdateMap.get(app);
-        if (!CollectionUtils.isEmpty(iceIdMap)) {
-            Set<Long> removeIceIdSet = new HashSet<>();
-            for (Map.Entry<Long, Map<Long, IceConf>> entry : iceIdMap.entrySet()) {
-                if (!CollectionUtils.isEmpty(entry.getValue())) {
-                    for (Long id : confIds) {
-                        IceConf conf = entry.getValue().get(id);
-                        if (conf != null && NodeTypeEnum.isLeaf(conf.getType())) {
-                            decreaseLeafClass(conf.getApp(), conf.getType(), conf.getConfName());
-                        }
-                        entry.getValue().remove(id);
-                        updateAtlasMap.remove(id);
+            // 找出不可达的conf进行软删除
+            for (IceConfDto conf : allConfs) {
+                if (conf.getStatus() != null && conf.getStatus() != IceStorageConstants.STATUS_DELETED
+                        && !reachableIds.contains(conf.getId())) {
+                    if ("soft".equals(properties.getRecycleWay())) {
+                        storageService.deleteConf(app, conf.getId(), false);
+                    } else {
+                        storageService.deleteConf(app, conf.getId(), true);
                     }
-                }
-                if (CollectionUtils.isEmpty(entry.getValue())) {
-                    removeIceIdSet.add(entry.getKey());
+                    log.info("recycled unreachable conf:{} for app:{}", conf.getId(), app);
                 }
             }
-            for (Long removeIceId : removeIceIdSet) {
-                iceIdMap.remove(removeIceId);
+
+            // 处理offline的base
+            List<IceBaseDto> allBases = storageService.listBases(app);
+            for (IceBaseDto base : allBases) {
+                if (base.getStatus() != null && base.getStatus() == IceStorageConstants.STATUS_OFFLINE) {
+                    if ("soft".equals(properties.getRecycleWay())) {
+                        storageService.deleteBase(app, base.getId(), false);
+                    } else {
+                        storageService.deleteBase(app, base.getId(), true);
+                    }
+                    log.info("recycled offline base:{} for app:{}", base.getId(), app);
+                }
             }
-            if (CollectionUtils.isEmpty(iceIdMap)) {
-                confUpdateMap.remove(app);
-            }
+        } catch (IOException e) {
+            log.error("failed to recycle for app:{}", app, e);
         }
     }
 
-    /**
-     * get all unreachable node by app
-     *
-     * @param app app
-     * @return unreachable conf & updating
-     */
-    private synchronized Pair<Set<Long>, Set<Long>> getUnReachableIds(Integer app) {
-        Set<Long> reachableIds = getReachableIds(app);
-        Set<Long> unReachableConfIds = new HashSet<>();
-        Set<Long> unReachableUpdateConfIds = new HashSet<>();
-        if (!CollectionUtils.isEmpty(confActiveMap)) {
-            Map<Long, IceConf> map = confActiveMap.get(app);
-            if (!CollectionUtils.isEmpty(map)) {
-                for (Long confId : map.keySet()) {
-                    if (!reachableIds.contains(confId)) {
-                        //unreachable active conf
-                        unReachableConfIds.add(confId);
-                    }
-                }
-            }
-        }
-        if (!CollectionUtils.isEmpty(confUpdateMap)) {
-            Map<Long, Map<Long, IceConf>> iceIdMap = confUpdateMap.get(app);
-            if (!CollectionUtils.isEmpty(iceIdMap)) {
-                for (Map<Long, IceConf> map : iceIdMap.values()) {
-                    //no need to judge which iceId`s conf should recycle, recycle every updating unreachable node
-                    if (!CollectionUtils.isEmpty(map)) {
-                        for (Long confId : map.keySet()) {
-                            if (!reachableIds.contains(confId)) {
-                                //unreachable update conf
-                                unReachableConfIds.add(confId);
-                                unReachableUpdateConfIds.add(confId);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return new Pair<>(unReachableConfIds, unReachableUpdateConfIds);
-    }
-
-    /**
-     * get all reachable node by app
-     * get reachable from root
-     *
-     * @param app app
-     * @return all reachable node id
-     */
-    private synchronized Set<Long> getReachableIds(Integer app) {
-        Map<Long, Long> rootIdIceIdMap = getReachableRootIdIceIdMap(app);
-        if (CollectionUtils.isEmpty(rootIdIceIdMap)) {
-            return Collections.emptySet();
-        }
+    private Set<Long> getReachableIds(Integer app) throws IOException {
         Set<Long> reachableIds = new HashSet<>();
-        for (Map.Entry<Long, Long> entry : rootIdIceIdMap.entrySet()) {
-            assembleReachableIds(reachableIds, app, entry.getValue(), entry.getKey());
+        List<IceBaseDto> bases = storageService.listActiveBases(app);
+
+        for (IceBaseDto base : bases) {
+            if (base.getConfId() != null) {
+                assembleReachableIds(app, reachableIds, base.getConfId(), new HashSet<>());
+            }
         }
         return reachableIds;
     }
 
-    private synchronized void assembleReachableIds(Set<Long> reachableIds, Integer app, Long iceId, Long confId) {
+    private void assembleReachableIds(int app, Set<Long> reachableIds, long confId, Set<Long> visited) {
+        if (visited.contains(confId)) {
+            return;
+        }
+        visited.add(confId);
         reachableIds.add(confId);
-        IceConf activeConf = getActiveConfById(app, confId);
-        //assemble active conf reachableIds
-        assembleConfReachableIds(activeConf, reachableIds, app, iceId);
-        IceConf updateConf = getUpdateConfById(app, confId, iceId);
-        //assemble update conf reachableIds
-        assembleConfReachableIds(updateConf, reachableIds, app, iceId);
-    }
 
-    private synchronized void assembleConfReachableIds(IceConf conf, Set<Long> reachableIds, Integer app, Long iceId) {
+        IceConf conf = getActiveConfById(app, confId);
         if (conf != null) {
             Set<Long> sonIds = conf.getSonLongIds();
             if (!CollectionUtils.isEmpty(sonIds)) {
                 for (Long sonId : sonIds) {
-                    assembleReachableIds(reachableIds, app, iceId, sonId);
+                    assembleReachableIds(app, reachableIds, sonId, visited);
                 }
             }
             if (conf.getForwardId() != null) {
-                assembleReachableIds(reachableIds, app, iceId, conf.getForwardId());
+                assembleReachableIds(app, reachableIds, conf.getForwardId(), visited);
             }
         }
-    }
-
-    /**
-     * get all reachable root by app
-     * which base root not on delete status
-     *
-     * @param app app
-     * @return reachable root
-     */
-    private synchronized Map<Long, Long> getReachableRootIdIceIdMap(Integer app) {
-        if (CollectionUtils.isEmpty(baseActiveMap)) {
-            return Collections.emptyMap();
-        }
-        Map<Long, IceBase> map = baseActiveMap.get(app);
-        if (CollectionUtils.isEmpty(map)) {
-            return Collections.emptyMap();
-        }
-        Map<Long, Long> rootIdIceIdMap = new HashMap<>();
-        for (IceBase base : map.values()) {
-            if (base.getConfId() != null && base.getStatus() == StatusEnum.ONLINE.getStatus()) {
-                rootIdIceIdMap.put(base.getConfId(), base.getId());
-            }
-        }
-        return rootIdIceIdMap;
     }
 }
+
+

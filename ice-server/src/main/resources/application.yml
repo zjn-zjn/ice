@@ -8,24 +8,5 @@ spring:
   web:
     resources:
       static-locations: classpath:static/
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    type: com.zaxxer.hikari.HikariDataSource
-  sql:
-    init:
-      mode: always
-      schema-locations:
-        - classpath:sql/ice.sql
-      continue-on-error: false
-      platform: mysql
-      encoding: UTF-8
-      separator: ;
   jackson:
     default-property-inclusion: non_null
-mybatis:
-  config-location: classpath:mybatis/mybatis-config.xml
-pagehelper:
-  helperDialect: mysql
-  reasonable: true
-  supportMethodsArguments: true
-  params: count=countSql

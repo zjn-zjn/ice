@@ -7,12 +7,14 @@ import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceEditNode;
 import com.ice.server.model.IceLeafClass;
-import com.ice.server.nio.IceNioClientManager;
+import com.ice.server.service.IceAppService;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -30,7 +32,7 @@ public class IceConfController {
     private IceServerService iceServerService;
 
     @Autowired
-    private IceNioClientManager iceNioClientManager;
+    private IceAppService iceAppService;
 
     @RequestMapping(value = "/ice-server/conf/edit", method = RequestMethod.POST)
     public Long confEdit(@RequestBody IceEditNode editNode) {
@@ -55,7 +57,7 @@ public class IceConfController {
         }
         IceShowConf showConf = iceConfService.confDetail(app, confId == null ? base.getConfId() : confId, address, iceId);
         showConf.setIceId(iceId);
-        showConf.setRegisterClients(iceNioClientManager.getRegisterClients(app));
+        showConf.setRegisterClients(iceAppService.getRegisterClients(app));
         return showConf;
     }
 
@@ -63,7 +65,8 @@ public class IceConfController {
     public List<String> release(@RequestParam Integer app,
                                 @RequestParam Long iceId) {
         IceTransferDto transferDto = iceServerService.release(app, iceId);
-        return iceNioClientManager.release(app, transferDto);
+        // 基于文件系统，客户端通过轮询自动获取更新，无需推送
+        return Collections.emptyList();
     }
 
     @RequestMapping(value = "/ice-server/conf/update_clean", method = RequestMethod.GET)

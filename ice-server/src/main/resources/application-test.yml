@@ -1,17 +1,13 @@
 server:
   port: 8121
-spring:
-  datasource:
-    url: jdbc:mysql://127.0.0.1:3306/ice?autoReconnect=true&useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&serverTimezone=Asia/Shanghai
-    username: waitmoon
-    password: waitmoon
+
 ice:
-  port: 18121
-  pool:
-    core-size: 4
-    max-size: 4
-    keep-alive-seconds: 60
-    queue-capacity: 60000
-#  ha: #now default zk
-#    address: localhost:2181,localhost:2182,localhost:2183
+  # 文件系统存储路径
+  storage:
+    path: ./ice-data-test
+  # 客户端失活超时时间(秒)
+  client-timeout: 60
+  # 版本文件保留数量
+  version-retention: 1000
+
 environment: test

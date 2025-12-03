@@ -1,13 +1,17 @@
 package com.ice.server.service;
 
 import com.ice.server.dao.model.IceApp;
-import com.ice.server.model.PageResult;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * @author waitmoon
  */
 public interface IceAppService {
-    PageResult<IceApp> appList(Integer pageNum, Integer pageSize, String name, Integer app);
+    List<IceApp> appList();
 
-    Long appEdit(IceApp app);
+    Integer appEdit(IceApp app);
+
+    Set<String> getRegisterClients(int app);
 }

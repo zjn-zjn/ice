@@ -4,45 +4,45 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
+ * ice-server配置属性
+ *
  * @author waitmoon
  */
 @Data
 @ConfigurationProperties(prefix = "ice")
 public class IceServerProperties {
 
-    private String host = "0.0.0.0";
-    //ice nio port
-    private int port = 18121;
-    //if there is no read request for readerIdleTime, close the client
-    private int readerIdleTime;
-    //default 16M, size bigger than this may dirty data
-    private int maxFrameLength = 16 * 1024 * 1024;
-    //timeout for client response
-    private int clientRspTimeOut = 3000;
-    //default recycle on 3:00 echo day
+    /**
+     * 文件系统存储配置
+     */
+    private IceStorageProperties storage = new IceStorageProperties();
+
+    /**
+     * 客户端失活超时时间(秒)
+     */
+    private int clientTimeout = 60;
+
+    /**
+     * 版本文件保留数量
+     */
+    private int versionRetention = 1000;
+
+    /**
+     * 回收cron表达式
+     * 默认每天凌晨3点执行
+     */
     private String recycleCron = "0 0 3 * * ?";
-    //recycle delete way: hard or soft, default hard: directly deleting the data row from the table.
-    private String recycleWay = "hard";
-    //ice thread pool
-    private IceServerThreadPoolProperties pool = new IceServerThreadPoolProperties();
 
-    private IceServerHaProperties ha = new IceServerHaProperties();
-
-    @Data
-    public static class IceServerThreadPoolProperties {
-        private int coreSize = 4;
-        private int maxSize = 4;
-        private int keepAliveSeconds = 60;
-        private int queueCapacity = 60000;
-    }
+    /**
+     * 回收方式: hard-硬删除, soft-软删除
+     */
+    private String recycleWay = "soft";
 
     @Data
-    public static class IceServerHaProperties {
-        private String address;
-        private int baseSleepTimeMs = 1000;
-        private int maxRetries = 3;
-        private int maxSleepMs = 10000;
-        private int connectionTimeoutMs = 5000;
-        private String host;
+    public static class IceStorageProperties {
+        /**
+         * 文件系统存储路径
+         */
+        private String path = "./ice-data";
     }
 }
