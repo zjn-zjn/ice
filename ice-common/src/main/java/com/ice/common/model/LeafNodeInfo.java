@@ -13,6 +13,10 @@ public final class LeafNodeInfo {
     private String clazz;
     private String name;
     private String desc;
+    /**
+     * 排序顺序，用于前端展示时排序，值越小越靠前
+     */
+    private Integer order;
     private List<IceFieldInfo> iceFields;
     private List<IceFieldInfo> hideFields;
 

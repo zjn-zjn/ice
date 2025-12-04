@@ -32,7 +32,7 @@ public class TestController {
         roam.put("uid", uid);
         pack.setRoam(roam);
         Ice.syncProcess(pack);
-        return JacksonUtils.toJsonString(roam.get("result"));
+        return JacksonUtils.toJsonString(pack);
     }
 
     @RequestMapping(value = "/consume", method = RequestMethod.GET)

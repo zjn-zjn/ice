@@ -1,38 +1,32 @@
 package com.ice.server.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.ice.common.constant.Constant;
+import com.ice.common.constant.IceStorageConstants;
+import com.ice.common.dto.IceConfDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.model.IceShowConf;
 import com.ice.common.model.IceShowNode;
 import com.ice.common.model.LeafNodeInfo;
-import com.ice.common.utils.UUIDUtils;
-import com.ice.core.client.IceNioModel;
-import com.ice.core.client.NioOps;
-import com.ice.core.client.NioType;
-import com.ice.core.utils.JacksonUtils;
 import com.ice.server.constant.ServerConstant;
-import com.ice.server.dao.mapper.IceConfMapper;
-import com.ice.server.dao.mapper.IceConfUpdateMapper;
 import com.ice.server.dao.model.IceConf;
 import com.ice.server.enums.EditTypeEnum;
-import com.ice.server.enums.StatusEnum;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceEditNode;
 import com.ice.server.model.IceLeafClass;
-import com.ice.server.nio.IceNioClientManager;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
-import io.netty.channel.Channel;
+import com.ice.server.storage.IceClientManager;
+import com.ice.server.storage.IceFileStorageService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author waitmoon
@@ -41,17 +35,16 @@ import java.util.*;
 @Service
 public class IceConfServiceImpl implements IceConfService {
 
-    @Autowired
-    private IceConfMapper confMapper;
+    private final IceFileStorageService storageService;
+    private final IceServerService iceServerService;
+    private final IceClientManager clientManager;
 
-    @Autowired
-    private IceServerService iceServerService;
-
-    @Autowired
-    private IceConfUpdateMapper confUpdateMapper;
-
-    @Autowired
-    private IceNioClientManager iceNioClientManager;
+    public IceConfServiceImpl(IceFileStorageService storageService, IceServerService iceServerService,
+                              IceClientManager clientManager) {
+        this.storageService = storageService;
+        this.iceServerService = iceServerService;
+        this.clientManager = clientManager;
+    }
 
     @Override
     public Long confEdit(IceEditNode editNode) {
@@ -77,8 +70,8 @@ public class IceConfServiceImpl implements IceConfService {
     private synchronized Long move(IceEditNode editNode) {
         int app = editNode.getApp();
         long iceId = editNode.getIceId();
+
         if (editNode.getParentId() != null && editNode.getIndex() != null) {
-            //from parent`s child
             IceConf parent = iceServerService.getMixConfById(app, editNode.getParentId(), iceId);
             if (parent == null) {
                 throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", editNode.getParentId());
@@ -94,13 +87,13 @@ public class IceConfServiceImpl implements IceConfService {
             if (index < 0 || index >= sonIds.length || !sonIds[index].equals(editNode.getSelectId() + "")) {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "parent do not have this son with input index");
             }
+
             if (editNode.getMoveToNextId() != null) {
-                //from some parent`s child to forward
                 IceConf moveToNext = iceServerService.getMixConfById(app, editNode.getMoveToNextId(), iceId);
                 if (moveToNext.getForwardId() != null) {
                     throw new ErrorCodeException(ErrorCode.CUSTOM, "move to moveToNext:" + editNode.getMoveToNextId() + " already has forward");
                 }
-                if (iceServerService.haveCircle(moveToNext.getMixId(), editNode.getSelectId())) {
+                if (iceServerService.haveCircle(app, iceId, moveToNext.getMixId(), editNode.getSelectId())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
                 }
                 moveToNext.setForwardId(editNode.getSelectId());
@@ -114,20 +107,15 @@ public class IceConfServiceImpl implements IceConfService {
                 parent.setSonIds(Constant.removeLast(sb));
                 update(moveToNext, iceId);
                 update(parent, iceId);
-                iceServerService.unlink(parent.getMixId(), editNode.getSelectId());
-                iceServerService.link(moveToNext.getMixId(), editNode.getSelectId());
                 return editNode.getSelectId();
             }
-            //move between child nodes
+
             if (editNode.getMoveToParentId() == null || editNode.getMoveToParentId().equals(editNode.getParentId())) {
                 if (sonIds.length == 1 || (editNode.getMoveTo() == null && index == sonIds.length - 1) || editNode.getIndex().equals(editNode.getMoveTo())) {
-                    //ignore
                     return editNode.getSelectId();
                 }
-                //same parent
                 StringBuilder sb = new StringBuilder();
                 if (editNode.getMoveTo() == null || editNode.getMoveTo() >= sonIds.length) {
-                    //default move to the end
                     sonIds[index] = null;
                     for (String sonIdStr : sonIds) {
                         if (sonIdStr != null) {
@@ -148,7 +136,6 @@ public class IceConfServiceImpl implements IceConfService {
                 }
                 update(parent, iceId);
             } else {
-                //different parent
                 IceConf moveToParent = iceServerService.getMixConfById(app, editNode.getMoveToParentId(), iceId);
                 if (moveToParent == null) {
                     throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "moveToParentId", editNode.getMoveToParentId());
@@ -156,11 +143,11 @@ public class IceConfServiceImpl implements IceConfService {
                 if (NodeTypeEnum.isLeaf(moveToParent.getType())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "move to parentId not parent");
                 }
-                if (iceServerService.haveCircle(moveToParent.getMixId(), editNode.getSelectId())) {
+                if (iceServerService.haveCircle(app, iceId, moveToParent.getMixId(), editNode.getSelectId())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
                 }
+
                 if (editNode.getMoveTo() == null) {
-                    //default move to the end
                     moveToParent.setSonIds(StringUtils.hasLength(moveToParent.getSonIds()) ? (moveToParent.getSonIds() + Constant.REGEX_COMMA + editNode.getSelectId()) : (editNode.getSelectId() + ""));
                     StringBuilder sb = new StringBuilder();
                     sonIds[index] = null;
@@ -176,7 +163,6 @@ public class IceConfServiceImpl implements IceConfService {
                     } else {
                         String[] moveToSonIds = moveToParent.getSonIds().split(Constant.REGEX_COMMA);
                         if (editNode.getMoveTo() >= moveToSonIds.length || editNode.getMoveTo() < 0) {
-                            //put on last
                             moveToParent.setSonIds(moveToParent.getSonIds() + Constant.REGEX_COMMA + editNode.getSelectId());
                         } else {
                             StringBuilder moveToSb = new StringBuilder();
@@ -200,14 +186,11 @@ public class IceConfServiceImpl implements IceConfService {
                 }
                 update(moveToParent, iceId);
                 update(parent, iceId);
-                iceServerService.unlink(parent.getMixId(), editNode.getSelectId());
-                iceServerService.link(moveToParent.getMixId(), editNode.getSelectId());
             }
             return editNode.getSelectId();
         }
 
         if (editNode.getNextId() != null) {
-            //from next`s forward
             IceConf next = iceServerService.getMixConfById(app, editNode.getNextId(), iceId);
             if (next == null) {
                 throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", editNode.getParentId());
@@ -216,7 +199,6 @@ public class IceConfServiceImpl implements IceConfService {
                 throw new ErrorCodeException(ErrorCode.CUSTOM, "next:" + editNode.getNextId() + " not have this forward:" + editNode.getSelectId());
             }
             if (editNode.getMoveToNextId() != null) {
-                //move between forwards
                 if (editNode.getNextId().equals(editNode.getMoveToNextId())) {
                     return editNode.getSelectId();
                 }
@@ -224,18 +206,15 @@ public class IceConfServiceImpl implements IceConfService {
                 if (moveToNext.getForwardId() != null) {
                     throw new ErrorCodeException(ErrorCode.CUSTOM, "move to next:" + editNode.getMoveToNextId() + " already has forward");
                 }
-                if (iceServerService.haveCircle(moveToNext.getMixId(), editNode.getSelectId())) {
+                if (iceServerService.haveCircle(app, iceId, moveToNext.getMixId(), editNode.getSelectId())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
                 }
                 moveToNext.setForwardId(editNode.getSelectId());
                 next.setForwardId(null);
                 update(moveToNext, iceId);
                 update(next, iceId);
-                iceServerService.unlink(next.getMixId(), editNode.getSelectId());
-                iceServerService.link(moveToNext.getMixId(), editNode.getSelectId());
                 return editNode.getSelectId();
             }
-            //forward move to parent
             if (editNode.getMoveToParentId() != null) {
                 IceConf moveToParent = iceServerService.getMixConfById(app, editNode.getMoveToParentId(), iceId);
                 if (moveToParent == null) {
@@ -244,11 +223,10 @@ public class IceConfServiceImpl implements IceConfService {
                 if (NodeTypeEnum.isLeaf(moveToParent.getType())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "move to parentId not parent");
                 }
-                if (iceServerService.haveCircle(moveToParent.getMixId(), editNode.getSelectId())) {
+                if (iceServerService.haveCircle(app, iceId, moveToParent.getMixId(), editNode.getSelectId())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
                 }
                 if (editNode.getMoveTo() == null) {
-                    //default move to the end
                     moveToParent.setSonIds(StringUtils.hasLength(moveToParent.getSonIds()) ? (moveToParent.getSonIds() + Constant.REGEX_COMMA + editNode.getSelectId()) : (editNode.getSelectId() + ""));
                     next.setForwardId(null);
                 } else {
@@ -257,7 +235,6 @@ public class IceConfServiceImpl implements IceConfService {
                     } else {
                         String[] moveToSonIds = moveToParent.getSonIds().split(Constant.REGEX_COMMA);
                         if (editNode.getMoveTo() >= moveToSonIds.length || editNode.getMoveTo() < 0) {
-                            //put on last
                             moveToParent.setSonIds(moveToParent.getSonIds() + Constant.REGEX_COMMA + editNode.getSelectId());
                         } else {
                             StringBuilder moveToSb = new StringBuilder();
@@ -274,8 +251,6 @@ public class IceConfServiceImpl implements IceConfService {
                 }
                 update(moveToParent, iceId);
                 update(next, iceId);
-                iceServerService.unlink(next.getMixId(), editNode.getSelectId());
-                iceServerService.link(moveToParent.getMixId(), editNode.getSelectId());
                 return editNode.getSelectId();
             }
         }
@@ -285,13 +260,12 @@ public class IceConfServiceImpl implements IceConfService {
     private Long exchange(IceEditNode editNode) {
         int app = editNode.getApp();
         long iceId = editNode.getIceId();
+
         if (StringUtils.hasText(editNode.getMultiplexIds())) {
-            /*exchange to another id*/
             if (editNode.getParentId() == null && editNode.getNextId() == null) {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "root not support exchange by id");
             }
             if (editNode.getParentId() != null) {
-                //exchange son
                 IceConf conf = iceServerService.getMixConfById(app, editNode.getParentId(), iceId);
                 if (conf == null) {
                     throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", editNode.getParentId());
@@ -308,7 +282,7 @@ public class IceConfServiceImpl implements IceConfService {
                 if (CollectionUtils.isEmpty(children) || children.size() != sonIdSet.size()) {
                     throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "one of sonId", editNode.getMultiplexIds());
                 }
-                if (iceServerService.haveCircle(editNode.getParentId(), sonIdSet)) {
+                if (iceServerService.haveCircle(app, iceId, editNode.getParentId(), sonIdSet)) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check input sonIds");
                 }
                 String[] sonIds = conf.getSonIds().split(Constant.REGEX_COMMA);
@@ -323,30 +297,27 @@ public class IceConfServiceImpl implements IceConfService {
                 }
                 conf.setSonIds(Constant.removeLast(sb));
                 update(conf, iceId);
-                iceServerService.exchangeLink(editNode.getParentId(), editNode.getSelectId(), sonIdList);
                 return conf.getMixId();
             }
             if (editNode.getNextId() != null) {
-                /*exchange forward*/
                 IceConf conf = iceServerService.getMixConfById(app, editNode.getNextId(), iceId);
                 if (conf == null) {
                     throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", editNode.getNextId());
                 }
-                Long forwardId = conf.getMixId();
+                Long forwardId = conf.getForwardId();
                 if (forwardId == null) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "nextId:" + editNode.getNextId() + " no forward");
                 }
                 Long exchangeForwardId = Long.parseLong(editNode.getMultiplexIds());
-                if (iceServerService.haveCircle(editNode.getNextId(), exchangeForwardId)) {
+                if (iceServerService.haveCircle(app, iceId, editNode.getNextId(), exchangeForwardId)) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check exchangeForwardId");
                 }
                 conf.setForwardId(exchangeForwardId);
                 update(conf, iceId);
-                iceServerService.exchangeLink(editNode.getNextId(), editNode.getSelectId(), exchangeForwardId);
                 return conf.getMixId();
             }
         }
-        /*replace all parameters normally*/
+
         IceConf operateConf = iceServerService.getMixConfById(app, editNode.getSelectId(), iceId);
         if (operateConf == null) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "selectId", editNode.getSelectId());
@@ -356,21 +327,14 @@ public class IceConfServiceImpl implements IceConfService {
         operateConf.setTimeType(editNode.getTimeType());
         operateConf.setStart(editNode.getStart() == null ? null : new Date(editNode.getStart()));
         operateConf.setEnd(editNode.getEnd() == null ? null : new Date(editNode.getEnd()));
+
         if (NodeTypeEnum.isRelation(operateConf.getType()) && !NodeTypeEnum.isRelation(editNode.getNodeType())) {
-            //origin is relation now not
             operateConf.setSonIds(null);
-            if (StringUtils.hasLength(operateConf.getSonIds())) {
-                //unlink all child
-                String[] sonIdStrs = operateConf.getSonIds().split(Constant.REGEX_COMMA);
-                for (String sonIdStr : sonIdStrs) {
-                    iceServerService.unlink(operateConf.getMixId(), Long.valueOf(sonIdStr));
-                }
-            }
         }
         operateConf.setType(editNode.getNodeType());
         operateConf.setApp(app);
-        //use old name
         operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? operateConf.getName() : editNode.getName());
+
         if (NodeTypeEnum.isLeaf(editNode.getNodeType())) {
             LeafNodeInfo leafNodeInfo = leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
             if (StringUtils.hasLength(editNode.getConfField())) {
@@ -381,7 +345,6 @@ public class IceConfServiceImpl implements IceConfService {
             }
             operateConf.setConfName(editNode.getConfName());
             operateConf.setConfField(editNode.getConfField());
-            iceServerService.increaseLeafClass(app, editNode.getNodeType(), editNode.getConfName());
         }
         update(operateConf, iceId);
         return operateConf.getMixId();
@@ -390,6 +353,7 @@ public class IceConfServiceImpl implements IceConfService {
     private Long addForward(IceEditNode editNode) {
         int app = editNode.getApp();
         long iceId = editNode.getIceId();
+
         IceConf operateConf = iceServerService.getMixConfById(app, editNode.getSelectId(), iceId);
         if (operateConf == null) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "selectId", editNode.getSelectId());
@@ -397,10 +361,10 @@ public class IceConfServiceImpl implements IceConfService {
         if (operateConf.getForwardId() != null) {
             throw new ErrorCodeException(ErrorCode.ALREADY_EXIST, "forward");
         }
+
         if (StringUtils.hasLength(editNode.getMultiplexIds())) {
-            /*add from exist node id*/
             Long forwardId = Long.valueOf(editNode.getMultiplexIds());
-            if (iceServerService.haveCircle(operateConf.getMixId(), forwardId)) {
+            if (iceServerService.haveCircle(app, iceId, operateConf.getMixId(), forwardId)) {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check forwardIds");
             }
             IceConf forward = iceServerService.getMixConfById(app, forwardId, iceId);
@@ -409,49 +373,23 @@ public class IceConfServiceImpl implements IceConfService {
             }
             operateConf.setForwardId(forwardId);
             update(operateConf, iceId);
-            iceServerService.link(operateConf.getMixId(), forwardId);
             return operateConf.getMixId();
         }
-        IceConf createConf = new IceConf();
-        createConf.setDebug(editNode.getDebug() ? (byte) 1 : (byte) 0);
-        createConf.setInverse(editNode.getInverse() ? (byte) 1 : (byte) 0);
-        createConf.setTimeType(editNode.getTimeType());
-        createConf.setStart(editNode.getStart() == null ? null : new Date(editNode.getStart()));
-        createConf.setEnd(editNode.getEnd() == null ? null : new Date(editNode.getEnd()));
-        createConf.setType(editNode.getNodeType());
-        createConf.setApp(app);
-        createConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
-        if (NodeTypeEnum.isLeaf(editNode.getNodeType())) {
-            LeafNodeInfo leafNodeInfo = leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
-            if (StringUtils.hasLength(editNode.getConfField())) {
-                String checkRes = ServerConstant.checkIllegalAndAdjustJson(editNode, leafNodeInfo);
-                if (checkRes != null) {
-                    throw new ErrorCodeException(ErrorCode.CONFIG_FILED_ILLEGAL, checkRes);
-                }
-            }
-            createConf.setConfName(editNode.getConfName());
-            createConf.setConfField(editNode.getConfField());
-            iceServerService.increaseLeafClass(app, editNode.getNodeType(), editNode.getConfName());
-        }
-        createConf.setUpdateAt(new Date());
-        createConf.setStatus(StatusEnum.OFFLINE.getStatus());
-        confMapper.insertSelective(createConf);
+
+        IceConf createConf = createNewConf(editNode, app);
         operateConf.setForwardId(createConf.getMixId());
         createConf.setIceId(iceId);
         createConf.setConfId(createConf.getId());
-        createConf.setStatus(StatusEnum.ONLINE.getStatus());
-        confUpdateMapper.insertSelective(createConf);
-        iceServerService.updateLocalConfUpdateCache(createConf);
+        saveConfUpdate(createConf, iceId);
         update(operateConf, iceId);
-        iceServerService.link(operateConf.getMixId(), createConf.getMixId());
         return createConf.getMixId();
     }
 
     private Long delete(IceEditNode editNode) {
         int app = editNode.getApp();
         long iceId = editNode.getIceId();
+
         if (editNode.getParentId() != null) {
-            //delete son
             IceConf operateConf = iceServerService.getMixConfById(app, editNode.getParentId(), iceId);
             if (operateConf == null) {
                 throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "parentId", editNode.getParentId());
@@ -474,11 +412,10 @@ public class IceConfServiceImpl implements IceConfService {
             }
             operateConf.setSonIds(Constant.removeLast(sb));
             update(operateConf, iceId);
-            iceServerService.unlink(editNode.getParentId(), editNode.getSelectId());
             return operateConf.getMixId();
         }
+
         if (editNode.getNextId() != null) {
-            //delete forward
             IceConf operateConf = iceServerService.getMixConfById(app, editNode.getNextId(), iceId);
             if (operateConf == null) {
                 throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", editNode.getNextId());
@@ -488,7 +425,6 @@ public class IceConfServiceImpl implements IceConfService {
             }
             operateConf.setForwardId(null);
             update(operateConf, iceId);
-            iceServerService.unlink(editNode.getNextId(), editNode.getSelectId());
             return operateConf.getMixId();
         }
         throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "root not support delete");
@@ -497,6 +433,7 @@ public class IceConfServiceImpl implements IceConfService {
     private Long edit(IceEditNode editNode) {
         int app = editNode.getApp();
         long iceId = editNode.getIceId();
+
         IceConf operateConf = iceServerService.getMixConfById(app, editNode.getSelectId(), iceId);
         if (operateConf == null) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "selectId", editNode.getSelectId());
@@ -507,6 +444,7 @@ public class IceConfServiceImpl implements IceConfService {
         operateConf.setEnd(editNode.getEnd() == null ? null : new Date(editNode.getEnd()));
         operateConf.setInverse(editNode.getInverse() ? (byte) 1 : (byte) 0);
         operateConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
+
         if (NodeTypeEnum.isLeaf(operateConf.getType())) {
             LeafNodeInfo leafNodeInfo = leafClassCheck(app, operateConf.getConfName(), operateConf.getType());
             if (StringUtils.hasLength(editNode.getConfField())) {
@@ -524,6 +462,7 @@ public class IceConfServiceImpl implements IceConfService {
     private Long addSon(IceEditNode editNode) {
         int app = editNode.getApp();
         long iceId = editNode.getIceId();
+
         IceConf operateConf = iceServerService.getMixConfById(app, editNode.getSelectId(), iceId);
         if (operateConf == null) {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "selectId", editNode.getSelectId());
@@ -531,8 +470,8 @@ public class IceConfServiceImpl implements IceConfService {
         if (NodeTypeEnum.isLeaf(operateConf.getType())) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "only relation can have son id:" + editNode.getSelectId());
         }
+
         if (StringUtils.hasLength(editNode.getMultiplexIds())) {
-            /*add from known node id*/
             String[] sonIdStrs = editNode.getMultiplexIds().split(Constant.REGEX_COMMA);
             List<Long> sonIdList = new ArrayList<>(sonIdStrs.length);
             Set<Long> sonIdSet = new HashSet<>(sonIdStrs.length);
@@ -541,7 +480,7 @@ public class IceConfServiceImpl implements IceConfService {
                 sonIdList.add(sonId);
                 sonIdSet.add(sonId);
             }
-            if (iceServerService.haveCircle(operateConf.getMixId(), sonIdList)) {
+            if (iceServerService.haveCircle(app, iceId, operateConf.getMixId(), sonIdList)) {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check sonIds");
             }
             List<IceConf> children = iceServerService.getMixConfListByIds(app, sonIdSet, iceId);
@@ -552,44 +491,67 @@ public class IceConfServiceImpl implements IceConfService {
                     String.valueOf(editNode.getMultiplexIds()) :
                     operateConf.getSonIds() + Constant.REGEX_COMMA + editNode.getMultiplexIds());
             update(operateConf, iceId);
-            iceServerService.link(operateConf.getMixId(), sonIdList);
             return operateConf.getMixId();
         }
-        IceConf createConf = new IceConf();
-        createConf.setDebug(editNode.getDebug() ? (byte) 1 : (byte) 0);
-        createConf.setInverse(editNode.getInverse() ? (byte) 1 : (byte) 0);
-        createConf.setTimeType(editNode.getTimeType());
-        createConf.setStart(editNode.getStart() == null ? null : new Date(editNode.getStart()));
-        createConf.setEnd(editNode.getEnd() == null ? null : new Date(editNode.getEnd()));
-        createConf.setApp(app);
-        createConf.setType(editNode.getNodeType());
-        createConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
-        if (NodeTypeEnum.isLeaf(editNode.getNodeType())) {
-            LeafNodeInfo leafNodeInfo = leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
-            if (StringUtils.hasLength(editNode.getConfField())) {
-                String checkRes = ServerConstant.checkIllegalAndAdjustJson(editNode, leafNodeInfo);
-                if (checkRes != null) {
-                    throw new ErrorCodeException(ErrorCode.CONFIG_FILED_ILLEGAL, checkRes);
-                }
-            }
-            createConf.setConfName(editNode.getConfName());
-            createConf.setConfField(editNode.getConfField());
-            iceServerService.increaseLeafClass(app, editNode.getNodeType(), editNode.getConfName());
-        }
-        createConf.setUpdateAt(new Date());
-        createConf.setStatus(StatusEnum.OFFLINE.getStatus());
-        confMapper.insertSelective(createConf);
+
+        IceConf createConf = createNewConf(editNode, app);
         operateConf.setSonIds(!StringUtils.hasLength(operateConf.getSonIds()) ?
                 String.valueOf(createConf.getMixId()) :
                 operateConf.getSonIds() + Constant.REGEX_COMMA + createConf.getMixId());
         createConf.setIceId(iceId);
         createConf.setConfId(createConf.getId());
-        createConf.setStatus(StatusEnum.ONLINE.getStatus());
-        confUpdateMapper.insertSelective(createConf);
-        iceServerService.updateLocalConfUpdateCache(createConf);
+        saveConfUpdate(createConf, iceId);
         update(operateConf, iceId);
-        iceServerService.link(operateConf.getMixId(), createConf.getMixId());
         return createConf.getMixId();
+    }
+
+    private IceConf createNewConf(IceEditNode editNode, int app) {
+        try {
+            IceConf createConf = new IceConf();
+            createConf.setId(storageService.nextConfId(app));
+            createConf.setDebug(editNode.getDebug() ? (byte) 1 : (byte) 0);
+            createConf.setInverse(editNode.getInverse() ? (byte) 1 : (byte) 0);
+            createConf.setTimeType(editNode.getTimeType());
+            createConf.setStart(editNode.getStart() == null ? null : new Date(editNode.getStart()));
+            createConf.setEnd(editNode.getEnd() == null ? null : new Date(editNode.getEnd()));
+            createConf.setApp(app);
+            createConf.setType(editNode.getNodeType());
+            createConf.setName(!StringUtils.hasLength(editNode.getName()) ? "" : editNode.getName());
+
+            if (NodeTypeEnum.isLeaf(editNode.getNodeType())) {
+                LeafNodeInfo leafNodeInfo = leafClassCheck(app, editNode.getConfName(), editNode.getNodeType());
+                if (StringUtils.hasLength(editNode.getConfField())) {
+                    String checkRes = ServerConstant.checkIllegalAndAdjustJson(editNode, leafNodeInfo);
+                    if (checkRes != null) {
+                        throw new ErrorCodeException(ErrorCode.CONFIG_FILED_ILLEGAL, checkRes);
+                    }
+                }
+                createConf.setConfName(editNode.getConfName());
+                createConf.setConfField(editNode.getConfField());
+            }
+            createConf.setUpdateAt(new Date());
+            createConf.setCreateAt(new Date());
+            createConf.setStatus(IceStorageConstants.STATUS_ONLINE);
+
+            // 不再创建confs占位，新建节点只存在于updates中
+            // 发布时才真正写入confs
+
+            return createConf;
+        } catch (IOException e) {
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
+        }
+    }
+
+    private void saveConfUpdate(IceConf conf, long iceId) {
+        try {
+            IceConfDto dto = conf.toDto();
+            dto.setIceId(iceId);
+            dto.setConfId(conf.getId());
+            dto.setStatus(IceStorageConstants.STATUS_ONLINE);
+            storageService.saveConfUpdate(conf.getApp(), iceId, dto);
+        } catch (IOException e) {
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
+        }
     }
 
     private void update(IceConf operateConf, long iceId) {
@@ -597,9 +559,6 @@ public class IceConfServiceImpl implements IceConfService {
         if (!operateConf.isUpdatingConf()) {
             operateConf.setIceId(iceId);
             operateConf.setConfId(operateConf.getId());
-            confUpdateMapper.insertSelective(operateConf);
-        } else {
-            confUpdateMapper.updateByPrimaryKey(operateConf);
         }
         iceServerService.updateLocalConfUpdateCache(operateConf);
     }
@@ -649,55 +608,21 @@ public class IceConfServiceImpl implements IceConfService {
     }
 
     @Override
-    public synchronized List<IceLeafClass> getConfLeafClass(int app, byte type) {
+    public List<IceLeafClass> getConfLeafClass(int app, byte type) {
         List<IceLeafClass> result = new ArrayList<>();
-        Map<String, LeafNodeInfo> clientClazzInfoMap = iceNioClientManager.getLeafTypeClasses(app, type);
-        Map<String, Integer> leafClassDBMap = iceServerService.getLeafClassMap(app, type);
-        if (CollectionUtils.isEmpty(clientClazzInfoMap)) {
-            //no leaf class with type found in client, used db config instead
-            if (leafClassDBMap != null) {
-                for (Map.Entry<String, Integer> entry : leafClassDBMap.entrySet()) {
-                    IceLeafClass leafClass = new IceLeafClass();
-                    leafClass.setFullName(entry.getKey());
-                    leafClass.setCount(entry.getValue());
-                    result.add(leafClass);
-                }
+        Map<String, LeafNodeInfo> clientClazzInfoMap = clientManager.getLeafTypeClasses(app, type);
+        if (!CollectionUtils.isEmpty(clientClazzInfoMap)) {
+            for (Map.Entry<String, LeafNodeInfo> entry : clientClazzInfoMap.entrySet()) {
+                LeafNodeInfo nodeInfo = entry.getValue();
+                IceLeafClass leafClass = new IceLeafClass();
+                leafClass.setFullName(entry.getKey());
+                leafClass.setName(nodeInfo.getName());
+                leafClass.setOrder(nodeInfo.getOrder() != null ? nodeInfo.getOrder() : 100);
+                result.add(leafClass);
             }
-        } else {
-            if (leafClassDBMap != null) {
-                for (Map.Entry<String, LeafNodeInfo> leafNodeInfoEntry : clientClazzInfoMap.entrySet()) {
-                    if (!leafClassDBMap.containsKey(leafNodeInfoEntry.getKey())) {
-                        //add not used leaf class
-                        IceLeafClass leafClass = new IceLeafClass();
-                        leafClass.setFullName(leafNodeInfoEntry.getKey());
-                        leafClass.setName(leafNodeInfoEntry.getValue().getName());
-                        leafClass.setCount(0);
-                        result.add(leafClass);
-                    }
-                }
-                for (Map.Entry<String, Integer> entry : leafClassDBMap.entrySet()) {
-                    //used to assembly by used cnt from db config
-                    LeafNodeInfo nodeInfo = clientClazzInfoMap.get(entry.getKey());
-                    if (nodeInfo != null) {
-                        //add only class found from client
-                        IceLeafClass leafClass = new IceLeafClass();
-                        leafClass.setFullName(entry.getKey());
-                        leafClass.setCount(entry.getValue());
-                        leafClass.setName(nodeInfo.getName());
-                        result.add(leafClass);
-                    }
-                }
-            } else {
-                for (Map.Entry<String, LeafNodeInfo> leafNodeInfoEntry : clientClazzInfoMap.entrySet()) {
-                    IceLeafClass leafClass = new IceLeafClass();
-                    leafClass.setFullName(leafNodeInfoEntry.getKey());
-                    leafClass.setName(leafNodeInfoEntry.getValue().getName());
-                    leafClass.setCount(0);
-                    result.add(leafClass);
-                }
-            }
+            // 按order升序排列
+            result.sort(Comparator.comparingInt(IceLeafClass::getOrder));
         }
-        result.sort(Comparator.comparingInt(IceLeafClass::sortNegativeCount));
         return result;
     }
 
@@ -710,46 +635,18 @@ public class IceConfServiceImpl implements IceConfService {
         return confClazzCheck(app, clazz, type);
     }
 
-    private synchronized LeafNodeInfo confClazzCheck(int app, String clazz, byte type) {
-        Map<String, LeafNodeInfo> clazzInfoMap = iceNioClientManager.getLeafTypeClasses(app, type);
+    private LeafNodeInfo confClazzCheck(int app, String clazz, byte type) {
+        Map<String, LeafNodeInfo> clazzInfoMap = clientManager.getLeafTypeClasses(app, type);
         if (!CollectionUtils.isEmpty(clazzInfoMap)) {
-            LeafNodeInfo leafNodeInfo = clazzInfoMap.get(clazz);
-            if (leafNodeInfo != null) {
-                //one of available client have this clazz
-                return leafNodeInfo;
-            }
+            return clazzInfoMap.get(clazz);
         }
-        //not found in client init leaf node, try search on db config
-        Map<String, Integer> leafClazzDBMap = iceServerService.getLeafClassMap(app, type);
-        if (!CollectionUtils.isEmpty(leafClazzDBMap) && leafClazzDBMap.containsKey(clazz)) {
-            return null;
-        }
-        //not found in client init leaf node and db config, try search on one of real client
-        Channel channel = iceNioClientManager.getClientSocketChannel(app, null);
-        if (channel == null) {
-            throw new ErrorCodeException(ErrorCode.NO_AVAILABLE_CLIENT, app);
-        }
-        IceNioModel request = new IceNioModel();
-        request.setClazz(clazz);
-        request.setNodeType(type);
-        request.setApp(app);
-        request.setId(UUIDUtils.generateUUID22());
-        request.setType(NioType.REQ);
-        request.setOps(NioOps.CLAZZ_CHECK);
-        IceNioModel response = iceNioClientManager.getResult(channel, request);
-        if (response == null || response.getClazzCheck() == null) {
-            throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, "unknown");
-        }
-        if (response.getClazzCheck().getKey() != 1) {
-            throw new ErrorCodeException(ErrorCode.REMOTE_ERROR, app, response.getClazzCheck().getValue());
-        }
+        // 没有可用客户端时，允许手动输入class
         return null;
     }
 
     @Override
     public IceShowConf confDetail(int app, long confId, String address, long iceId) {
         if (address == null || address.equals("server")) {
-            //server
             IceShowNode root = iceServerService.getConfMixById(app, confId, iceId);
             if (root == null) {
                 throw new ErrorCodeException(ErrorCode.CONF_NOT_FOUND, app, "confId", confId);
@@ -760,21 +657,10 @@ public class IceConfServiceImpl implements IceConfService {
             addUniqueKey(root, null, true, false);
             return serverConf;
         }
-        IceShowConf clientConf = iceNioClientManager.getClientShowConf(app, confId, address);
-        if (clientConf == null || clientConf.getRoot() == null) {
-            throw new ErrorCodeException(ErrorCode.REMOTE_CONF_NOT_FOUND, app, "confId", confId, address);
-        }
-        assemble(app, clientConf.getRoot(), address);
-        addUniqueKey(clientConf.getRoot(), null, true, false);
-        return clientConf;
+        // 不再支持从client获取配置详情
+        throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "client address not supported anymore, use 'server' instead");
     }
 
-    /**
-     * add uniqueKey for web ui
-     *
-     * @param node   node
-     * @param prefix prefix
-     */
     private void addUniqueKey(IceShowNode node, String prefix, boolean root, boolean forward) {
         if (node == null) {
             return;
@@ -793,93 +679,6 @@ public class IceConfServiceImpl implements IceConfService {
         if (!CollectionUtils.isEmpty(node.getChildren())) {
             for (IceShowNode child : node.getChildren()) {
                 addUniqueKey(child, uniqueKey, false, false);
-            }
-        }
-    }
-
-    private void assemble(Integer app, IceShowNode clientNode, String address) {
-        if (clientNode == null) {
-            return;
-        }
-        Long nodeId = clientNode.getShowConf().getNodeId();
-        IceShowNode forward = clientNode.getForward();
-        if (forward != null) {
-            forward.setNextId(nodeId);
-        }
-        assembleInfoInServer(app, clientNode, address);
-        assemble(app, forward, address);
-        List<IceShowNode> children = clientNode.getChildren();
-        if (CollectionUtils.isEmpty(children)) {
-            return;
-        }
-        for (int i = 0; i < children.size(); i++) {
-            IceShowNode child = children.get(i);
-            child.setIndex(i);
-            child.setParentId(nodeId);
-            assemble(app, child, address);
-        }
-    }
-
-    private void assembleInfoInServer(Integer app, IceShowNode clientNode, String address) {
-        IceShowNode.NodeShowConf nodeShowConf = clientNode.getShowConf();
-        Long nodeId = nodeShowConf.getNodeId();
-        if (NodeTypeEnum.isLeaf(nodeShowConf.getNodeType())) {
-            //assemble filed info
-            LeafNodeInfo nodeInfo = iceNioClientManager.getNodeInfo(app, address, nodeShowConf.getConfName(), nodeShowConf.getNodeType());
-            if (nodeInfo != null) {
-                nodeShowConf.setHaveMeta(true);
-                nodeShowConf.setNodeInfo(nodeInfo);
-                String confJson = nodeShowConf.getConfField();
-                JsonNode jsonNode = JacksonUtils.readTree(confJson);
-                if (jsonNode != null) {
-                    if (!CollectionUtils.isEmpty(nodeInfo.getIceFields())) {
-                        for (LeafNodeInfo.IceFieldInfo fieldInfo : nodeInfo.getIceFields()) {
-                            JsonNode value = jsonNode.get(fieldInfo.getField());
-                            if (value != null && value.isNull()) {
-                                fieldInfo.setValueNull(true);
-                            } else {
-                                if (value != null) {
-                                    fieldInfo.setValue(value);
-                                }
-                            }
-                        }
-                    }
-                    if (!CollectionUtils.isEmpty(nodeInfo.getHideFields())) {
-                        for (LeafNodeInfo.IceFieldInfo hideFiledInfo : nodeInfo.getHideFields()) {
-                            JsonNode value = jsonNode.get(hideFiledInfo.getField());
-                            if (value != null && value.isNull()) {
-                                hideFiledInfo.setValueNull(true);
-                            } else {
-                                if (value != null) {
-                                    hideFiledInfo.setValue(value);
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                nodeShowConf.setHaveMeta(false);
-            }
-        } else {
-            nodeShowConf.setHaveMeta(true);
-        }
-        //reset to default
-        if (nodeShowConf.getInverse() == null) {
-            nodeShowConf.setInverse(false);
-        }
-        if (nodeShowConf.getDebug() == null) {
-            nodeShowConf.setDebug(true);
-        }
-        //assemble name from server
-        IceConf iceConf = iceServerService.getActiveConfById(app, nodeId);
-        if (iceConf != null) {
-            if (StringUtils.hasLength(iceConf.getName())) {
-                nodeShowConf.setNodeName(iceConf.getName());
-            }
-            if (NodeTypeEnum.isRelation(iceConf.getType())) {
-                clientNode.getShowConf().setLabelName(nodeId + "-" + NodeTypeEnum.getEnum(iceConf.getType()).name() + (StringUtils.hasLength(iceConf.getName()) ? ("-" + iceConf.getName()) : ""));
-            } else {
-                clientNode.getShowConf().setLabelName(nodeId + "-" + (StringUtils.hasLength(iceConf.getConfName()) ? iceConf.getConfName().substring(iceConf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(iceConf.getName()) ? ("-" + iceConf.getName()) : ""));
             }
         }
     }

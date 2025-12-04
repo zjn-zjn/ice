@@ -21,3 +21,24 @@
     - [**Quick start**](https://waitmoon.com/en/guide/getting-started.html)
     - [**Community**](https://waitmoon.com/en/community/community.html)
     - [**Configuration experience(ice-test&ice-server real deployment)**](https://eg.waitmoon.com/)
+
+## Docker 部署 / Docker Deployment
+
+```bash
+# 拉取镜像 / Pull image
+docker pull waitmoon/ice-server:latest
+
+# 运行 / Run
+docker run -d --name ice-server \
+  -p 8121:8121 \
+  -v /your/data/path:/app/ice-data \
+  waitmoon/ice-server:latest
+```
+
+或使用 docker-compose / Or use docker-compose:
+
+```bash
+docker-compose up -d
+```
+
+访问 / Visit: http://localhost:8121

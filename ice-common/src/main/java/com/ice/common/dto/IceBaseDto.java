@@ -27,4 +27,19 @@ public final class IceBaseDto {
     private Integer app;
 
     private String name;
+
+    /**
+     * 状态: 1-online, 0-offline, -1-deleted
+     */
+    private Byte status;
+
+    /**
+     * 创建时间戳(毫秒)
+     */
+    private Long createAt;
+
+    /**
+     * 更新时间戳(毫秒)
+     */
+    private Long updateAt;
 }

@@ -20,11 +20,11 @@ public interface IceBaseService {
 
     PageResult<IcePushHistory> history(Integer app, Long iceId, Integer pageNum, Integer pageSize);
 
-    String exportData(Long iceId, Long pushId);
+    String exportData(Integer app, Long iceId, Long pushId);
 
-    void rollback(Long pushId) throws JsonProcessingException;
+    void rollback(Integer app, Long pushId) throws JsonProcessingException;
 
     void importData(PushData data);
 
-    void delete(Long pushId);
+    void delete(Integer app, Long pushId);
 }

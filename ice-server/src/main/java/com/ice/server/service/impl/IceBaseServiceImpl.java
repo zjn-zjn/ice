@@ -1,37 +1,34 @@
 package com.ice.server.service.impl;
 
-
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.github.pagehelper.Page;
-import com.github.pagehelper.page.PageMethod;
+import com.ice.common.constant.IceStorageConstants;
+import com.ice.common.dto.IceBaseDto;
+import com.ice.common.dto.IceConfDto;
+import com.ice.common.dto.IcePushHistoryDto;
 import com.ice.common.dto.IceTransferDto;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.core.utils.JacksonUtils;
 import com.ice.server.constant.ServerConstant;
-import com.ice.server.dao.mapper.IceBaseMapper;
-import com.ice.server.dao.mapper.IceConfMapper;
-import com.ice.server.dao.mapper.IceConfUpdateMapper;
-import com.ice.server.dao.mapper.IcePushHistoryMapper;
-import com.ice.server.dao.model.*;
-import com.ice.server.enums.StatusEnum;
+import com.ice.server.dao.model.IceBase;
+import com.ice.server.dao.model.IceConf;
+import com.ice.server.dao.model.IcePushHistory;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
 import com.ice.server.model.IceBaseSearch;
 import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
-import com.ice.server.nio.IceNioClientManager;
 import com.ice.server.service.IceBaseService;
 import com.ice.server.service.IceServerService;
+import com.ice.server.storage.IceFileStorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import org.springframework.beans.factory.annotation.Autowired;
-
+import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author waitmoon
@@ -40,109 +37,127 @@ import java.util.*;
 @Service
 public class IceBaseServiceImpl implements IceBaseService {
 
-    @Autowired
-    private IceBaseMapper iceBaseMapper;
+    private final IceFileStorageService storageService;
+    private final IceServerService iceServerService;
 
-    @Autowired
-    private IceConfMapper iceConfMapper;
-
-    @Autowired
-    private IceConfUpdateMapper iceConfUpdateMapper;
-
-    @Autowired
-    private IcePushHistoryMapper pushHistoryMapper;
-
-    @Autowired
-    private IceServerService iceServerService;
-
-    @Autowired
-    private IceNioClientManager iceNioClientManager;
-
-    @Autowired
-    private IceServerService serverService;
-
-    @Autowired
-    private IceNioClientManager iceClientManager;
+    public IceBaseServiceImpl(IceFileStorageService storageService, IceServerService iceServerService) {
+        this.storageService = storageService;
+        this.iceServerService = iceServerService;
+    }
 
     @Override
     public PageResult<IceBase> baseList(IceBaseSearch search) {
-        Page<IceBase> page = PageMethod.startPage(search.getPageNum(), search.getPageSize());
-        iceBaseMapper.selectByExample(searchToExample(search));
-        PageResult<IceBase> pageResult = new PageResult<>();
-        pageResult.setList(page.getResult());
-        pageResult.setTotal(page.getTotal());
-        pageResult.setPages(page.getPages());
-        pageResult.setPageNum(page.getPageNum());
-        pageResult.setPageSize(page.getPageSize());
-        return pageResult;
-    }
+        try {
+            List<IceBaseDto> allBases = storageService.listBases(search.getApp());
 
-    private IceBaseExample searchToExample(IceBaseSearch search) {
-        IceBaseExample example = new IceBaseExample();
-        example.setOrderByClause("update_at desc");
-        IceBaseExample.Criteria criteria = example.createCriteria();
-        criteria.andStatusEqualTo(StatusEnum.ONLINE.getStatus());
-        if (search.getApp() != null) {
-            criteria.andAppEqualTo(search.getApp());
+            // 过滤
+            List<IceBase> filteredBases = allBases.stream()
+                    .filter(b -> b.getStatus() != null && b.getStatus() == IceStorageConstants.STATUS_ONLINE)
+                    .filter(b -> {
+                        if (search.getBaseId() != null) {
+                            return search.getBaseId().equals(b.getId());
+                        }
+                        boolean match = true;
+                        if (StringUtils.hasLength(search.getName())) {
+                            match = b.getName() != null && b.getName().startsWith(search.getName());
+                        }
+                        if (match && StringUtils.hasLength(search.getScene())) {
+                            match = b.getScenes() != null && Arrays.asList(b.getScenes().split(",")).contains(search.getScene());
+                        }
+                        return match;
+                    })
+                    .map(IceBase::fromDto)
+                    .sorted((a, b) -> {
+                        if (a.getUpdateAt() == null && b.getUpdateAt() == null) return 0;
+                        if (a.getUpdateAt() == null) return 1;
+                        if (b.getUpdateAt() == null) return -1;
+                        return b.getUpdateAt().compareTo(a.getUpdateAt());
+                    })
+                    .collect(Collectors.toList());
+
+            // 分页
+            int total = filteredBases.size();
+            int start = (search.getPageNum() - 1) * search.getPageSize();
+            int end = Math.min(start + search.getPageSize(), total);
+
+            PageResult<IceBase> pageResult = new PageResult<>();
+            pageResult.setList(start < total ? filteredBases.subList(start, end) : Collections.emptyList());
+            pageResult.setTotal((long) total);
+            pageResult.setPages((total + search.getPageSize() - 1) / search.getPageSize());
+            pageResult.setPageNum(search.getPageNum());
+            pageResult.setPageSize(search.getPageSize());
+            return pageResult;
+        } catch (IOException e) {
+            log.error("failed to list bases", e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
         }
-        if (search.getBaseId() != null) {
-            criteria.andIdEqualTo(search.getBaseId());
-            return example;
-        }
-        if (StringUtils.hasLength(search.getName())) {
-            criteria.andNameLike(search.getName() + "%");
-        }
-        if (StringUtils.hasLength(search.getScene())) {
-            criteria.andScenesFindInSet(search.getScene());
-        }
-        return example;
     }
 
     @Override
-    @Transactional
     public Long baseEdit(IceBase base) {
-        timeCheck(base);
-        base.setDebug(base.getDebug() == null ? 0 : base.getDebug());
-        base.setScenes(base.getScenes() == null ? "" : base.getScenes());
-        base.setStatus(base.getStatus() == null ? StatusEnum.ONLINE.getStatus() : base.getStatus());
-        base.setTimeType(base.getTimeType() == null ? 1 : base.getTimeType());
-        base.setPriority(1L);
-        IceTransferDto transferDto = new IceTransferDto();
-        if (base.getId() == null) {
-            /*for the new base, you need to create a new root in conf. the default root is none*/
-            if (base.getConfId() == null) {
-                IceConf createConf = new IceConf();
-                createConf.setApp(base.getApp());
-                createConf.setStatus(StatusEnum.ONLINE.getStatus());
-                createConf.setType(NodeTypeEnum.NONE.getType());
-                createConf.setInverse((byte) 0);
-                createConf.setDebug((byte) 1);
-                createConf.setUpdateAt(new Date());
-                createConf.setTimeType(TimeTypeEnum.NONE.getType());
-                iceConfMapper.insertSelective(createConf);
-                iceServerService.updateLocalConfActiveCache(createConf);
-                transferDto.setInsertOrUpdateConfs(Collections.singletonList(ServerConstant.confToDto(createConf)));
-                base.setConfId(createConf.getMixId());
+        try {
+            timeCheck(base);
+            base.setDebug(base.getDebug() == null ? (byte) 0 : base.getDebug());
+            base.setScenes(base.getScenes() == null ? "" : base.getScenes());
+            base.setStatus(base.getStatus() == null ? IceStorageConstants.STATUS_ONLINE : base.getStatus());
+            base.setTimeType(base.getTimeType() == null ? (byte) 1 : base.getTimeType());
+            base.setPriority(1L);
+
+            IceTransferDto transferDto = new IceTransferDto();
+
+            if (base.getId() == null) {
+                // 新建base
+                long newId = storageService.nextBaseId(base.getApp());
+                base.setId(newId);
+                base.setCreateAt(new Date());
+
+                if (base.getConfId() == null) {
+                    // 创建默认root节点
+                    long confId = storageService.nextConfId(base.getApp());
+                    IceConfDto createConf = new IceConfDto();
+                    createConf.setId(confId);
+                    createConf.setApp(base.getApp());
+                    createConf.setStatus(IceStorageConstants.STATUS_ONLINE);
+                    createConf.setType(NodeTypeEnum.NONE.getType());
+                    createConf.setInverse(false);
+                    createConf.setDebug((byte) 1);
+                    createConf.setTimeType(TimeTypeEnum.NONE.getType());
+                    createConf.setCreateAt(System.currentTimeMillis());
+                    createConf.setUpdateAt(System.currentTimeMillis());
+                    storageService.saveConf(createConf);
+
+                    transferDto.setInsertOrUpdateConfs(Collections.singletonList(createConf));
+                    base.setConfId(confId);
+                }
+            } else {
+                // 编辑base
+                IceBaseDto origin = storageService.getBase(base.getApp(), base.getId());
+                if (origin == null || origin.getStatus() == IceStorageConstants.STATUS_OFFLINE) {
+                    throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", base.getId());
+                }
+                base.setConfId(origin.getConfId());
+                base.setCreateAt(origin.getCreateAt() != null ? new Date(origin.getCreateAt()) : null);
             }
-            base.setConfId(base.getConfId());
-            iceBaseMapper.insertSelective(base);
-        } else {
-            IceBase origin = iceBaseMapper.selectByPrimaryKey(base.getId());
-            if (origin == null || origin.getStatus().equals(StatusEnum.OFFLINE.getStatus())) {
-                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", base.getId());
+
+            base.setUpdateAt(new Date());
+            storageService.saveBase(base.toDto());
+
+            if (base.getStatus() == IceStorageConstants.STATUS_ONLINE) {
+                transferDto.setInsertOrUpdateBases(Collections.singletonList(base.toDto()));
+            } else {
+                transferDto.setDeleteBaseIds(Collections.singletonList(base.getId()));
             }
-            base.setConfId(origin.getConfId());
-            iceBaseMapper.updateByPrimaryKey(base);
+
+            // 更新版本
+            long newVersion = ((IceServerServiceImpl) iceServerService).getAndIncrementVersion(base.getApp());
+            transferDto.setVersion(newVersion);
+            storageService.saveVersionUpdate(base.getApp(), newVersion, transferDto);
+
+            return base.getId();
+        } catch (IOException e) {
+            log.error("failed to edit base", e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
         }
-        if (base.getStatus() == StatusEnum.ONLINE.getStatus()) {
-            transferDto.setInsertOrUpdateBases(Collections.singletonList(ServerConstant.baseToDto(base)));
-        } else {
-            transferDto.setDeleteBaseIds(Collections.singletonList(base.getId()));
-        }
-        iceServerService.updateLocalBaseCache(base);
-        transferDto.setVersion(iceServerService.getVersion());
-        iceNioClientManager.release(base.getApp(), transferDto);
-        return base.getId();
     }
 
     private static void timeCheck(IceBase base) {
@@ -178,20 +193,28 @@ public class IceBaseServiceImpl implements IceBaseService {
     }
 
     @Override
-    @Transactional
     public Long push(Integer app, Long iceId, String reason) {
-        IceBase base = iceBaseMapper.selectByPrimaryKey(iceId);
-        if (base == null || !base.getApp().equals(app)) {
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", iceId);
+        try {
+            IceBaseDto base = storageService.getBase(app, iceId);
+            if (base == null || !app.equals(base.getApp())) {
+                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", iceId);
+            }
+
+            IcePushHistoryDto history = new IcePushHistoryDto();
+            history.setId(storageService.nextPushId(app));
+            history.setApp(app);
+            history.setIceId(iceId);
+            history.setReason(reason);
+            history.setOperator("waitmoon");
+            history.setCreateAt(System.currentTimeMillis());
+            history.setPushData(getPushDataJson(IceBase.fromDto(base)));
+
+            storageService.savePushHistory(history);
+            return history.getId();
+        } catch (IOException e) {
+            log.error("failed to push", e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
         }
-        IcePushHistory history = new IcePushHistory();
-        history.setApp(base.getApp());
-        history.setIceId(iceId);
-        history.setReason(reason);
-        history.setOperator("waitmoon");
-        history.setPushData(getPushDataJson(base));
-        pushHistoryMapper.insertSelective(history);
-        return history.getId();
     }
 
     private String getPushDataJson(IceBase base) {
@@ -202,10 +225,12 @@ public class IceBaseServiceImpl implements IceBaseService {
         PushData pushData = new PushData();
         pushData.setApp(base.getApp());
         pushData.setBase(ServerConstant.baseToDtoWithName(base));
+
         Collection<IceConf> confUpdates = iceServerService.getAllUpdateConfList(base.getApp(), base.getId());
         if (!CollectionUtils.isEmpty(confUpdates)) {
             pushData.setConfUpdates(ServerConstant.confListToDtoListWithName(confUpdates));
         }
+
         Set<IceConf> activeConfs = iceServerService.getAllActiveConfSet(base.getApp(), base.getConfId());
         if (!CollectionUtils.isEmpty(activeConfs)) {
             pushData.setConfs(ServerConstant.confListToDtoListWithName(activeConfs));
@@ -215,105 +240,164 @@ public class IceBaseServiceImpl implements IceBaseService {
 
     @Override
     public PageResult<IcePushHistory> history(Integer app, Long iceId, Integer pageNum, Integer pageSize) {
-        IcePushHistoryExample example = new IcePushHistoryExample();
-        example.createCriteria().andAppEqualTo(app).andIceIdEqualTo(iceId);
-        example.setOrderByClause("create_at desc");
-        Page<IcePushHistory> page = PageMethod.startPage(pageNum, pageSize);
-        pushHistoryMapper.selectByExample(example);
-        PageResult<IcePushHistory> pageResult = new PageResult<>();
-        pageResult.setList(page.getResult());
-        pageResult.setTotal(page.getTotal());
-        pageResult.setPages(page.getPages());
-        pageResult.setPageNum(page.getPageNum());
-        pageResult.setPageSize(page.getPageSize());
-        return pageResult;
+        try {
+            List<IcePushHistoryDto> allHistory = storageService.listPushHistories(app, iceId);
+
+            int total = allHistory.size();
+            int start = (pageNum - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+
+            PageResult<IcePushHistory> pageResult = new PageResult<>();
+            pageResult.setList(start < total
+                    ? allHistory.subList(start, end).stream().map(IcePushHistory::fromDto).collect(Collectors.toList())
+                    : Collections.emptyList());
+            pageResult.setTotal((long) total);
+            pageResult.setPages((total + pageSize - 1) / pageSize);
+            pageResult.setPageNum(pageNum);
+            pageResult.setPageSize(pageSize);
+            return pageResult;
+        } catch (IOException e) {
+            log.error("failed to get history", e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
+        }
     }
 
     @Override
-    public String exportData(Long iceId, Long pushId) {
-        if (pushId != null && pushId > 0) {
-            IcePushHistory history = pushHistoryMapper.selectByPrimaryKey(pushId);
-            if (history != null) {
-                return history.getPushData();
+    public String exportData(Integer app, Long iceId, Long pushId) {
+        try {
+            if (pushId != null && pushId > 0) {
+                IcePushHistoryDto history = storageService.getPushHistory(app, pushId);
+                if (history != null) {
+                    return history.getPushData();
+                }
+                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "pushId", pushId);
             }
-            throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "pushId", pushId);
-        }
-        IceBase base = iceBaseMapper.selectByPrimaryKey(iceId);
-        if (base == null) {
+
+            IceBaseDto base = storageService.getBase(app, iceId);
+            if (base != null) {
+                return getPushDataJson(IceBase.fromDto(base));
+            }
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", iceId);
+        } catch (IOException e) {
+            log.error("failed to export data for app:{}", app, e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
         }
-        return getPushDataJson(base);
     }
 
     @Override
-    public void rollback(Long pushId) throws JsonProcessingException {
-        IcePushHistory history = pushHistoryMapper.selectByPrimaryKey(pushId);
-        if (history == null) {
+    public void rollback(Integer app, Long pushId) throws JsonProcessingException {
+        try {
+            IcePushHistoryDto history = storageService.getPushHistory(app, pushId);
+            if (history != null) {
+                importData(JacksonUtils.readJson(history.getPushData(), PushData.class));
+                return;
+            }
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "pushId", pushId);
+        } catch (IOException e) {
+            log.error("failed to rollback for app:{}", app, e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
         }
-        importData(JacksonUtils.readJson(history.getPushData(), PushData.class));
     }
 
     @Override
-//    @Transactional
     public void importData(PushData data) {
-        Collection<IceConf> confUpdates = ServerConstant.dtoListToConfList(data.getConfUpdates(), data.getApp());
-        Collection<IceConf> confs = ServerConstant.dtoListToConfList(data.getConfs(), data.getApp());
-        iceServerService.rebuildingAtlas(confUpdates, confs);
-        if (!CollectionUtils.isEmpty(confUpdates)) {
-            for (IceConf conf : confUpdates) {
-                IceConf oldConf = iceConfUpdateMapper.selectByPrimaryKey(conf.getId());
-                conf.setUpdateAt(new Date());
-                if (oldConf == null) {
-                    iceConfUpdateMapper.insertWithId(conf);
-                } else {
-                    iceConfUpdateMapper.updateByPrimaryKey(conf);
+        try {
+            Collection<IceConfDto> confUpdates = data.getConfUpdates();
+            Collection<IceConfDto> confs = data.getConfs();
+            long now = System.currentTimeMillis();
+
+            // 导入 confUpdates（编辑中的配置）
+            if (!CollectionUtils.isEmpty(confUpdates)) {
+                for (IceConfDto confUpdate : confUpdates) {
+                    confUpdate.setApp(data.getApp());
+                    confUpdate.setUpdateAt(now);
+                    if (confUpdate.getStatus() == null) {
+                        confUpdate.setStatus(IceStorageConstants.STATUS_ONLINE);
+                    }
+                    storageService.saveConfUpdate(data.getApp(), confUpdate.getIceId(), confUpdate);
                 }
             }
-        }
-        if (!CollectionUtils.isEmpty(confs)) {
-            for (IceConf conf : confs) {
-                IceConf oldConf = iceConfMapper.selectByPrimaryKey(conf.getMixId());
-                conf.setUpdateAt(new Date());
-                if (oldConf == null) {
-                    iceConfMapper.insertWithId(conf);
-                } else {
-                    iceConfMapper.updateByPrimaryKey(conf);
+
+            // 导入 confs（已发布的配置）- 强力覆盖
+            if (!CollectionUtils.isEmpty(confs)) {
+                for (IceConfDto conf : confs) {
+                    // 查询旧数据，保留 createAt
+                    IceConfDto oldConf = storageService.getConf(data.getApp(), conf.getId());
+                    
+                    conf.setApp(data.getApp());
+                    conf.setUpdateAt(now);
+                    if (conf.getStatus() == null) {
+                        conf.setStatus(IceStorageConstants.STATUS_ONLINE);
+                    }
+                    // 保留原有的 createAt，或设置新的
+                    if (oldConf != null && oldConf.getCreateAt() != null) {
+                        conf.setCreateAt(oldConf.getCreateAt());
+                    } else if (conf.getCreateAt() == null) {
+                        conf.setCreateAt(now);
+                    }
+                    
+                    storageService.saveConf(conf);
                 }
             }
-        }
-        IceBase base = ServerConstant.dtoToBase(data.getBase(), data.getApp());
-        if (base != null) {
-            IceBase oldBase = iceBaseMapper.selectByPrimaryKey(base.getId());
-            base.setUpdateAt(new Date());
-            if (oldBase == null) {
-                iceBaseMapper.insertWithId(base);
-            } else {
-                iceBaseMapper.updateByPrimaryKey(base);
+
+            // 导入 base - 强力覆盖
+            IceBaseDto base = data.getBase();
+            if (base != null) {
+                // 查询旧数据，保留 createAt
+                IceBaseDto oldBase = storageService.getBase(data.getApp(), base.getId());
+                
+                base.setApp(data.getApp());
+                base.setUpdateAt(now);
+                if (base.getStatus() == null) {
+                    base.setStatus(IceStorageConstants.STATUS_ONLINE);
+                }
+                // 保留原有的 createAt，或设置新的
+                if (oldBase != null && oldBase.getCreateAt() != null) {
+                    base.setCreateAt(oldBase.getCreateAt());
+                } else if (base.getCreateAt() == null) {
+                    base.setCreateAt(now);
+                }
+                // 设置默认值
+                if (base.getTimeType() == null) {
+                    base.setTimeType((byte) 1);
+                }
+                if (base.getPriority() == null) {
+                    base.setPriority(1L);
+                }
+                
+                storageService.saveBase(base);
             }
-        }
-        // todo compare and send change
-        IceTransferDto transferDto = new IceTransferDto();
-        if (!CollectionUtils.isEmpty(confUpdates)) {
-            iceServerService.updateLocalConfUpdateCaches(confUpdates);
-        }
-        if (!CollectionUtils.isEmpty(confs)) {
-            iceServerService.updateLocalConfActiveCaches(confs);
-            transferDto.setInsertOrUpdateConfs(ServerConstant.confListToDtoList(confs));
-        }
-        if (base != null) {
-            if (base.getStatus() == StatusEnum.ONLINE.getStatus()) {
-                transferDto.setInsertOrUpdateBases(Collections.singletonList(ServerConstant.baseToDto(base)));
-            } else {
-                transferDto.setDeleteBaseIds(Collections.singletonList(base.getId()));
+
+            // 更新版本并发布变更
+            IceTransferDto transferDto = new IceTransferDto();
+            if (!CollectionUtils.isEmpty(confs)) {
+                transferDto.setInsertOrUpdateConfs(new ArrayList<>(confs));
             }
-            iceServerService.updateLocalBaseCache(base);
+            if (base != null) {
+                if (base.getStatus() == IceStorageConstants.STATUS_ONLINE) {
+                    transferDto.setInsertOrUpdateBases(Collections.singletonList(base));
+                } else {
+                    transferDto.setDeleteBaseIds(Collections.singletonList(base.getId()));
+                }
+            }
+
+            long newVersion = ((IceServerServiceImpl) iceServerService).getAndIncrementVersion(data.getApp());
+            transferDto.setVersion(newVersion);
+            storageService.saveVersionUpdate(data.getApp(), newVersion, transferDto);
+
+        } catch (IOException e) {
+            log.error("failed to import data", e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
         }
-        iceClientManager.release(data.getApp(), transferDto);
     }
 
     @Override
-    public void delete(Long pushId) {
-        pushHistoryMapper.deleteByPrimaryKey(pushId);
+    public void delete(Integer app, Long pushId) {
+        try {
+            storageService.deletePushHistory(app, pushId);
+        } catch (IOException e) {
+            log.error("failed to delete push history for app:{}", app, e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
+        }
     }
 }

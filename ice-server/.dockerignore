@@ -1,0 +1,13 @@
+# 只保留 target/ice-server.jar
+src/
+pom.xml
+*.md
+
+# 忽略其他构建产物
+target/*.jar.original
+target/classes/
+target/generated-sources/
+target/maven-archiver/
+target/maven-status/
+target/test-classes/
+

@@ -36,6 +36,21 @@ public final class IceConfDto {
 
     private Integer app;
 
+    /**
+     * 状态: 1-online, 0-offline, -1-deleted
+     */
+    private Byte status;
+
+    /**
+     * 创建时间戳(毫秒)
+     */
+    private Long createAt;
+
+    /**
+     * 更新时间戳(毫秒)
+     */
+    private Long updateAt;
+
     //only in ice_conf_update
     private Long iceId;
     private Long confId;

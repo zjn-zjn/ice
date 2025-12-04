@@ -1,0 +1,25 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# Data
+ice-data/
+
+# Logs
+*.log
+logs/
+
+# Temp
+*.tmp
+*.bak
+
+# 其他模块的 target（保留 ice-server/target）
+ice-common/target/
+ice-core/target/
+ice-spring-boot/target/
+ice-test/target/
