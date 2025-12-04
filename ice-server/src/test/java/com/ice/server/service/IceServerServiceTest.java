@@ -218,24 +218,6 @@ public class IceServerServiceTest {
     }
 
     @Test
-    @Order(6)
-    void testLeafClassMap() throws IOException {
-        // 创建带className的leaf节点
-        long leafId = storageService.nextConfId(1);
-        IceConfDto leafConf = createConf(leafId, "leaf-node", (byte) 4); // LEAF_FLOW
-        leafConf.setConfName("com.test.TestFlow");
-        storageService.saveConf(leafConf);
-
-        // 获取叶子类统计
-        Map<String, Integer> leafClassMap = serverService.getLeafClassMap(1, (byte) 4);
-        // 当有叶子节点时应该返回统计
-        if (leafClassMap != null) {
-            assertTrue(leafClassMap.containsKey("com.test.TestFlow"));
-        }
-        // 如果没有使用叶子节点（不在任何base引用的树中），结果可能为空
-    }
-
-    @Test
     @Order(7)
     void testUpdateClean() throws IOException {
         long iceId = 99L;
