@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  ice-server:
+    image: waitmoon/ice-server:2.0.0
+    container_name: ice-server
+    ports:
+      - "8121:8121"
+    volumes:
+      # 挂载配置数据目录 - 这是唯一需要持久化的目录
+      - ./ice-data:/app/ice-data
+    environment:
+      - JAVA_OPTS=-Xms512m -Xmx512m
+      - ICE_STORAGE_PATH=/app/ice-data
+      - SERVER_PORT=8121
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8121/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# 多实例部署示例（需要共享存储）
+# services:
+#   ice-server-1:
+#     image: waitmoon/ice-server:2.0.0
+#     ports:
+#       - "8121:8121"
+#     volumes:
+#       - /shared/ice-data:/app/ice-data  # NFS/云盘等共享存储
+#
+#   ice-server-2:
+#     image: waitmoon/ice-server:2.0.0
+#     ports:
+#       - "8122:8121"
+#     volumes:
+#       - /shared/ice-data:/app/ice-data  # 同一个共享存储
+
