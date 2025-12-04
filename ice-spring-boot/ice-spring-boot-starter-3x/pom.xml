@@ -18,6 +18,8 @@
 
     <artifactId>ice-spring-boot-starter-3x</artifactId>
     <packaging>jar</packaging>
+    <name>ice-spring-boot-starter-3x</name>
+    <description>Ice Spring Boot Starter for Spring Boot 3.x</description>
 
     <dependencies>
         <dependency>
