@@ -12,3 +12,4 @@ ignore/
 *.versionsBackup
 *.log*
 .vscode
+ice-data
