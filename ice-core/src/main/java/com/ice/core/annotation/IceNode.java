@@ -15,4 +15,10 @@ public @interface IceNode {
     String name() default "";
 
     String desc() default "";
+
+    /**
+     * 排序顺序，用于前端展示叶子类列表时排序
+     * 值越小越靠前，默认100
+     */
+    int order() default 100;
 }

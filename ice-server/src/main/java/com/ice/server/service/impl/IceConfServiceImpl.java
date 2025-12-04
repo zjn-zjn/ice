@@ -608,52 +608,21 @@ public class IceConfServiceImpl implements IceConfService {
     }
 
     @Override
-    public synchronized List<IceLeafClass> getConfLeafClass(int app, byte type) {
+    public List<IceLeafClass> getConfLeafClass(int app, byte type) {
         List<IceLeafClass> result = new ArrayList<>();
         Map<String, LeafNodeInfo> clientClazzInfoMap = clientManager.getLeafTypeClasses(app, type);
-        Map<String, Integer> leafClassDBMap = iceServerService.getLeafClassMap(app, type);
-
-        if (CollectionUtils.isEmpty(clientClazzInfoMap)) {
-            if (leafClassDBMap != null) {
-                for (Map.Entry<String, Integer> entry : leafClassDBMap.entrySet()) {
-                    IceLeafClass leafClass = new IceLeafClass();
-                    leafClass.setFullName(entry.getKey());
-                    leafClass.setCount(entry.getValue());
-                    result.add(leafClass);
-                }
+        if (!CollectionUtils.isEmpty(clientClazzInfoMap)) {
+            for (Map.Entry<String, LeafNodeInfo> entry : clientClazzInfoMap.entrySet()) {
+                LeafNodeInfo nodeInfo = entry.getValue();
+                IceLeafClass leafClass = new IceLeafClass();
+                leafClass.setFullName(entry.getKey());
+                leafClass.setName(nodeInfo.getName());
+                leafClass.setOrder(nodeInfo.getOrder() != null ? nodeInfo.getOrder() : 100);
+                result.add(leafClass);
             }
-        } else {
-            if (leafClassDBMap != null) {
-                for (Map.Entry<String, LeafNodeInfo> leafNodeInfoEntry : clientClazzInfoMap.entrySet()) {
-                    if (!leafClassDBMap.containsKey(leafNodeInfoEntry.getKey())) {
-                        IceLeafClass leafClass = new IceLeafClass();
-                        leafClass.setFullName(leafNodeInfoEntry.getKey());
-                        leafClass.setName(leafNodeInfoEntry.getValue().getName());
-                        leafClass.setCount(0);
-                        result.add(leafClass);
-                    }
-                }
-                for (Map.Entry<String, Integer> entry : leafClassDBMap.entrySet()) {
-                    LeafNodeInfo nodeInfo = clientClazzInfoMap.get(entry.getKey());
-                    if (nodeInfo != null) {
-                        IceLeafClass leafClass = new IceLeafClass();
-                        leafClass.setFullName(entry.getKey());
-                        leafClass.setCount(entry.getValue());
-                        leafClass.setName(nodeInfo.getName());
-                        result.add(leafClass);
-                    }
-                }
-            } else {
-                for (Map.Entry<String, LeafNodeInfo> leafNodeInfoEntry : clientClazzInfoMap.entrySet()) {
-                    IceLeafClass leafClass = new IceLeafClass();
-                    leafClass.setFullName(leafNodeInfoEntry.getKey());
-                    leafClass.setName(leafNodeInfoEntry.getValue().getName());
-                    leafClass.setCount(0);
-                    result.add(leafClass);
-                }
-            }
+            // 按order升序排列
+            result.sort(Comparator.comparingInt(IceLeafClass::getOrder));
         }
-        result.sort(Comparator.comparingInt(IceLeafClass::sortNegativeCount));
         return result;
     }
 
@@ -666,17 +635,10 @@ public class IceConfServiceImpl implements IceConfService {
         return confClazzCheck(app, clazz, type);
     }
 
-    private synchronized LeafNodeInfo confClazzCheck(int app, String clazz, byte type) {
+    private LeafNodeInfo confClazzCheck(int app, String clazz, byte type) {
         Map<String, LeafNodeInfo> clazzInfoMap = clientManager.getLeafTypeClasses(app, type);
         if (!CollectionUtils.isEmpty(clazzInfoMap)) {
-            LeafNodeInfo leafNodeInfo = clazzInfoMap.get(clazz);
-            if (leafNodeInfo != null) {
-                return leafNodeInfo;
-            }
-        }
-        Map<String, Integer> leafClazzDBMap = iceServerService.getLeafClassMap(app, type);
-        if (!CollectionUtils.isEmpty(leafClazzDBMap) && leafClazzDBMap.containsKey(clazz)) {
-            return null;
+            return clazzInfoMap.get(clazz);
         }
         // 没有可用客户端时，允许手动输入class
         return null;

@@ -503,6 +503,9 @@ public final class IceFileClient {
             if (nodeAnnotation != null) {
                 leafNodeInfo.setName(nodeAnnotation.name());
                 leafNodeInfo.setDesc(nodeAnnotation.desc());
+                leafNodeInfo.setOrder(nodeAnnotation.order());
+            } else {
+                leafNodeInfo.setOrder(100); // 默认值
             }
 
             Field[] leafFields = leafClass.getDeclaredFields();

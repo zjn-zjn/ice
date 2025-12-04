@@ -39,14 +39,6 @@ public interface IceServerService {
 
     void updateLocalBaseCache(IceBase base);
 
-    Map<String, Integer> getLeafClassMap(Integer app, Byte type);
-
-    void increaseLeafClass(Integer app, Byte type, String clazz);
-
-    void decreaseLeafClass(Integer app, Byte type, String clazz);
-
-    void removeLeafClass(Integer app, Byte type, String clazz);
-
     /**
      * 检测环路：如果把 linkId 连接到 nodeId 下，是否会形成环路
      * 即检查 linkId 的所有子孙节点中是否包含 nodeId

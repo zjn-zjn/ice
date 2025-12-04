@@ -132,22 +132,22 @@ public class IceServerServiceImpl implements IceServerService {
         if (NodeTypeEnum.isRelation(node.getType())) {
             // 关系节点：处理子节点
             if (StringUtils.hasLength(showNode.getSonIds())) {
-                String[] sonIdStrs = showNode.getSonIds().split(Constant.REGEX_COMMA);
-                List<Long> sonIds = new ArrayList<>(sonIdStrs.length);
-                for (String sonStr : sonIdStrs) {
-                    sonIds.add(Long.valueOf(sonStr));
-                }
-                List<IceShowNode> children = new ArrayList<>(sonIdStrs.length);
-                for (int i = 0; i < sonIds.size(); i++) {
+            String[] sonIdStrs = showNode.getSonIds().split(Constant.REGEX_COMMA);
+            List<Long> sonIds = new ArrayList<>(sonIdStrs.length);
+            for (String sonStr : sonIdStrs) {
+                sonIds.add(Long.valueOf(sonStr));
+            }
+            List<IceShowNode> children = new ArrayList<>(sonIdStrs.length);
+            for (int i = 0; i < sonIds.size(); i++) {
                     IceConf child = getMixConfById(app, sonIds.get(i), iceId);
-                    if (child != null) {
+                if (child != null) {
                         IceShowNode showChild = assembleShowNode(child, app, iceId);
-                        showChild.setParentId(node.getMixId());
-                        showChild.setIndex(i);
-                        children.add(showChild);
-                    }
+                    showChild.setParentId(node.getMixId());
+                    showChild.setIndex(i);
+                    children.add(showChild);
                 }
-                showNode.setChildren(children);
+            }
+            showNode.setChildren(children);
             }
         } else if (NodeTypeEnum.isLeaf(node.getType()) && StringUtils.hasLength(node.getConfName())) {
             // 叶子节点：获取字段信息
@@ -228,40 +228,6 @@ public class IceServerServiceImpl implements IceServerService {
         }
     }
 
-    @Override
-    public Map<String, Integer> getLeafClassMap(Integer app, Byte type) {
-        // 从文件系统统计叶子类使用次数
-        try {
-            List<IceConfDto> confs = storageService.listActiveConfs(app);
-            Map<String, Integer> result = new HashMap<>();
-            for (IceConfDto conf : confs) {
-                if (NodeTypeEnum.isLeaf(conf.getType()) && type.equals(conf.getType())
-                        && StringUtils.hasLength(conf.getConfName())) {
-                    result.merge(conf.getConfName(), 1, Integer::sum);
-                }
-            }
-            return result.isEmpty() ? null : result;
-        } catch (IOException e) {
-            log.error("failed to get leaf class map for app:{}", app, e);
-            return null;
-        }
-    }
-
-    @Override
-    public void increaseLeafClass(Integer app, Byte type, String clazz) {
-        // 不再需要，统计通过getLeafClassMap实时计算
-    }
-
-    @Override
-    public void decreaseLeafClass(Integer app, Byte type, String clazz) {
-        // 不再需要，统计通过getLeafClassMap实时计算
-    }
-
-    @Override
-    public void removeLeafClass(Integer app, Byte type, String clazz) {
-        // 不再需要，统计通过getLeafClassMap实时计算
-    }
-
     /**
      * 检测环路
      * 检查如果把 linkId 连接到 nodeId 下，是否会形成环路
@@ -279,8 +245,8 @@ public class IceServerServiceImpl implements IceServerService {
         } catch (Exception e) {
             log.error("failed to check circle", e);
             return false;
+            }
         }
-    }
 
     /**
      * 检测多个连接是否会形成环路
@@ -295,7 +261,7 @@ public class IceServerServiceImpl implements IceServerService {
             }
         }
         return false;
-            }
+        }
 
     /**
      * 递归检测环路：检查 linkId 及其所有子孙节点中是否包含 nodeId
@@ -322,8 +288,8 @@ public class IceServerServiceImpl implements IceServerService {
             for (Long sonId : sonIds) {
                 if (checkCircle(app, iceId, nodeId, sonId, visited)) {
                     return true;
-                }
             }
+        }
         }
 
         // 检查forward节点
@@ -333,7 +299,7 @@ public class IceServerServiceImpl implements IceServerService {
                 }
             if (checkCircle(app, iceId, nodeId, conf.getForwardId(), visited)) {
                 return true;
-            }
+                }
         }
 
         return false;
@@ -412,8 +378,8 @@ public class IceServerServiceImpl implements IceServerService {
         } catch (IOException e) {
             log.error("failed to release for app:{} iceId:{}", app, iceId, e);
             throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
-    }
-    }
+                }
+            }
 
     @Override
     public synchronized void updateClean(int app, long iceId) {
@@ -422,7 +388,7 @@ public class IceServerServiceImpl implements IceServerService {
         } catch (IOException e) {
             log.error("failed to clean updates for app:{} iceId:{}", app, iceId, e);
             throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
-        }
+    }
     }
 
     @Override
@@ -530,13 +496,13 @@ public class IceServerServiceImpl implements IceServerService {
                         log.debug("skip recycle conf:{} for app:{}, within protect period", conf.getId(), app);
                         continue;
                     }
-                    if ("soft".equals(properties.getRecycleWay())) {
+            if ("soft".equals(properties.getRecycleWay())) {
                         storageService.deleteConf(app, conf.getId(), false);
-                    } else {
+            } else {
                         storageService.deleteConf(app, conf.getId(), true);
                     }
                     log.info("recycled unreachable conf:{} for app:{}", conf.getId(), app);
-                }
+        }
             }
 
             // 处理offline的base
@@ -547,15 +513,15 @@ public class IceServerServiceImpl implements IceServerService {
                     if (base.getUpdateAt() != null && base.getUpdateAt() > protectThreshold) {
                         log.debug("skip recycle base:{} for app:{}, within protect period", base.getId(), app);
                         continue;
-                    }
+            }
                     if ("soft".equals(properties.getRecycleWay())) {
                         storageService.deleteBase(app, base.getId(), false);
                     } else {
                         storageService.deleteBase(app, base.getId(), true);
                     }
                     log.info("recycled offline base:{} for app:{}", base.getId(), app);
-                }
-            }
+                            }
+                        }
         } catch (IOException e) {
             log.error("failed to recycle for app:{}", app, e);
         }
@@ -630,8 +596,8 @@ public class IceServerServiceImpl implements IceServerService {
                 // forwardId引用的节点
                 if (update.getForwardId() != null) {
                     reachableIds.add(update.getForwardId());
-                }
-            }
+    }
+}
         }
     }
 }
