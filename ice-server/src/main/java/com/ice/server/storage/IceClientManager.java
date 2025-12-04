@@ -171,6 +171,7 @@ public class IceClientManager {
         result.setClazz(source.getClazz());
         result.setType(source.getType());
         result.setDesc(source.getDesc());
+        result.setOrder(source.getOrder());
         result.setIceFields(copyFieldInfoList(source.getIceFields()));
         result.setHideFields(copyFieldInfoList(source.getHideFields()));
         return result;
