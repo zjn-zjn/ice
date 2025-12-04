@@ -1,13 +1,12 @@
 # 运行阶段（使用已打包的 jar）
-FROM openjdk:8-jre-slim
+FROM eclipse-temurin:8-jre
 LABEL maintainer="waitmoon"
 LABEL version="2.0.0"
 LABEL description="Ice Server - Rule Engine Configuration Server"
 
 WORKDIR /app
 
-# 安装 curl 用于健康检查
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+# curl 已包含在 eclipse-temurin 镜像中
 
 # 复制打包好的 jar
 COPY target/ice-server.jar /app/ice-server.jar
