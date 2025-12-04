@@ -304,37 +304,81 @@ public class IceBaseServiceImpl implements IceBaseService {
         try {
             Collection<IceConfDto> confUpdates = data.getConfUpdates();
             Collection<IceConfDto> confs = data.getConfs();
+            long now = System.currentTimeMillis();
 
+            // 导入 confUpdates（编辑中的配置）
             if (!CollectionUtils.isEmpty(confUpdates)) {
                 for (IceConfDto confUpdate : confUpdates) {
                     confUpdate.setApp(data.getApp());
-                    confUpdate.setUpdateAt(System.currentTimeMillis());
+                    confUpdate.setUpdateAt(now);
+                    if (confUpdate.getStatus() == null) {
+                        confUpdate.setStatus(IceStorageConstants.STATUS_ONLINE);
+                    }
                     storageService.saveConfUpdate(data.getApp(), confUpdate.getIceId(), confUpdate);
                 }
             }
 
+            // 导入 confs（已发布的配置）- 强力覆盖
             if (!CollectionUtils.isEmpty(confs)) {
                 for (IceConfDto conf : confs) {
+                    // 查询旧数据，保留 createAt
+                    IceConfDto oldConf = storageService.getConf(data.getApp(), conf.getId());
+                    
                     conf.setApp(data.getApp());
-                    conf.setUpdateAt(System.currentTimeMillis());
+                    conf.setUpdateAt(now);
+                    if (conf.getStatus() == null) {
+                        conf.setStatus(IceStorageConstants.STATUS_ONLINE);
+                    }
+                    // 保留原有的 createAt，或设置新的
+                    if (oldConf != null && oldConf.getCreateAt() != null) {
+                        conf.setCreateAt(oldConf.getCreateAt());
+                    } else if (conf.getCreateAt() == null) {
+                        conf.setCreateAt(now);
+                    }
+                    
                     storageService.saveConf(conf);
                 }
             }
 
+            // 导入 base - 强力覆盖
             IceBaseDto base = data.getBase();
             if (base != null) {
+                // 查询旧数据，保留 createAt
+                IceBaseDto oldBase = storageService.getBase(data.getApp(), base.getId());
+                
                 base.setApp(data.getApp());
-                base.setUpdateAt(System.currentTimeMillis());
+                base.setUpdateAt(now);
+                if (base.getStatus() == null) {
+                    base.setStatus(IceStorageConstants.STATUS_ONLINE);
+                }
+                // 保留原有的 createAt，或设置新的
+                if (oldBase != null && oldBase.getCreateAt() != null) {
+                    base.setCreateAt(oldBase.getCreateAt());
+                } else if (base.getCreateAt() == null) {
+                    base.setCreateAt(now);
+                }
+                // 设置默认值
+                if (base.getTimeType() == null) {
+                    base.setTimeType((byte) 1);
+                }
+                if (base.getPriority() == null) {
+                    base.setPriority(1L);
+                }
+                
                 storageService.saveBase(base);
             }
 
-            // 更新版本
+            // 更新版本并发布变更
             IceTransferDto transferDto = new IceTransferDto();
             if (!CollectionUtils.isEmpty(confs)) {
                 transferDto.setInsertOrUpdateConfs(new ArrayList<>(confs));
             }
-            if (base != null && base.getStatus() == IceStorageConstants.STATUS_ONLINE) {
-                transferDto.setInsertOrUpdateBases(Collections.singletonList(base));
+            if (base != null) {
+                if (base.getStatus() == IceStorageConstants.STATUS_ONLINE) {
+                    transferDto.setInsertOrUpdateBases(Collections.singletonList(base));
+                } else {
+                    transferDto.setDeleteBaseIds(Collections.singletonList(base.getId()));
+                }
             }
 
             long newVersion = ((IceServerServiceImpl) iceServerService).getAndIncrementVersion(data.getApp());
