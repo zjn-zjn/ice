@@ -129,25 +129,28 @@ public class IceServerServiceImpl implements IceServerService {
             return null;
         }
         IceShowNode showNode = ServerConstant.confToShow(node);
-        if (NodeTypeEnum.isRelation(node.getType()) && StringUtils.hasLength(showNode.getSonIds())) {
-            String[] sonIdStrs = showNode.getSonIds().split(Constant.REGEX_COMMA);
-            List<Long> sonIds = new ArrayList<>(sonIdStrs.length);
-            for (String sonStr : sonIdStrs) {
-                sonIds.add(Long.valueOf(sonStr));
-            }
-            List<IceShowNode> children = new ArrayList<>(sonIdStrs.length);
-            for (int i = 0; i < sonIds.size(); i++) {
-                IceConf child = getMixConfById(app, sonIds.get(i), iceId);
-                if (child != null) {
-                    IceShowNode showChild = assembleShowNode(child, app, iceId);
-                    showChild.setParentId(node.getMixId());
-                    showChild.setIndex(i);
-                    children.add(showChild);
+        if (NodeTypeEnum.isRelation(node.getType())) {
+            // 关系节点：处理子节点
+            if (StringUtils.hasLength(showNode.getSonIds())) {
+                String[] sonIdStrs = showNode.getSonIds().split(Constant.REGEX_COMMA);
+                List<Long> sonIds = new ArrayList<>(sonIdStrs.length);
+                for (String sonStr : sonIdStrs) {
+                    sonIds.add(Long.valueOf(sonStr));
                 }
+                List<IceShowNode> children = new ArrayList<>(sonIdStrs.length);
+                for (int i = 0; i < sonIds.size(); i++) {
+                    IceConf child = getMixConfById(app, sonIds.get(i), iceId);
+                    if (child != null) {
+                        IceShowNode showChild = assembleShowNode(child, app, iceId);
+                        showChild.setParentId(node.getMixId());
+                        showChild.setIndex(i);
+                        children.add(showChild);
+                    }
+                }
+                showNode.setChildren(children);
             }
-            showNode.setChildren(children);
-        } else {
-            // 组装叶子节点的字段信息
+        } else if (NodeTypeEnum.isLeaf(node.getType()) && StringUtils.hasLength(node.getConfName())) {
+            // 叶子节点：获取字段信息
             LeafNodeInfo nodeInfo = clientManager.getNodeInfo(node.getApp(), null, node.getConfName(), node.getType());
             if (nodeInfo != null) {
                 showNode.getShowConf().setHaveMeta(true);
@@ -259,54 +262,58 @@ public class IceServerServiceImpl implements IceServerService {
         // 不再需要，统计通过getLeafClassMap实时计算
     }
 
-    @Override
-    public boolean haveCircle(Long nodeId, Long linkId) {
-        if (nodeId.equals(linkId)) {
-            return true;
-        }
-        // 需要获取app来检测环路，这里使用简化版本
-        // 实际实现中需要从nodeId或linkId获取对应的app
-        return false;
-    }
-
-    @Override
-    public boolean haveCircle(Long nodeId, Collection<Long> linkIds) {
-        if (!CollectionUtils.isEmpty(linkIds)) {
-            for (Long linkId : linkIds) {
-                if (haveCircle(nodeId, linkId)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     /**
-     * 检测环路（带app参数）
+     * 检测环路
+     * 检查如果把 linkId 连接到 nodeId 下，是否会形成环路
+     * 即检查 linkId 的所有子孙节点中是否包含 nodeId
      */
-    public boolean haveCircle(int app, long iceId, Long nodeId, Long linkId) {
+    @Override
+    public synchronized boolean haveCircle(int app, long iceId, Long nodeId, Long linkId) {
         if (nodeId.equals(linkId)) {
             return true;
         }
         try {
-            return checkCircle(app, iceId, nodeId, linkId, new HashSet<>());
+            // 检查编辑中和已发布的配置，使用同一个visited集合避免重复检查
+            Set<Long> visited = new HashSet<>();
+            return checkCircle(app, iceId, nodeId, linkId, visited);
         } catch (Exception e) {
             log.error("failed to check circle", e);
             return false;
         }
     }
 
+    /**
+     * 检测多个连接是否会形成环路
+     */
+    @Override
+    public synchronized boolean haveCircle(int app, long iceId, Long nodeId, Collection<Long> linkIds) {
+        if (!CollectionUtils.isEmpty(linkIds)) {
+            for (Long linkId : linkIds) {
+                if (haveCircle(app, iceId, nodeId, linkId)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+            }
+
+    /**
+     * 递归检测环路：检查 linkId 及其所有子孙节点中是否包含 nodeId
+     * 同时检查编辑中（update）和已发布（active）的配置
+     */
     private boolean checkCircle(int app, long iceId, Long nodeId, Long linkId, Set<Long> visited) {
         if (visited.contains(linkId)) {
             return false;
         }
         visited.add(linkId);
 
+        // 优先检查编辑中的配置（getMixConfById 会自动合并）
         IceConf conf = getMixConfById(app, linkId, iceId);
         if (conf == null) {
             return false;
         }
 
+        // 检查子节点
         Set<Long> sonIds = conf.getSonLongIds();
         if (!CollectionUtils.isEmpty(sonIds)) {
             if (sonIds.contains(nodeId)) {
@@ -319,41 +326,17 @@ public class IceServerServiceImpl implements IceServerService {
             }
         }
 
+        // 检查forward节点
         if (conf.getForwardId() != null) {
             if (conf.getForwardId().equals(nodeId)) {
                 return true;
-            }
+                }
             if (checkCircle(app, iceId, nodeId, conf.getForwardId(), visited)) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    @Override
-    public void link(Long nodeId, Long linkId) {
-        // 不再需要维护atlasMap
-    }
-
-    @Override
-    public void link(Long nodeId, List<Long> linkIds) {
-        // 不再需要维护atlasMap
-    }
-
-    @Override
-    public void unlink(Long nodeId, Long unLinkId) {
-        // 不再需要维护atlasMap
-    }
-
-    @Override
-    public void exchangeLink(Long nodeId, Long originId, List<Long> exchangeIds) {
-        // 不再需要维护atlasMap
-    }
-
-    @Override
-    public void exchangeLink(Long nodeId, Long originId, Long exchangeId) {
-        // 不再需要维护atlasMap
     }
 
     @Override
@@ -395,7 +378,7 @@ public class IceServerServiceImpl implements IceServerService {
                 confDto.setName(confUpdate.getName());
                 confDto.setSonIds(confUpdate.getSonIds());
                 confDto.setType(confUpdate.getType());
-                confDto.setStatus(confUpdate.getStatus());
+                confDto.setStatus(confUpdate.getStatus()); // updates中已经是ONLINE状态
                 confDto.setInverse(confUpdate.getInverse());
                 confDto.setConfName(confUpdate.getConfName());
                 confDto.setConfField(confUpdate.getConfField());
@@ -429,7 +412,7 @@ public class IceServerServiceImpl implements IceServerService {
         } catch (IOException e) {
             log.error("failed to release for app:{} iceId:{}", app, iceId, e);
             throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
-        }
+    }
     }
 
     @Override
@@ -510,14 +493,14 @@ public class IceServerServiceImpl implements IceServerService {
         log.info("ice recycle start");
         long start = System.currentTimeMillis();
         try {
-            if (recycleApp != null) {
-                recycleByApp(recycleApp);
+        if (recycleApp != null) {
+            recycleByApp(recycleApp);
             } else {
                 List<Integer> apps = storageService.listApps().stream()
                         .map(a -> a.getId())
                         .collect(Collectors.toList());
                 for (Integer app : apps) {
-                    recycleByApp(app);
+            recycleByApp(app);
                 }
             }
         } catch (Exception e) {
@@ -531,13 +514,22 @@ public class IceServerServiceImpl implements IceServerService {
             // 获取所有可达的节点ID
             Set<Long> reachableIds = getReachableIds(app);
 
+            // 计算保护时间阈值（更新时间在此之后的节点不回收）
+            long protectThreshold = System.currentTimeMillis() - 
+                    (long) properties.getRecycleProtectDays() * 24 * 60 * 60 * 1000;
+
             // 获取所有conf
             List<IceConfDto> allConfs = storageService.listConfs(app);
 
-            // 找出不可达的conf进行软删除
+            // 找出不可达的conf进行删除
             for (IceConfDto conf : allConfs) {
                 if (conf.getStatus() != null && conf.getStatus() != IceStorageConstants.STATUS_DELETED
                         && !reachableIds.contains(conf.getId())) {
+                    // 时间保护：更新时间在保护期内的节点不回收
+                    if (conf.getUpdateAt() != null && conf.getUpdateAt() > protectThreshold) {
+                        log.debug("skip recycle conf:{} for app:{}, within protect period", conf.getId(), app);
+                        continue;
+                    }
                     if ("soft".equals(properties.getRecycleWay())) {
                         storageService.deleteConf(app, conf.getId(), false);
                     } else {
@@ -551,6 +543,11 @@ public class IceServerServiceImpl implements IceServerService {
             List<IceBaseDto> allBases = storageService.listBases(app);
             for (IceBaseDto base : allBases) {
                 if (base.getStatus() != null && base.getStatus() == IceStorageConstants.STATUS_OFFLINE) {
+                    // 时间保护：更新时间在保护期内的base不回收
+                    if (base.getUpdateAt() != null && base.getUpdateAt() > protectThreshold) {
+                        log.debug("skip recycle base:{} for app:{}, within protect period", base.getId(), app);
+                        continue;
+                    }
                     if ("soft".equals(properties.getRecycleWay())) {
                         storageService.deleteBase(app, base.getId(), false);
                     } else {
@@ -566,17 +563,26 @@ public class IceServerServiceImpl implements IceServerService {
 
     private Set<Long> getReachableIds(Integer app) throws IOException {
         Set<Long> reachableIds = new HashSet<>();
-        List<IceBaseDto> bases = storageService.listActiveBases(app);
+        Set<Long> visited = new HashSet<>();
 
+        // 1. 收集confs中从active base可达的节点
+        List<IceBaseDto> bases = storageService.listActiveBases(app);
         for (IceBaseDto base : bases) {
             if (base.getConfId() != null) {
-                assembleReachableIds(app, reachableIds, base.getConfId(), new HashSet<>());
+                assembleReachableIdsFromConfs(app, reachableIds, base.getConfId(), visited);
             }
         }
+
+        // 2. 收集updates中被引用的所有节点（编辑中的配置也是可达的）
+        assembleReachableIdsFromUpdates(app, reachableIds);
+
         return reachableIds;
     }
 
-    private void assembleReachableIds(int app, Set<Long> reachableIds, long confId, Set<Long> visited) {
+    /**
+     * 从confs中收集可达节点
+     */
+    private void assembleReachableIdsFromConfs(int app, Set<Long> reachableIds, long confId, Set<Long> visited) {
         if (visited.contains(confId)) {
             return;
         }
@@ -588,11 +594,43 @@ public class IceServerServiceImpl implements IceServerService {
             Set<Long> sonIds = conf.getSonLongIds();
             if (!CollectionUtils.isEmpty(sonIds)) {
                 for (Long sonId : sonIds) {
-                    assembleReachableIds(app, reachableIds, sonId, visited);
+                    assembleReachableIdsFromConfs(app, reachableIds, sonId, visited);
                 }
             }
             if (conf.getForwardId() != null) {
-                assembleReachableIds(app, reachableIds, conf.getForwardId(), visited);
+                assembleReachableIdsFromConfs(app, reachableIds, conf.getForwardId(), visited);
+            }
+        }
+    }
+
+    /**
+     * 从updates中收集所有被引用的节点
+     * 编辑中的配置引用的节点也是"可达"的，不应该被清理
+     */
+    private void assembleReachableIdsFromUpdates(int app, Set<Long> reachableIds) throws IOException {
+        // 获取该app下所有iceId的updates
+        List<IceBaseDto> allBases = storageService.listBases(app);
+        for (IceBaseDto base : allBases) {
+            List<IceConfDto> updates = storageService.listConfUpdates(app, base.getId());
+            for (IceConfDto update : updates) {
+                // 节点自身
+                if (update.getConfId() != null) {
+                    reachableIds.add(update.getConfId());
+                }
+                // sonIds引用的节点
+                if (StringUtils.hasLength(update.getSonIds())) {
+                    String[] sonIdStrs = update.getSonIds().split(Constant.REGEX_COMMA);
+                    for (String sonIdStr : sonIdStrs) {
+                        try {
+                            reachableIds.add(Long.valueOf(sonIdStr));
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
+                }
+                // forwardId引用的节点
+                if (update.getForwardId() != null) {
+                    reachableIds.add(update.getForwardId());
+                }
             }
         }
     }

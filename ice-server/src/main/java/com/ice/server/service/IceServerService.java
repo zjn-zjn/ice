@@ -47,19 +47,13 @@ public interface IceServerService {
 
     void removeLeafClass(Integer app, Byte type, String clazz);
 
-    boolean haveCircle(Long nodeId, Long linkId);
+    /**
+     * 检测环路：如果把 linkId 连接到 nodeId 下，是否会形成环路
+     * 即检查 linkId 的所有子孙节点中是否包含 nodeId
+     */
+    boolean haveCircle(int app, long iceId, Long nodeId, Long linkId);
 
-    boolean haveCircle(Long nodeId, Collection<Long> linkIds);
-
-    void link(Long nodeId, Long linkId);
-
-    void link(Long nodeId, List<Long> linkIds);
-
-    void unlink(Long nodeId, Long unLinkId);
-
-    void exchangeLink(Long nodeId, Long originId, List<Long> exchangeIds);
-
-    void exchangeLink(Long nodeId, Long originId, Long exchangeId);
+    boolean haveCircle(int app, long iceId, Long nodeId, Collection<Long> linkIds);
 
     long getVersion();
 

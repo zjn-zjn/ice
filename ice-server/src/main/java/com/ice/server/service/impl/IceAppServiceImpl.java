@@ -5,12 +5,14 @@ import com.ice.common.dto.IceAppDto;
 import com.ice.server.dao.model.IceApp;
 import com.ice.server.exception.ErrorCode;
 import com.ice.server.exception.ErrorCodeException;
+import com.ice.server.model.PageResult;
 import com.ice.server.service.IceAppService;
 import com.ice.server.storage.IceClientManager;
 import com.ice.server.storage.IceFileStorageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.*;
@@ -59,14 +61,21 @@ public class IceAppServiceImpl implements IceAppService {
     }
 
     @Override
-    public List<IceApp> appList() {
+    public PageResult<IceApp> appList(Integer pageNum, Integer pageSize, String name, Integer appId) {
         try {
             List<IceAppDto> apps = storageService.listApps();
-            if (CollectionUtils.isEmpty(apps)) {
-                return Collections.emptyList();
-            }
 
-            List<IceApp> result = apps.stream()
+            // 过滤
+            List<IceApp> filteredApps = apps.stream()
+                    .filter(a -> {
+                        if (appId != null) {
+                            return appId.equals(a.getId());
+                        }
+                        if (StringUtils.hasLength(name)) {
+                            return a.getName() != null && a.getName().contains(name);
+                        }
+                        return true;
+                    })
                     .map(IceApp::fromDto)
                     .sorted((a, b) -> {
                         if (a.getUpdateAt() == null && b.getUpdateAt() == null) return 0;
@@ -76,7 +85,18 @@ public class IceAppServiceImpl implements IceAppService {
                     })
                     .collect(Collectors.toList());
 
-            return result;
+            // 分页
+            int total = filteredApps.size();
+            int start = (pageNum - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+
+            PageResult<IceApp> pageResult = new PageResult<>();
+            pageResult.setList(start < total ? filteredApps.subList(start, end) : Collections.emptyList());
+            pageResult.setTotal((long) total);
+            pageResult.setPages((total + pageSize - 1) / pageSize);
+            pageResult.setPageNum(pageNum);
+            pageResult.setPageSize(pageSize);
+            return pageResult;
         } catch (IOException e) {
             log.error("failed to list apps", e);
             throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());

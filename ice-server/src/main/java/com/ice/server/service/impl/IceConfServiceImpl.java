@@ -93,6 +93,9 @@ public class IceConfServiceImpl implements IceConfService {
                 if (moveToNext.getForwardId() != null) {
                     throw new ErrorCodeException(ErrorCode.CUSTOM, "move to moveToNext:" + editNode.getMoveToNextId() + " already has forward");
                 }
+                if (iceServerService.haveCircle(app, iceId, moveToNext.getMixId(), editNode.getSelectId())) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
+                }
                 moveToNext.setForwardId(editNode.getSelectId());
                 StringBuilder sb = new StringBuilder();
                 sonIds[index] = null;
@@ -139,6 +142,9 @@ public class IceConfServiceImpl implements IceConfService {
                 }
                 if (NodeTypeEnum.isLeaf(moveToParent.getType())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "move to parentId not parent");
+                }
+                if (iceServerService.haveCircle(app, iceId, moveToParent.getMixId(), editNode.getSelectId())) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
                 }
 
                 if (editNode.getMoveTo() == null) {
@@ -200,6 +206,9 @@ public class IceConfServiceImpl implements IceConfService {
                 if (moveToNext.getForwardId() != null) {
                     throw new ErrorCodeException(ErrorCode.CUSTOM, "move to next:" + editNode.getMoveToNextId() + " already has forward");
                 }
+                if (iceServerService.haveCircle(app, iceId, moveToNext.getMixId(), editNode.getSelectId())) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
+                }
                 moveToNext.setForwardId(editNode.getSelectId());
                 next.setForwardId(null);
                 update(moveToNext, iceId);
@@ -213,6 +222,9 @@ public class IceConfServiceImpl implements IceConfService {
                 }
                 if (NodeTypeEnum.isLeaf(moveToParent.getType())) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "move to parentId not parent");
+                }
+                if (iceServerService.haveCircle(app, iceId, moveToParent.getMixId(), editNode.getSelectId())) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
                 }
                 if (editNode.getMoveTo() == null) {
                     moveToParent.setSonIds(StringUtils.hasLength(moveToParent.getSonIds()) ? (moveToParent.getSonIds() + Constant.REGEX_COMMA + editNode.getSelectId()) : (editNode.getSelectId() + ""));
@@ -270,6 +282,9 @@ public class IceConfServiceImpl implements IceConfService {
                 if (CollectionUtils.isEmpty(children) || children.size() != sonIdSet.size()) {
                     throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "one of sonId", editNode.getMultiplexIds());
                 }
+                if (iceServerService.haveCircle(app, iceId, editNode.getParentId(), sonIdSet)) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check input sonIds");
+                }
                 String[] sonIds = conf.getSonIds().split(Constant.REGEX_COMMA);
                 StringBuilder sb = new StringBuilder();
                 Integer index = editNode.getIndex();
@@ -289,11 +304,14 @@ public class IceConfServiceImpl implements IceConfService {
                 if (conf == null) {
                     throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "nextId", editNode.getNextId());
                 }
-                Long forwardId = conf.getMixId();
+                Long forwardId = conf.getForwardId();
                 if (forwardId == null) {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "nextId:" + editNode.getNextId() + " no forward");
                 }
                 Long exchangeForwardId = Long.parseLong(editNode.getMultiplexIds());
+                if (iceServerService.haveCircle(app, iceId, editNode.getNextId(), exchangeForwardId)) {
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check exchangeForwardId");
+                }
                 conf.setForwardId(exchangeForwardId);
                 update(conf, iceId);
                 return conf.getMixId();
@@ -346,6 +364,9 @@ public class IceConfServiceImpl implements IceConfService {
 
         if (StringUtils.hasLength(editNode.getMultiplexIds())) {
             Long forwardId = Long.valueOf(editNode.getMultiplexIds());
+            if (iceServerService.haveCircle(app, iceId, operateConf.getMixId(), forwardId)) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check forwardIds");
+            }
             IceConf forward = iceServerService.getMixConfById(app, forwardId, iceId);
             if (forward == null) {
                 throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "forwardId", forwardId);
@@ -459,6 +480,9 @@ public class IceConfServiceImpl implements IceConfService {
                 sonIdList.add(sonId);
                 sonIdSet.add(sonId);
             }
+            if (iceServerService.haveCircle(app, iceId, operateConf.getMixId(), sonIdList)) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "circles found please check sonIds");
+            }
             List<IceConf> children = iceServerService.getMixConfListByIds(app, sonIdSet, iceId);
             if (CollectionUtils.isEmpty(children) || children.size() != sonIdSet.size()) {
                 throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "one of son id not exist:" + editNode.getMultiplexIds());
@@ -507,13 +531,10 @@ public class IceConfServiceImpl implements IceConfService {
             }
             createConf.setUpdateAt(new Date());
             createConf.setCreateAt(new Date());
-            createConf.setStatus(IceStorageConstants.STATUS_OFFLINE);
+            createConf.setStatus(IceStorageConstants.STATUS_ONLINE);
 
-            // 先保存到conf（占位）
-            IceConfDto confDto = createConf.toDto();
-            confDto.setIceId(null);
-            confDto.setConfId(null);
-            storageService.saveConf(confDto);
+            // 不再创建confs占位，新建节点只存在于updates中
+            // 发布时才真正写入confs
 
             return createConf;
         } catch (IOException e) {

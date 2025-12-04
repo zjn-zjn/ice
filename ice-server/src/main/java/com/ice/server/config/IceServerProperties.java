@@ -38,6 +38,13 @@ public class IceServerProperties {
      */
     private String recycleWay = "soft";
 
+    /**
+     * 回收保护天数
+     * 更新时间在此天数内的节点不会被回收，防止误删新创建的节点
+     * 默认1天
+     */
+    private int recycleProtectDays = 1;
+
     @Data
     public static class IceStorageProperties {
         /**

@@ -6,6 +6,7 @@ import com.ice.common.dto.IceClientInfo;
 import com.ice.common.model.LeafNodeInfo;
 import com.ice.server.config.IceServerProperties;
 import org.junit.jupiter.api.*;
+import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -117,7 +118,7 @@ public class IceClientManagerTest {
         client.setLeafNodes(leafNodes);
         storageService.saveClient(client);
 
-        // 获取LEAF_FLOW类型的类
+        // 获取LEAF_FLOW类型的类（从_latest.json读取）
         Map<String, LeafNodeInfo> flowClasses = clientManager.getLeafTypeClasses(1, (byte) 4);
         assertNotNull(flowClasses);
         assertTrue(flowClasses.containsKey("com.test.FlowNode"));
@@ -152,19 +153,19 @@ public class IceClientManagerTest {
         // 手动触发清理
         clientManager.cleanInactiveClients();
 
-        // 验证旧客户端被清理
+        // 验证旧客户端被清理（由于有其他活跃客户端）
         List<IceClientInfo> clients = storageService.listClients(1);
         boolean oldClientExists = clients.stream()
                 .anyMatch(c -> "old_client".equals(c.getAddress()));
 
         // 由于有其他活跃客户端，old_client应该被清理
-        // 但如果是最后一个客户端，则会被保护
+        // 注意：如果测试顺序问题导致其他客户端也过期了，这里可能不会被清理
     }
 
     @Test
     @Order(6)
     void testLastClientProtection() throws Exception {
-        // 清理所有客户端，只保留一个
+        // 清理所有客户端，只保留一个带leafNodes的
         List<IceClientInfo> clients = storageService.listClients(1);
         for (IceClientInfo client : clients) {
             if (!"client_with_nodes".equals(client.getAddress())) {
@@ -172,8 +173,24 @@ public class IceClientManagerTest {
             }
         }
 
+        // 再次获取客户端列表
+        clients = storageService.listClients(1);
+        if (clients.isEmpty()) {
+            // 如果列表为空，重新创建一个
+            IceClientInfo client = createClient("client_with_nodes", 1);
+            List<LeafNodeInfo> leafNodes = new ArrayList<>();
+            LeafNodeInfo flowNode = new LeafNodeInfo();
+            flowNode.setClazz("com.test.FlowNode");
+            flowNode.setType((byte) 4);
+            flowNode.setName("TestFlow");
+            leafNodes.add(flowNode);
+            client.setLeafNodes(leafNodes);
+            storageService.saveClient(client);
+            clients = storageService.listClients(1);
+        }
+
         // 让唯一的客户端过期
-        IceClientInfo lastClient = storageService.listClients(1).get(0);
+        IceClientInfo lastClient = clients.get(0);
         lastClient.setLastHeartbeat(System.currentTimeMillis() - 5000);
         storageService.saveClient(lastClient);
 
@@ -183,14 +200,24 @@ public class IceClientManagerTest {
         // 触发清理
         clientManager.cleanInactiveClients();
 
-        // 验证最后一个客户端被保护（不删除）
+        // 验证最后一个客户端被保护（不删除文件）
         clients = storageService.listClients(1);
         assertEquals(1, clients.size());
 
-        // 验证leafNodes被缓存
+        // 验证leafNodes仍可从_latest.json获取
         Map<String, LeafNodeInfo> cachedNodes = clientManager.getLeafTypeClasses(1, (byte) 4);
         assertNotNull(cachedNodes);
         assertTrue(cachedNodes.containsKey("com.test.FlowNode"));
+    }
+
+    @Test
+    @Order(7)
+    void testLatestClientFile() throws IOException {
+        // 验证 _latest.json 存在
+        IceClientInfo latestClient = storageService.getLatestClient(1);
+        assertNotNull(latestClient);
+        assertNotNull(latestClient.getLeafNodes());
+        assertFalse(latestClient.getLeafNodes().isEmpty());
     }
 
     private IceClientInfo createClient(String address, int app) {
@@ -203,4 +230,3 @@ public class IceClientManagerTest {
         return client;
     }
 }
-

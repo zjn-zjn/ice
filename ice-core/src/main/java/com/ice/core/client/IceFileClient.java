@@ -302,12 +302,32 @@ public final class IceFileClient {
         Path clientPath = getClientFilePath();
         String json = JacksonUtils.toJsonString(clientInfo);
 
+        // 确保目录存在
+        Files.createDirectories(clientPath.getParent());
+
         // 使用临时文件+rename确保原子性
         Path tmpPath = Paths.get(clientPath.toString() + IceStorageConstants.SUFFIX_TMP);
         Files.write(tmpPath, json.getBytes(StandardCharsets.UTF_8),
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         Files.move(tmpPath, clientPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
                 java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+
+        // 如果有 leafNodes，更新 _latest.json（只在不存在时写入，避免频繁更新）
+        if (leafNodes != null && !leafNodes.isEmpty()) {
+            Path latestPath = clientPath.getParent().resolve("_latest.json");
+            if (!Files.exists(latestPath)) {
+                Path latestTmpPath = Paths.get(latestPath.toString() + IceStorageConstants.SUFFIX_TMP);
+                Files.write(latestTmpPath, json.getBytes(StandardCharsets.UTF_8),
+                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                try {
+                    Files.move(latestTmpPath, latestPath, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+                    log.info("ice client created _latest.json for app:{}", app);
+                } catch (java.nio.file.FileAlreadyExistsException e) {
+                    // 并发情况下可能已被其他客户端创建，忽略
+                    Files.deleteIfExists(latestTmpPath);
+                }
+            }
+        }
     }
 
     private Path getClientFilePath() {

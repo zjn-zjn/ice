@@ -6,6 +6,7 @@ import com.ice.core.utils.JacksonUtils;
 import com.ice.server.config.IceServerProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
@@ -438,6 +439,8 @@ public class IceFileStorageService {
 
     // ==================== Client 操作 ====================
 
+    private static final String LATEST_CLIENT_FILE = "_latest.json";
+
     public void saveClient(IceClientInfo client) throws IOException {
         Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(client.getApp()));
         Files.createDirectories(clientsDir);
@@ -445,6 +448,37 @@ public class IceFileStorageService {
         String safeAddress = client.getAddress().replace(":", "_").replace("/", "_");
         Path clientPath = clientsDir.resolve(safeAddress + IceStorageConstants.SUFFIX_JSON);
         writeJsonFile(clientPath, client);
+
+        // 只在 _latest.json 不存在时写入，避免百万客户端心跳导致频繁更新
+        // _latest.json 的更新主要由清理任务负责
+        if (!CollectionUtils.isEmpty(client.getLeafNodes())) {
+            Path latestPath = clientsDir.resolve(LATEST_CLIENT_FILE);
+            if (!Files.exists(latestPath)) {
+                writeJsonFile(latestPath, client);
+            }
+        }
+    }
+
+    /**
+     * 获取最新的客户端信息（O(1)操作）
+     */
+    public IceClientInfo getLatestClient(int app) throws IOException {
+        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        Path latestPath = clientsDir.resolve(LATEST_CLIENT_FILE);
+        return readJsonFile(latestPath, IceClientInfo.class);
+    }
+
+    /**
+     * 更新最新客户端信息
+     */
+    public void updateLatestClient(int app, IceClientInfo client) throws IOException {
+        if (client == null) {
+            return;
+        }
+        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        Files.createDirectories(clientsDir);
+        Path latestPath = clientsDir.resolve(LATEST_CLIENT_FILE);
+        writeJsonFile(latestPath, client);
     }
 
     public List<IceClientInfo> listClients(int app) throws IOException {
@@ -455,6 +489,7 @@ public class IceFileStorageService {
 
         try (Stream<Path> paths = Files.list(clientsDir)) {
             return paths.filter(p -> p.toString().endsWith(IceStorageConstants.SUFFIX_JSON))
+                    .filter(p -> !p.getFileName().toString().equals(LATEST_CLIENT_FILE)) // 排除_latest.json
                     .map(p -> {
                         try {
                             return readJsonFile(p, IceClientInfo.class);
@@ -465,6 +500,61 @@ public class IceFileStorageService {
                     })
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * 获取客户端数量（不遍历内容，只计数文件）
+     */
+    public int countClients(int app) throws IOException {
+        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        if (!Files.exists(clientsDir)) {
+            return 0;
+        }
+        try (Stream<Path> paths = Files.list(clientsDir)) {
+            return (int) paths.filter(p -> p.toString().endsWith(IceStorageConstants.SUFFIX_JSON))
+                    .filter(p -> !p.getFileName().toString().equals(LATEST_CLIENT_FILE))
+                    .count();
+        }
+    }
+
+    /**
+     * 获取单个客户端信息（根据 address 直接定位，O(1)）
+     */
+    public IceClientInfo getClient(int app, String address) throws IOException {
+        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        String safeAddress = address.replace(":", "_").replace("/", "_");
+        Path clientPath = clientsDir.resolve(safeAddress + IceStorageConstants.SUFFIX_JSON);
+        return readJsonFile(clientPath, IceClientInfo.class);
+    }
+
+    /**
+     * 惰性遍历，找到第一个活跃且带 leafNodes 的客户端
+     * 不会一次性加载所有文件到内存，找到即停止
+     */
+    public IceClientInfo findFirstActiveClientWithLeafNodes(int app, long timeoutMs) throws IOException {
+        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        if (!Files.exists(clientsDir)) {
+            return null;
+        }
+
+        long now = System.currentTimeMillis();
+        try (Stream<Path> paths = Files.list(clientsDir)) {
+            return paths
+                    .filter(p -> p.toString().endsWith(IceStorageConstants.SUFFIX_JSON))
+                    .filter(p -> !p.getFileName().toString().equals(LATEST_CLIENT_FILE))
+                    .map(p -> {
+                        try {
+                            return readJsonFile(p, IceClientInfo.class);
+                        } catch (IOException e) {
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .filter(c -> c.getLastHeartbeat() != null && (now - c.getLastHeartbeat()) < timeoutMs)
+                    .filter(c -> !CollectionUtils.isEmpty(c.getLeafNodes()))
+                    .findFirst()
+                    .orElse(null);
         }
     }
 
