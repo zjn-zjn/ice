@@ -43,6 +43,7 @@ func GetConfMap() map[int64]node.Node {
 }
 
 // InsertOrUpdateConfs inserts or updates configurations.
+// This method mirrors Java's IceConfCache.insertOrUpdate logic for consistency.
 func InsertOrUpdateConfs(confDtos []dto.ConfDto) []string {
 	var errors []string
 	tmpConfMap := make(map[int64]node.Node, len(confDtos))
@@ -61,49 +62,111 @@ func InsertOrUpdateConfs(confDtos []dto.ConfDto) []string {
 	confMu.Lock()
 	defer confMu.Unlock()
 
-	// Second pass: set up relationships
+	// Second pass: set up relationships and handle cleanup of old relationships
 	for _, confDto := range confDtos {
-		// Handle relation nodes
-		if enum.NodeType(confDto.Type).IsRelation() {
-			var sonIds []int64
-			if confDto.SonIds != "" {
-				sonIdStrs := strings.Split(confDto.SonIds, ",")
-				sonIds = make([]int64, 0, len(sonIdStrs))
-				for _, s := range sonIdStrs {
-					id, _ := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
-					sonIds = append(sonIds, id)
-				}
-			}
+		origin := confMap[confDto.Id]
+		isRelation := enum.NodeType(confDto.Type).IsRelation()
 
-			tmpNode := tmpConfMap[confDto.Id]
-			if tmpNode != nil && len(sonIds) > 0 {
-				setRelationSonIds(tmpNode, sonIds)
-				children := linkedlist.New[node.Node]()
-
-				for _, sonId := range sonIds {
-					// Track parent-child relationships
-					if parentIdsMap[sonId] == nil {
-						parentIdsMap[sonId] = make(map[int64]struct{})
-					}
-					parentIdsMap[sonId][confDto.Id] = struct{}{}
-
-					// Find child node
-					child := tmpConfMap[sonId]
-					if child == nil {
-						child = confMap[sonId]
-					}
-					if child == nil {
-						errors = append(errors, "sonId not exist: "+strconv.FormatInt(sonId, 10))
-						log.Error(context.Background(), "sonId not exist", "sonId", sonId)
-					} else {
-						children.Add(child)
-					}
-				}
-				setRelationChildren(tmpNode, children)
+		// Parse new sonIds
+		var sonIds []int64
+		var sonIdSet = make(map[int64]struct{})
+		if isRelation && confDto.SonIds != "" {
+			sonIdStrs := strings.Split(confDto.SonIds, ",")
+			sonIds = make([]int64, 0, len(sonIdStrs))
+			for _, s := range sonIdStrs {
+				id, _ := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+				sonIds = append(sonIds, id)
+				sonIdSet[id] = struct{}{}
 			}
 		}
 
-		// Handle forward nodes
+		// Handle relation node setup
+		if isRelation {
+			tmpNode := tmpConfMap[confDto.Id]
+			if tmpNode != nil {
+				if len(sonIds) > 0 {
+					setRelationSonIds(tmpNode, sonIds)
+					children := linkedlist.New[node.Node]()
+
+					for _, sonId := range sonIds {
+						// Track parent-child relationships
+						if parentIdsMap[sonId] == nil {
+							parentIdsMap[sonId] = make(map[int64]struct{})
+						}
+						parentIdsMap[sonId][confDto.Id] = struct{}{}
+
+						// Find child node
+						child := tmpConfMap[sonId]
+						if child == nil {
+							child = confMap[sonId]
+						}
+						if child == nil {
+							errors = append(errors, "sonId not exist: "+strconv.FormatInt(sonId, 10))
+							log.Error(context.Background(), "sonId not exist", "sonId", sonId)
+						} else {
+							children.Add(child)
+						}
+					}
+					setRelationChildren(tmpNode, children)
+				}
+
+				// Clean up old parent-child relationships for children no longer in sonIds
+				// (Java lines 108-125)
+				if originRel, ok := origin.(node.RelationNode); ok {
+					originChildren := originRel.GetChildren()
+					if originChildren != nil && originChildren.Size() > 0 {
+						for x := originChildren.First(); x != nil; x = x.Next {
+							sonNode := x.Item
+							if sonNode != nil {
+								sonNodeId := sonNode.GetNodeId()
+								if _, stillExists := sonIdSet[sonNodeId]; !stillExists {
+									// This child is no longer in the new sonIds, remove parent reference
+									if parentIds := parentIdsMap[sonNodeId]; parentIds != nil {
+										delete(parentIds, confDto.Id)
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		} else {
+			// Current node is NOT a relation node
+			// If origin was a relation node, clean up all its old children's parent references
+			// (Java lines 126-145)
+			if originRel, ok := origin.(node.RelationNode); ok {
+				originChildren := originRel.GetChildren()
+				if originChildren != nil && originChildren.Size() > 0 {
+					for x := originChildren.First(); x != nil; x = x.Next {
+						sonNode := x.Item
+						if sonNode != nil {
+							if parentIds := parentIdsMap[sonNode.GetNodeId()]; parentIds != nil {
+								delete(parentIds, confDto.Id)
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Handle forward node cleanup and setup (Java lines 146-176)
+		// First, clean up old forward reference if it changed
+		if origin != nil {
+			if ba, ok := origin.(node.BaseAccessor); ok {
+				oldForward := ba.GetForward()
+				if oldForward != nil {
+					oldForwardId := oldForward.GetNodeId()
+					// If new forwardId is different or not set, remove old reference
+					if confDto.ForwardId == 0 || confDto.ForwardId != oldForwardId {
+						if forwardUseIds := forwardUseIdsMap[oldForwardId]; forwardUseIds != nil {
+							delete(forwardUseIds, confDto.Id)
+						}
+					}
+				}
+			}
+		}
+
+		// Set up new forward reference
 		if confDto.ForwardId > 0 {
 			if forwardUseIdsMap[confDto.ForwardId] == nil {
 				forwardUseIdsMap[confDto.ForwardId] = make(map[int64]struct{})
@@ -128,8 +191,56 @@ func InsertOrUpdateConfs(confDtos []dto.ConfDto) []string {
 		confMap[id] = n
 	}
 
-	// Update handler roots
+	// Update parent nodes' children lists (Java lines 179-226)
 	for _, confDto := range confDtos {
+		// Update parents' children lists
+		parentIds := parentIdsMap[confDto.Id]
+		var removeParentIds []int64
+		for parentId := range parentIds {
+			parentNode := confMap[parentId]
+			if parentNode == nil {
+				errors = append(errors, "parentId not exist: "+strconv.FormatInt(parentId, 10))
+				log.Error(context.Background(), "parentId not exist", "parentId", parentId)
+				continue
+			}
+			if rn, ok := parentNode.(node.RelationNode); ok {
+				sonIds := rn.GetSonIds()
+				if len(sonIds) > 0 {
+					children := linkedlist.New[node.Node]()
+					for _, sonId := range sonIds {
+						child := confMap[sonId]
+						if child != nil {
+							children.Add(child)
+						}
+					}
+					setRelationChildren(parentNode, children)
+				}
+			} else {
+				// Parent is no longer a relation node, mark for removal
+				removeParentIds = append(removeParentIds, parentId)
+			}
+		}
+		// Remove invalid parent references
+		for _, pid := range removeParentIds {
+			delete(parentIds, pid)
+		}
+
+		// Update forward references for nodes using this conf as forward
+		forwardUseIds := forwardUseIdsMap[confDto.Id]
+		for forwardUseId := range forwardUseIds {
+			useNode := confMap[forwardUseId]
+			if useNode == nil {
+				errors = append(errors, "forwardUseId not exist: "+strconv.FormatInt(forwardUseId, 10))
+				log.Error(context.Background(), "forwardUseId not exist", "forwardUseId", forwardUseId)
+				continue
+			}
+			forwardNode := confMap[confDto.Id]
+			if forwardNode != nil {
+				setForward(useNode, forwardNode)
+			}
+		}
+
+		// Update handler roots
 		tmpNode := confMap[confDto.Id]
 		if tmpNode != nil {
 			UpdateHandlerRoot(tmpNode)
@@ -146,6 +257,9 @@ func DeleteConfs(ids []int64) {
 
 	for _, id := range ids {
 		delete(confMap, id)
+		// Also clean up parentIdsMap and forwardUseIdsMap
+		delete(parentIdsMap, id)
+		delete(forwardUseIdsMap, id)
 	}
 }
 
@@ -272,4 +386,14 @@ func getSimpleName(fullName string) string {
 		return fullName[idx+1:]
 	}
 	return fullName
+}
+
+// ClearAll clears all caches. Used for testing.
+func ClearAll() {
+	confMu.Lock()
+	defer confMu.Unlock()
+
+	confMap = make(map[int64]node.Node)
+	parentIdsMap = make(map[int64]map[int64]struct{})
+	forwardUseIdsMap = make(map[int64]map[int64]struct{})
 }

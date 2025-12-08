@@ -27,11 +27,36 @@ func GetHandlerById(iceId int64) *handler.Handler {
 	return idHandlerMap[iceId]
 }
 
-// GetHandlersByScene returns handlers by scene.
+// GetHandlersByScene returns a copy of handlers by scene.
+// Returns nil if no handlers exist for the scene.
 func GetHandlersByScene(scene string) map[int64]*handler.Handler {
 	handlerMu.RLock()
 	defer handlerMu.RUnlock()
-	return sceneHandlersMap[scene]
+	original := sceneHandlersMap[scene]
+	if original == nil {
+		return nil
+	}
+	// Return a copy to prevent external modification
+	result := make(map[int64]*handler.Handler, len(original))
+	for k, v := range original {
+		result[k] = v
+	}
+	return result
+}
+
+// GetHandlerByConfId returns handlers using the given conf ID.
+func GetHandlerByConfId(confId int64) map[int64]*handler.Handler {
+	handlerMu.RLock()
+	defer handlerMu.RUnlock()
+	original := confIdHandlersMap[confId]
+	if original == nil {
+		return nil
+	}
+	result := make(map[int64]*handler.Handler, len(original))
+	for k, v := range original {
+		result[k] = v
+	}
+	return result
 }
 
 // GetIdHandlerMap returns a copy of the id handler map.
@@ -46,8 +71,12 @@ func GetIdHandlerMap() map[int64]*handler.Handler {
 }
 
 // InsertOrUpdateHandlers inserts or updates handlers from DTOs.
+// This method mirrors Java's IceHandlerCache.insertOrUpdate logic.
 func InsertOrUpdateHandlers(baseDtos []dto.BaseDto) []string {
 	var errors []string
+
+	handlerMu.Lock()
+	defer handlerMu.Unlock()
 
 	for _, base := range baseDtos {
 		h := handler.NewHandler()
@@ -59,21 +88,24 @@ func InsertOrUpdateHandlers(baseDtos []dto.BaseDto) []string {
 
 		confId := base.ConfId
 		if confId != 0 {
-			root := GetConfById(confId)
+			// Note: We need to get conf without holding handlerMu to avoid deadlock
+			// But since we're already holding the lock, we use internal access
+			confMu.RLock()
+			root := confMap[confId]
+			confMu.RUnlock()
+
 			if root == nil {
 				errors = append(errors, "confId not exist: "+strconv.FormatInt(confId, 10))
 				log.Error(context.Background(), "confId not exist", "confId", confId)
 				continue
 			}
 
-			handlerMu.Lock()
 			handlerMap := confIdHandlersMap[confId]
 			if handlerMap == nil {
 				handlerMap = make(map[int64]*handler.Handler)
 				confIdHandlersMap[confId] = handlerMap
 			}
 			handlerMap[h.IceId] = h
-			handlerMu.Unlock()
 
 			h.Root = root
 			h.ConfId = confId
@@ -84,7 +116,7 @@ func InsertOrUpdateHandlers(baseDtos []dto.BaseDto) []string {
 			h.SetScenes(scenes)
 		}
 
-		onlineOrUpdateHandler(h)
+		onlineOrUpdateHandlerLocked(h)
 	}
 
 	return errors
@@ -98,10 +130,17 @@ func DeleteHandlers(ids []int64) {
 	for _, id := range ids {
 		h := idHandlerMap[id]
 		if h != nil {
-			if h.Root != nil {
-				delete(confIdHandlersMap, h.Root.GetNodeId())
+			// Remove from confIdHandlersMap - only remove this handler, not the entire map
+			// (Java lines 97-99)
+			if h.ConfId != 0 {
+				if handlerMap := confIdHandlersMap[h.ConfId]; handlerMap != nil {
+					delete(handlerMap, h.IceId)
+					if len(handlerMap) == 0 {
+						delete(confIdHandlersMap, h.ConfId)
+					}
+				}
 			}
-			offlineHandler(h)
+			offlineHandlerLocked(h)
 		}
 	}
 }
@@ -124,19 +163,18 @@ func UpdateHandlerRoot(confNode node.Node) {
 	}
 }
 
-func onlineOrUpdateHandler(h *handler.Handler) {
-	handlerMu.Lock()
-	defer handlerMu.Unlock()
-
+// onlineOrUpdateHandlerLocked adds or updates a handler. Must be called with handlerMu held.
+func onlineOrUpdateHandlerLocked(h *handler.Handler) {
 	var originHandler *handler.Handler
 	if h.IceId > 0 {
 		originHandler = idHandlerMap[h.IceId]
 		idHandlerMap[h.IceId] = h
 	}
 
-	// Remove from scenes that are no longer in the new handler
+	// Remove from scenes that are no longer in the new handler (Java lines 110-136)
 	if originHandler != nil && len(originHandler.Scenes) > 0 {
 		if len(h.Scenes) == 0 {
+			// New handler has no scenes, remove from all old scenes
 			for scene := range originHandler.Scenes {
 				handlerMap := sceneHandlersMap[scene]
 				if handlerMap != nil {
@@ -148,6 +186,7 @@ func onlineOrUpdateHandler(h *handler.Handler) {
 			}
 			return
 		}
+		// Remove from scenes that exist in old but not in new
 		for scene := range originHandler.Scenes {
 			if !h.HasScene(scene) {
 				handlerMap := sceneHandlersMap[scene]
@@ -161,7 +200,7 @@ func onlineOrUpdateHandler(h *handler.Handler) {
 		}
 	}
 
-	// Add to new scenes
+	// Add to new scenes (Java lines 137-144)
 	for scene := range h.Scenes {
 		handlerMap := sceneHandlersMap[scene]
 		if handlerMap == nil {
@@ -172,7 +211,8 @@ func onlineOrUpdateHandler(h *handler.Handler) {
 	}
 }
 
-func offlineHandler(h *handler.Handler) {
+// offlineHandlerLocked removes a handler from all maps. Must be called with handlerMu held.
+func offlineHandlerLocked(h *handler.Handler) {
 	if h == nil {
 		return
 	}
@@ -186,4 +226,14 @@ func offlineHandler(h *handler.Handler) {
 			}
 		}
 	}
+}
+
+// ClearAllHandlers clears all handler caches. Used for testing.
+func ClearAllHandlers() {
+	handlerMu.Lock()
+	defer handlerMu.Unlock()
+
+	idHandlerMap = make(map[int64]*handler.Handler)
+	sceneHandlersMap = make(map[string]map[int64]*handler.Handler)
+	confIdHandlersMap = make(map[int64]map[int64]*handler.Handler)
 }

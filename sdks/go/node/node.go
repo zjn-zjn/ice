@@ -23,6 +23,7 @@ type Node interface {
 type BaseAccessor interface {
 	GetBase() *Base
 	SetForward(Node)
+	GetForward() Node
 }
 
 // Base contains common fields for all node types.
@@ -67,6 +68,11 @@ func (b *Base) GetBase() *Base {
 // SetForward sets the forward node.
 func (b *Base) SetForward(forward Node) {
 	b.IceForward = forward
+}
+
+// GetForward returns the forward node.
+func (b *Base) GetForward() Node {
+	return b.IceForward
 }
 
 // ProcessWithBase executes common node logic and delegates to the specific processNode function.

@@ -10,15 +10,16 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
-	"time"
 
 	ice "github.com/waitmoon/ice/sdks/go"
+	"github.com/waitmoon/ice/tests/go/ice-test/config"
 )
 
 var (
-	port        = flag.Int("port", 8084, "HTTP server port")
-	storagePath = flag.String("storage", "../../../ice-data", "Ice data storage path")
-	app         = flag.Int("app", 1, "Application ID")
+	configPath  = flag.String("config", "config.yml", "Config file path")
+	port        = flag.Int("port", 0, "HTTP server port (overrides config)")
+	storagePath = flag.String("storage", "", "Ice data storage path (overrides config)")
+	app         = flag.Int("app", 0, "Application ID (overrides config)")
 )
 
 func main() {
@@ -27,11 +28,37 @@ func main() {
 	// Initialize logging
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
 
+	// Load config
+	cfg, err := config.Load(*configPath)
+	if err != nil {
+		slog.Warn("failed to load config file, using defaults", "path", *configPath, "error", err)
+		cfg = config.DefaultConfig()
+	} else {
+		slog.Info("loaded config", "path", *configPath)
+	}
+
+	// Command line overrides
+	if *port > 0 {
+		cfg.Server.Port = *port
+	}
+	if *storagePath != "" {
+		cfg.Ice.Storage.Path = *storagePath
+	}
+	if *app > 0 {
+		cfg.Ice.App = *app
+	}
+
 	// Register leaf nodes
 	registerLeafNodes()
 
 	// Create and start file client
-	client, err := ice.NewClientWithOptions(*app, *storagePath, -1, 5*time.Second, 10*time.Second)
+	client, err := ice.NewClientWithOptions(
+		cfg.Ice.App,
+		cfg.Ice.Storage.Path,
+		cfg.Ice.Pool.Parallelism,
+		cfg.GetPollInterval(),
+		cfg.GetHeartbeatInterval(),
+	)
 	if err != nil {
 		slog.Error("failed to create file client", "error", err)
 		os.Exit(1)
@@ -50,8 +77,8 @@ func main() {
 	http.HandleFunc("/health", handleHealth)
 
 	// Start HTTP server
-	addr := ":" + strconv.Itoa(*port)
-	slog.Info("starting ice-test server", "port", *port, "storage", *storagePath, "app", *app)
+	addr := ":" + strconv.Itoa(cfg.Server.Port)
+	slog.Info("starting ice-test server", "port", cfg.Server.Port, "storage", cfg.Ice.Storage.Path, "app", cfg.Ice.App)
 
 	server := &http.Server{Addr: addr}
 

@@ -5,6 +5,8 @@ import (
 	stdctx "context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
 	"sync"
 
 	icecontext "github.com/waitmoon/ice/sdks/go/context"
@@ -18,6 +20,9 @@ type LeafMeta struct {
 	Name  string
 	Desc  string
 	Order int
+	// Alias provides alternative names for this leaf class.
+	// Useful for multi-language compatibility (e.g., Java/Go/Python using different class names).
+	Alias []string
 }
 
 // LeafFlow is implemented by flow-type leaf nodes with Context parameter.
@@ -67,9 +72,11 @@ type LeafRoamNone interface {
 
 // leafEntry holds registration info for a leaf type.
 type leafEntry struct {
-	meta     *LeafMeta
-	factory  func() any
-	nodeType enum.NodeType
+	meta       *LeafMeta
+	factory    func() any
+	nodeType   enum.NodeType
+	iceFields  []dto.IceFieldInfo
+	hideFields []dto.IceFieldInfo
 }
 
 // LeafNode is a node that can have its base properties set.
@@ -80,8 +87,9 @@ type LeafNode interface {
 }
 
 var (
-	registry = make(map[string]*leafEntry)
-	mu       sync.RWMutex
+	registry      = make(map[string]*leafEntry)
+	aliasRegistry = make(map[string]string) // alias -> className
+	mu            sync.RWMutex
 )
 
 // Register registers a leaf node factory with the given class name.
@@ -89,21 +97,137 @@ var (
 // - LeafFlow, LeafPackFlow, LeafRoamFlow (for flow type)
 // - LeafResult, LeafPackResult, LeafRoamResult (for result type)
 // - LeafNone, LeafPackNone, LeafRoamNone (for none type)
+//
+// Fields are automatically extracted from the struct using reflection:
+// - Fields with `ice:"name:xxx,desc:xxx"` tag become iceFields (visible in UI)
+// - Other fields with `json` tag become hideFields
+//
+// If meta.Alias is provided, those names will also be registered as aliases
+// pointing to this class name.
 func Register(className string, meta *LeafMeta, factory func() any) {
 	if className == "" || factory == nil {
 		return
 	}
 
-	// Create a sample to detect the type
+	// Create a sample to detect the type and extract fields
 	sample := factory()
 	nodeType := detectNodeType(sample)
+	iceFields, hideFields := extractFields(sample)
 
 	mu.Lock()
 	defer mu.Unlock()
 	registry[className] = &leafEntry{
-		meta:     meta,
-		factory:  factory,
-		nodeType: nodeType,
+		meta:       meta,
+		factory:    factory,
+		nodeType:   nodeType,
+		iceFields:  iceFields,
+		hideFields: hideFields,
+	}
+
+	// Register aliases
+	if meta != nil {
+		for _, alias := range meta.Alias {
+			if alias != "" && alias != className {
+				aliasRegistry[alias] = className
+			}
+		}
+	}
+}
+
+// ResolveClassName resolves a config name to the actual class name.
+// If confName is an alias, returns the real class name.
+// Otherwise returns confName unchanged.
+func ResolveClassName(confName string) string {
+	mu.RLock()
+	defer mu.RUnlock()
+	if realName, ok := aliasRegistry[confName]; ok {
+		return realName
+	}
+	return confName
+}
+
+// extractFields extracts field information from a struct using reflection.
+// Fields with `ice` tag become iceFields, others become hideFields.
+func extractFields(sample any) (iceFields, hideFields []dto.IceFieldInfo) {
+	v := reflect.ValueOf(sample)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil, nil
+	}
+
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+
+		// Skip unexported fields
+		if !field.IsExported() {
+			continue
+		}
+
+		// Get json field name
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == "" || jsonTag == "-" {
+			continue
+		}
+		jsonName := strings.Split(jsonTag, ",")[0]
+
+		// Get ice tag for iceFields
+		iceTag := field.Tag.Get("ice")
+		if iceTag == "-" {
+			continue // ice:"-" means completely ignore this field
+		}
+		if iceTag != "" {
+			// Parse ice tag: ice:"name:xxx,desc:xxx"
+			fieldInfo := dto.IceFieldInfo{
+				Field: jsonName,
+				Type:  getTypeName(field.Type),
+			}
+			for _, part := range strings.Split(iceTag, ",") {
+				kv := strings.SplitN(part, ":", 2)
+				if len(kv) == 2 {
+					switch kv[0] {
+					case "name":
+						fieldInfo.Name = kv[1]
+					case "desc":
+						fieldInfo.Desc = kv[1]
+					}
+				}
+			}
+			iceFields = append(iceFields, fieldInfo)
+		} else {
+			// hideField
+			hideFields = append(hideFields, dto.IceFieldInfo{
+				Field: jsonName,
+				Type:  getTypeName(field.Type),
+			})
+		}
+	}
+	return
+}
+
+// getTypeName returns a language-agnostic type name.
+func getTypeName(t reflect.Type) string {
+	switch t.Kind() {
+	case reflect.String:
+		return "string"
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
+		return "int"
+	case reflect.Int64:
+		return "long"
+	case reflect.Float32:
+		return "float"
+	case reflect.Float64:
+		return "double"
+	case reflect.Bool:
+		return "boolean"
+	case reflect.Slice, reflect.Array:
+		return "list"
+	case reflect.Map:
+		return "map"
+	default:
+		return "object"
 	}
 }
 
@@ -143,13 +267,19 @@ func detectNodeType(leaf any) enum.NodeType {
 }
 
 // CreateNode creates a leaf node from configuration.
+// confName can be a class name or an alias.
 func CreateNode(confName, confField string) (node.Node, error) {
 	mu.RLock()
-	entry, ok := registry[confName]
+	// First, try to resolve alias
+	className := confName
+	if realName, ok := aliasRegistry[confName]; ok {
+		className = realName
+	}
+	entry, ok := registry[className]
 	mu.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("leaf class not found: %s", confName)
+		return nil, fmt.Errorf("leaf class not found: %s (resolved: %s)", confName, className)
 	}
 
 	// Create instance
@@ -279,9 +409,11 @@ func GetLeafNodes() []dto.LeafNodeInfo {
 	result := make([]dto.LeafNodeInfo, 0, len(registry))
 	for className, entry := range registry {
 		info := dto.LeafNodeInfo{
-			Type:  byte(entry.nodeType),
-			Clazz: className,
-			Order: 100,
+			Type:       byte(entry.nodeType),
+			Clazz:      className,
+			Order:      100,
+			IceFields:  entry.iceFields,
+			HideFields: entry.hideFields,
 		}
 		if entry.meta != nil {
 			info.Name = entry.meta.Name
@@ -295,10 +427,29 @@ func GetLeafNodes() []dto.LeafNodeInfo {
 	return result
 }
 
-// IsRegistered checks if a leaf class is registered.
+// IsRegistered checks if a leaf class is registered (including aliases).
 func IsRegistered(className string) bool {
 	mu.RLock()
 	defer mu.RUnlock()
-	_, ok := registry[className]
-	return ok
+	// Check if it's directly registered
+	if _, ok := registry[className]; ok {
+		return true
+	}
+	// Check if it's an alias
+	if realName, ok := aliasRegistry[className]; ok {
+		_, exists := registry[realName]
+		return exists
+	}
+	return false
+}
+
+// GetAliasRegistry returns a copy of the alias registry (for debugging).
+func GetAliasRegistry() map[string]string {
+	mu.RLock()
+	defer mu.RUnlock()
+	result := make(map[string]string, len(aliasRegistry))
+	for k, v := range aliasRegistry {
+		result[k] = v
+	}
+	return result
 }

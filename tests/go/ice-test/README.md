@@ -9,17 +9,35 @@ cd tests/go/ice-test
 go build -o ice-test .
 ```
 
+## Configuration
+
+Edit `config.yml`:
+
+```yaml
+server:
+  port: 8084
+
+ice:
+  app: 1
+  storage:
+    path: ./ice-data
+  poll-interval: 5
+  heartbeat-interval: 10
+  pool:
+    parallelism: -1
+```
+
 ## Run
 
 ```bash
-# Run from tests/go/ice-test directory (default storage: ../../../ice-data)
+# Run with config.yml (default)
 ./ice-test
 
-# Run with custom settings
-./ice-test -port 8085 -storage /path/to/ice-data -app 1
+# Run with custom config file
+./ice-test -config /path/to/config.yml
 
-# Or run from project root
-cd tests/go/ice-test && ./ice-test -storage ./ice-data
+# Command line args override config file
+./ice-test -port 8085 -app 2
 ```
 
 ## API Endpoints

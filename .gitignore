@@ -1,15 +1,127 @@
-target
-.settings
-.project
-.classpath
-.DS_Store
+# ==================== Java ====================
+target/
 *.class
 *.jar
+*.war
+*.ear
+*.versionsBackup
+
+# IDE - Java
+.settings/
+.project
+.classpath
 *.iml
 .idea/
+
+# ==================== Go ====================
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Go build output
+bin/
+vendor/
+
+# Go workspace
+go.work
+go.work.sum
+
+# Go test binaries (in tests directory)
+tests/go/ice-test/ice-test
+
+# ==================== Python ====================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# ==================== OS / Editor ====================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# ==================== Project Specific ====================
+# Ignore local data directory
+ice-data/
+
+# Ignore custom directories
 ignore/
-*.war
-*.versionsBackup
-*.log*
-.vscode
-ice-data
+
+# Logs
+*.log
+*.log.*

@@ -294,8 +294,14 @@ func (c *FileClient) loadIncrementalUpdates(ctx context.Context, targetVersion i
 		data, err := os.ReadFile(updatePath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				log.Warn(ctx, "incremental update file not found, will do full load", "version", v)
-				needFullLoad = true
+				if v == targetVersion {
+					// Only the last version file is missing - normal case, wait for next poll
+					log.Info(ctx, "latest update file not ready, will retry", "version", v)
+				} else {
+					// Middle version file is missing - abnormal, need full load
+					log.Warn(ctx, "middle update file missing, will do full load", "version", v)
+					needFullLoad = true
+				}
 				break
 			}
 			return err
@@ -361,7 +367,27 @@ func (c *FileClient) registerClient() error {
 		StartTime:     time.Now().UnixMilli(),
 		LoadedVersion: c.loadedVersion.Load(),
 	}
-	return c.writeClientInfo(clientInfo)
+	if err := c.writeClientInfo(clientInfo); err != nil {
+		return err
+	}
+	// 每次注册都覆盖 _latest.json，server 从这里获取最新的叶子节点结构
+	if len(c.leafNodes) > 0 {
+		_ = c.writeLatestInfo(clientInfo)
+	}
+	return nil
+}
+
+func (c *FileClient) writeLatestInfo(clientInfo *dto.ClientInfo) error {
+	latestPath := filepath.Join(c.storagePath, dirClients, strconv.Itoa(c.app), "_latest.json")
+	data, err := json.Marshal(clientInfo)
+	if err != nil {
+		return err
+	}
+	tmpPath := latestPath + suffixTmp
+	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, latestPath)
 }
 
 func (c *FileClient) unregisterClient() {
