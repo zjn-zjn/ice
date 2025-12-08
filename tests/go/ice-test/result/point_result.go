@@ -3,7 +3,7 @@ package result
 import (
 	"context"
 
-	icecontext "github.com/waitmoon/ice/sdks/go/context"
+	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
 )
 
 // PointResult grants points to a user.

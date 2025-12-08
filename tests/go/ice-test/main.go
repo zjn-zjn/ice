@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"syscall"
 
-	ice "github.com/waitmoon/ice/sdks/go"
-	"github.com/waitmoon/ice/tests/go/ice-test/config"
+	ice "github.com/zjn-zjn/ice/sdks/go"
+	"github.com/zjn-zjn/ice/tests/go/ice-test/config"
 )
 
 var (

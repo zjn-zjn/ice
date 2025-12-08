@@ -3,9 +3,9 @@ package relation
 import (
 	stdctx "context"
 
-	icecontext "github.com/waitmoon/ice/sdks/go/context"
-	"github.com/waitmoon/ice/sdks/go/enum"
-	"github.com/waitmoon/ice/sdks/go/node"
+	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
+	"github.com/zjn-zjn/ice/sdks/go/enum"
+	"github.com/zjn-zjn/ice/sdks/go/node"
 )
 
 // Any is a relation node that returns TRUE on the first TRUE.

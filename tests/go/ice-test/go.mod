@@ -1,9 +1,9 @@
-module github.com/waitmoon/ice/tests/go/ice-test
+module github.com/zjn-zjn/ice/tests/go/ice-test
 
 go 1.21
 
 require (
-	github.com/waitmoon/ice/sdks/go v0.0.0
+	github.com/zjn-zjn/ice/sdks/go v0.0.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -12,4 +12,4 @@ require (
 	golang.org/x/sync v0.11.0 // indirect
 )
 
-replace github.com/waitmoon/ice/sdks/go => ../../../sdks/go
+replace github.com/zjn-zjn/ice/sdks/go => ../../../sdks/go

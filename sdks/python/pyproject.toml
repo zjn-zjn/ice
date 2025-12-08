@@ -24,9 +24,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/waitmoon/ice"
+Homepage = "https://github.com/zjn-zjn/ice"
 Documentation = "https://waitmoon.github.io/ice"
-Repository = "https://github.com/waitmoon/ice"
+Repository = "https://github.com/zjn-zjn/ice"
 
 [tool.setuptools.packages.find]
 where = ["src"]

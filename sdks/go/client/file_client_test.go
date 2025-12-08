@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/waitmoon/ice/sdks/go/dto"
-	"github.com/waitmoon/ice/sdks/go/enum"
+	"github.com/zjn-zjn/ice/sdks/go/dto"
+	"github.com/zjn-zjn/ice/sdks/go/enum"
 )
 
 const testApp = 1

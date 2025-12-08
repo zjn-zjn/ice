@@ -1,8 +1,8 @@
 package client
 
 import (
-	"github.com/waitmoon/ice/sdks/go/cache"
-	"github.com/waitmoon/ice/sdks/go/dto"
+	"github.com/zjn-zjn/ice/sdks/go/cache"
+	"github.com/zjn-zjn/ice/sdks/go/dto"
 )
 
 // Update updates the local cache from a TransferDto.

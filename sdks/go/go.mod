@@ -1,4 +1,4 @@
-module github.com/waitmoon/ice/sdks/go
+module github.com/zjn-zjn/ice/sdks/go
 
 go 1.21
 

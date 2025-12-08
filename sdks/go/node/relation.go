@@ -1,7 +1,7 @@
 package node
 
 import (
-	"github.com/waitmoon/ice/sdks/go/internal/linkedlist"
+	"github.com/zjn-zjn/ice/sdks/go/internal/linkedlist"
 )
 
 // Relation is the base type for relation nodes that contain children.

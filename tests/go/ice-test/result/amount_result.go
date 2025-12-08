@@ -4,8 +4,8 @@ package result
 import (
 	"context"
 
-	icecontext "github.com/waitmoon/ice/sdks/go/context"
-	"github.com/waitmoon/ice/tests/go/ice-test/service"
+	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
+	"github.com/zjn-zjn/ice/tests/go/ice-test/service"
 )
 
 var sendService = service.NewSendService()

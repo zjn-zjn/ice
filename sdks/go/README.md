@@ -5,7 +5,7 @@ Ice 规则引擎的 Go 实现，与 Java ice-core 功能一致。
 ## 安装
 
 ```bash
-go get github.com/waitmoon/ice/sdks/go
+go get github.com/zjn-zjn/ice/sdks/go
 ```
 
 ## 快速开始
@@ -16,8 +16,8 @@ go get github.com/waitmoon/ice/sdks/go
 package main
 
 import (
-    "github.com/waitmoon/ice/sdks/go"
-    "github.com/waitmoon/ice/sdks/go/context"
+    "github.com/zjn-zjn/ice/sdks/go"
+    "github.com/zjn-zjn/ice/sdks/go/context"
 )
 
 // ScoreCheck 是一个 Flow 类型的叶子节点
@@ -104,7 +104,7 @@ Go SDK 支持 9 种叶子节点接口，自动检测类型：
 ### 自定义日志
 
 ```go
-import "github.com/waitmoon/ice/sdks/go/log"
+import "github.com/zjn-zjn/ice/sdks/go/log"
 
 // 实现 Logger 接口
 type MyLogger struct{}

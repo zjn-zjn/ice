@@ -4,10 +4,10 @@ package parallel
 import (
 	stdctx "context"
 
-	icecontext "github.com/waitmoon/ice/sdks/go/context"
-	"github.com/waitmoon/ice/sdks/go/enum"
-	"github.com/waitmoon/ice/sdks/go/internal/executor"
-	"github.com/waitmoon/ice/sdks/go/node"
+	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
+	"github.com/zjn-zjn/ice/sdks/go/enum"
+	"github.com/zjn-zjn/ice/sdks/go/internal/executor"
+	"github.com/zjn-zjn/ice/sdks/go/node"
 )
 
 // And is a parallel relation node that returns FALSE on the first FALSE.

@@ -2,10 +2,10 @@
 package main
 
 import (
-	ice "github.com/waitmoon/ice/sdks/go"
-	"github.com/waitmoon/ice/tests/go/ice-test/flow"
-	"github.com/waitmoon/ice/tests/go/ice-test/none"
-	"github.com/waitmoon/ice/tests/go/ice-test/result"
+	ice "github.com/zjn-zjn/ice/sdks/go"
+	"github.com/zjn-zjn/ice/tests/go/ice-test/flow"
+	"github.com/zjn-zjn/ice/tests/go/ice-test/none"
+	"github.com/zjn-zjn/ice/tests/go/ice-test/result"
 )
 
 func registerLeafNodes() {
