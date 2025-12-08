@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="140" alt="Ice" src="https://waitmoon.com/images/logo.svg">
+  <img width="140" alt="Ice" src="https://waitmoon.com/images/hero.svg">
 </p>
 
 <h1 align="center">Ice</h1>
@@ -153,9 +153,9 @@ ice.sync_process(pack)
 ```
 ┌──────────────────────────────────────────────────────────┐
 │                  Shared Storage (ice-data/)              │
-│    ┌────────┐   ┌────────┐   ┌────────┐   ┌──────────┐  │
-│    │ apps/  │   │ bases/ │   │ confs/ │   │ versions/│  │
-│    └────────┘   └────────┘   └────────┘   └──────────┘  │
+│    ┌────────┐   ┌────────┐   ┌────────┐   ┌──────────┐   │
+│    │ apps/  │   │ bases/ │   │ confs/ │   │ versions/│   │
+│    └────────┘   └────────┘   └────────┘   └──────────┘   │
 └──────────────────────────────────────────────────────────┘
          ▲                                    ▲
          │ Write                              │ Read (Poll)
