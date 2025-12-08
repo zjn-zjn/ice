@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="140" alt="Ice" src="https://user-images.githubusercontent.com/33447125/151098049-72aaf8d1-b759-4d84-bf6b-1a2260033582.png">
+  <img width="140" alt="Ice" src="https://waitmoon.com/images/logo.svg">
 </p>
 
 <h1 align="center">Ice</h1>
