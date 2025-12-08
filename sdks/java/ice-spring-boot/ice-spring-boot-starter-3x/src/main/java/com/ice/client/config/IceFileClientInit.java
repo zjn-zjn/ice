@@ -8,7 +8,7 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
 /**
- * 初始化基于文件系统的Ice客户端
+ * Initialize file system based Ice client.
  *
  * @author waitmoon
  */

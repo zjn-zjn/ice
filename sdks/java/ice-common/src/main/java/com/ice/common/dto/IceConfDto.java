@@ -37,17 +37,17 @@ public final class IceConfDto {
     private Integer app;
 
     /**
-     * 状态: 1-online, 0-offline, -1-deleted
+     * Status: 1-online, 0-offline, -1-deleted
      */
     private Byte status;
 
     /**
-     * 创建时间戳(毫秒)
+     * Creation timestamp in milliseconds.
      */
     private Long createAt;
 
     /**
-     * 更新时间戳(毫秒)
+     * Update timestamp in milliseconds.
      */
     private Long updateAt;
 

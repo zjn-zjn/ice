@@ -3,7 +3,7 @@ package com.ice.common.dto;
 import lombok.Data;
 
 /**
- * 应用信息DTO
+ * Application info DTO.
  *
  * @author waitmoon
  */
@@ -11,32 +11,32 @@ import lombok.Data;
 public final class IceAppDto {
 
     /**
-     * 应用ID
+     * Application ID.
      */
     private Integer id;
 
     /**
-     * 应用名称
+     * Application name.
      */
     private String name;
 
     /**
-     * 应用描述
+     * Application description.
      */
     private String info;
 
     /**
-     * 状态: 1-online, 0-offline, -1-deleted
+     * Status: 1-online, 0-offline, -1-deleted
      */
     private Byte status;
 
     /**
-     * 创建时间戳(毫秒)
+     * Creation timestamp in milliseconds.
      */
     private Long createAt;
 
     /**
-     * 更新时间戳(毫秒)
+     * Update timestamp in milliseconds.
      */
     private Long updateAt;
 }

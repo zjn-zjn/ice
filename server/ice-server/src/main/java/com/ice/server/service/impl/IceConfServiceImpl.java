@@ -548,7 +548,7 @@ public class IceConfServiceImpl implements IceConfService {
             dto.setConfId(conf.getId());
             // 设置默认值
             if (dto.getStatus() == null) {
-                dto.setStatus(IceStorageConstants.STATUS_ONLINE);
+            dto.setStatus(IceStorageConstants.STATUS_ONLINE);
             }
             if (dto.getTimeType() == null) {
                 dto.setTimeType((byte) 1);

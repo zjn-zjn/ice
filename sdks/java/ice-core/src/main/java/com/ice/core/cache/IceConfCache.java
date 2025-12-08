@@ -240,7 +240,7 @@ public final class IceConfCache {
 
     private static BaseNode convert(IceConfDto confDto) throws ClassNotFoundException, JsonProcessingException {
         BaseNode node;
-        // 解析别名映射，支持多语言兼容
+        // Resolve alias mapping for multi-language compatibility
         String confName = IceLeafScanner.resolveClassName(confDto.getConfName());
         switch (NodeTypeEnum.getEnum(confDto.getType())) {
             case LEAF_FLOW:

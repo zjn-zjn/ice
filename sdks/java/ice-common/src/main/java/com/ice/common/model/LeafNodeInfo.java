@@ -14,7 +14,7 @@ public final class LeafNodeInfo {
     private String name;
     private String desc;
     /**
-     * 排序顺序，用于前端展示时排序，值越小越靠前
+     * Display order for UI sorting, lower value appears first.
      */
     private Integer order;
     private List<IceFieldInfo> iceFields;

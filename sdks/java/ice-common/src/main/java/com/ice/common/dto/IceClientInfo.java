@@ -6,8 +6,8 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * 客户端信息DTO
- * 用于客户端向文件系统上报自身信息
+ * Client info DTO.
+ * Used for client to report its information to file system.
  *
  * @author waitmoon
  */
@@ -15,32 +15,32 @@ import java.util.List;
 public final class IceClientInfo {
 
     /**
-     * 客户端地址 (host:port:pid)
+     * Client address (host/app/uniqueId).
      */
     private String address;
 
     /**
-     * 应用ID
+     * Application ID.
      */
     private Integer app;
 
     /**
-     * 叶子节点类信息
+     * Leaf node class information.
      */
     private List<LeafNodeInfo> leafNodes;
 
     /**
-     * 最后心跳时间戳(毫秒)
+     * Last heartbeat timestamp in milliseconds.
      */
     private Long lastHeartbeat;
 
     /**
-     * 客户端启动时间戳(毫秒)
+     * Client start timestamp in milliseconds.
      */
     private Long startTime;
 
     /**
-     * 当前加载的版本号
+     * Currently loaded version.
      */
     private Long loadedVersion;
 }
