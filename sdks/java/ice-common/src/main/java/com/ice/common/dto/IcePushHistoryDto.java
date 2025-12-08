@@ -3,7 +3,7 @@ package com.ice.common.dto;
 import lombok.Data;
 
 /**
- * 发布历史DTO
+ * Push history DTO.
  *
  * @author waitmoon
  */
@@ -11,37 +11,37 @@ import lombok.Data;
 public final class IcePushHistoryDto {
 
     /**
-     * 发布记录ID
+     * Push record ID.
      */
     private Long id;
 
     /**
-     * 应用ID
+     * Application ID.
      */
     private Integer app;
 
     /**
-     * Ice ID
+     * Ice ID.
      */
     private Long iceId;
 
     /**
-     * 发布原因
+     * Push reason.
      */
     private String reason;
 
     /**
-     * 发布数据JSON
+     * Push data in JSON format.
      */
     private String pushData;
 
     /**
-     * 操作人
+     * Operator.
      */
     private String operator;
 
     /**
-     * 创建时间戳(毫秒)
+     * Creation timestamp in milliseconds.
      */
     private Long createAt;
 }

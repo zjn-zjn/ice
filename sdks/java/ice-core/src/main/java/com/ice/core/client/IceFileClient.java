@@ -39,8 +39,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 基于文件系统的Ice客户端
- * 替代原来的IceNioClient
+ * File system based Ice client.
+ * Replaces the original IceNioClient.
  *
  * @author waitmoon
  */
@@ -62,7 +62,7 @@ public final class IceFileClient {
     private final AtomicBoolean startedLock = new AtomicBoolean(false);
     private ScheduledExecutorService scheduler;
 
-    // 默认配置
+    // Default configuration
     private static final int DEFAULT_PARALLELISM = -1;
 
     public IceFileClient(int app, String storagePath, int parallelism, Set<String> scanPackages,
@@ -106,28 +106,28 @@ public final class IceFileClient {
     }
 
     /**
-     * 启动客户端
-     * 1. 从文件系统加载配置
-     * 2. 注册客户端信息
-     * 3. 启动版本轮询和心跳任务
+     * Start the client.
+     * 1. Load configuration from file system
+     * 2. Register client information
+     * 3. Start version polling and heartbeat tasks
      */
     public void start() throws Exception {
         destroy = false;
         long startTime = System.currentTimeMillis();
 
-        // 确保目录存在
+        // Ensure directories exist
         ensureDirectories();
 
-        // 加载初始配置
+        // Load initial configuration
         loadInitialConfig();
 
-        // 注册客户端信息
+        // Register client information
         registerClient();
 
-        // 启动版本轮询
+        // Start version polling
         startVersionPoller();
 
-        // 启动心跳上报
+        // Start heartbeat reporting
         startHeartbeat();
 
         started = true;
@@ -137,7 +137,7 @@ public final class IceFileClient {
     }
 
     /**
-     * 等待启动完成
+     * Wait for startup to complete.
      */
     public void waitStarted() {
         while (!started && !destroy) {
@@ -151,7 +151,7 @@ public final class IceFileClient {
     }
 
     /**
-     * 销毁客户端
+     * Destroy the client.
      */
     public void destroy() {
         destroy = true;
@@ -169,7 +169,7 @@ public final class IceFileClient {
             }
         }
 
-        // 清理客户端文件
+        // Clean up client file
         unregisterClient();
         log.info("ice file client destroyed app:{} address:{}", app, iceAddress);
     }
@@ -189,7 +189,7 @@ public final class IceFileClient {
     }
 
     /**
-     * 加载初始配置
+     * Load initial configuration.
      */
     private void loadInitialConfig() throws IOException {
         IceTransferDto initData = loadAllConfig();
@@ -204,13 +204,13 @@ public final class IceFileClient {
     }
 
     /**
-     * 加载所有配置
+     * Load all configuration.
      */
     private IceTransferDto loadAllConfig() throws IOException {
         IceTransferDto dto = new IceTransferDto();
         Path appPath = Paths.get(storagePath, String.valueOf(app));
 
-        // 读取版本号
+        // Read version number
         Path versionPath = appPath.resolve(IceStorageConstants.FILE_VERSION);
         if (Files.exists(versionPath)) {
             String versionStr = new String(Files.readAllBytes(versionPath), StandardCharsets.UTF_8).trim();
@@ -219,7 +219,7 @@ public final class IceFileClient {
             dto.setVersion(0);
         }
 
-        // 读取所有base
+        // Read all bases
         Path basesPath = appPath.resolve(IceStorageConstants.DIR_BASES);
         List<IceBaseDto> bases = new ArrayList<>();
         if (Files.exists(basesPath)) {
@@ -240,7 +240,7 @@ public final class IceFileClient {
         }
         dto.setInsertOrUpdateBases(bases);
 
-        // 读取所有conf
+        // Read all confs
         Path confsPath = appPath.resolve(IceStorageConstants.DIR_CONFS);
         List<IceConfDto> confs = new ArrayList<>();
         if (Files.exists(confsPath)) {
@@ -265,7 +265,7 @@ public final class IceFileClient {
     }
 
     /**
-     * 注册客户端信息
+     * Register client information.
      */
     private void registerClient() throws IOException {
         IceClientInfo clientInfo = new IceClientInfo();
@@ -277,13 +277,13 @@ public final class IceFileClient {
         clientInfo.setLoadedVersion(loadedVersion);
 
         writeClientInfo(clientInfo);
-        // 注册时覆盖 _latest.json，心跳时不更新
+        // Overwrite _latest.json on registration, not updated during heartbeat
         writeLatestInfo(clientInfo);
         log.info("ice client registered: {}", iceAddress);
     }
 
     /**
-     * 注销客户端
+     * Unregister client.
      */
     private void unregisterClient() {
         try {
@@ -298,16 +298,16 @@ public final class IceFileClient {
     }
 
     /**
-     * 写入客户端信息（仅写入自己的 client 文件，不更新 _latest.json）
+     * Write client information (only writes to own client file, does not update _latest.json).
      */
     private void writeClientInfo(IceClientInfo clientInfo) throws IOException {
         Path clientPath = getClientFilePath();
         String json = JacksonUtils.toJsonString(clientInfo);
 
-        // 确保目录存在
+        // Ensure directory exists
         Files.createDirectories(clientPath.getParent());
 
-        // 使用临时文件+rename确保原子性
+        // Use temp file + rename for atomicity
         Path tmpPath = Paths.get(clientPath.toString() + IceStorageConstants.SUFFIX_TMP);
         Files.write(tmpPath, json.getBytes(StandardCharsets.UTF_8),
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
@@ -316,7 +316,7 @@ public final class IceFileClient {
     }
     
     /**
-     * 更新 _latest.json（仅在注册时调用，心跳不更新）
+     * Update _latest.json (only called on registration, not during heartbeat).
      */
     private void writeLatestInfo(IceClientInfo clientInfo) throws IOException {
         if (leafNodes == null || leafNodes.isEmpty()) {
@@ -333,14 +333,14 @@ public final class IceFileClient {
     }
 
     private Path getClientFilePath() {
-        // 将地址中的特殊字符替换，确保可以作为文件名
+        // Replace special characters in address to ensure it can be used as filename
         String safeAddress = iceAddress.replace(":", "_").replace("/", "_");
         return Paths.get(storagePath, IceStorageConstants.DIR_CLIENTS, String.valueOf(app),
                 safeAddress + IceStorageConstants.SUFFIX_JSON);
     }
 
     /**
-     * 启动版本轮询
+     * Start version polling.
      */
     private void startVersionPoller() {
         scheduler.scheduleWithFixedDelay(() -> {
@@ -354,7 +354,7 @@ public final class IceFileClient {
     }
 
     /**
-     * 检查并更新版本
+     * Check and update version.
      */
     private void checkAndUpdateVersion() throws IOException {
         Path versionPath = Paths.get(storagePath, String.valueOf(app), IceStorageConstants.FILE_VERSION);
@@ -372,13 +372,13 @@ public final class IceFileClient {
     }
 
     /**
-     * 加载增量更新
+     * Load incremental updates.
      */
     private void loadIncrementalUpdates(long targetVersion) throws IOException {
         Path versionsPath = Paths.get(storagePath, String.valueOf(app), IceStorageConstants.DIR_VERSIONS);
         boolean needFullLoad = false;
 
-        // 尝试加载增量更新
+        // Try to load incremental updates
         for (long v = loadedVersion + 1; v <= targetVersion; v++) {
             Path updatePath = versionsPath.resolve(v + IceStorageConstants.SUFFIX_UPD);
             if (!Files.exists(updatePath)) {
@@ -410,7 +410,7 @@ public final class IceFileClient {
             }
         }
 
-        // 如果增量加载失败，则全量加载
+        // If incremental load fails, perform full load
         if (needFullLoad) {
             log.info("performing full config reload");
             IceTransferDto fullDto = loadAllConfig();
@@ -424,12 +424,12 @@ public final class IceFileClient {
             }
         }
 
-        // 更新客户端的加载版本信息
+        // Update client's loaded version information
         updateClientVersion();
     }
 
     /**
-     * 更新客户端版本信息
+     * Update client version information.
      */
     private void updateClientVersion() {
         try {
@@ -449,7 +449,7 @@ public final class IceFileClient {
     }
 
     /**
-     * 启动心跳上报
+     * Start heartbeat reporting.
      */
     private void startHeartbeat() {
         scheduler.scheduleWithFixedDelay(() -> {
@@ -463,7 +463,7 @@ public final class IceFileClient {
     }
 
     /**
-     * 更新心跳
+     * Update heartbeat.
      */
     private void updateHeartbeat() {
         try {
@@ -476,7 +476,7 @@ public final class IceFileClient {
                     writeClientInfo(clientInfo);
                 }
             } else {
-                // 文件不存在，重新注册
+                // File does not exist, re-register
                 registerClient();
             }
         } catch (Exception e) {
@@ -485,7 +485,7 @@ public final class IceFileClient {
     }
 
     /**
-     * 扫描叶子节点
+     * Scan leaf nodes.
      */
     private void scanLeafNodes(Set<String> scanPackages) throws IOException {
         long start = System.currentTimeMillis();
@@ -512,7 +512,7 @@ public final class IceFileClient {
                 leafNodeInfo.setDesc(nodeAnnotation.desc());
                 leafNodeInfo.setOrder(nodeAnnotation.order());
             } else {
-                leafNodeInfo.setOrder(100); // 默认值
+                leafNodeInfo.setOrder(100); // Default value
             }
 
             Field[] leafFields = leafClass.getDeclaredFields();

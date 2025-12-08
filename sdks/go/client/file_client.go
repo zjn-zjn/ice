@@ -370,7 +370,7 @@ func (c *FileClient) registerClient() error {
 	if err := c.writeClientInfo(clientInfo); err != nil {
 		return err
 	}
-	// 每次注册都覆盖 _latest.json，server 从这里获取最新的叶子节点结构
+	// Overwrite _latest.json on each registration, server reads leaf node structure from here
 	if len(c.leafNodes) > 0 {
 		_ = c.writeLatestInfo(clientInfo)
 	}

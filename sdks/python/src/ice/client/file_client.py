@@ -328,7 +328,7 @@ class FileClient:
             with open(client_file, "w") as f:
                 json.dump(asdict(client_info), f)
             
-            # 每次注册都覆盖 _latest.json，server 从这里获取最新的叶子节点结构
+            # Overwrite _latest.json on each registration, server reads leaf node structure from here
             if leaf_nodes:
                 latest_file = os.path.join(clients_dir, "_latest.json")
                 tmp_file = latest_file + SUFFIX_TMP

@@ -19,29 +19,29 @@ public class IceClientProperties {
     private Integer app;
 
     /**
-     * 文件系统存储配置
+     * File system storage configuration.
      */
     private IceStorageProperties storage = new IceStorageProperties();
 
     /**
-     * node scan packages
-     * multiple packages split with ','
-     * default main package
+     * Node scan packages.
+     * Multiple packages split with ','.
+     * Default is main package.
      */
     private Set<String> scan;
 
     /**
-     * ice thread pool
+     * Ice thread pool configuration.
      */
     private IceClientThreadPoolProperties pool = new IceClientThreadPoolProperties();
 
     /**
-     * version轮询间隔(秒)
+     * Version polling interval in seconds.
      */
     private int pollInterval = 5;
 
     /**
-     * 心跳更新间隔(秒)
+     * Heartbeat update interval in seconds.
      */
     private int heartbeatInterval = 10;
 
@@ -53,7 +53,7 @@ public class IceClientProperties {
     @Data
     public static class IceStorageProperties {
         /**
-         * 文件系统存储路径
+         * File system storage path.
          */
         private String path;
     }

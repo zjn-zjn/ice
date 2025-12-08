@@ -17,16 +17,16 @@ public @interface IceNode {
     String desc() default "";
 
     /**
-     * 排序顺序，用于前端展示叶子类列表时排序
-     * 值越小越靠前，默认100
+     * Display order for leaf class list in UI.
+     * Lower value appears first, default is 100.
      */
     int order() default 100;
 
     /**
-     * 类名别名，用于多语言兼容。
-     * 当配置文件中的 confName 与此别名匹配时，会映射到当前 Java 类。
-     * 例如: Go SDK 注册的 clazz 为 "score_flow"，Java 类可以设置 alias = "score_flow" 来兼容。
-     * 支持多个别名，如: alias = {"score_flow", "ScoreFlow"}
+     * Class name aliases for multi-language compatibility.
+     * When confName in configuration matches an alias, it maps to this Java class.
+     * Example: If Go SDK registers clazz as "score_flow", Java class can set alias = "score_flow" for compatibility.
+     * Multiple aliases are supported, e.g., alias = {"score_flow", "ScoreFlow"}
      */
     String[] alias() default {};
 }

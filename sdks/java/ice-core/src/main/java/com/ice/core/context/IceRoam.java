@@ -62,7 +62,7 @@ public class IceRoam extends ConcurrentHashMap<String, Object> {
         }
         String[] keys = multiKey.split("\\.");
         if (keys.length == 1) {
-            /*只有一个*/
+            /*only one key*/
             return (T) get(keys[0]);
         }
         Map<String, Object> end = this;

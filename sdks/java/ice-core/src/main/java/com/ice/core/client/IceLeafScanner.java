@@ -27,9 +27,9 @@ import java.util.jar.JarFile;
 public class IceLeafScanner {
 
     /**
-     * 别名到真实类名的映射表。
-     * 用于多语言兼容：当配置中的 confName 是其他语言的类名（如 Go 的 "score_flow"），
-     * 通过此映射表可以找到对应的 Java 类名。
+     * Alias to real class name mapping table.
+     * For multi-language compatibility: when confName in configuration is a class name from another language
+     * (e.g., Go's "score_flow"), this mapping table helps find the corresponding Java class name.
      */
     private static final Map<String, String> classAliasMap = new ConcurrentHashMap<>();
 
@@ -48,8 +48,8 @@ public class IceLeafScanner {
     }
 
     /**
-     * 根据配置中的 confName 获取真实的 Java 类名。
-     * 如果 confName 是别名，返回映射的真实类名；否则返回原值。
+     * Get the real Java class name from confName in configuration.
+     * If confName is an alias, returns the mapped real class name; otherwise returns the original value.
      */
     public static String resolveClassName(String confName) {
         if (confName == null || confName.isEmpty()) {
@@ -59,7 +59,7 @@ public class IceLeafScanner {
     }
 
     /**
-     * 注册类名别名。
+     * Register a class name alias.
      */
     public static void registerAlias(String alias, String className) {
         if (alias != null && !alias.isEmpty() && className != null && !className.isEmpty()) {
@@ -68,7 +68,7 @@ public class IceLeafScanner {
     }
 
     /**
-     * 获取别名映射表（只读）。
+     * Get alias mapping table (read-only).
      */
     public static Map<String, String> getClassAliasMap() {
         return classAliasMap;
@@ -268,7 +268,7 @@ public class IceLeafScanner {
         if (null != clazz) {
             if (!clazz.isAnnotationPresent(IceIgnore.class) && BaseLeaf.class.isAssignableFrom(clazz) && !Modifier.isAbstract(clazz.getModifiers())) {
                 this.classes.add(clazz);
-                // 注册别名映射
+                // Register alias mapping
                 IceNode nodeAnnotation = clazz.getAnnotation(IceNode.class);
                 if (nodeAnnotation != null) {
                     String[] aliases = nodeAnnotation.alias();
