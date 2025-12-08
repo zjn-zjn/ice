@@ -21,4 +21,12 @@ public @interface IceNode {
      * 值越小越靠前，默认100
      */
     int order() default 100;
+
+    /**
+     * 类名别名，用于多语言兼容。
+     * 当配置文件中的 confName 与此别名匹配时，会映射到当前 Java 类。
+     * 例如: Go SDK 注册的 clazz 为 "score_flow"，Java 类可以设置 alias = "score_flow" 来兼容。
+     * 支持多个别名，如: alias = {"score_flow", "ScoreFlow"}
+     */
+    String[] alias() default {};
 }

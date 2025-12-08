@@ -2,6 +2,7 @@ package com.ice.core.client;
 
 
 import com.ice.core.annotation.IceIgnore;
+import com.ice.core.annotation.IceNode;
 import com.ice.core.base.BaseLeaf;
 
 import java.io.ByteArrayOutputStream;
@@ -16,12 +17,21 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 
 public class IceLeafScanner {
+
+    /**
+     * 别名到真实类名的映射表。
+     * 用于多语言兼容：当配置中的 confName 是其他语言的类名（如 Go 的 "score_flow"），
+     * 通过此映射表可以找到对应的 Java 类名。
+     */
+    private static final Map<String, String> classAliasMap = new ConcurrentHashMap<>();
 
     private final String packageName;
     //packageName with dot, empty when packageName empty
@@ -35,6 +45,33 @@ public class IceLeafScanner {
 
     public static Set<Class<?>> scanPackage(String packageName) throws IOException {
         return new IceLeafScanner(packageName).scan();
+    }
+
+    /**
+     * 根据配置中的 confName 获取真实的 Java 类名。
+     * 如果 confName 是别名，返回映射的真实类名；否则返回原值。
+     */
+    public static String resolveClassName(String confName) {
+        if (confName == null || confName.isEmpty()) {
+            return confName;
+        }
+        return classAliasMap.getOrDefault(confName, confName);
+    }
+
+    /**
+     * 注册类名别名。
+     */
+    public static void registerAlias(String alias, String className) {
+        if (alias != null && !alias.isEmpty() && className != null && !className.isEmpty()) {
+            classAliasMap.put(alias, className);
+        }
+    }
+
+    /**
+     * 获取别名映射表（只读）。
+     */
+    public static Map<String, String> getClassAliasMap() {
+        return classAliasMap;
     }
 
     public IceLeafScanner(String packageName) {
@@ -231,6 +268,19 @@ public class IceLeafScanner {
         if (null != clazz) {
             if (!clazz.isAnnotationPresent(IceIgnore.class) && BaseLeaf.class.isAssignableFrom(clazz) && !Modifier.isAbstract(clazz.getModifiers())) {
                 this.classes.add(clazz);
+                // 注册别名映射
+                IceNode nodeAnnotation = clazz.getAnnotation(IceNode.class);
+                if (nodeAnnotation != null) {
+                    String[] aliases = nodeAnnotation.alias();
+                    if (aliases != null && aliases.length > 0) {
+                        String className = clazz.getName();
+                        for (String alias : aliases) {
+                            if (alias != null && !alias.isEmpty()) {
+                                registerAlias(alias, className);
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -1,0 +1,9 @@
+# Ice Python SDK (local development)
+# pip install -e ../../../sdks/python
+
+# Web framework
+flask>=3.0.0
+
+# Config file support
+pyyaml>=6.0
+

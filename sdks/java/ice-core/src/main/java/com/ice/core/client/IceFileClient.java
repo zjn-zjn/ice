@@ -277,6 +277,8 @@ public final class IceFileClient {
         clientInfo.setLoadedVersion(loadedVersion);
 
         writeClientInfo(clientInfo);
+        // 注册时覆盖 _latest.json，心跳时不更新
+        writeLatestInfo(clientInfo);
         log.info("ice client registered: {}", iceAddress);
     }
 
@@ -296,7 +298,7 @@ public final class IceFileClient {
     }
 
     /**
-     * 写入客户端信息
+     * 写入客户端信息（仅写入自己的 client 文件，不更新 _latest.json）
      */
     private void writeClientInfo(IceClientInfo clientInfo) throws IOException {
         Path clientPath = getClientFilePath();
@@ -311,23 +313,23 @@ public final class IceFileClient {
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         Files.move(tmpPath, clientPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
                 java.nio.file.StandardCopyOption.ATOMIC_MOVE);
-
-        // 如果有 leafNodes，更新 _latest.json（只在不存在时写入，避免频繁更新）
-        if (leafNodes != null && !leafNodes.isEmpty()) {
-            Path latestPath = clientPath.getParent().resolve("_latest.json");
-            if (!Files.exists(latestPath)) {
-                Path latestTmpPath = Paths.get(latestPath.toString() + IceStorageConstants.SUFFIX_TMP);
-                Files.write(latestTmpPath, json.getBytes(StandardCharsets.UTF_8),
-                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                try {
-                    Files.move(latestTmpPath, latestPath, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
-                    log.info("ice client created _latest.json for app:{}", app);
-                } catch (java.nio.file.FileAlreadyExistsException e) {
-                    // 并发情况下可能已被其他客户端创建，忽略
-                    Files.deleteIfExists(latestTmpPath);
-                }
-            }
+    }
+    
+    /**
+     * 更新 _latest.json（仅在注册时调用，心跳不更新）
+     */
+    private void writeLatestInfo(IceClientInfo clientInfo) throws IOException {
+        if (leafNodes == null || leafNodes.isEmpty()) {
+            return;
         }
+        Path clientPath = getClientFilePath();
+        Path latestPath = clientPath.getParent().resolve("_latest.json");
+        Path latestTmpPath = Paths.get(latestPath.toString() + IceStorageConstants.SUFFIX_TMP);
+        String json = JacksonUtils.toJsonString(clientInfo);
+        Files.write(latestTmpPath, json.getBytes(StandardCharsets.UTF_8),
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        Files.move(latestTmpPath, latestPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                java.nio.file.StandardCopyOption.ATOMIC_MOVE);
     }
 
     private Path getClientFilePath() {
@@ -379,25 +381,30 @@ public final class IceFileClient {
         // 尝试加载增量更新
         for (long v = loadedVersion + 1; v <= targetVersion; v++) {
             Path updatePath = versionsPath.resolve(v + IceStorageConstants.SUFFIX_UPD);
-            if (Files.exists(updatePath)) {
-                try {
-                    String content = new String(Files.readAllBytes(updatePath), StandardCharsets.UTF_8);
-                    IceTransferDto updateDto = JacksonUtils.readJson(content, IceTransferDto.class);
-                    if (updateDto != null) {
-                        List<String> errors = IceUpdate.update(updateDto);
-                        if (!errors.isEmpty()) {
-                            log.warn("incremental update v{} has errors: {}", v, errors);
-                        }
-                        loadedVersion = v;
-                        log.info("loaded incremental update version: {}", v);
-                    }
-                } catch (Exception e) {
-                    log.error("failed to load incremental update v{}", v, e);
+            if (!Files.exists(updatePath)) {
+                if (v == targetVersion) {
+                    // Only the last version file is missing - normal case, wait for next poll
+                    log.info("latest update file not ready, will retry: v{}", v);
+                } else {
+                    // Middle version file is missing - abnormal, need full load
+                    log.warn("middle update file missing, will do full load: v{}", v);
                     needFullLoad = true;
-                    break;
                 }
-            } else {
-                log.warn("incremental update file not found: v{}, will do full load", v);
+                break;
+            }
+            try {
+                String content = new String(Files.readAllBytes(updatePath), StandardCharsets.UTF_8);
+                IceTransferDto updateDto = JacksonUtils.readJson(content, IceTransferDto.class);
+                if (updateDto != null) {
+                    List<String> errors = IceUpdate.update(updateDto);
+                    if (!errors.isEmpty()) {
+                        log.warn("incremental update v{} has errors: {}", v, errors);
+                    }
+                    loadedVersion = v;
+                    log.info("loaded incremental update version: {}", v);
+                }
+            } catch (Exception e) {
+                log.error("failed to load incremental update v{}", v, e);
                 needFullLoad = true;
                 break;
             }
@@ -524,7 +531,7 @@ public final class IceFileClient {
                     iceFieldInfo.setField(field.getName());
                     iceFieldInfo.setName(fieldAnnotation.name());
                     iceFieldInfo.setDesc(fieldAnnotation.desc());
-                    iceFieldInfo.setType(fieldAnnotation.type().isEmpty() ? field.getType().getTypeName() : fieldAnnotation.type());
+                    iceFieldInfo.setType(fieldAnnotation.type().isEmpty() ? toUniversalTypeName(field.getType()) : fieldAnnotation.type());
                     iceFields.add(iceFieldInfo);
                 } else {
                     if (field.getName().equals("log") ||
@@ -537,7 +544,7 @@ public final class IceFileClient {
                     }
                     LeafNodeInfo.IceFieldInfo hideFieldInfo = new LeafNodeInfo.IceFieldInfo();
                     hideFieldInfo.setField(field.getName());
-                    hideFieldInfo.setType(field.getType().getTypeName());
+                    hideFieldInfo.setType(toUniversalTypeName(field.getType()));
                     hideFields.add(hideFieldInfo);
                 }
             }
@@ -582,6 +589,38 @@ public final class IceFileClient {
 
     public long getLoadedVersion() {
         return loadedVersion;
+    }
+
+    /**
+     * Convert Java type to language-agnostic universal type name.
+     * This ensures consistent type names across Java, Go, and Python SDKs.
+     */
+    private static String toUniversalTypeName(Class<?> type) {
+        if (type == String.class || type == Character.class || type == char.class) {
+            return "string";
+        }
+        if (type == int.class || type == Integer.class || type == short.class || type == Short.class || type == byte.class || type == Byte.class) {
+            return "int";
+        }
+        if (type == long.class || type == Long.class) {
+            return "long";
+        }
+        if (type == double.class || type == Double.class) {
+            return "double";
+        }
+        if (type == float.class || type == Float.class) {
+            return "float";
+        }
+        if (type == boolean.class || type == Boolean.class) {
+            return "boolean";
+        }
+        if (type.isArray() || java.util.Collection.class.isAssignableFrom(type)) {
+            return "list";
+        }
+        if (java.util.Map.class.isAssignableFrom(type)) {
+            return "map";
+        }
+        return "object";
     }
 }
 
