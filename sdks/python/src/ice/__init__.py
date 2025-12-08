@@ -23,7 +23,11 @@ from ice.dispatcher import (
     get_handlers_by_scene,
 )
 
-__version__ = "1.0.0"
+try:
+    from importlib.metadata import version
+    __version__ = version("ice-python")
+except Exception:
+    __version__ = "0.0.0"  # fallback for development
 
 __all__ = [
     # Context

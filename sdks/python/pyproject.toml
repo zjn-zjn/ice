@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "setuptools_scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "ice-python"
-version = "1.0.0"
+dynamic = ["version"]
 description = "Ice Rule Engine Python SDK"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -31,3 +31,5 @@ Repository = "https://github.com/waitmoon/ice"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools_scm]
+root = "../../.."
