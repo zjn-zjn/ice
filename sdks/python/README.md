@@ -5,7 +5,7 @@ Ice 规则引擎的 Python 实现，与 Java ice-core 和 Go SDK 功能一致。
 ## 安装
 
 ```bash
-pip install ice-python
+pip install ice-rules
 ```
 
 ## 快速开始
