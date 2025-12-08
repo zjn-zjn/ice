@@ -25,8 +25,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install build twine setuptools_scm
 
+      - name: Extract version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            # 从 release tag 提取版本号（去掉 v 前缀）
+            VERSION="${{ github.event.release.tag_name }}"
+            echo "VERSION=${VERSION#v}" >> $GITHUB_OUTPUT
+          else
+            # 手动触发时使用 git describe
+            VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+            echo "VERSION=${VERSION#v}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build package
         working-directory: sdks/python
+        env:
+          # 使用环境变量设置版本，避免 setuptools_scm 在子目录检测问题
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ steps.version.outputs.VERSION }}
         run: python -m build
 
       - name: Publish to PyPI
@@ -35,4 +51,3 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: twine upload dist/*
-
