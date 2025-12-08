@@ -24,7 +24,7 @@ jobs:
           cache: maven
 
       - name: Build SDK
-        run: cd sdks/java && mvn clean install -DskipTests -q
+        run: cd sdks/java && mvn clean install -DskipTests -Dgpg.skip=true -q
 
       - name: Build Server
         run: cd server/ice-server && mvn clean package -DskipTests -q
