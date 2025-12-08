@@ -1,0 +1,11 @@
+server:
+  port: 8085
+
+ice:
+  app: 1
+  storage:
+    path: ../../../ice-data
+  poll-interval: 5
+  heartbeat-interval: 10
+  pool:
+    parallelism: -1
