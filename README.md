@@ -36,6 +36,26 @@
 - **Hot Reload** — Configuration changes take effect in seconds
 - **High Performance** — Pure in-memory execution with millisecond latency
 
+## Why Ice?
+
+| | Ice | Traditional Rule Engines |
+|---|---|---|
+| **Learning Curve** | 5 minutes to get started | Need to learn DSL syntax |
+| **Deployment** | Docker one-click deploy | Requires database/middleware |
+| **Configuration** | Visual web UI | Text/code-based |
+| **Performance** | In-memory, millisecond latency | Compilation overhead |
+| **Hot Reload** | Seconds, no restart | Often requires restart |
+
+## Use Cases
+
+| Scenario | Description |
+|----------|-------------|
+| **Marketing Campaigns** | Coupons, discounts, promotions, flash sales |
+| **Risk Control** | Credit assessment, anti-fraud, real-time decisions |
+| **Dynamic Pricing** | Price strategies, discount rules, tiered pricing |
+| **Access Control** | Permission management, feature flags, A/B testing |
+| **Process Orchestration** | Approval workflows, order processing, state machines |
+
 ## Installation
 
 ### Server
@@ -175,6 +195,11 @@ ice.sync_process(pack)
 - [Architecture Design](https://waitmoon.com/en/advanced/architecture.html)
 - [Configuration Guide](https://waitmoon.com/en/guide/detail.html)
 - [FAQ](https://waitmoon.com/en/guide/qa.html)
+
+## Community
+
+- [GitHub Issues](https://github.com/zjn-zjn/ice/issues) — Bug reports and feature requests
+- [GitHub Discussions](https://github.com/zjn-zjn/ice/discussions) — Questions and discussions
 
 ## License
 
