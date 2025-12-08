@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://www.apache.org/licenses/LICENSE-2.0.html"><img src="https://img.shields.io/badge/license-Apache%202-blue.svg" alt="License"></a>
   <a href="https://central.sonatype.com/artifact/com.waitmoon.ice/ice"><img src="https://img.shields.io/maven-central/v/com.waitmoon.ice/ice.svg" alt="Maven Central"></a>
-  <a href="https://pkg.go.dev/github.com/zjn-zjn/ice/sdks/go"><img src="https://img.shields.io/badge/go-reference-blue.svg" alt="Go Reference"></a>
+  <a href="https://pkg.go.dev/github.com/zjn-zjn/ice/sdks/go"><img src="https://pkg.go.dev/badge/github.com/zjn-zjn/ice/sdks/go.svg" alt="Go Reference"></a>
   <a href="https://pypi.org/project/ice-rules/"><img src="https://img.shields.io/pypi/v/ice-rules.svg" alt="PyPI"></a>
   <a href="https://hub.docker.com/r/waitmoon/ice-server"><img src="https://img.shields.io/docker/pulls/waitmoon/ice-server" alt="Docker Pulls"></a>
 </p>
