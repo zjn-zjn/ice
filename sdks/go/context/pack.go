@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/waitmoon/ice/sdks/go/enum"
-	"github.com/waitmoon/ice/sdks/go/internal/uuid"
+	"github.com/zjn-zjn/ice/sdks/go/enum"
+	"github.com/zjn-zjn/ice/sdks/go/internal/uuid"
 )
 
 // Pack represents the input for ice processing.

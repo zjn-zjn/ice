@@ -3,7 +3,7 @@ package context
 import (
 	"testing"
 
-	"github.com/waitmoon/ice/sdks/go/enum"
+	"github.com/zjn-zjn/ice/sdks/go/enum"
 )
 
 func TestPack_NewPack(t *testing.T) {

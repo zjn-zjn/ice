@@ -5,7 +5,7 @@
 <h1 align="center">Ice</h1>
 
 <p align="center">
-  A lightweight visual rule engine for flexible business orchestration
+  轻量级可视化规则引擎，致力于解决灵活繁复的硬编码问题
 </p>
 
 <p align="center">
@@ -17,46 +17,46 @@
 </p>
 
 <p align="center">
-  <a href="https://waitmoon.com/en/">Documentation</a> · 
-  <a href="https://eg.waitmoon.com">Live Demo</a> · 
-  <a href="https://waitmoon.com/en/guide/getting-started.html">Getting Started</a>
+  <a href="https://waitmoon.com/">文档</a> · 
+  <a href="https://eg.waitmoon.com">在线体验</a> · 
+  <a href="https://waitmoon.com/guide/getting-started.html">快速开始</a>
 </p>
 
 <p align="center">
-  <a href="./README_zh.md">中文</a>
+  <a href="./README.md">English</a>
 </p>
 
 ---
 
-## Features
+## 特性
 
-- **Visual Configuration** — Web-based tree editor for rule orchestration
-- **Zero Dependencies** — No database or middleware required, file-based storage
-- **Multi-Language SDKs** — Java, Go, and Python with full feature parity
-- **Hot Reload** — Configuration changes take effect in seconds
-- **High Performance** — Pure in-memory execution with millisecond latency
+- **可视化配置** — Web 树形编辑器进行规则编排
+- **零依赖** — 无需数据库或中间件，基于文件存储
+- **多语言 SDK** — Java、Go、Python 功能完全对等
+- **热更新** — 配置变更秒级生效
+- **高性能** — 纯内存执行，毫秒级响应
 
-## Why Ice?
+## 为什么选择 Ice？
 
-| | Ice | Traditional Rule Engines |
+| | Ice | 传统规则引擎 |
 |---|---|---|
-| **Learning Curve** | 5 minutes to get started | Need to learn DSL syntax |
-| **Deployment** | Docker one-click deploy | Requires database/middleware |
-| **Configuration** | Visual web UI | Text/code-based |
-| **Performance** | In-memory, millisecond latency | Compilation overhead |
-| **Hot Reload** | Seconds, no restart | Often requires restart |
+| **学习成本** | 5 分钟上手 | 需要学习 DSL 语法 |
+| **部署方式** | Docker 一键部署 | 需要数据库/中间件 |
+| **配置方式** | 可视化 Web 界面 | 文本/代码配置 |
+| **执行性能** | 纯内存，毫秒级 | 存在编译开销 |
+| **热更新** | 秒级生效，无需重启 | 通常需要重启 |
 
-## Use Cases
+## 使用场景
 
-| Scenario | Description |
-|----------|-------------|
-| **Marketing Campaigns** | Coupons, discounts, promotions, flash sales |
-| **Risk Control** | Credit assessment, anti-fraud, real-time decisions |
-| **Dynamic Pricing** | Price strategies, discount rules, tiered pricing |
-| **Access Control** | Permission management, feature flags, A/B testing |
-| **Process Orchestration** | Approval workflows, order processing, state machines |
+| 场景 | 说明 |
+|------|------|
+| **营销活动** | 优惠券、折扣、促销、秒杀规则 |
+| **风控系统** | 信用评估、反欺诈、实时决策 |
+| **动态定价** | 价格策略、折扣规则、阶梯定价 |
+| **权限控制** | 权限管理、功能开关、A/B 测试 |
+| **流程编排** | 审批流程、订单处理、状态机 |
 
-## Installation
+## 安装
 
 ### Server
 
@@ -65,10 +65,10 @@ docker run -d --name ice-server -p 8121:8121 \
   -v ./ice-data:/app/ice-data waitmoon/ice-server:latest
 ```
 
-### Client SDKs
+### Client SDK
 
 <details open>
-<summary><b>Java</b> · <a href="https://waitmoon.com/en/guide/getting-started.html">Documentation</a></summary>
+<summary><b>Java</b> · <a href="https://waitmoon.com/guide/getting-started.html">文档</a></summary>
 
 **Spring Boot 3.x**
 
@@ -90,7 +90,7 @@ docker run -d --name ice-server -p 8121:8121 \
 </dependency>
 ```
 
-**Non-Spring**
+**非 Spring 项目**
 
 ```xml
 <dependency>
@@ -100,7 +100,7 @@ docker run -d --name ice-server -p 8121:8121 \
 </dependency>
 ```
 
-Configuration:
+配置：
 
 ```yaml
 ice:
@@ -110,7 +110,7 @@ ice:
   scan: com.your.package
 ```
 
-Usage:
+使用：
 
 ```java
 IcePack pack = new IcePack();
@@ -122,13 +122,13 @@ Ice.syncProcess(pack);
 </details>
 
 <details>
-<summary><b>Go</b> · <a href="https://waitmoon.com/en/guide/go-sdk.html">Documentation</a></summary>
+<summary><b>Go</b> · <a href="https://waitmoon.com/guide/go-sdk.html">文档</a></summary>
 
 ```bash
 go get github.com/zjn-zjn/ice/sdks/go
 ```
 
-Usage:
+使用：
 
 ```go
 import ice "github.com/zjn-zjn/ice/sdks/go"
@@ -147,13 +147,13 @@ func main() {
 </details>
 
 <details>
-<summary><b>Python</b> · <a href="https://waitmoon.com/en/guide/python-sdk.html">Documentation</a></summary>
+<summary><b>Python</b> · <a href="https://waitmoon.com/guide/python-sdk.html">文档</a></summary>
 
 ```bash
 pip install ice-rules
 ```
 
-Usage:
+使用：
 
 ```python
 import ice
@@ -168,39 +168,41 @@ ice.sync_process(pack)
 
 </details>
 
-## Architecture
+## 架构
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│                  Shared Storage (ice-data/)              │
+│                    共享存储 (ice-data/)                   │
 │    ┌────────┐   ┌────────┐   ┌────────┐   ┌──────────┐   │
 │    │ apps/  │   │ bases/ │   │ confs/ │   │ versions/│   │
 │    └────────┘   └────────┘   └────────┘   └──────────┘   │
 └──────────────────────────────────────────────────────────┘
          ▲                                    ▲
-         │ Write                              │ Read (Poll)
+         │ 写入                                │ 读取 (轮询)
          │                                    │
 ┌────────┴────────┐                ┌──────────┴──────────┐
 │   Ice Server    │                │     Ice Client      │
 │                 │                │                     │
-│  • Web UI       │                │  • Version polling  │
-│  • Rule editor  │                │  • Hot reload       │
-│  • Publishing   │                │  • In-memory exec   │
+│  • Web 界面      │                │  • 版本轮询          │
+│  • 规则编辑      │                │  • 热更新            │
+│  • 配置发布      │                │  • 内存执行           │
 └─────────────────┘                └─────────────────────┘
 ```
 
-## Documentation
+## 文档
 
-- [Getting Started](https://waitmoon.com/en/guide/getting-started.html)
-- [Architecture Design](https://waitmoon.com/en/advanced/architecture.html)
-- [Configuration Guide](https://waitmoon.com/en/guide/detail.html)
-- [FAQ](https://waitmoon.com/en/guide/qa.html)
+- [快速开始](https://waitmoon.com/guide/getting-started.html)
+- [架构设计](https://waitmoon.com/advanced/architecture.html)
+- [配置说明](https://waitmoon.com/guide/detail.html)
+- [常见问题](https://waitmoon.com/guide/qa.html)
+- [视频教程](https://www.bilibili.com/video/BV1Q34y1R7KF)
 
-## Community
+## 社区
 
-- [GitHub Issues](https://github.com/zjn-zjn/ice/issues) — Bug reports and feature requests
-- [GitHub Discussions](https://github.com/zjn-zjn/ice/discussions) — Questions and discussions
+- [GitHub Issues](https://github.com/zjn-zjn/ice/issues) — Bug 反馈和功能建议
+- [GitHub Discussions](https://github.com/zjn-zjn/ice/discussions) — 问题讨论
+- [交流群](https://waitmoon.com/community/community.html) — 微信交流群
 
-## License
+## 许可证
 
 [Apache License 2.0](LICENSE)

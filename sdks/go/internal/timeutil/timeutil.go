@@ -1,7 +1,7 @@
 // Package timeutil provides time-related utilities.
 package timeutil
 
-import "github.com/waitmoon/ice/sdks/go/enum"
+import "github.com/zjn-zjn/ice/sdks/go/enum"
 
 // TimeDisabled checks if the node should be disabled based on time constraints.
 func TimeDisabled(timeType enum.TimeType, requestTime, start, end int64) bool {

@@ -4,11 +4,11 @@ import (
 	stdctx "context"
 	"testing"
 
-	icecontext "github.com/waitmoon/ice/sdks/go/context"
-	"github.com/waitmoon/ice/sdks/go/enum"
-	"github.com/waitmoon/ice/sdks/go/leaf"
-	"github.com/waitmoon/ice/sdks/go/node"
-	"github.com/waitmoon/ice/sdks/go/relation"
+	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
+	"github.com/zjn-zjn/ice/sdks/go/enum"
+	"github.com/zjn-zjn/ice/sdks/go/leaf"
+	"github.com/zjn-zjn/ice/sdks/go/node"
+	"github.com/zjn-zjn/ice/sdks/go/relation"
 )
 
 // ScoreCheck is a sample leaf node for testing.

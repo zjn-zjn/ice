@@ -4,9 +4,9 @@ package node
 import (
 	stdctx "context"
 
-	icecontext "github.com/waitmoon/ice/sdks/go/context"
-	"github.com/waitmoon/ice/sdks/go/enum"
-	"github.com/waitmoon/ice/sdks/go/internal/timeutil"
+	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
+	"github.com/zjn-zjn/ice/sdks/go/enum"
+	"github.com/zjn-zjn/ice/sdks/go/internal/timeutil"
 )
 
 // Node is the interface that all ice nodes must implement.
