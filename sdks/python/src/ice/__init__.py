@@ -25,7 +25,7 @@ from ice.dispatcher import (
 
 try:
     from importlib.metadata import version
-    __version__ = version("ice-python")
+    __version__ = version("ice-rules")
 except Exception:
     __version__ = "0.0.0"  # fallback for development
 
