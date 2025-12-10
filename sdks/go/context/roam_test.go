@@ -233,3 +233,168 @@ func TestRoam_NewRoamFrom(t *testing.T) {
 		t.Error("roam should not be affected by original modification")
 	}
 }
+
+// Test types for GetTo and fluent API
+type testUser struct {
+	Name string
+	Age  int
+}
+
+func TestRoam_GetTo(t *testing.T) {
+	roam := NewRoam()
+
+	user := &testUser{Name: "Alice", Age: 25}
+	roam.Put("user", user)
+	roam.Put("name", "Bob")
+	roam.Put("count", 100)
+
+	// Test GetTo with pointer type
+	var gotUser *testUser
+	if !roam.GetTo("user", &gotUser) {
+		t.Error("GetTo should return true")
+	}
+	if gotUser.Name != "Alice" || gotUser.Age != 25 {
+		t.Errorf("expected Alice/25, got %s/%d", gotUser.Name, gotUser.Age)
+	}
+
+	// Test GetTo with basic types
+	var name string
+	if !roam.GetTo("name", &name) {
+		t.Error("GetTo should return true for string")
+	}
+	if name != "Bob" {
+		t.Errorf("expected Bob, got %s", name)
+	}
+
+	var count int
+	if !roam.GetTo("count", &count) {
+		t.Error("GetTo should return true for int")
+	}
+	if count != 100 {
+		t.Errorf("expected 100, got %d", count)
+	}
+
+	// Test GetTo with non-existent key
+	var missing string
+	if roam.GetTo("notexist", &missing) {
+		t.Error("GetTo should return false for non-existent key")
+	}
+
+	// Test GetTo with nil dest
+	if roam.GetTo("name", nil) {
+		t.Error("GetTo should return false for nil dest")
+	}
+}
+
+func TestRoam_GetMultiTo(t *testing.T) {
+	roam := NewRoam()
+
+	roam.PutMulti("user.profile.name", "Charlie")
+	roam.PutMulti("user.profile.age", 30)
+
+	var name string
+	if !roam.GetMultiTo("user.profile.name", &name) {
+		t.Error("GetMultiTo should return true")
+	}
+	if name != "Charlie" {
+		t.Errorf("expected Charlie, got %s", name)
+	}
+}
+
+func TestRoam_FluentAPI_Value(t *testing.T) {
+	roam := NewRoam()
+
+	roam.Put("name", "David")
+	roam.Put("age", 28)
+	roam.Put("score", 95.5)
+	roam.Put("active", true)
+	roam.Put("count", int64(1000))
+
+	// Test String
+	if roam.Value("name").String() != "David" {
+		t.Error("expected name=David")
+	}
+	if roam.Value("notexist").String() != "" {
+		t.Error("expected empty string for non-existent key")
+	}
+	if roam.Value("notexist").StringOr("default") != "default" {
+		t.Error("expected default value")
+	}
+
+	// Test Int
+	if roam.Value("age").Int() != 28 {
+		t.Error("expected age=28")
+	}
+	if roam.Value("notexist").IntOr(99) != 99 {
+		t.Error("expected default value 99")
+	}
+
+	// Test Int64
+	if roam.Value("count").Int64() != 1000 {
+		t.Error("expected count=1000")
+	}
+
+	// Test Float64
+	if roam.Value("score").Float64() != 95.5 {
+		t.Error("expected score=95.5")
+	}
+	if roam.Value("age").Float64() != 28.0 {
+		t.Error("expected int converted to float64=28.0")
+	}
+
+	// Test Bool
+	if !roam.Value("active").Bool() {
+		t.Error("expected active=true")
+	}
+	if roam.Value("notexist").BoolOr(true) != true {
+		t.Error("expected default value true")
+	}
+
+	// Test Exists
+	if !roam.Value("name").Exists() {
+		t.Error("expected name to exist")
+	}
+	if roam.Value("notexist").Exists() {
+		t.Error("expected notexist to not exist")
+	}
+
+	// Test Raw
+	if roam.Value("name").Raw() != "David" {
+		t.Error("expected Raw() to return David")
+	}
+}
+
+func TestRoam_FluentAPI_To(t *testing.T) {
+	roam := NewRoam()
+
+	user := &testUser{Name: "Eve", Age: 22}
+	roam.Put("user", user)
+
+	var gotUser *testUser
+	if !roam.Value("user").To(&gotUser) {
+		t.Error("To should return true")
+	}
+	if gotUser.Name != "Eve" || gotUser.Age != 22 {
+		t.Errorf("expected Eve/22, got %s/%d", gotUser.Name, gotUser.Age)
+	}
+
+	// Test To with non-existent key
+	var missing *testUser
+	if roam.Value("notexist").To(&missing) {
+		t.Error("To should return false for non-existent key")
+	}
+}
+
+func TestRoam_FluentAPI_ValueMulti(t *testing.T) {
+	roam := NewRoam()
+
+	roam.PutMulti("config.server.port", 8080)
+	roam.PutMulti("config.server.host", "localhost")
+
+	if roam.ValueMulti("config.server.port").Int() != 8080 {
+		t.Error("expected port=8080")
+	}
+	if roam.ValueMulti("config.server.host").String() != "localhost" {
+		t.Error("expected host=localhost")
+	}
+}
