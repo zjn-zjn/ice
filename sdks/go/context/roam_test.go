@@ -398,3 +398,95 @@ func TestRoam_FluentAPI_ValueMulti(t *testing.T) {
 		t.Error("expected host=localhost")
 	}
 }
+
+func TestRoam_GetUnionTo(t *testing.T) {
+	roam := NewRoam()
+
+	user := &testUser{Name: "Frank", Age: 35}
+	roam.Put("user", user)
+	roam.Put("userRef", "@user")
+	roam.Put("score", 88)
+	roam.Put("scoreRef", "@score")
+
+	// Test GetUnionTo with pointer type via reference
+	var gotUser *testUser
+	if !roam.GetUnionTo(roam.Get("userRef"), &gotUser) {
+		t.Error("GetUnionTo should return true")
+	}
+	if gotUser.Name != "Frank" || gotUser.Age != 35 {
+		t.Errorf("expected Frank/35, got %s/%d", gotUser.Name, gotUser.Age)
+	}
+
+	// Test GetUnionTo with basic type via reference
+	var score int
+	if !roam.GetUnionTo(roam.Get("scoreRef"), &score) {
+		t.Error("GetUnionTo should return true for int")
+	}
+	if score != 88 {
+		t.Errorf("expected 88, got %d", score)
+	}
+
+	// Test GetUnionTo with direct value (not a reference)
+	var directScore int
+	if !roam.GetUnionTo(roam.Get("score"), &directScore) {
+		t.Error("GetUnionTo should return true for direct value")
+	}
+	if directScore != 88 {
+		t.Errorf("expected 88, got %d", directScore)
+	}
+
+	// Test GetUnionTo with nil
+	var missing *testUser
+	if roam.GetUnionTo(nil, &missing) {
+		t.Error("GetUnionTo should return false for nil union")
+	}
+}
+
+func TestRoam_FluentAPI_ValueUnion(t *testing.T) {
+	roam := NewRoam()
+
+	roam.Put("name", "Grace")
+	roam.Put("nameRef", "@name")
+	roam.Put("age", 28)
+	roam.Put("ageRef", "@age")
+	roam.PutMulti("nested.value", 999)
+	roam.Put("nestedRef", "@nested.value")
+
+	user := &testUser{Name: "Helen", Age: 40}
+	roam.Put("user", user)
+	roam.Put("userRef", "@user")
+
+	// Test ValueUnion with string reference
+	if roam.ValueUnion(roam.Get("nameRef")).String() != "Grace" {
+		t.Error("expected name=Grace via reference")
+	}
+
+	// Test ValueUnion with int reference
+	if roam.ValueUnion(roam.Get("ageRef")).Int() != 28 {
+		t.Error("expected age=28 via reference")
+	}
+
+	// Test ValueUnion with nested reference
+	if roam.ValueUnion(roam.Get("nestedRef")).Int() != 999 {
+		t.Error("expected nested.value=999 via reference")
+	}
+
+	// Test ValueUnion with To() for struct
+	var gotUser *testUser
+	if !roam.ValueUnion(roam.Get("userRef")).To(&gotUser) {
+		t.Error("ValueUnion To should return true")
+	}
+	if gotUser.Name != "Helen" || gotUser.Age != 40 {
+		t.Errorf("expected Helen/40, got %s/%d", gotUser.Name, gotUser.Age)
+	}
+
+	// Test ValueUnion with direct value (not a reference)
+	if roam.ValueUnion(roam.Get("name")).String() != "Grace" {
+		t.Error("expected direct value name=Grace")
+	}
+
+	// Test ValueUnion with nil
+	if roam.ValueUnion(nil).Exists() {
+		t.Error("ValueUnion(nil) should not exist")
+	}
+}

@@ -220,6 +220,19 @@ func (r *Roam) GetMultiTo(multiKey string, dest any) bool {
 	return assignTo(r.GetMulti(multiKey), dest)
 }
 
+// GetUnionTo retrieves a value with "@key" reference support and assigns it to dest.
+// Returns true if the value was found and successfully assigned.
+//
+// Example:
+//
+//	roam.Put("user", &UserInfo{Name: "Alice"})
+//	roam.Put("ref", "@user")
+//	var user *UserInfo
+//	roam.GetUnionTo(roam.Get("ref"), &user) // resolves @user -> UserInfo
+func (r *Roam) GetUnionTo(union any, dest any) bool {
+	return assignTo(r.GetUnion(union), dest)
+}
+
 // assignTo assigns src to dest using reflection.
 func assignTo(src, dest any) bool {
 	if src == nil {
@@ -258,6 +271,17 @@ func (r *Roam) Value(key string) *RoamValue {
 // ValueMulti returns a RoamValue for fluent API access using dot-separated key.
 func (r *Roam) ValueMulti(multiKey string) *RoamValue {
 	return &RoamValue{value: r.GetMulti(multiKey)}
+}
+
+// ValueUnion returns a RoamValue with "@key" reference support.
+//
+// Example:
+//
+//	roam.Put("score", 100)
+//	roam.Put("ref", "@score")
+//	val := roam.ValueUnion(roam.Get("ref")).Int() // 100
+func (r *Roam) ValueUnion(union any) *RoamValue {
+	return &RoamValue{value: r.GetUnion(union)}
 }
 
 // RoamValue wraps a value for fluent API operations.
