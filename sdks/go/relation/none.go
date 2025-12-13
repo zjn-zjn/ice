@@ -22,7 +22,7 @@ func NewNone() *None {
 
 // Process implements the Node interface.
 func (n *None) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	return node.ProcessWithBase(ctx, &n.Base, iceCtx, n.processNode)
+	return node.ProcessWithBase(ctx, &n.Base, iceCtx, n.processNode, nil)
 }
 
 func (n *None) processNode(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {

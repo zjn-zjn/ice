@@ -3,6 +3,7 @@ package node
 
 import (
 	stdctx "context"
+	"fmt"
 
 	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
 	"github.com/zjn-zjn/ice/sdks/go/enum"
@@ -16,6 +17,30 @@ type Node interface {
 	GetLogName() string
 	IsDebug() bool
 	IsInverse() bool
+}
+
+// ErrorHandler is an optional interface that nodes can implement
+// to provide custom error handling logic.
+// If the node implements this interface, it will be called when an error occurs.
+// The returned RunState determines the behavior:
+//   - SHUT_DOWN or nil: re-panic the error
+//   - TRUE/FALSE/NONE: use this state and continue execution
+type ErrorHandler interface {
+	ErrorHandle(ctx stdctx.Context, iceCtx *icecontext.Context, err error) enum.RunState
+}
+
+// GlobalErrorHandler is a function type for the global error handler.
+// It receives the node, context, ice context, and the error.
+// Returns the RunState to determine behavior (same as ErrorHandler).
+type GlobalErrorHandler func(node Node, ctx stdctx.Context, iceCtx *icecontext.Context, err error) enum.RunState
+
+var globalErrorHandler GlobalErrorHandler
+
+// SetGlobalErrorHandler sets a custom global error handler.
+// This handler is called when a node does not implement ErrorHandler interface.
+// If not set, the default behavior is to return SHUT_DOWN (re-panic).
+func SetGlobalErrorHandler(handler GlobalErrorHandler) {
+	globalErrorHandler = handler
 }
 
 // BaseAccessor provides access to node's base properties.
@@ -77,7 +102,9 @@ func (b *Base) GetForward() Node {
 
 // ProcessWithBase executes common node logic and delegates to the specific processNode function.
 // This implements the template method pattern for Go.
-func ProcessWithBase(ctx stdctx.Context, base *Base, iceCtx *icecontext.Context, processNode func(stdctx.Context, *icecontext.Context) enum.RunState) (result enum.RunState) {
+// The errorHandler parameter is optional (can be nil) - if the node implements ErrorHandler,
+// pass it here for custom error handling.
+func ProcessWithBase(ctx stdctx.Context, base *Base, iceCtx *icecontext.Context, processNode func(stdctx.Context, *icecontext.Context) enum.RunState, errorHandler ErrorHandler) (result enum.RunState) {
 	// Time check
 	if timeutil.TimeDisabled(base.IceTimeType, iceCtx.Pack.RequestTime, base.IceStart, base.IceEnd) {
 		CollectInfo(iceCtx.ProcessInfo, base, 'O', 0)
@@ -89,21 +116,43 @@ func ProcessWithBase(ctx stdctx.Context, base *Base, iceCtx *icecontext.Context,
 	// Error handling wrapper - uses named return value
 	defer func() {
 		if r := recover(); r != nil {
-			// Error occurred, use error state from config if available
-			if base.IceErrorState != nil {
-				errorState := *base.IceErrorState
-				if errorState != enum.SHUT_DOWN {
-					result = errorState
-					CollectInfo(iceCtx.ProcessInfo, base, stateToChar(result), currentTimeMillis()-start)
-					// Apply inverse even on error
-					if base.IceInverse {
-						result = inverse(result)
-					}
-					return // named return value will be returned
-				}
+			elapsed := currentTimeMillis() - start
+			
+			// Convert panic value to error
+			var err error
+			if e, ok := r.(error); ok {
+				err = e
+			} else {
+				err = fmt.Errorf("%v", r)
 			}
-			// SHUT_DOWN or no error state configured - re-panic
-			CollectInfo(iceCtx.ProcessInfo, base, 'S', currentTimeMillis()-start)
+			
+			// 1. First try node-level error handler
+			var errorState enum.RunState = enum.SHUT_DOWN
+			if errorHandler != nil {
+				errorState = errorHandler.ErrorHandle(ctx, iceCtx, err)
+			} else if globalErrorHandler != nil {
+				// 2. Fall back to global error handler
+				// Note: we don't have the node here, pass nil
+				errorState = globalErrorHandler(nil, ctx, iceCtx, err)
+			}
+			
+			// 3. Config-level error state has highest priority
+			if base.IceErrorState != nil {
+				errorState = *base.IceErrorState
+			}
+			
+			if errorState != enum.SHUT_DOWN {
+				result = errorState
+				CollectInfo(iceCtx.ProcessInfo, base, stateToChar(result), elapsed)
+				// Apply inverse even on error
+				if base.IceInverse {
+					result = inverse(result)
+				}
+				return // named return value will be returned
+			}
+			
+			// SHUT_DOWN - re-panic
+			CollectInfo(iceCtx.ProcessInfo, base, 'S', elapsed)
 			panic(r)
 		}
 	}()

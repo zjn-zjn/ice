@@ -190,7 +190,7 @@ func TestProcessWithBase(t *testing.T) {
 	result := node.ProcessWithBase(ctx, base, iceCtx, func(c stdctx.Context, ic *icecontext.Context) enum.RunState {
 		called = true
 		return enum.TRUE
-	})
+	}, nil)
 
 	if !called {
 		t.Error("processNode should have been called")

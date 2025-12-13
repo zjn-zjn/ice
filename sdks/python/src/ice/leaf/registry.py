@@ -369,6 +369,10 @@ def create_leaf_node(conf_name: str, conf_field: str) -> Node:
         except json.JSONDecodeError:
             pass
     
+    # Call after_properties_set if implemented
+    if hasattr(instance, 'after_properties_set') and callable(instance.after_properties_set):
+        instance.after_properties_set()
+    
     # Wrap with appropriate adapter
     return _wrap_leaf(instance, entry.node_type)
 
@@ -391,7 +395,13 @@ class FlowLeafNode(Leaf, Node):
         self._instance = instance
     
     def process(self, ctx: Context) -> RunState:
-        return process_with_base(self, ctx, self._do_leaf)
+        return process_with_base(self, ctx, self._do_leaf, self._get_error_handler())
+    
+    def _get_error_handler(self):
+        """Return the instance if it implements error_handle, else None."""
+        if hasattr(self._instance, 'error_handle') and callable(self._instance.error_handle):
+            return self._instance
+        return None
     
     def _do_leaf(self, ctx: Context) -> RunState:
         result = False
@@ -415,7 +425,13 @@ class ResultLeafNode(Leaf, Node):
         self._instance = instance
     
     def process(self, ctx: Context) -> RunState:
-        return process_with_base(self, ctx, self._do_leaf)
+        return process_with_base(self, ctx, self._do_leaf, self._get_error_handler())
+    
+    def _get_error_handler(self):
+        """Return the instance if it implements error_handle, else None."""
+        if hasattr(self._instance, 'error_handle') and callable(self._instance.error_handle):
+            return self._instance
+        return None
     
     def _do_leaf(self, ctx: Context) -> RunState:
         result = False
@@ -438,7 +454,13 @@ class NoneLeafNode(Leaf, Node):
         self._instance = instance
     
     def process(self, ctx: Context) -> RunState:
-        return process_with_base(self, ctx, self._do_leaf)
+        return process_with_base(self, ctx, self._do_leaf, self._get_error_handler())
+    
+    def _get_error_handler(self):
+        """Return the instance if it implements error_handle, else None."""
+        if hasattr(self._instance, 'error_handle') and callable(self._instance.error_handle):
+            return self._instance
+        return None
     
     def _do_leaf(self, ctx: Context) -> RunState:
         if hasattr(self._instance, "do_roam_none"):

@@ -25,6 +25,22 @@ type LeafMeta struct {
 	Alias []string
 }
 
+// AfterPropertiesSet is an optional interface that leaf nodes can implement
+// to perform initialization after all properties have been set.
+// This is called after JSON configuration is applied to the node.
+type AfterPropertiesSet interface {
+	AfterPropertiesSet()
+}
+
+// LeafErrorHandler is an optional interface that leaf nodes can implement
+// to provide custom error handling logic when an error occurs during execution.
+// The returned RunState determines the behavior:
+//   - SHUT_DOWN: re-panic the error and stop execution
+//   - TRUE/FALSE/NONE: use this state and continue execution
+type LeafErrorHandler interface {
+	ErrorHandle(ctx stdctx.Context, iceCtx *icecontext.Context, err error) enum.RunState
+}
+
 // LeafFlow is implemented by flow-type leaf nodes with Context parameter.
 type LeafFlow interface {
 	DoFlow(ctx stdctx.Context, iceCtx *icecontext.Context) bool
@@ -292,6 +308,11 @@ func CreateNode(confName, confField string) (node.Node, error) {
 		}
 	}
 
+	// Call AfterPropertiesSet if implemented
+	if aps, ok := instance.(AfterPropertiesSet); ok {
+		aps.AfterPropertiesSet()
+	}
+
 	// Wrap with appropriate adapter
 	return wrapLeaf(instance, entry.nodeType), nil
 }
@@ -322,7 +343,15 @@ func (f *flowLeafNode) SetBase(base *node.Base) {
 }
 
 func (f *flowLeafNode) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	return node.ProcessWithBase(ctx, &f.Base, iceCtx, f.doLeaf)
+	return node.ProcessWithBase(ctx, &f.Base, iceCtx, f.doLeaf, f.getErrorHandler())
+}
+
+// getErrorHandler returns the error handler if the instance implements LeafErrorHandler.
+func (f *flowLeafNode) getErrorHandler() node.ErrorHandler {
+	if handler, ok := f.instance.(LeafErrorHandler); ok {
+		return &leafErrorHandlerAdapter{handler: handler}
+	}
+	return nil
 }
 
 func (f *flowLeafNode) doLeaf(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
@@ -343,6 +372,15 @@ func (f *flowLeafNode) doLeaf(ctx stdctx.Context, iceCtx *icecontext.Context) en
 	return enum.FALSE
 }
 
+// leafErrorHandlerAdapter adapts LeafErrorHandler to node.ErrorHandler.
+type leafErrorHandlerAdapter struct {
+	handler LeafErrorHandler
+}
+
+func (a *leafErrorHandlerAdapter) ErrorHandle(ctx stdctx.Context, iceCtx *icecontext.Context, err error) enum.RunState {
+	return a.handler.ErrorHandle(ctx, iceCtx, err)
+}
+
 // resultLeafNode wraps a result-type leaf.
 type resultLeafNode struct {
 	node.Leaf
@@ -355,7 +393,15 @@ func (r *resultLeafNode) SetBase(base *node.Base) {
 }
 
 func (r *resultLeafNode) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	return node.ProcessWithBase(ctx, &r.Base, iceCtx, r.doLeaf)
+	return node.ProcessWithBase(ctx, &r.Base, iceCtx, r.doLeaf, r.getErrorHandler())
+}
+
+// getErrorHandler returns the error handler if the instance implements LeafErrorHandler.
+func (r *resultLeafNode) getErrorHandler() node.ErrorHandler {
+	if handler, ok := r.instance.(LeafErrorHandler); ok {
+		return &leafErrorHandlerAdapter{handler: handler}
+	}
+	return nil
 }
 
 func (r *resultLeafNode) doLeaf(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
@@ -387,7 +433,15 @@ func (n *noneLeafNode) SetBase(base *node.Base) {
 }
 
 func (n *noneLeafNode) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	return node.ProcessWithBase(ctx, &n.Base, iceCtx, n.doLeaf)
+	return node.ProcessWithBase(ctx, &n.Base, iceCtx, n.doLeaf, n.getErrorHandler())
+}
+
+// getErrorHandler returns the error handler if the instance implements LeafErrorHandler.
+func (n *noneLeafNode) getErrorHandler() node.ErrorHandler {
+	if handler, ok := n.instance.(LeafErrorHandler); ok {
+		return &leafErrorHandlerAdapter{handler: handler}
+	}
+	return nil
 }
 
 func (n *noneLeafNode) doLeaf(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {

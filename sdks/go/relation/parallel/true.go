@@ -26,7 +26,7 @@ func NewTrue() *True {
 
 // Process implements the Node interface.
 func (t *True) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	return node.ProcessWithBase(ctx, &t.Base, iceCtx, t.processNode)
+	return node.ProcessWithBase(ctx, &t.Base, iceCtx, t.processNode, nil)
 }
 
 func (t *True) processNode(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {

@@ -26,7 +26,7 @@ func NewAll() *All {
 
 // Process implements the Node interface.
 func (a *All) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	return node.ProcessWithBase(ctx, &a.Base, iceCtx, a.processNode)
+	return node.ProcessWithBase(ctx, &a.Base, iceCtx, a.processNode, nil)
 }
 
 func (a *All) processNode(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
