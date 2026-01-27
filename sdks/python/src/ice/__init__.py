@@ -12,6 +12,7 @@ from ice.leaf.registry import leaf, register_leaf, get_leaf_nodes, LeafMeta, Ice
 from ice.log import Logger, set_logger
 from ice.client.file_client import FileClient
 from ice.client.async_file_client import AsyncFileClient
+from ice.node.base import set_global_error_handler, ErrorHandler
 from ice.dispatcher import (
     sync_process,
     async_process,
@@ -51,6 +52,9 @@ __all__ = [
     # Clients
     "FileClient",
     "AsyncFileClient",
+    # Error handling
+    "set_global_error_handler",
+    "ErrorHandler",
     # Processing (main)
     "sync_process",
     "async_process",

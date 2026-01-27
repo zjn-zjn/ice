@@ -4,13 +4,56 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Protocol, runtime_checkable
 
 from ice.enums import RunState, NodeType, TimeType
 from ice._internal.timeutil import time_disabled
 
 if TYPE_CHECKING:
     from ice.context.context import Context
+
+
+# Type for global error handler function
+GlobalErrorHandler = Callable[["Node | None", "Context", Exception], RunState]
+
+# Global error handler - can be set by user
+_global_error_handler: GlobalErrorHandler | None = None
+
+
+def set_global_error_handler(handler: GlobalErrorHandler | None) -> None:
+    """
+    Set a custom global error handler.
+    
+    This handler is called when a node does not implement error_handle method.
+    If not set, the default behavior is to return SHUT_DOWN (re-raise exception).
+    
+    Args:
+        handler: A function that takes (node, context, exception) and returns RunState.
+                 Pass None to clear the handler.
+    """
+    global _global_error_handler
+    _global_error_handler = handler
+
+
+def get_global_error_handler() -> GlobalErrorHandler | None:
+    """Get the current global error handler."""
+    return _global_error_handler
+
+
+@runtime_checkable
+class ErrorHandler(Protocol):
+    """
+    Protocol for nodes that implement custom error handling.
+    
+    Implement the error_handle method in your leaf node to handle errors:
+    
+        class MyLeaf:
+            def error_handle(self, ctx: Context, error: Exception) -> RunState:
+                print(f"Error occurred: {error}")
+                return RunState.FALSE  # Continue with FALSE instead of crashing
+    """
+    def error_handle(self, ctx: "Context", error: Exception) -> RunState:
+        ...
 
 
 class Node(ABC):
@@ -125,6 +168,7 @@ def process_with_base(
     base: Base,
     ctx: Context,
     process_node: Callable[[Context], RunState],
+    error_handler: ErrorHandler | None = None,
 ) -> RunState:
     """
     Execute common node logic and delegate to the specific process_node function.
@@ -135,6 +179,7 @@ def process_with_base(
         base: The node's base properties
         ctx: The execution context
         process_node: The specific node processing function
+        error_handler: Optional error handler (leaf node instance that implements error_handle)
     
     Returns:
         The final RunState after processing
@@ -176,17 +221,26 @@ def process_with_base(
     except Exception as e:
         elapsed = int(time.time() * 1000) - start
         
-        # Error handling
+        # 1. First try node-level error handler
+        error_state: RunState = RunState.SHUT_DOWN
+        if error_handler is not None and hasattr(error_handler, 'error_handle'):
+            error_state = error_handler.error_handle(ctx, e)
+        elif _global_error_handler is not None:
+            # 2. Fall back to global error handler
+            error_state = _global_error_handler(None, ctx, e)
+        
+        # 3. Config-level error state has highest priority
         if base.ice_error_state is not None:
             error_state = base.ice_error_state
-            if error_state != RunState.SHUT_DOWN:
-                collect_info(ctx, base, _state_to_char(error_state), elapsed)
-                # Apply inverse even on error
-                if base.ice_inverse:
-                    error_state = _inverse(error_state)
-                return error_state
         
-        # SHUT_DOWN or no error state configured - re-raise
+        if error_state != RunState.SHUT_DOWN:
+            collect_info(ctx, base, _state_to_char(error_state), elapsed)
+            # Apply inverse even on error
+            if base.ice_inverse:
+                error_state = _inverse(error_state)
+            return error_state
+        
+        # SHUT_DOWN - re-raise
         collect_info(ctx, base, "S", elapsed)
         raise
 

@@ -13,6 +13,7 @@ import (
 	"github.com/zjn-zjn/ice/sdks/go/internal/executor"
 	"github.com/zjn-zjn/ice/sdks/go/leaf"
 	icelog "github.com/zjn-zjn/ice/sdks/go/log"
+	"github.com/zjn-zjn/ice/sdks/go/node"
 )
 
 // Re-export types for convenience
@@ -33,6 +34,14 @@ type (
 	LeafMeta = leaf.LeafMeta
 	// Logger is the logging interface.
 	Logger = icelog.Logger
+	// AfterPropertiesSet is an optional interface for leaf node initialization.
+	// Implement this interface to perform initialization after config is applied.
+	AfterPropertiesSet = leaf.AfterPropertiesSet
+	// LeafErrorHandler is an optional interface for custom error handling.
+	// Implement this interface in leaf nodes to handle errors during execution.
+	LeafErrorHandler = leaf.LeafErrorHandler
+	// GlobalErrorHandler is the type for the global error handler function.
+	GlobalErrorHandler = node.GlobalErrorHandler
 )
 
 // Re-export constants
@@ -67,6 +76,10 @@ var (
 	GetTraceId = icelog.GetTraceId
 	// GetSpanId gets span ID from context.
 	GetSpanId = icelog.GetSpanId
+	// SetGlobalErrorHandler sets a custom global error handler.
+	// This handler is called when a node does not implement LeafErrorHandler.
+	// If not set, the default behavior is to return SHUT_DOWN (re-panic).
+	SetGlobalErrorHandler = node.SetGlobalErrorHandler
 )
 
 // SyncProcess executes rules synchronously.
