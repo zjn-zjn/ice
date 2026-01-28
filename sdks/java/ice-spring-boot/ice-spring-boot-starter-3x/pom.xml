@@ -20,29 +20,6 @@
     <packaging>jar</packaging>
     <name>ice-spring-boot-starter-3x</name>
     <description>Ice Spring Boot Starter for Spring Boot 3.x</description>
-    <url>http://waitmoon.com</url>
-
-    <licenses>
-        <license>
-            <name>The Apache Software License, Version2.0</name>
-            <url>http://www.apache.org/licenses/</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
-    <scm>
-        <connection>https://github.com/zjn-zjn/ice.git</connection>
-        <developerConnection>https://github.com/zjn-zjn/ice.git</developerConnection>
-        <url>https://github.com/zjn-zjn/ice</url>
-    </scm>
-
-    <developers>
-        <developer>
-            <name>waitmoon</name>
-            <email>admin@waitmoon.com</email>
-            <url>http://waitmoon.com</url>
-        </developer>
-    </developers>
 
     <dependencies>
         <dependency>
