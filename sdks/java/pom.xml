@@ -121,6 +121,16 @@
             <id>release</id>
             <build>
                 <plugins>
+                    <!--skip default deploy plugin-->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
                     <!--gpg signing-->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
