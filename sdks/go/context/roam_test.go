@@ -37,11 +37,43 @@ func TestRoam_NilHandling(t *testing.T) {
 		t.Error("empty key should return nil")
 	}
 
-	// Nil value should not be stored
+	// Nil value should be stored
+	roam.Put("key", "value")
+	if roam.Get("key") != "value" {
+		t.Error("value should be stored")
+	}
 	roam.Put("key", nil)
 	if roam.Get("key") != nil {
-		t.Error("nil value should not be stored")
+		t.Error("nil value should be stored as nil")
 	}
+	// Verify key exists but value is nil
+	if _, exists := roam.Data()["key"]; !exists {
+		t.Error("key should exist even with nil value")
+	}
+}
+
+func TestRoam_Delete(t *testing.T) {
+	roam := NewRoam()
+
+	roam.Put("key", "value")
+	if roam.Get("key") != "value" {
+		t.Error("value should be stored")
+	}
+
+	roam.Delete("key")
+	if roam.Get("key") != nil {
+		t.Error("key should be deleted")
+	}
+	// Verify key is removed from data
+	if _, exists := roam.Data()["key"]; exists {
+		t.Error("key should not exist after deletion")
+	}
+
+	// Delete non-existent key should not panic
+	roam.Delete("nonexistent")
+
+	// Empty key should be ignored
+	roam.Delete("")
 }
 
 func TestRoam_MultiKey(t *testing.T) {

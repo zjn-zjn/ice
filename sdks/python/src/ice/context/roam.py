@@ -37,13 +37,14 @@ class Roam:
     def put_multi(self, multi_key: str, value: Any) -> Any:
         """
         Put value using multi-level key (e.g., 'a.b.c').
+        Supports storing None values.
         
         This matches Java's putMulti behavior.
         Example:
             roam.put_multi("user.profile.age", 25)
             # Creates nested structure: {"user": {"profile": {"age": 25}}}
         """
-        if multi_key is None or value is None:
+        if multi_key is None:
             return None
         
         keys = multi_key.split(".")

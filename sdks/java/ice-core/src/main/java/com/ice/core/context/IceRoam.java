@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @author waitmoon
  * based on ConcurrentHashMap extend
- * put/get return null while key/value is null (ignore key/value null)
+ * put null value will remove the key (ConcurrentHashMap does not support null values)
  */
 public class IceRoam extends ConcurrentHashMap<String, Object> {
 
@@ -33,7 +33,7 @@ public class IceRoam extends ConcurrentHashMap<String, Object> {
      */
     @SuppressWarnings("unchecked")
     public <T> T putMulti(String multiKey, Object value) {
-        if (multiKey == null || value == null) {
+        if (multiKey == null) {
             return null;
         }
         String[] keys = multiKey.split("\\.");
@@ -45,6 +45,9 @@ public class IceRoam extends ConcurrentHashMap<String, Object> {
         int i = 0;
         for (; i < keys.length - 1; i++) {
             endMap = (Map<String, Object>) endMap.computeIfAbsent(keys[i], k -> new IceRoam());
+        }
+        if (value == null) {
+            return (T) endMap.remove(keys[i]);
         }
         return (T) endMap.put(keys[i], value);
     }
@@ -131,8 +134,11 @@ public class IceRoam extends ConcurrentHashMap<String, Object> {
 
     @Override
     public Object put(String key, Object value) {
-        if (key == null || value == null) {
+        if (key == null) {
             return null;
+        }
+        if (value == null) {
+            return super.remove(key);
         }
         return super.put(key, value);
     }

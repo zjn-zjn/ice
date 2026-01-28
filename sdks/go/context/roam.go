@@ -34,13 +34,25 @@ func NewRoamFrom(m map[string]any) *Roam {
 }
 
 // Put stores a value with the given key. Returns the Roam for chaining.
+// Supports storing nil values.
 func (r *Roam) Put(key string, value any) *Roam {
-	if key == "" || value == nil {
+	if key == "" {
 		return r
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.data[key] = value
+	return r
+}
+
+// Delete removes a key from the Roam. Returns the Roam for chaining.
+func (r *Roam) Delete(key string) *Roam {
+	if key == "" {
+		return r
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.data, key)
 	return r
 }
 
@@ -64,8 +76,9 @@ func (r *Roam) GetDefault(key string, defaultVal any) any {
 }
 
 // PutMulti stores a value using a dot-separated key path (e.g., "a.b.c").
+// Supports storing nil values.
 func (r *Roam) PutMulti(multiKey string, value any) any {
-	if multiKey == "" || value == nil {
+	if multiKey == "" {
 		return nil
 	}
 	keys := strings.Split(multiKey, ".")
