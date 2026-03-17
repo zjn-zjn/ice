@@ -98,6 +98,13 @@ public final class IceFileClient {
         this(app, storagePath, Collections.emptySet());
     }
 
+    public static IceFileClient newWithLane(int app, String storagePath, String scan, String lane) throws IOException {
+        return new IceFileClient(app, storagePath, DEFAULT_PARALLELISM,
+                new HashSet<>(Arrays.asList(scan.split(Constant.REGEX_COMMA))),
+                IceStorageConstants.DEFAULT_POLL_INTERVAL_SECONDS,
+                IceStorageConstants.DEFAULT_HEARTBEAT_INTERVAL_SECONDS, lane);
+    }
+
     private void prepare() {
         if (parallelism <= 0) {
             IceExecutor.setExecutor(new ForkJoinPool());
