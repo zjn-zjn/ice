@@ -632,9 +632,9 @@ public class IceConfServiceImpl implements IceConfService {
     }
 
     @Override
-    public List<IceLeafClass> getConfLeafClass(int app, byte type) {
+    public List<IceLeafClass> getConfLeafClass(int app, byte type, String lane) {
         List<IceLeafClass> result = new ArrayList<>();
-        Map<String, LeafNodeInfo> clientClazzInfoMap = clientManager.getLeafTypeClasses(app, type);
+        Map<String, LeafNodeInfo> clientClazzInfoMap = clientManager.getLeafTypeClasses(app, type, lane);
         if (!CollectionUtils.isEmpty(clientClazzInfoMap)) {
             for (Map.Entry<String, LeafNodeInfo> entry : clientClazzInfoMap.entrySet()) {
                 LeafNodeInfo nodeInfo = entry.getValue();
@@ -644,7 +644,6 @@ public class IceConfServiceImpl implements IceConfService {
                 leafClass.setOrder(nodeInfo.getOrder() != null ? nodeInfo.getOrder() : 100);
                 result.add(leafClass);
             }
-            // 按order升序排列
             result.sort(Comparator.comparingInt(IceLeafClass::getOrder));
         }
         return result;
@@ -664,7 +663,6 @@ public class IceConfServiceImpl implements IceConfService {
         if (!CollectionUtils.isEmpty(clazzInfoMap)) {
             return clazzInfoMap.get(clazz);
         }
-        // 没有可用客户端时，允许手动输入class
         return null;
     }
 

@@ -45,6 +45,11 @@ public class IceClientProperties {
      */
     private int heartbeatInterval = 10;
 
+    /**
+     * Swimlane name. Null or empty means main trunk (no swimlane).
+     */
+    private String lane;
+
     @Data
     public static class IceClientThreadPoolProperties {
         private int parallelism = -1;

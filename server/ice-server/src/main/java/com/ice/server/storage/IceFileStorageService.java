@@ -441,16 +441,27 @@ public class IceFileStorageService {
 
     private static final String LATEST_CLIENT_FILE = "_latest.json";
 
+    /**
+     * 解析客户端目录路径，支持泳道
+     * lane == null: clients/{app}/
+     * lane != null: clients/{app}/lane/{laneName}/
+     */
+    private Path resolveClientsDir(int app, String lane) {
+        Path base = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        if (lane != null && !lane.isEmpty()) {
+            return base.resolve(IceStorageConstants.DIR_LANE).resolve(lane);
+        }
+        return base;
+    }
+
     public void saveClient(IceClientInfo client) throws IOException {
-        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(client.getApp()));
+        Path clientsDir = resolveClientsDir(client.getApp(), client.getLane());
         Files.createDirectories(clientsDir);
 
         String safeAddress = client.getAddress().replace(":", "_").replace("/", "_");
         Path clientPath = clientsDir.resolve(safeAddress + IceStorageConstants.SUFFIX_JSON);
         writeJsonFile(clientPath, client);
 
-        // 只在 _latest.json 不存在时写入，避免百万客户端心跳导致频繁更新
-        // _latest.json 的更新主要由清理任务负责
         if (!CollectionUtils.isEmpty(client.getLeafNodes())) {
             Path latestPath = clientsDir.resolve(LATEST_CLIENT_FILE);
             if (!Files.exists(latestPath)) {
@@ -463,7 +474,11 @@ public class IceFileStorageService {
      * 获取最新的客户端信息（O(1)操作）
      */
     public IceClientInfo getLatestClient(int app) throws IOException {
-        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        return getLatestClient(app, null);
+    }
+
+    public IceClientInfo getLatestClient(int app, String lane) throws IOException {
+        Path clientsDir = resolveClientsDir(app, lane);
         Path latestPath = clientsDir.resolve(LATEST_CLIENT_FILE);
         return readJsonFile(latestPath, IceClientInfo.class);
     }
@@ -472,24 +487,33 @@ public class IceFileStorageService {
      * 更新最新客户端信息
      */
     public void updateLatestClient(int app, IceClientInfo client) throws IOException {
+        updateLatestClient(app, null, client);
+    }
+
+    public void updateLatestClient(int app, String lane, IceClientInfo client) throws IOException {
         if (client == null) {
             return;
         }
-        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        Path clientsDir = resolveClientsDir(app, lane);
         Files.createDirectories(clientsDir);
         Path latestPath = clientsDir.resolve(LATEST_CLIENT_FILE);
         writeJsonFile(latestPath, client);
     }
 
     public List<IceClientInfo> listClients(int app) throws IOException {
-        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        return listClients(app, null);
+    }
+
+    public List<IceClientInfo> listClients(int app, String lane) throws IOException {
+        Path clientsDir = resolveClientsDir(app, lane);
         if (!Files.exists(clientsDir)) {
             return Collections.emptyList();
         }
 
         try (Stream<Path> paths = Files.list(clientsDir)) {
             return paths.filter(p -> p.toString().endsWith(IceStorageConstants.SUFFIX_JSON))
-                    .filter(p -> !p.getFileName().toString().equals(LATEST_CLIENT_FILE)) // 排除_latest.json
+                    .filter(p -> !p.getFileName().toString().equals(LATEST_CLIENT_FILE))
+                    .filter(p -> !Files.isDirectory(p))
                     .map(p -> {
                         try {
                             return readJsonFile(p, IceClientInfo.class);
@@ -507,13 +531,18 @@ public class IceFileStorageService {
      * 获取客户端数量（不遍历内容，只计数文件）
      */
     public int countClients(int app) throws IOException {
-        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        return countClients(app, null);
+    }
+
+    public int countClients(int app, String lane) throws IOException {
+        Path clientsDir = resolveClientsDir(app, lane);
         if (!Files.exists(clientsDir)) {
             return 0;
         }
         try (Stream<Path> paths = Files.list(clientsDir)) {
             return (int) paths.filter(p -> p.toString().endsWith(IceStorageConstants.SUFFIX_JSON))
                     .filter(p -> !p.getFileName().toString().equals(LATEST_CLIENT_FILE))
+                    .filter(p -> !Files.isDirectory(p))
                     .count();
         }
     }
@@ -522,7 +551,11 @@ public class IceFileStorageService {
      * 获取单个客户端信息（根据 address 直接定位，O(1)）
      */
     public IceClientInfo getClient(int app, String address) throws IOException {
-        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        return getClient(app, null, address);
+    }
+
+    public IceClientInfo getClient(int app, String lane, String address) throws IOException {
+        Path clientsDir = resolveClientsDir(app, lane);
         String safeAddress = address.replace(":", "_").replace("/", "_");
         Path clientPath = clientsDir.resolve(safeAddress + IceStorageConstants.SUFFIX_JSON);
         return readJsonFile(clientPath, IceClientInfo.class);
@@ -530,10 +563,13 @@ public class IceFileStorageService {
 
     /**
      * 惰性遍历，找到第一个活跃且带 leafNodes 的客户端
-     * 不会一次性加载所有文件到内存，找到即停止
      */
     public IceClientInfo findFirstActiveClientWithLeafNodes(int app, long timeoutMs) throws IOException {
-        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        return findFirstActiveClientWithLeafNodes(app, null, timeoutMs);
+    }
+
+    public IceClientInfo findFirstActiveClientWithLeafNodes(int app, String lane, long timeoutMs) throws IOException {
+        Path clientsDir = resolveClientsDir(app, lane);
         if (!Files.exists(clientsDir)) {
             return null;
         }
@@ -543,6 +579,7 @@ public class IceFileStorageService {
             return paths
                     .filter(p -> p.toString().endsWith(IceStorageConstants.SUFFIX_JSON))
                     .filter(p -> !p.getFileName().toString().equals(LATEST_CLIENT_FILE))
+                    .filter(p -> !Files.isDirectory(p))
                     .map(p -> {
                         try {
                             return readJsonFile(p, IceClientInfo.class);
@@ -559,10 +596,60 @@ public class IceFileStorageService {
     }
 
     public void deleteClient(int app, String address) throws IOException {
-        Path clientsDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS).resolve(String.valueOf(app));
+        deleteClient(app, null, address);
+    }
+
+    public void deleteClient(int app, String lane, String address) throws IOException {
+        Path clientsDir = resolveClientsDir(app, lane);
         String safeAddress = address.replace(":", "_").replace("/", "_");
         Path clientPath = clientsDir.resolve(safeAddress + IceStorageConstants.SUFFIX_JSON);
         Files.deleteIfExists(clientPath);
+    }
+
+    // ==================== 泳道操作 ====================
+
+    /**
+     * 列出指定app下所有泳道名称
+     */
+    public List<String> listLanes(int app) throws IOException {
+        Path laneDir = storagePath.resolve(IceStorageConstants.DIR_CLIENTS)
+                .resolve(String.valueOf(app)).resolve(IceStorageConstants.DIR_LANE);
+        if (!Files.exists(laneDir)) {
+            return Collections.emptyList();
+        }
+        try (Stream<Path> paths = Files.list(laneDir)) {
+            return paths.filter(Files::isDirectory)
+                    .map(p -> p.getFileName().toString())
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * 清理泳道目录：先删 _latest.json，再删空目录
+     */
+    public boolean deleteEmptyLaneDir(int app, String lane) throws IOException {
+        Path laneDir = resolveClientsDir(app, lane);
+        if (!Files.exists(laneDir)) {
+            return false;
+        }
+        // 先删 _latest.json，它不是客户端文件但会阻止目录删除
+        Files.deleteIfExists(laneDir.resolve(LATEST_CLIENT_FILE));
+
+        try (Stream<Path> paths = Files.list(laneDir)) {
+            if (paths.findAny().isPresent()) {
+                return false;
+            }
+        }
+        Files.deleteIfExists(laneDir);
+        Path parentLaneDir = laneDir.getParent();
+        if (parentLaneDir != null && parentLaneDir.getFileName().toString().equals(IceStorageConstants.DIR_LANE)) {
+            try (Stream<Path> paths = Files.list(parentLaneDir)) {
+                if (!paths.findAny().isPresent()) {
+                    Files.deleteIfExists(parentLaneDir);
+                }
+            }
+        }
+        return true;
     }
 
     // ==================== 辅助方法 ====================

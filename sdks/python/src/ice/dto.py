@@ -1,7 +1,7 @@
 """Data Transfer Objects for Ice SDK, compatible with Java JSON serialization."""
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 
 @dataclass
@@ -85,6 +85,7 @@ class ClientInfo:
     """Client information (compatible with Java IceClientInfo)."""
     address: str = ""
     app: int = 0
+    lane: Optional[str] = None
     leafNodes: list[LeafNodeInfo] = field(default_factory=list)
     lastHeartbeat: int = 0
     startTime: int = 0

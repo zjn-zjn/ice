@@ -37,11 +37,17 @@ public class IceClientManager {
     }
 
     /**
-     * 获取指定app的所有在线客户端
-     * 注意：百万客户端场景下慎用，会遍历所有客户端文件
+     * 获取指定app的所有在线客户端（主干）
      */
     public List<IceClientInfo> getActiveClients(int app) throws IOException {
-        List<IceClientInfo> clients = storageService.listClients(app);
+        return getActiveClients(app, null);
+    }
+
+    /**
+     * 获取指定app指定泳道的所有在线客户端
+     */
+    public List<IceClientInfo> getActiveClients(int app, String lane) throws IOException {
+        List<IceClientInfo> clients = storageService.listClients(app, lane);
         long timeout = properties.getClientTimeout() * 1000L;
         long now = System.currentTimeMillis();
 
@@ -52,7 +58,6 @@ public class IceClientManager {
 
     /**
      * 获取指定app的所有注册客户端地址
-     * 注意：百万客户端场景下慎用
      */
     public Set<String> getRegisterClients(int app) {
         try {
@@ -71,40 +76,34 @@ public class IceClientManager {
 
     /**
      * 获取有效的 _latest.json 客户端信息
-     * 检查 _latest.json 中的客户端是否还存活，如果失活则尝试更新
      */
     private IceClientInfo getValidLatestClient(int app) throws IOException {
-        IceClientInfo latestClient = storageService.getLatestClient(app);
+        return getValidLatestClient(app, null);
+    }
+
+    private IceClientInfo getValidLatestClient(int app, String lane) throws IOException {
+        IceClientInfo latestClient = storageService.getLatestClient(app, lane);
         if (latestClient == null) {
             return null;
         }
 
-        // 检查 _latest.json 中的客户端是否还存活（直接根据 address 定位文件，O(1)）
-        IceClientInfo currentClient = storageService.getClient(app, latestClient.getAddress());
+        IceClientInfo currentClient = storageService.getClient(app, lane, latestClient.getAddress());
         if (currentClient != null && isClientActive(currentClient)) {
-            // 存活，直接返回 _latest.json 的内容（包含完整的 leafNodes）
             return latestClient;
         }
 
-        // _latest.json 中的客户端已失活，尝试找一个新的活跃客户端替换
-        // 使用惰性遍历，找到第一个符合条件的就停止，不加载所有文件到内存
-        IceClientInfo newActiveClient = storageService.findFirstActiveClientWithLeafNodes(app, 
+        IceClientInfo newActiveClient = storageService.findFirstActiveClientWithLeafNodes(app, lane,
                 properties.getClientTimeout() * 1000L);
         if (newActiveClient != null) {
-            storageService.updateLatestClient(app, newActiveClient);
-            log.info("updated _latest.json for app:{} from inactive {} to active {}", 
-                    app, latestClient.getAddress(), newActiveClient.getAddress());
+            storageService.updateLatestClient(app, lane, newActiveClient);
+            log.info("updated _latest.json for app:{} lane:{} from inactive {} to active {}",
+                    app, lane, latestClient.getAddress(), newActiveClient.getAddress());
             return newActiveClient;
         }
 
-        // 没有活跃的带 leafNodes 的客户端，但 _latest.json 的 leafNodes 仍然可用
-        // 返回 _latest.json 的内容（即使客户端已失活，leafNodes 信息仍然有效）
         return latestClient;
     }
 
-    /**
-     * 检查客户端是否活跃
-     */
     private boolean isClientActive(IceClientInfo client) {
         if (client == null || client.getLastHeartbeat() == null) {
             return false;
@@ -114,51 +113,95 @@ public class IceClientManager {
     }
 
     /**
-     * 获取指定app的叶子节点类信息
-     * 先检查 _latest.json 是否有效，O(1)操作；失活时尝试更新
+     * 获取指定app的叶子节点类信息（主干 + 可选泳道合并）
+     * lane == null: 只返回主干
+     * lane != null: 主干 + 该泳道合并，同名类泳道覆盖主干
      */
     public Map<String, LeafNodeInfo> getLeafTypeClasses(int app, byte type) {
+        return getLeafTypeClasses(app, type, null);
+    }
+
+    public Map<String, LeafNodeInfo> getLeafTypeClasses(int app, byte type, String lane) {
         try {
-            IceClientInfo latestClient = getValidLatestClient(app);
-            if (latestClient == null || CollectionUtils.isEmpty(latestClient.getLeafNodes())) {
-                return null;
+            Map<String, LeafNodeInfo> result = new HashMap<>();
+
+            // 先加载主干的 leafNodes
+            IceClientInfo trunkClient = getValidLatestClient(app, null);
+            if (trunkClient != null && !CollectionUtils.isEmpty(trunkClient.getLeafNodes())) {
+                for (LeafNodeInfo nodeInfo : trunkClient.getLeafNodes()) {
+                    if (nodeInfo.getType() == type) {
+                        result.put(nodeInfo.getClazz(), nodeInfo);
+                    }
+                }
             }
 
-            Map<String, LeafNodeInfo> result = new HashMap<>();
-            for (LeafNodeInfo nodeInfo : latestClient.getLeafNodes()) {
-                if (nodeInfo.getType() == type) {
-                    result.put(nodeInfo.getClazz(), nodeInfo);
+            // 如果指定了泳道，加载泳道的 leafNodes 并覆盖同名类
+            if (lane != null && !lane.isEmpty()) {
+                IceClientInfo laneClient = getValidLatestClient(app, lane);
+                if (laneClient != null && !CollectionUtils.isEmpty(laneClient.getLeafNodes())) {
+                    for (LeafNodeInfo nodeInfo : laneClient.getLeafNodes()) {
+                        if (nodeInfo.getType() == type) {
+                            result.put(nodeInfo.getClazz(), nodeInfo);
+                        }
+                    }
                 }
             }
 
             return result.isEmpty() ? null : result;
         } catch (IOException e) {
-            log.error("failed to get leaf type classes for app:{}", app, e);
+            log.error("failed to get leaf type classes for app:{} lane:{}", app, lane, e);
             return null;
         }
     }
 
     /**
-     * 获取指定class的LeafNodeInfo
-     * 先检查 _latest.json 是否有效，O(1)操作；失活时尝试更新
+     * 获取指定class的LeafNodeInfo（主干 + 可选泳道合并）
      */
     public LeafNodeInfo getNodeInfo(int app, String address, String clazz, Byte type) {
-        try {
-            IceClientInfo latestClient = getValidLatestClient(app);
-            if (latestClient == null || CollectionUtils.isEmpty(latestClient.getLeafNodes())) {
-                return null;
-            }
+        return getNodeInfo(app, address, clazz, type, null);
+    }
 
-            for (LeafNodeInfo nodeInfo : latestClient.getLeafNodes()) {
-                if (clazz.equals(nodeInfo.getClazz()) && (type == null || type.equals(nodeInfo.getType()))) {
-                    return copyNodeInfo(nodeInfo);
+    public LeafNodeInfo getNodeInfo(int app, String address, String clazz, Byte type, String lane) {
+        try {
+            // 如果指定了泳道，优先从泳道查找
+            if (lane != null && !lane.isEmpty()) {
+                LeafNodeInfo laneResult = findNodeInfoInClient(app, lane, clazz, type);
+                if (laneResult != null) {
+                    return laneResult;
                 }
             }
 
-            return null;
+            // 从主干查找
+            return findNodeInfoInClient(app, null, clazz, type);
         } catch (IOException e) {
-            log.error("failed to get node info for app:{} clazz:{}", app, clazz, e);
+            log.error("failed to get node info for app:{} clazz:{} lane:{}", app, clazz, lane, e);
             return null;
+        }
+    }
+
+    private LeafNodeInfo findNodeInfoInClient(int app, String lane, String clazz, Byte type) throws IOException {
+        IceClientInfo latestClient = getValidLatestClient(app, lane);
+        if (latestClient == null || CollectionUtils.isEmpty(latestClient.getLeafNodes())) {
+            return null;
+        }
+
+        for (LeafNodeInfo nodeInfo : latestClient.getLeafNodes()) {
+            if (clazz.equals(nodeInfo.getClazz()) && (type == null || type.equals(nodeInfo.getType()))) {
+                return copyNodeInfo(nodeInfo);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 列出指定app下的所有泳道
+     */
+    public List<String> listLanes(int app) {
+        try {
+            return storageService.listLanes(app);
+        } catch (IOException e) {
+            log.error("failed to list lanes for app:{}", app, e);
+            return Collections.emptyList();
         }
     }
 
@@ -201,7 +244,13 @@ public class IceClientManager {
         try {
             List<Integer> apps = getAllApps();
             for (Integer app : apps) {
-                cleanInactiveClientsForApp(app);
+                // 清理主干
+                cleanInactiveClientsForApp(app, null);
+                // 清理所有泳道
+                List<String> lanes = storageService.listLanes(app);
+                for (String lane : lanes) {
+                    cleanInactiveClientsForApp(app, lane);
+                }
             }
         } catch (Exception e) {
             log.error("failed to clean inactive clients", e);
@@ -219,17 +268,20 @@ public class IceClientManager {
         }
     }
 
-    private void cleanInactiveClientsForApp(int app) {
+    private void cleanInactiveClientsForApp(int app, String lane) {
         try {
-            List<IceClientInfo> clients = storageService.listClients(app);
+            List<IceClientInfo> clients = storageService.listClients(app, lane);
             if (CollectionUtils.isEmpty(clients)) {
+                // 泳道下没有客户端文件，尝试删除空泳道目录
+                if (lane != null) {
+                    storageService.deleteEmptyLaneDir(app, lane);
+                }
                 return;
             }
 
             long timeout = properties.getClientTimeout() * 1000L;
             long now = System.currentTimeMillis();
 
-            // 分离活跃和失活客户端
             List<IceClientInfo> activeClients = new ArrayList<>();
             List<IceClientInfo> inactiveClients = new ArrayList<>();
 
@@ -245,46 +297,48 @@ public class IceClientManager {
                 return;
             }
 
-            // 检查并更新 _latest.json
-            updateLatestClientIfNeeded(app, activeClients, inactiveClients);
+            updateLatestClientIfNeeded(app, lane, activeClients, inactiveClients);
 
-            // 删除失活客户端（但保留最后一个）
             int deleteCount = 0;
             for (int i = 0; i < inactiveClients.size(); i++) {
-                // 如果没有活跃客户端，保留最后一个失活客户端文件
                 if (activeClients.isEmpty() && i == inactiveClients.size() - 1) {
-                    log.info("preserved last inactive client for app:{}, address:{}", app, inactiveClients.get(i).getAddress());
+                    // 泳道下不保留最后一个失活客户端，全部删除后删目录
+                    if (lane != null) {
+                        storageService.deleteClient(app, lane, inactiveClients.get(i).getAddress());
+                        deleteCount++;
+                    } else {
+                        log.info("preserved last inactive client for app:{}, address:{}", app, inactiveClients.get(i).getAddress());
+                    }
                     continue;
                 }
 
                 IceClientInfo client = inactiveClients.get(i);
-                storageService.deleteClient(app, client.getAddress());
+                storageService.deleteClient(app, lane, client.getAddress());
                 deleteCount++;
-                log.info("cleaned inactive client for app:{}, address:{}", app, client.getAddress());
+                log.info("cleaned inactive client for app:{} lane:{}, address:{}", app, lane, client.getAddress());
             }
 
             if (deleteCount > 0) {
-                log.info("cleaned {} inactive clients for app:{}", deleteCount, app);
+                log.info("cleaned {} inactive clients for app:{} lane:{}", deleteCount, app, lane);
+            }
+
+            // 泳道清理完后，如果泳道目录为空则删除
+            if (lane != null) {
+                storageService.deleteEmptyLaneDir(app, lane);
             }
         } catch (IOException e) {
-            log.error("failed to clean inactive clients for app:{}", app, e);
+            log.error("failed to clean inactive clients for app:{} lane:{}", app, lane, e);
         }
     }
 
-    /**
-     * 如果 _latest.json 中的客户端已失活，更新为一个活跃的客户端
-     * 如果没有活跃客户端，保留 _latest.json 不变
-     */
-    private void updateLatestClientIfNeeded(int app, List<IceClientInfo> activeClients, 
+    private void updateLatestClientIfNeeded(int app, String lane, List<IceClientInfo> activeClients,
                                             List<IceClientInfo> inactiveClients) throws IOException {
-        IceClientInfo latestClient = storageService.getLatestClient(app);
-        
-        // 检查 _latest.json 是否需要更新
+        IceClientInfo latestClient = storageService.getLatestClient(app, lane);
+
         boolean needUpdate = false;
         if (latestClient == null) {
             needUpdate = true;
         } else {
-            // 检查 latest 是否在失活列表中
             String latestAddress = latestClient.getAddress();
             boolean isInactive = inactiveClients.stream()
                     .anyMatch(c -> latestAddress.equals(c.getAddress()));
@@ -294,21 +348,18 @@ public class IceClientManager {
         }
 
         if (needUpdate) {
-            // 优先选择有 leafNodes 的活跃客户端
             IceClientInfo newLatest = activeClients.stream()
                     .filter(c -> !CollectionUtils.isEmpty(c.getLeafNodes()))
                     .findFirst()
                     .orElse(null);
 
             if (newLatest != null) {
-                storageService.updateLatestClient(app, newLatest);
-                log.info("updated _latest.json for app:{} to active client:{}", app, newLatest.getAddress());
+                storageService.updateLatestClient(app, lane, newLatest);
+                log.info("updated _latest.json for app:{} lane:{} to active client:{}", app, lane, newLatest.getAddress());
             } else if (!activeClients.isEmpty()) {
-                // 没有带 leafNodes 的，取任意一个活跃的
-                storageService.updateLatestClient(app, activeClients.get(0));
-                log.info("updated _latest.json for app:{} to active client (no leafNodes):{}", app, activeClients.get(0).getAddress());
+                storageService.updateLatestClient(app, lane, activeClients.get(0));
+                log.info("updated _latest.json for app:{} lane:{} to active client (no leafNodes):{}", app, lane, activeClients.get(0).getAddress());
             }
-            // 如果没有活跃客户端，保留原来的 _latest.json 不变
         }
     }
 }

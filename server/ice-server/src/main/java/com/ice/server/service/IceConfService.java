@@ -13,7 +13,7 @@ import java.util.List;
 public interface IceConfService {
     Long confEdit(IceEditNode editNode);
 
-    List<IceLeafClass> getConfLeafClass(int app, byte type);
+    List<IceLeafClass> getConfLeafClass(int app, byte type, String lane);
 
     LeafNodeInfo leafClassCheck(int app, String clazz, byte type);
 

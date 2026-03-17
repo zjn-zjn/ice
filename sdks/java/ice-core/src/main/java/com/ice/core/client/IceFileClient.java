@@ -22,7 +22,6 @@ import com.ice.core.utils.JacksonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -53,6 +52,7 @@ public final class IceFileClient {
     private final int pollIntervalSeconds;
     private final int heartbeatIntervalSeconds;
     private final String iceAddress;
+    private final String lane;
 
     private List<LeafNodeInfo> leafNodes;
     private volatile long loadedVersion = 0;
@@ -66,22 +66,28 @@ public final class IceFileClient {
     private static final int DEFAULT_PARALLELISM = -1;
 
     public IceFileClient(int app, String storagePath, int parallelism, Set<String> scanPackages,
-                         int pollIntervalSeconds, int heartbeatIntervalSeconds) throws IOException {
+                         int pollIntervalSeconds, int heartbeatIntervalSeconds, String lane) throws IOException {
         this.app = app;
         this.storagePath = storagePath;
         this.parallelism = parallelism;
         this.pollIntervalSeconds = pollIntervalSeconds > 0 ? pollIntervalSeconds : IceStorageConstants.DEFAULT_POLL_INTERVAL_SECONDS;
         this.heartbeatIntervalSeconds = heartbeatIntervalSeconds > 0 ? heartbeatIntervalSeconds : IceStorageConstants.DEFAULT_HEARTBEAT_INTERVAL_SECONDS;
         this.iceAddress = IceAddressUtils.getAddress(app);
+        this.lane = lane != null && !lane.trim().isEmpty() ? lane.trim() : null;
 
         scanLeafNodes(scanPackages);
         prepare();
     }
 
+    public IceFileClient(int app, String storagePath, int parallelism, Set<String> scanPackages,
+                         int pollIntervalSeconds, int heartbeatIntervalSeconds) throws IOException {
+        this(app, storagePath, parallelism, scanPackages, pollIntervalSeconds, heartbeatIntervalSeconds, null);
+    }
+
     public IceFileClient(int app, String storagePath, Set<String> scanPackages) throws IOException {
         this(app, storagePath, DEFAULT_PARALLELISM, scanPackages,
                 IceStorageConstants.DEFAULT_POLL_INTERVAL_SECONDS,
-                IceStorageConstants.DEFAULT_HEARTBEAT_INTERVAL_SECONDS);
+                IceStorageConstants.DEFAULT_HEARTBEAT_INTERVAL_SECONDS, null);
     }
 
     public IceFileClient(int app, String storagePath, String scan) throws IOException {
@@ -132,8 +138,8 @@ public final class IceFileClient {
 
         started = true;
         startedLock.set(true);
-        log.info("ice file client init app:{} address:{} success:{}ms storagePath:{}",
-                app, iceAddress, System.currentTimeMillis() - startTime, storagePath);
+        log.info("ice file client init app:{} address:{} lane:{} success:{}ms storagePath:{}",
+                app, iceAddress, lane, System.currentTimeMillis() - startTime, storagePath);
     }
 
     /**
@@ -184,8 +190,15 @@ public final class IceFileClient {
         Files.createDirectories(appPath.resolve(IceStorageConstants.DIR_CONFS));
         Files.createDirectories(appPath.resolve(IceStorageConstants.DIR_VERSIONS));
 
-        Path clientsPath = Paths.get(storagePath, IceStorageConstants.DIR_CLIENTS, String.valueOf(app));
-        Files.createDirectories(clientsPath);
+        Files.createDirectories(getClientsDir());
+    }
+
+    private Path getClientsDir() {
+        if (lane != null) {
+            return Paths.get(storagePath, IceStorageConstants.DIR_CLIENTS, String.valueOf(app),
+                    IceStorageConstants.DIR_LANE, lane);
+        }
+        return Paths.get(storagePath, IceStorageConstants.DIR_CLIENTS, String.valueOf(app));
     }
 
     /**
@@ -271,6 +284,7 @@ public final class IceFileClient {
         IceClientInfo clientInfo = new IceClientInfo();
         clientInfo.setAddress(iceAddress);
         clientInfo.setApp(app);
+        clientInfo.setLane(lane);
         clientInfo.setLeafNodes(leafNodes);
         clientInfo.setLastHeartbeat(System.currentTimeMillis());
         clientInfo.setStartTime(System.currentTimeMillis());
@@ -333,10 +347,8 @@ public final class IceFileClient {
     }
 
     private Path getClientFilePath() {
-        // Replace special characters in address to ensure it can be used as filename
         String safeAddress = iceAddress.replace(":", "_").replace("/", "_");
-        return Paths.get(storagePath, IceStorageConstants.DIR_CLIENTS, String.valueOf(app),
-                safeAddress + IceStorageConstants.SUFFIX_JSON);
+        return getClientsDir().resolve(safeAddress + IceStorageConstants.SUFFIX_JSON);
     }
 
     /**
@@ -589,6 +601,10 @@ public final class IceFileClient {
 
     public long getLoadedVersion() {
         return loadedVersion;
+    }
+
+    public String getLane() {
+        return lane;
     }
 
     /**

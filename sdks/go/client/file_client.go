@@ -24,6 +24,7 @@ const (
 	dirConfs    = "confs"
 	dirVersions = "versions"
 	dirClients  = "clients"
+	dirLane     = "lane"
 
 	fileVersion = "version.txt"
 	suffixJSON  = ".json"
@@ -44,6 +45,7 @@ type FileClient struct {
 	pollInterval      time.Duration
 	heartbeatInterval time.Duration
 	address           string
+	lane              string
 	leafNodes         []dto.LeafNodeInfo
 	loadedVersion     atomic.Int64
 	started           atomic.Bool
@@ -53,19 +55,20 @@ type FileClient struct {
 }
 
 // New creates a new FileClient with minimal configuration.
-// This is the simplest and recommended way to create a client.
 func New(app int, storagePath string) (*FileClient, error) {
-	return NewWithOptions(app, storagePath, -1, defaultPollInterval, defaultHeartbeatInterval)
+	return NewWithOptions(app, storagePath, -1, defaultPollInterval, defaultHeartbeatInterval, "")
 }
 
 // NewWithOptions creates a new FileClient with custom options.
-func NewWithOptions(app int, storagePath string, parallelism int, pollInterval, heartbeatInterval time.Duration) (*FileClient, error) {
+func NewWithOptions(app int, storagePath string, parallelism int, pollInterval, heartbeatInterval time.Duration, lane string) (*FileClient, error) {
 	if pollInterval <= 0 {
 		pollInterval = defaultPollInterval
 	}
 	if heartbeatInterval <= 0 {
 		heartbeatInterval = defaultHeartbeatInterval
 	}
+
+	trimmedLane := strings.TrimSpace(lane)
 
 	client := &FileClient{
 		app:               app,
@@ -74,6 +77,7 @@ func NewWithOptions(app int, storagePath string, parallelism int, pollInterval, 
 		pollInterval:      pollInterval,
 		heartbeatInterval: heartbeatInterval,
 		address:           getAddress(app),
+		lane:              trimmedLane,
 		stopCh:            make(chan struct{}),
 	}
 
@@ -122,7 +126,7 @@ func (c *FileClient) Start() error {
 
 	c.started.Store(true)
 	log.Info(ctx, "ice file client started", "app", c.app, "address", c.address,
-		"durationMs", time.Since(startTime).Milliseconds(), "storagePath", c.storagePath)
+		"lane", c.lane, "durationMs", time.Since(startTime).Milliseconds(), "storagePath", c.storagePath)
 
 	return nil
 }
@@ -162,7 +166,7 @@ func (c *FileClient) ensureDirectories() error {
 		filepath.Join(appPath, dirBases),
 		filepath.Join(appPath, dirConfs),
 		filepath.Join(appPath, dirVersions),
-		filepath.Join(c.storagePath, dirClients, strconv.Itoa(c.app)),
+		c.getClientsDir(),
 	}
 
 	for _, dir := range dirs {
@@ -171,6 +175,13 @@ func (c *FileClient) ensureDirectories() error {
 		}
 	}
 	return nil
+}
+
+func (c *FileClient) getClientsDir() string {
+	if c.lane != "" {
+		return filepath.Join(c.storagePath, dirClients, strconv.Itoa(c.app), dirLane, c.lane)
+	}
+	return filepath.Join(c.storagePath, dirClients, strconv.Itoa(c.app))
 }
 
 func (c *FileClient) loadInitialConfig(ctx context.Context) error {
@@ -362,6 +373,7 @@ func (c *FileClient) registerClient() error {
 	clientInfo := &dto.ClientInfo{
 		Address:       c.address,
 		App:           c.app,
+		Lane:          c.lane,
 		LeafNodes:     c.leafNodes,
 		LastHeartbeat: time.Now().UnixMilli(),
 		StartTime:     time.Now().UnixMilli(),
@@ -378,7 +390,7 @@ func (c *FileClient) registerClient() error {
 }
 
 func (c *FileClient) writeLatestInfo(clientInfo *dto.ClientInfo) error {
-	latestPath := filepath.Join(c.storagePath, dirClients, strconv.Itoa(c.app), "_latest.json")
+	latestPath := filepath.Join(c.getClientsDir(), "_latest.json")
 	data, err := json.Marshal(clientInfo)
 	if err != nil {
 		return err
@@ -417,10 +429,9 @@ func (c *FileClient) writeClientInfo(clientInfo *dto.ClientInfo) error {
 }
 
 func (c *FileClient) getClientFilePath() string {
-	// Replace special characters in address
 	safeAddress := strings.ReplaceAll(c.address, ":", "_")
 	safeAddress = strings.ReplaceAll(safeAddress, "/", "_")
-	return filepath.Join(c.storagePath, dirClients, strconv.Itoa(c.app), safeAddress+suffixJSON)
+	return filepath.Join(c.getClientsDir(), safeAddress+suffixJSON)
 }
 
 func (c *FileClient) updateClientVersion() {
@@ -480,4 +491,9 @@ func (c *FileClient) GetStoragePath() string {
 // GetLoadedVersion returns the loaded version.
 func (c *FileClient) GetLoadedVersion() int64 {
 	return c.loadedVersion.Load()
+}
+
+// GetLane returns the swimlane name ("" means main trunk).
+func (c *FileClient) GetLane() string {
+	return c.lane
 }

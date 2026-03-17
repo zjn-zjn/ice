@@ -26,6 +26,7 @@ DIR_BASES = "bases"
 DIR_CONFS = "confs"
 DIR_VERSIONS = "versions"
 DIR_CLIENTS = "clients"
+DIR_LANE = "lane"
 FILE_VERSION = "version.txt"
 SUFFIX_JSON = ".json"
 SUFFIX_UPD = "_upd.json"
@@ -50,6 +51,7 @@ class FileClient:
         parallelism: int = -1,
         poll_interval: float = DEFAULT_POLL_INTERVAL,
         heartbeat_interval: float = DEFAULT_HEARTBEAT_INTERVAL,
+        lane: str = "",
     ) -> None:
         """
         Initialize the file client.
@@ -60,12 +62,14 @@ class FileClient:
             parallelism: Thread pool size for parallel nodes (-1 = auto)
             poll_interval: Interval for polling version updates (seconds)
             heartbeat_interval: Interval for heartbeat updates (seconds)
+            lane: Swimlane name (empty string means main trunk)
         """
         self.app = app
         self.storage_path = storage_path
         self.parallelism = parallelism
         self.poll_interval = poll_interval if poll_interval > 0 else DEFAULT_POLL_INTERVAL
         self.heartbeat_interval = heartbeat_interval if heartbeat_interval > 0 else DEFAULT_HEARTBEAT_INTERVAL
+        self.lane = lane.strip() if lane and lane.strip() else None
         
         self._address = self._get_address()
         self._loaded_version = 0
@@ -109,7 +113,7 @@ class FileClient:
             self._heartbeat_thread.start()
             
             self._started = True
-            log.info("ice client started", app=self.app, version=self._loaded_version)
+            log.info("ice client started", app=self.app, lane=self.lane, version=self._loaded_version)
     
     def destroy(self) -> None:
         """Stop the client and release resources."""
@@ -302,22 +306,28 @@ class FileClient:
         if transfer.insertOrUpdateBases:
             handler_cache.insert_or_update_handlers(transfer.insertOrUpdateBases)
     
+    def _get_clients_dir(self) -> str:
+        """Get the clients directory, with lane support."""
+        if self.lane:
+            return os.path.join(self.storage_path, DIR_CLIENTS, str(self.app), DIR_LANE, self.lane)
+        return os.path.join(self.storage_path, DIR_CLIENTS, str(self.app))
+
     def _get_client_file_path(self) -> str:
         """Get the client file path with safe filename (replace / and : with _)."""
         safe_address = self._address.replace(":", "_").replace("/", "_")
-        clients_dir = os.path.join(self.storage_path, DIR_CLIENTS, str(self.app))
-        return os.path.join(clients_dir, f"{safe_address}.json")
+        return os.path.join(self._get_clients_dir(), f"{safe_address}.json")
     
     def _register_client(self) -> None:
         """Register this client in the clients directory."""
         try:
-            clients_dir = os.path.join(self.storage_path, DIR_CLIENTS, str(self.app))
+            clients_dir = self._get_clients_dir()
             os.makedirs(clients_dir, exist_ok=True)
             
             leaf_nodes = get_leaf_nodes()
             client_info = ClientInfo(
                 address=self._address,
                 app=self.app,
+                lane=self.lane,
                 leafNodes=leaf_nodes,
                 lastHeartbeat=int(time.time() * 1000),
                 startTime=int(time.time() * 1000),
@@ -328,7 +338,6 @@ class FileClient:
             with open(client_file, "w") as f:
                 json.dump(asdict(client_info), f)
             
-            # Overwrite _latest.json on each registration, server reads leaf node structure from here
             if leaf_nodes:
                 latest_file = os.path.join(clients_dir, "_latest.json")
                 tmp_file = latest_file + SUFFIX_TMP
