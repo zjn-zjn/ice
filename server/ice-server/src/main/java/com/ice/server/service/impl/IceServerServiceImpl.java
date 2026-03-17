@@ -124,12 +124,12 @@ public class IceServerServiceImpl implements IceServerService {
     }
 
     @Override
-    public IceShowNode getConfMixById(int app, long confId, long iceId) {
+    public IceShowNode getConfMixById(int app, long confId, long iceId, String lane) {
         IceConf root = getMixConfById(app, confId, iceId);
-        return assembleShowNode(root, app, iceId);
+        return assembleShowNode(root, app, iceId, lane);
     }
 
-    private IceShowNode assembleShowNode(IceConf node, int app, long iceId) {
+    private IceShowNode assembleShowNode(IceConf node, int app, long iceId, String lane) {
         if (node == null) {
             return null;
         }
@@ -146,7 +146,7 @@ public class IceServerServiceImpl implements IceServerService {
             for (int i = 0; i < sonIds.size(); i++) {
                     IceConf child = getMixConfById(app, sonIds.get(i), iceId);
                 if (child != null) {
-                        IceShowNode showChild = assembleShowNode(child, app, iceId);
+                        IceShowNode showChild = assembleShowNode(child, app, iceId, lane);
                     showChild.setParentId(node.getMixId());
                     showChild.setIndex(i);
                     children.add(showChild);
@@ -156,7 +156,7 @@ public class IceServerServiceImpl implements IceServerService {
             }
         } else if (NodeTypeEnum.isLeaf(node.getType()) && StringUtils.hasLength(node.getConfName())) {
             // 叶子节点：获取字段信息
-            LeafNodeInfo nodeInfo = clientManager.getNodeInfo(node.getApp(), null, node.getConfName(), node.getType());
+            LeafNodeInfo nodeInfo = clientManager.getNodeInfo(node.getApp(), null, node.getConfName(), node.getType(), lane);
             if (nodeInfo != null) {
                 showNode.getShowConf().setHaveMeta(true);
                 showNode.getShowConf().setNodeInfo(nodeInfo);
@@ -168,7 +168,7 @@ public class IceServerServiceImpl implements IceServerService {
         }
 
         if (showNode.getForwardId() != null) {
-            IceShowNode forwardNode = assembleShowNode(getMixConfById(app, showNode.getForwardId(), iceId), app, iceId);
+            IceShowNode forwardNode = assembleShowNode(getMixConfById(app, showNode.getForwardId(), iceId), app, iceId, lane);
             if (forwardNode != null) {
                 forwardNode.setNextId(node.getMixId());
                 showNode.setForward(forwardNode);

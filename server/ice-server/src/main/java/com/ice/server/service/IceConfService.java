@@ -17,5 +17,5 @@ public interface IceConfService {
 
     LeafNodeInfo leafClassCheck(int app, String clazz, byte type);
 
-    IceShowConf confDetail(int app, long confId, String address, long iceId);
+    IceShowConf confDetail(int app, long confId, String address, long iceId, String lane);
 }

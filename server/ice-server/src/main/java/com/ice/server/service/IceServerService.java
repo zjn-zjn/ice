@@ -24,7 +24,7 @@ public interface IceServerService {
 
     IceConf getMixConfById(int app, long confId, long iceId);
 
-    IceShowNode getConfMixById(int app, long confId, long iceId);
+    IceShowNode getConfMixById(int app, long confId, long iceId, String lane);
 
     IceBase getActiveBaseById(Integer app, Long iceId);
 

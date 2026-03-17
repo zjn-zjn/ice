@@ -667,9 +667,9 @@ public class IceConfServiceImpl implements IceConfService {
     }
 
     @Override
-    public IceShowConf confDetail(int app, long confId, String address, long iceId) {
+    public IceShowConf confDetail(int app, long confId, String address, long iceId, String lane) {
         if (address == null || address.equals("server")) {
-            IceShowNode root = iceServerService.getConfMixById(app, confId, iceId);
+            IceShowNode root = iceServerService.getConfMixById(app, confId, iceId, lane);
             if (root == null) {
                 throw new ErrorCodeException(ErrorCode.CONF_NOT_FOUND, app, "confId", confId);
             }

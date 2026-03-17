@@ -60,12 +60,13 @@ public class IceConfController {
     }
 
     @RequestMapping(value = "/ice-server/conf/detail", method = RequestMethod.GET)
-    public IceShowConf confDetail(@RequestParam Integer app, @RequestParam Long iceId, @RequestParam(required = false) Long confId, @RequestParam(defaultValue = "server") String address) {
+    public IceShowConf confDetail(@RequestParam Integer app, @RequestParam Long iceId, @RequestParam(required = false) Long confId,
+                                  @RequestParam(defaultValue = "server") String address, @RequestParam(required = false) String lane) {
         IceBase base = iceServerService.getActiveBaseById(app, iceId);
         if (base == null) {
             throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "app|iceId");
         }
-        IceShowConf showConf = iceConfService.confDetail(app, confId == null ? base.getConfId() : confId, address, iceId);
+        IceShowConf showConf = iceConfService.confDetail(app, confId == null ? base.getConfId() : confId, address, iceId, lane);
         showConf.setIceId(iceId);
         showConf.setRegisterClients(iceAppService.getRegisterClients(app));
         return showConf;
