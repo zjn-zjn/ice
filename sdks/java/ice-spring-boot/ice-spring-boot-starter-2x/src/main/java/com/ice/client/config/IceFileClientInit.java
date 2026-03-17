@@ -33,7 +33,8 @@ public class IceFileClientInit implements InitializingBean, DisposableBean {
                 properties.getPool().getParallelism(),
                 properties.getScan(),
                 properties.getPollInterval(),
-                properties.getHeartbeatInterval()
+                properties.getHeartbeatInterval(),
+                properties.getLane()
         );
         iceFileClient.start();
     }

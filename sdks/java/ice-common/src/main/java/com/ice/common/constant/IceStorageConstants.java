@@ -18,6 +18,7 @@ public final class IceStorageConstants {
     public static final String DIR_VERSIONS = "versions";
     public static final String DIR_HISTORY = "history";
     public static final String DIR_CLIENTS = "clients";
+    public static final String DIR_LANE = "lane";
 
     // File names
     public static final String FILE_APP_ID = "_id.txt";

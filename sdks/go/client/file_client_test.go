@@ -150,7 +150,7 @@ func TestFileClient_IncrementalUpdate(t *testing.T) {
 	tempDir := setupTestStorage(t)
 	defer cleanupTestStorage(tempDir)
 
-	client, err := NewWithOptions(testApp, tempDir, -1, 1*time.Second, 10*time.Second)
+	client, err := NewWithOptions(testApp, tempDir, -1, 1*time.Second, 10*time.Second, "")
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}

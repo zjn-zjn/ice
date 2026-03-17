@@ -55,6 +55,7 @@ type TransferDto struct {
 type ClientInfo struct {
 	Address       string         `json:"address"`
 	App           int            `json:"app"`
+	Lane          string         `json:"lane,omitempty"`
 	LeafNodes     []LeafNodeInfo `json:"leafNodes,omitempty"`
 	LastHeartbeat int64          `json:"lastHeartbeat"`
 	StartTime     int64          `json:"startTime"`

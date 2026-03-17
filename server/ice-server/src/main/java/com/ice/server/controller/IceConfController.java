@@ -10,6 +10,7 @@ import com.ice.server.model.IceLeafClass;
 import com.ice.server.service.IceAppService;
 import com.ice.server.service.IceConfService;
 import com.ice.server.service.IceServerService;
+import com.ice.server.storage.IceClientManager;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,19 +35,28 @@ public class IceConfController {
     @Autowired
     private IceAppService iceAppService;
 
+    @Autowired
+    private IceClientManager clientManager;
+
     @RequestMapping(value = "/ice-server/conf/edit", method = RequestMethod.POST)
     public Long confEdit(@RequestBody IceEditNode editNode) {
         return iceConfService.confEdit(editNode);
     }
 
     @RequestMapping(value = "/ice-server/conf/leaf/class", method = RequestMethod.GET)
-    public List<IceLeafClass> getConfLeafClass(@RequestParam Integer app, @RequestParam Byte type) {
-        return iceConfService.getConfLeafClass(app, type);
+    public List<IceLeafClass> getConfLeafClass(@RequestParam Integer app, @RequestParam Byte type,
+                                                @RequestParam(required = false) String lane) {
+        return iceConfService.getConfLeafClass(app, type, lane);
     }
 
     @RequestMapping(value = "/ice-server/conf/class/check", method = RequestMethod.GET)
     public void leafClassCheck(@RequestParam Integer app, @RequestParam String clazz, @RequestParam Byte type) {
         iceConfService.leafClassCheck(app, clazz, type);
+    }
+
+    @RequestMapping(value = "/ice-server/conf/lane/list", method = RequestMethod.GET)
+    public List<String> listLanes(@RequestParam Integer app) {
+        return clientManager.listLanes(app);
     }
 
     @RequestMapping(value = "/ice-server/conf/detail", method = RequestMethod.GET)

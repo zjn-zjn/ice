@@ -25,6 +25,11 @@ public final class IceClientInfo {
     private Integer app;
 
     /**
+     * Swimlane name. Null means main trunk.
+     */
+    private String lane;
+
+    /**
      * Leaf node class information.
      */
     private List<LeafNodeInfo> leafNodes;

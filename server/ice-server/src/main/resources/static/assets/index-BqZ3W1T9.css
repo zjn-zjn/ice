@@ -1,0 +1,1 @@
+.login-container{display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#667eea,#764ba2)}.login-container .login-card{width:400px;box-shadow:0 4px 20px #0000001a}.login-container .login-card h2{text-align:center;margin-bottom:8px;color:#333}.login-container .login-card .subtitle{text-align:center;color:#999;margin-bottom:24px}
