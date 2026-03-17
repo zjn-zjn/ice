@@ -59,6 +59,11 @@ func New(app int, storagePath string) (*FileClient, error) {
 	return NewWithOptions(app, storagePath, -1, defaultPollInterval, defaultHeartbeatInterval, "")
 }
 
+// NewWithLane creates a new FileClient with a swimlane name.
+func NewWithLane(app int, storagePath string, lane string) (*FileClient, error) {
+	return NewWithOptions(app, storagePath, -1, defaultPollInterval, defaultHeartbeatInterval, lane)
+}
+
 // NewWithOptions creates a new FileClient with custom options.
 func NewWithOptions(app int, storagePath string, parallelism int, pollInterval, heartbeatInterval time.Duration, lane string) (*FileClient, error) {
 	if pollInterval <= 0 {
