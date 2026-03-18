@@ -400,13 +400,6 @@ public class IceClientManager {
         for (IceClientInfo client : clients) {
             IceShowConf.ClientInfo info = new IceShowConf.ClientInfo();
             info.setAddress(client.getAddress());
-            Set<String> classes = new java.util.HashSet<>();
-            if (!CollectionUtils.isEmpty(client.getLeafNodes())) {
-                for (com.ice.common.model.LeafNodeInfo node : client.getLeafNodes()) {
-                    classes.add(node.getClazz());
-                }
-            }
-            info.setClasses(classes);
             result.add(info);
         }
         return result;

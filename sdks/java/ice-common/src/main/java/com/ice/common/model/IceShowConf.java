@@ -31,6 +31,5 @@ public class IceShowConf {
     @Data
     public static class ClientInfo {
         private String address;
-        private Set<String> classes;
     }
 }
