@@ -24,8 +24,8 @@ import java.util.*;
  */
 public final class ServerConstant {
 
-    private static final Set<String> STRING_TYPES = Set.of("java.lang.String", "string", "str");
-    private static final Set<String> OBJECT_TYPES = Set.of("java.lang.Object", "object", "interface{}");
+    private static final Set<String> STRING_TYPES = new HashSet<>(Arrays.asList("java.lang.String", "string", "str"));
+    private static final Set<String> OBJECT_TYPES = new HashSet<>(Arrays.asList("java.lang.Object", "object", "interface{}"));
 
     private static boolean isStringType(String type) {
         return STRING_TYPES.contains(type);
