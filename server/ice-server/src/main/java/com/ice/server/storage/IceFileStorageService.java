@@ -625,21 +625,25 @@ public class IceFileStorageService {
     }
 
     /**
-     * 清理泳道目录：先删 _latest.json，再删空目录
+     * 删除空的泳道目录
+     * 只有当目录中除 _latest.json 外没有其他文件时，才删除 _latest.json 和目录
      */
     public boolean deleteEmptyLaneDir(int app, String lane) throws IOException {
         Path laneDir = resolveClientsDir(app, lane);
         if (!Files.exists(laneDir)) {
             return false;
         }
-        // 先删 _latest.json，它不是客户端文件但会阻止目录删除
-        Files.deleteIfExists(laneDir.resolve(LATEST_CLIENT_FILE));
-
+        // 检查是否还有客户端文件（排除 _latest.json）
         try (Stream<Path> paths = Files.list(laneDir)) {
-            if (paths.findAny().isPresent()) {
+            boolean hasClientFiles = paths
+                    .filter(p -> !p.getFileName().toString().equals(LATEST_CLIENT_FILE))
+                    .findAny().isPresent();
+            if (hasClientFiles) {
                 return false;
             }
         }
+        // 没有客户端文件了，删 _latest.json 和目录
+        Files.deleteIfExists(laneDir.resolve(LATEST_CLIENT_FILE));
         Files.deleteIfExists(laneDir);
         Path parentLaneDir = laneDir.getParent();
         if (parentLaneDir != null && parentLaneDir.getFileName().toString().equals(IceStorageConstants.DIR_LANE)) {
