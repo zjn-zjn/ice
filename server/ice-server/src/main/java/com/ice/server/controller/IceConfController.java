@@ -16,7 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * conf crud
@@ -68,8 +70,59 @@ public class IceConfController {
         }
         IceShowConf showConf = iceConfService.confDetail(app, confId == null ? base.getConfId() : confId, address, iceId, lane);
         showConf.setIceId(iceId);
-        showConf.setRegisterClients(iceAppService.getRegisterClients(app));
         return showConf;
+    }
+
+    @RequestMapping(value = "/ice-server/conf/node-meta", method = RequestMethod.GET)
+    public Map<String, Object> nodeMeta(@RequestParam Integer app,
+                                         @RequestParam(required = false) String lane,
+                                         @RequestParam(required = false) String address) {
+        Map<String, Object> result = new HashMap<>();
+        IceShowConf.ClientRegistryInfo registry = clientManager.getClientRegistry(app);
+        List<String> lanes = clientManager.listLanes(app);
+        result.put("clientRegistry", registry);
+        result.put("lanes", lanes);
+
+        String actualLane = lane;
+        String actualAddress = address;
+        String fallbackReason = null;
+
+        if (lane != null && !lane.isEmpty() && !lanes.contains(lane)) {
+            actualLane = null;
+            actualAddress = null;
+            fallbackReason = "lane_not_found";
+        }
+
+        if (actualAddress != null && !actualAddress.isEmpty()) {
+            boolean addressExists = false;
+            if (registry != null) {
+                String checkLane = actualLane;
+                String checkAddr = actualAddress;
+                List<IceShowConf.ClientInfo> clients = checkLane == null
+                    ? registry.getMainClients()
+                    : (registry.getLaneClients() != null ? registry.getLaneClients().get(checkLane) : null);
+                if (clients != null) {
+                    addressExists = clients.stream().anyMatch(c -> checkAddr.equals(c.getAddress()));
+                }
+            }
+            if (!addressExists) {
+                actualAddress = null;
+                if (fallbackReason == null) fallbackReason = "address_not_found";
+            }
+        }
+
+        if (actualAddress != null && !actualAddress.isEmpty()) {
+            result.put("leafClassMap", clientManager.getClientLeafClasses(app, actualAddress, actualLane));
+        } else {
+            result.put("leafClassMap", clientManager.getAllLeafClasses(app, actualLane));
+        }
+
+        if (fallbackReason != null) {
+            result.put("fallbackReason", fallbackReason);
+            result.put("actualLane", actualLane);
+            result.put("actualAddress", actualAddress);
+        }
+        return result;
     }
 
     @RequestMapping(value = "/ice-server/conf/release", method = RequestMethod.GET)

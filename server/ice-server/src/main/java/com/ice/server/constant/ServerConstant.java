@@ -24,6 +24,17 @@ import java.util.*;
  */
 public final class ServerConstant {
 
+    private static final Set<String> STRING_TYPES = Set.of("java.lang.String", "string", "str");
+    private static final Set<String> OBJECT_TYPES = Set.of("java.lang.Object", "object", "interface{}");
+
+    private static boolean isStringType(String type) {
+        return STRING_TYPES.contains(type);
+    }
+
+    private static boolean isObjectType(String type) {
+        return OBJECT_TYPES.contains(type);
+    }
+
     /**
      * base convert to dto
      * some filed has default value so delete it to improve trans
@@ -162,11 +173,11 @@ public final class ServerConstant {
             if (StringUtils.hasLength(conf.getSonIds())) {
                 show.setSonIds(conf.getSonIds());
             }
-            nodeShowConf.setLabelName(conf.getMixId() + (conf.isUpdatingConf() ? "^" : "") + "-" + NodeTypeEnum.getEnum(conf.getType()).name() + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
+            nodeShowConf.setLabelName(conf.getMixId() + "-" + NodeTypeEnum.getEnum(conf.getType()).name() + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
         } else {
             nodeShowConf.setConfName(conf.getConfName());
             nodeShowConf.setConfField(conf.getConfField());
-            nodeShowConf.setLabelName(conf.getMixId() + (conf.isUpdatingConf() ? "^" : "") + "-" + (StringUtils.hasLength(conf.getConfName()) ? conf.getConfName().substring(conf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
+            nodeShowConf.setLabelName(conf.getMixId() + "-" + (StringUtils.hasLength(conf.getConfName()) ? conf.getConfName().substring(conf.getConfName().lastIndexOf('.') + 1) : " ") + (StringUtils.hasLength(conf.getName()) ? ("-" + conf.getName()) : ""));
         }
         nodeShowConf.setUpdating(conf.isUpdatingConf());
         nodeShowConf.setInverse(conf.getInverse() != null && conf.getInverse() == 1);
@@ -246,12 +257,10 @@ public final class ServerConstant {
                     map.put(entry.getKey(), entry.getValue());
                     continue;
                 }
-                if (entry.getValue().isTextual() && !filedType.equals("java.lang.String")) {
-                    //text value need ensure to string, otherwise adjust it
+                if (entry.getValue().isTextual() && !isStringType(filedType)) {
                     JsonNode adjustNode;
                     String text = entry.getValue().asText();
-                    if (filedType.equals("java.lang.Object")) {
-                        //Object type to string need surround with ""
+                    if (isObjectType(filedType)) {
                         if (StringUtils.hasLength(text) && text.length() > 1 && text.startsWith("\"") && text.endsWith("\"")) {
                             map.put(entry.getKey(), new TextNode(text.substring(1, text.length() - 1)));
                             continue;
@@ -260,6 +269,10 @@ public final class ServerConstant {
                     try {
                         adjustNode = JacksonUtils.mapper.readTree(text);
                     } catch (JsonProcessingException e) {
+                        if (isObjectType(filedType)) {
+                            map.put(entry.getKey(), entry.getValue());
+                            continue;
+                        }
                         return "filed:" + entry.getKey() + " type:" + filedType + " input:" + text;
                     }
                     map.put(entry.getKey(), adjustNode);

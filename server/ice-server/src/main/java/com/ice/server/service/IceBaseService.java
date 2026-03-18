@@ -7,12 +7,16 @@ import com.ice.server.model.IceBaseSearch;
 import com.ice.server.model.PageResult;
 import com.ice.server.model.PushData;
 
+import java.util.List;
+
 /**
  * @author waitmoon
  */
 public interface IceBaseService {
 
     PageResult<IceBase> baseList(IceBaseSearch search);
+
+    Long baseCreate(IceBase base);
 
     Long baseEdit(IceBase base);
 
@@ -21,6 +25,8 @@ public interface IceBaseService {
     PageResult<IcePushHistory> history(Integer app, Long iceId, Integer pageNum, Integer pageSize);
 
     String exportData(Integer app, Long iceId, Long pushId);
+
+    String exportBatchData(Integer app, List<Long> iceIds);
 
     void rollback(Integer app, Long pushId) throws JsonProcessingException;
 

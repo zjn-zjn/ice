@@ -1,6 +1,7 @@
 package com.ice.server.storage;
 
 import com.ice.common.dto.IceClientInfo;
+import com.ice.common.model.IceShowConf;
 import com.ice.common.model.LeafNodeInfo;
 import com.ice.server.config.IceServerProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -360,6 +361,112 @@ public class IceClientManager {
                 storageService.updateLatestClient(app, lane, activeClients.get(0));
                 log.info("updated _latest.json for app:{} lane:{} to active client (no leafNodes):{}", app, lane, activeClients.get(0).getAddress());
             }
+        }
+    }
+
+    /**
+     * Get structured client registry info: main trunk clients + lane clients, each with registered classes
+     */
+    public IceShowConf.ClientRegistryInfo getClientRegistry(int app) {
+        IceShowConf.ClientRegistryInfo registry = new IceShowConf.ClientRegistryInfo();
+        try {
+            // Main trunk clients
+            List<IceClientInfo> mainClients = getActiveClients(app, null);
+            registry.setMainClients(toClientInfoList(mainClients));
+
+            // Lane clients
+            List<String> lanes = listLanes(app);
+            if (!lanes.isEmpty()) {
+                Map<String, List<IceShowConf.ClientInfo>> laneMap = new HashMap<>();
+                for (String lane : lanes) {
+                    List<IceClientInfo> laneClients = getActiveClients(app, lane);
+                    if (!laneClients.isEmpty()) {
+                        laneMap.put(lane, toClientInfoList(laneClients));
+                    }
+                }
+                registry.setLaneClients(laneMap);
+            }
+        } catch (IOException e) {
+            log.error("failed to get client registry for app:{}", app, e);
+        }
+        return registry;
+    }
+
+    private List<IceShowConf.ClientInfo> toClientInfoList(List<IceClientInfo> clients) {
+        if (CollectionUtils.isEmpty(clients)) {
+            return Collections.emptyList();
+        }
+        List<IceShowConf.ClientInfo> result = new ArrayList<>();
+        for (IceClientInfo client : clients) {
+            IceShowConf.ClientInfo info = new IceShowConf.ClientInfo();
+            info.setAddress(client.getAddress());
+            Set<String> classes = new java.util.HashSet<>();
+            if (!CollectionUtils.isEmpty(client.getLeafNodes())) {
+                for (com.ice.common.model.LeafNodeInfo node : client.getLeafNodes()) {
+                    classes.add(node.getClazz());
+                }
+            }
+            info.setClasses(classes);
+            result.add(info);
+        }
+        return result;
+    }
+
+    /**
+     * Get all leaf classes grouped by node type (5=flow, 6=result, 7=none), merged from trunk + optional lane.
+     * Returns full LeafNodeInfo with field metadata (iceFields/hideFields) for structured editing.
+     */
+    public Map<Byte, List<LeafNodeInfo>> getAllLeafClasses(int app, String lane) {
+        Map<Byte, List<LeafNodeInfo>> result = new HashMap<>();
+        byte[] types = {5, 6, 7};
+        for (byte type : types) {
+            Map<String, LeafNodeInfo> clazzMap = getLeafTypeClasses(app, type, lane);
+            if (clazzMap != null && !clazzMap.isEmpty()) {
+                List<LeafNodeInfo> list = new ArrayList<>();
+                for (Map.Entry<String, LeafNodeInfo> entry : clazzMap.entrySet()) {
+                    LeafNodeInfo info = copyNodeInfo(entry.getValue());
+                    if (info != null) {
+                        info.setClazz(entry.getKey());
+                        info.setType(type);
+                        if (info.getOrder() == null) info.setOrder(100);
+                    }
+                    list.add(info != null ? info : entry.getValue());
+                }
+                list.sort(java.util.Comparator.comparingInt(n -> n.getOrder() != null ? n.getOrder() : 100));
+                result.put(type, list);
+            }
+        }
+        return result.isEmpty() ? null : result;
+    }
+
+    /**
+     * Get leaf classes from a specific client (by address), grouped by node type.
+     */
+    public Map<Byte, List<LeafNodeInfo>> getClientLeafClasses(int app, String address, String lane) {
+        try {
+            IceClientInfo client = storageService.getClient(app, lane, address);
+            if (client == null) {
+                client = storageService.getClient(app, null, address);
+            }
+            if (client == null || CollectionUtils.isEmpty(client.getLeafNodes())) {
+                return null;
+            }
+            Map<Byte, List<LeafNodeInfo>> result = new HashMap<>();
+            for (LeafNodeInfo nodeInfo : client.getLeafNodes()) {
+                byte type = nodeInfo.getType();
+                LeafNodeInfo info = copyNodeInfo(nodeInfo);
+                if (info != null) {
+                    if (info.getOrder() == null) info.setOrder(100);
+                }
+                result.computeIfAbsent(type, k -> new ArrayList<>()).add(info != null ? info : nodeInfo);
+            }
+            for (List<LeafNodeInfo> list : result.values()) {
+                list.sort(java.util.Comparator.comparingInt(n -> n.getOrder() != null ? n.getOrder() : 100));
+            }
+            return result.isEmpty() ? null : result;
+        } catch (IOException e) {
+            log.error("failed to get client leaf classes for app:{} address:{}", app, address, e);
+            return null;
         }
     }
 }

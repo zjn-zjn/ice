@@ -67,12 +67,7 @@ public class IceBaseServiceImpl implements IceBaseService {
                         return match;
                     })
                     .map(IceBase::fromDto)
-                    .sorted((a, b) -> {
-                        if (a.getUpdateAt() == null && b.getUpdateAt() == null) return 0;
-                        if (a.getUpdateAt() == null) return 1;
-                        if (b.getUpdateAt() == null) return -1;
-                        return b.getUpdateAt().compareTo(a.getUpdateAt());
-                    })
+                    .sorted((a, b) -> Long.compare(b.getId(), a.getId()))
                     .collect(Collectors.toList());
 
             // 分页
@@ -94,67 +89,93 @@ public class IceBaseServiceImpl implements IceBaseService {
     }
 
     @Override
-    public Long baseEdit(IceBase base) {
+    public Long baseCreate(IceBase base) {
         try {
             IceTransferDto transferDto = new IceTransferDto();
 
-            if (base.getId() == null) {
-                // 新建base - 设置默认值
-                long newId = storageService.nextBaseId(base.getApp());
-                base.setId(newId);
-                base.setCreateAt(new Date());
-                base.setDebug(base.getDebug() == null ? (byte) 0 : base.getDebug());
-                base.setScenes(base.getScenes() == null ? "" : base.getScenes());
-                base.setStatus(base.getStatus() == null ? IceStorageConstants.STATUS_ONLINE : base.getStatus());
-                base.setTimeType(base.getTimeType() == null ? (byte) 1 : base.getTimeType());
-                base.setPriority(base.getPriority() == null ? 1L : base.getPriority());
-
-                if (base.getConfId() == null) {
-                    // 创建默认root节点
-                    long confId = storageService.nextConfId(base.getApp());
-                    IceConfDto createConf = new IceConfDto();
-                    createConf.setId(confId);
-                    createConf.setApp(base.getApp());
-                    createConf.setStatus(IceStorageConstants.STATUS_ONLINE);
-                    createConf.setType(NodeTypeEnum.NONE.getType());
-                    createConf.setInverse(false);
-                    createConf.setDebug((byte) 1);
-                    createConf.setTimeType(TimeTypeEnum.NONE.getType());
-                    createConf.setCreateAt(System.currentTimeMillis());
-                    createConf.setUpdateAt(System.currentTimeMillis());
-                    storageService.saveConf(createConf);
-
-                    transferDto.setInsertOrUpdateConfs(Collections.singletonList(createConf));
-                    base.setConfId(confId);
+            if (base.getId() != null) {
+                IceBaseDto existing = storageService.getBase(base.getApp(), base.getId());
+                if (existing != null && existing.getStatus() != null
+                        && existing.getStatus() != IceStorageConstants.STATUS_DELETED) {
+                    throw new ErrorCodeException(ErrorCode.ALREADY_EXIST, "iceId", base.getId());
                 }
+                storageService.ensureBaseIdNotLessThan(base.getApp(), base.getId());
             } else {
-                // 编辑base - 保留原有值
-                IceBaseDto origin = storageService.getBase(base.getApp(), base.getId());
-                if (origin == null || origin.getStatus() == IceStorageConstants.STATUS_OFFLINE) {
-                    throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", base.getId());
-                }
-                base.setConfId(origin.getConfId());
-                base.setCreateAt(origin.getCreateAt() != null ? new Date(origin.getCreateAt()) : null);
-                // 如果前端没传，保留原有值
-                if (base.getDebug() == null) {
-                    base.setDebug(origin.getDebug());
-                }
-                if (base.getScenes() == null) {
-                    base.setScenes(origin.getScenes());
-                }
-                if (base.getStatus() == null) {
-                    base.setStatus(origin.getStatus());
-                }
-                if (base.getTimeType() == null) {
-                    base.setTimeType(origin.getTimeType());
-                }
-                if (base.getPriority() == null) {
-                    base.setPriority(origin.getPriority());
-                }
+                base.setId(storageService.nextBaseId(base.getApp()));
             }
-            
-            timeCheck(base);
 
+            base.setCreateAt(new Date());
+            base.setDebug(base.getDebug() == null ? (byte) 0 : base.getDebug());
+            base.setScenes(base.getScenes() == null ? "" : base.getScenes());
+            base.setStatus(base.getStatus() == null ? IceStorageConstants.STATUS_ONLINE : base.getStatus());
+            base.setTimeType(base.getTimeType() == null ? (byte) 1 : base.getTimeType());
+            base.setPriority(base.getPriority() == null ? 1L : base.getPriority());
+
+            if (base.getConfId() == null) {
+                long confId = storageService.nextConfId(base.getApp());
+                IceConfDto createConf = new IceConfDto();
+                createConf.setId(confId);
+                createConf.setApp(base.getApp());
+                createConf.setStatus(IceStorageConstants.STATUS_ONLINE);
+                createConf.setType(NodeTypeEnum.NONE.getType());
+                createConf.setInverse(false);
+                createConf.setDebug((byte) 1);
+                createConf.setTimeType(TimeTypeEnum.NONE.getType());
+                createConf.setCreateAt(System.currentTimeMillis());
+                createConf.setUpdateAt(System.currentTimeMillis());
+                storageService.saveConf(createConf);
+                transferDto.setInsertOrUpdateConfs(Collections.singletonList(createConf));
+                base.setConfId(confId);
+            }
+
+            timeCheck(base);
+            base.setUpdateAt(new Date());
+            storageService.saveBase(base.toDto());
+            transferDto.setInsertOrUpdateBases(Collections.singletonList(base.toDto()));
+
+            long newVersion = ((IceServerServiceImpl) iceServerService).getAndIncrementVersion(base.getApp());
+            transferDto.setVersion(newVersion);
+            storageService.saveVersionUpdate(base.getApp(), newVersion, transferDto);
+
+            return base.getId();
+        } catch (IOException e) {
+            log.error("failed to create base", e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
+        }
+    }
+
+    @Override
+    public Long baseEdit(IceBase base) {
+        try {
+            if (base.getId() == null) {
+                throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "id required for edit");
+            }
+            IceBaseDto origin = storageService.getBase(base.getApp(), base.getId());
+            if (origin == null || origin.getStatus() == IceStorageConstants.STATUS_OFFLINE) {
+                throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", base.getId());
+            }
+
+            IceTransferDto transferDto = new IceTransferDto();
+
+            base.setConfId(origin.getConfId());
+            base.setCreateAt(origin.getCreateAt() != null ? new Date(origin.getCreateAt()) : null);
+            if (base.getDebug() == null) {
+                base.setDebug(origin.getDebug());
+            }
+            if (base.getScenes() == null) {
+                base.setScenes(origin.getScenes());
+            }
+            if (base.getStatus() == null) {
+                base.setStatus(origin.getStatus());
+            }
+            if (base.getTimeType() == null) {
+                base.setTimeType(origin.getTimeType());
+            }
+            if (base.getPriority() == null) {
+                base.setPriority(origin.getPriority());
+            }
+
+            timeCheck(base);
             base.setUpdateAt(new Date());
             storageService.saveBase(base.toDto());
 
@@ -164,7 +185,6 @@ public class IceBaseServiceImpl implements IceBaseService {
                 transferDto.setDeleteBaseIds(Collections.singletonList(base.getId()));
             }
 
-            // 更新版本
             long newVersion = ((IceServerServiceImpl) iceServerService).getAndIncrementVersion(base.getApp());
             transferDto.setVersion(newVersion);
             storageService.saveVersionUpdate(base.getApp(), newVersion, transferDto);
@@ -296,6 +316,23 @@ public class IceBaseServiceImpl implements IceBaseService {
             throw new ErrorCodeException(ErrorCode.ID_NOT_EXIST, "iceId", iceId);
         } catch (IOException e) {
             log.error("failed to export data for app:{}", app, e);
+            throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
+        }
+    }
+
+    @Override
+    public String exportBatchData(Integer app, List<Long> iceIds) {
+        try {
+            List<PushData> pushDataList = new ArrayList<>();
+            for (Long iceId : iceIds) {
+                IceBaseDto base = storageService.getBase(app, iceId);
+                if (base != null) {
+                    pushDataList.add(getPushData(IceBase.fromDto(base)));
+                }
+            }
+            return JacksonUtils.toJsonString(pushDataList);
+        } catch (IOException e) {
+            log.error("failed to batch export data for app:{}", app, e);
             throw new ErrorCodeException(ErrorCode.INTERNAL_ERROR, e.getMessage());
         }
     }

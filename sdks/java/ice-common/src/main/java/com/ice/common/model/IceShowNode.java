@@ -62,5 +62,7 @@ public class IceShowNode {
         private Boolean haveMeta;
 
         private LeafNodeInfo nodeInfo;
+
+        private Boolean classRegistered;
     }
 }

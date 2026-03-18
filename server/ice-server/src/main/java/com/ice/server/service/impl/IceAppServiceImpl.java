@@ -80,12 +80,7 @@ public class IceAppServiceImpl implements IceAppService {
                         return true;
                     })
                     .map(IceApp::fromDto)
-                    .sorted((a, b) -> {
-                        if (a.getUpdateAt() == null && b.getUpdateAt() == null) return 0;
-                        if (a.getUpdateAt() == null) return 1;
-                        if (b.getUpdateAt() == null) return -1;
-                        return b.getUpdateAt().compareTo(a.getUpdateAt());
-                    })
+                    .sorted((a, b) -> Integer.compare(b.getId(), a.getId()))
                     .collect(Collectors.toList());
 
             // 分页

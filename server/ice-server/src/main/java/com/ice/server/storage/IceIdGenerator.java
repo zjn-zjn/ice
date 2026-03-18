@@ -71,5 +71,22 @@ public class IceIdGenerator {
             return 0;
         }
     }
+
+    /**
+     * 确保当前ID不小于指定值，防止用户指定ID后自动分配的ID冲突
+     */
+    public void ensureNotLessThan(long minId) throws IOException {
+        synchronized (lock) {
+            long current = currentId();
+            if (current < minId) {
+                Files.createDirectories(idFilePath.getParent());
+                Path tmpPath = idFilePath.resolveSibling(idFilePath.getFileName() + IceStorageConstants.SUFFIX_TMP);
+                Files.write(tmpPath, String.valueOf(minId).getBytes(StandardCharsets.UTF_8),
+                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                Files.move(tmpPath, idFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            }
+        }
+    }
 }
 

@@ -123,6 +123,10 @@ public class IceFileStorageService {
         return getBaseIdGenerator(app).nextId();
     }
 
+    public void ensureBaseIdNotLessThan(int app, long minId) throws IOException {
+        getBaseIdGenerator(app).ensureNotLessThan(minId);
+    }
+
     public void saveBase(IceBaseDto base) throws IOException {
         ensureAppDirectories(base.getApp());
         Path basePath = getAppPath(base.getApp()).resolve(IceStorageConstants.DIR_BASES)

@@ -93,7 +93,7 @@ public class IceConfServiceImpl implements IceConfService {
                     throw new ErrorCodeException(ErrorCode.CUSTOM, "move to moveToNext:" + editNode.getMoveToNextId() + " already has forward");
                 }
                 if (iceServerService.haveCircle(app, iceId, moveToNext.getMixId(), editNode.getSelectId())) {
-                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "无法移动，存在循环引用");
                 }
                 moveToNext.setForwardId(editNode.getSelectId());
                 StringBuilder sb = new StringBuilder();
@@ -143,7 +143,7 @@ public class IceConfServiceImpl implements IceConfService {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "move to parentId not parent");
                 }
                 if (iceServerService.haveCircle(app, iceId, moveToParent.getMixId(), editNode.getSelectId())) {
-                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "无法移动，存在循环引用");
                 }
 
                 if (editNode.getMoveTo() == null) {
@@ -206,7 +206,7 @@ public class IceConfServiceImpl implements IceConfService {
                     throw new ErrorCodeException(ErrorCode.CUSTOM, "move to next:" + editNode.getMoveToNextId() + " already has forward");
                 }
                 if (iceServerService.haveCircle(app, iceId, moveToNext.getMixId(), editNode.getSelectId())) {
-                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "无法移动，存在循环引用");
                 }
                 moveToNext.setForwardId(editNode.getSelectId());
                 next.setForwardId(null);
@@ -223,7 +223,7 @@ public class IceConfServiceImpl implements IceConfService {
                     throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "move to parentId not parent");
                 }
                 if (iceServerService.haveCircle(app, iceId, moveToParent.getMixId(), editNode.getSelectId())) {
-                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "can not move, circles found");
+                    throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "无法移动，存在循环引用");
                 }
                 if (editNode.getMoveTo() == null) {
                     moveToParent.setSonIds(StringUtils.hasLength(moveToParent.getSonIds()) ? (moveToParent.getSonIds() + Constant.REGEX_COMMA + editNode.getSelectId()) : (editNode.getSelectId() + ""));
@@ -668,19 +668,30 @@ public class IceConfServiceImpl implements IceConfService {
 
     @Override
     public IceShowConf confDetail(int app, long confId, String address, long iceId, String lane) {
-        if (address == null || address.equals("server")) {
-            IceShowNode root = iceServerService.getConfMixById(app, confId, iceId, lane);
-            if (root == null) {
-                throw new ErrorCodeException(ErrorCode.CONF_NOT_FOUND, app, "confId", confId);
-            }
-            IceShowConf serverConf = new IceShowConf();
-            serverConf.setApp(app);
-            serverConf.setRoot(root);
-            addUniqueKey(root, null, true, false);
-            return serverConf;
+        IceShowNode root = iceServerService.getConfMixById(app, confId, iceId, lane);
+        if (root == null) {
+            throw new ErrorCodeException(ErrorCode.CONF_NOT_FOUND, app, "confId", confId);
         }
-        // 不再支持从client获取配置详情
-        throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "client address not supported anymore, use 'server' instead");
+        IceShowConf serverConf = new IceShowConf();
+        serverConf.setApp(app);
+        serverConf.setRoot(root);
+        addUniqueKey(root, null, true, false);
+        serverConf.setUpdateCount(countUpdating(root));
+        return serverConf;
+    }
+
+    private int countUpdating(IceShowNode node) {
+        if (node == null) return 0;
+        int count = Boolean.TRUE.equals(node.getShowConf().getUpdating()) ? 1 : 0;
+        if (node.getForward() != null) {
+            count += countUpdating(node.getForward());
+        }
+        if (!CollectionUtils.isEmpty(node.getChildren())) {
+            for (IceShowNode child : node.getChildren()) {
+                count += countUpdating(child);
+            }
+        }
+        return count;
     }
 
     private void addUniqueKey(IceShowNode node, String prefix, boolean root, boolean forward) {

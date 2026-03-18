@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -43,10 +44,18 @@ public class IceBaseController {
     public PageResult<IceBase> baseList(@RequestParam Integer app,
                                         @RequestParam(defaultValue = "1") Integer pageId,
                                         @RequestParam(defaultValue = "100") Integer pageSize,
-                                        @RequestParam(defaultValue = "") Long id,
+                                        @RequestParam(required = false) Long id,
                                         @RequestParam(defaultValue = "") String scene,
                                         @RequestParam(defaultValue = "") String name) {
         return iceBaseService.baseList(new IceBaseSearch(app, id, name, scene, pageId, pageSize));
+    }
+
+    @RequestMapping(value = "/ice-server/base/create", method = RequestMethod.POST)
+    public Long baseCreate(@RequestBody IceBase base) {
+        if (base == null) {
+            throw new ErrorCodeException(ErrorCode.INPUT_ERROR, "base");
+        }
+        return iceBaseService.baseCreate(base);
     }
 
     @RequestMapping(value = "/ice-server/base/edit", method = RequestMethod.POST)
@@ -93,6 +102,12 @@ public class IceBaseController {
                                     @RequestParam Long iceId,
                                     @RequestParam(required = false) Long pushId) {
         return WebResult.success(iceBaseService.exportData(app, iceId, pushId));
+    }
+
+    @RequestMapping(value = "/ice-server/base/export/batch", method = RequestMethod.GET)
+    public WebResult<String> exportBatch(@RequestParam Integer app,
+                                         @RequestParam List<Long> iceIds) {
+        return WebResult.success(iceBaseService.exportBatchData(app, iceIds));
     }
 
     @RequestMapping(value = "/ice-server/base/rollback", method = RequestMethod.GET)
