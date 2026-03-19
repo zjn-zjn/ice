@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   ice-server:
-    image: waitmoon/ice-server:2.0.0
+    image: waitmoon/ice-server:2.1.3
     container_name: ice-server
     ports:
       - "8121:8121"
@@ -24,14 +24,14 @@ services:
 # 多实例部署示例（需要共享存储）
 # services:
 #   ice-server-1:
-#     image: waitmoon/ice-server:2.0.0
+#     image: waitmoon/ice-server:2.1.3
 #     ports:
 #       - "8121:8121"
 #     volumes:
 #       - /shared/ice-data:/app/ice-data  # NFS/云盘等共享存储
 #
 #   ice-server-2:
-#     image: waitmoon/ice-server:2.0.0
+#     image: waitmoon/ice-server:2.1.3
 #     ports:
 #       - "8122:8121"
 #     volumes:

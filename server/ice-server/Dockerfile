@@ -1,7 +1,7 @@
 # 运行阶段（使用已打包的 jar）
 FROM eclipse-temurin:8-jre
 LABEL maintainer="waitmoon"
-LABEL version="2.0.0"
+LABEL version="2.1.3"
 LABEL description="Ice Server - Rule Engine Configuration Server"
 
 WORKDIR /app
