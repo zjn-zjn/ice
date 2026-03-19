@@ -1,0 +1,857 @@
+package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+)
+
+type ConfService struct {
+	storage       *Storage
+	serverService *ServerService
+	clientManager *ClientManager
+	mu            sync.Mutex
+}
+
+func NewConfService(storage *Storage, serverService *ServerService, clientManager *ClientManager) *ConfService {
+	return &ConfService{storage: storage, serverService: serverService, clientManager: clientManager}
+}
+
+func (cs *ConfService) ConfEdit(editNode *IceEditNode) (int64, error) {
+	if err := cs.paramHandle(editNode); err != nil {
+		return 0, err
+	}
+	switch *editNode.EditType {
+	case EditTypeAddSon:
+		return cs.addSon(editNode)
+	case EditTypeEdit:
+		return cs.edit(editNode)
+	case EditTypeDelete:
+		return cs.deleteNode(editNode)
+	case EditTypeAddForward:
+		return cs.addForward(editNode)
+	case EditTypeExchange:
+		return cs.exchange(editNode)
+	case EditTypeMove:
+		return cs.moveNode(editNode)
+	}
+	return 0, InputError("unknown editType")
+}
+
+func (cs *ConfService) addSon(editNode *IceEditNode) (int64, error) {
+	app := *editNode.App
+	iceId := *editNode.IceId
+
+	operateConf := cs.serverService.GetMixConfById(app, *editNode.SelectId, iceId)
+	if operateConf == nil {
+		return 0, IDNotExist("selectId", *editNode.SelectId)
+	}
+	if IsLeaf(operateConf.Type) {
+		return 0, InputError(fmt.Sprintf("only relation can have son id:%d", *editNode.SelectId))
+	}
+
+	if editNode.MultiplexIds != "" {
+		sonIdStrs := strings.Split(editNode.MultiplexIds, ",")
+		sonIdSet := make(map[int64]bool, len(sonIdStrs))
+		sonIdList := make([]int64, 0, len(sonIdStrs))
+		for _, s := range sonIdStrs {
+			id, _ := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+			sonIdSet[id] = true
+			sonIdList = append(sonIdList, id)
+		}
+		if cs.serverService.HaveCircleMulti(app, iceId, operateConf.GetMixId(), sonIdList) {
+			return 0, InputError("circles found please check sonIds")
+		}
+		children := cs.serverService.GetMixConfListByIds(app, sonIdSet, iceId)
+		if children == nil || len(children) != len(sonIdSet) {
+			return 0, InputError("one of son id not exist:" + editNode.MultiplexIds)
+		}
+		if operateConf.SonIds == "" {
+			operateConf.SonIds = editNode.MultiplexIds
+		} else {
+			operateConf.SonIds = operateConf.SonIds + "," + editNode.MultiplexIds
+		}
+		cs.updateConf(operateConf, iceId)
+		return operateConf.GetMixId(), nil
+	}
+
+	createConf, err := cs.createNewConf(editNode, app)
+	if err != nil {
+		return 0, err
+	}
+	if operateConf.SonIds == "" {
+		operateConf.SonIds = strconv.FormatInt(createConf.GetMixId(), 10)
+	} else {
+		operateConf.SonIds = operateConf.SonIds + "," + strconv.FormatInt(createConf.GetMixId(), 10)
+	}
+	createConf.IceId = &iceId
+	createConf.ConfId = &createConf.ID
+	cs.saveConfUpdate(createConf, iceId)
+	cs.updateConf(operateConf, iceId)
+	return createConf.GetMixId(), nil
+}
+
+func (cs *ConfService) edit(editNode *IceEditNode) (int64, error) {
+	app := *editNode.App
+	iceId := *editNode.IceId
+
+	operateConf := cs.serverService.GetMixConfById(app, *editNode.SelectId, iceId)
+	if operateConf == nil {
+		return 0, IDNotExist("selectId", *editNode.SelectId)
+	}
+
+	debug := int8(1)
+	if !editNode.IsDebug() {
+		debug = 0
+	}
+	operateConf.Debug = &debug
+	operateConf.TimeType = editNode.TimeType
+	operateConf.Start = editNode.Start
+	operateConf.End = editNode.End
+	inverse := editNode.IsInverse()
+	operateConf.Inverse = &inverse
+	if editNode.Name != "" {
+		operateConf.Name = editNode.Name
+	} else {
+		operateConf.Name = ""
+	}
+
+	if IsLeaf(operateConf.Type) {
+		leafNodeInfo := cs.leafClassCheck(app, operateConf.ConfName, operateConf.Type)
+		if editNode.ConfField != "" {
+			if checkRes := checkIllegalAndAdjustJson(editNode, leafNodeInfo); checkRes != "" {
+				return 0, ConfigFieldIllegal(checkRes)
+			}
+		}
+		operateConf.ConfField = editNode.ConfField
+	}
+	cs.updateConf(operateConf, iceId)
+	return operateConf.GetMixId(), nil
+}
+
+func (cs *ConfService) deleteNode(editNode *IceEditNode) (int64, error) {
+	app := *editNode.App
+	iceId := *editNode.IceId
+
+	if editNode.ParentId != nil {
+		operateConf := cs.serverService.GetMixConfById(app, *editNode.ParentId, iceId)
+		if operateConf == nil {
+			return 0, IDNotExist("parentId", *editNode.ParentId)
+		}
+		if operateConf.SonIds == "" {
+			return 0, InputError("parent no children")
+		}
+		sonIdStrs := strings.Split(operateConf.SonIds, ",")
+		index := -1
+		if editNode.Index != nil {
+			index = *editNode.Index
+		}
+		if index < 0 || index >= len(sonIdStrs) || sonIdStrs[index] != strconv.FormatInt(*editNode.SelectId, 10) {
+			return 0, InputError("parent do not have this son with input index")
+		}
+		// Remove the son at index
+		var sb strings.Builder
+		for i, s := range sonIdStrs {
+			if i != index {
+				if sb.Len() > 0 {
+					sb.WriteByte(',')
+				}
+				sb.WriteString(s)
+			}
+		}
+		operateConf.SonIds = sb.String()
+		cs.updateConf(operateConf, iceId)
+		return operateConf.GetMixId(), nil
+	}
+
+	if editNode.NextId != nil {
+		operateConf := cs.serverService.GetMixConfById(app, *editNode.NextId, iceId)
+		if operateConf == nil {
+			return 0, IDNotExist("nextId", *editNode.NextId)
+		}
+		if operateConf.ForwardId == nil || *operateConf.ForwardId != *editNode.SelectId {
+			return 0, InputError(fmt.Sprintf("nextId:%d not have this forward:%d", *editNode.NextId, *editNode.SelectId))
+		}
+		operateConf.ForwardId = nil
+		cs.updateConf(operateConf, iceId)
+		return operateConf.GetMixId(), nil
+	}
+	return 0, InputError("root not support delete")
+}
+
+func (cs *ConfService) addForward(editNode *IceEditNode) (int64, error) {
+	app := *editNode.App
+	iceId := *editNode.IceId
+
+	operateConf := cs.serverService.GetMixConfById(app, *editNode.SelectId, iceId)
+	if operateConf == nil {
+		return 0, IDNotExist("selectId", *editNode.SelectId)
+	}
+	if operateConf.ForwardId != nil {
+		return 0, AlreadyExist("forward")
+	}
+
+	if editNode.MultiplexIds != "" {
+		forwardId, _ := strconv.ParseInt(editNode.MultiplexIds, 10, 64)
+		if cs.serverService.HaveCircle(app, iceId, operateConf.GetMixId(), forwardId) {
+			return 0, InputError("circles found please check forwardIds")
+		}
+		forward := cs.serverService.GetMixConfById(app, forwardId, iceId)
+		if forward == nil {
+			return 0, IDNotExist("forwardId", forwardId)
+		}
+		operateConf.ForwardId = &forwardId
+		cs.updateConf(operateConf, iceId)
+		return operateConf.GetMixId(), nil
+	}
+
+	createConf, err := cs.createNewConf(editNode, app)
+	if err != nil {
+		return 0, err
+	}
+	fwdId := createConf.GetMixId()
+	operateConf.ForwardId = &fwdId
+	createConf.IceId = &iceId
+	createConf.ConfId = &createConf.ID
+	cs.saveConfUpdate(createConf, iceId)
+	cs.updateConf(operateConf, iceId)
+	return createConf.GetMixId(), nil
+}
+
+func (cs *ConfService) exchange(editNode *IceEditNode) (int64, error) {
+	app := *editNode.App
+	iceId := *editNode.IceId
+
+	if editNode.MultiplexIds != "" {
+		if editNode.ParentId == nil && editNode.NextId == nil {
+			return 0, InputError("root not support exchange by id")
+		}
+		if editNode.ParentId != nil {
+			conf := cs.serverService.GetMixConfById(app, *editNode.ParentId, iceId)
+			if conf == nil {
+				return 0, IDNotExist("parentId", *editNode.ParentId)
+			}
+			sonIdStrs := strings.Split(editNode.MultiplexIds, ",")
+			sonIdSet := make(map[int64]bool, len(sonIdStrs))
+			for _, s := range sonIdStrs {
+				id, _ := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+				sonIdSet[id] = true
+			}
+			children := cs.serverService.GetMixConfListByIds(app, sonIdSet, iceId)
+			if children == nil || len(children) != len(sonIdSet) {
+				return 0, IDNotExist("one of sonId", editNode.MultiplexIds)
+			}
+			if cs.serverService.HaveCircleSet(app, iceId, *editNode.ParentId, sonIdSet) {
+				return 0, InputError("circles found please check input sonIds")
+			}
+			sonIds := strings.Split(conf.SonIds, ",")
+			index := -1
+			if editNode.Index != nil {
+				index = *editNode.Index
+			}
+			if index < 0 || index >= len(sonIds) || sonIds[index] != strconv.FormatInt(*editNode.SelectId, 10) {
+				return 0, InputError("parent do not have this son with input index")
+			}
+			sonIds[index] = editNode.MultiplexIds
+			conf.SonIds = strings.Join(sonIds, ",")
+			cs.updateConf(conf, iceId)
+			return conf.GetMixId(), nil
+		}
+		if editNode.NextId != nil {
+			conf := cs.serverService.GetMixConfById(app, *editNode.NextId, iceId)
+			if conf == nil {
+				return 0, IDNotExist("nextId", *editNode.NextId)
+			}
+			if conf.ForwardId == nil {
+				return 0, InputError(fmt.Sprintf("nextId:%d no forward", *editNode.NextId))
+			}
+			exchangeForwardId, _ := strconv.ParseInt(editNode.MultiplexIds, 10, 64)
+			if cs.serverService.HaveCircle(app, iceId, *editNode.NextId, exchangeForwardId) {
+				return 0, InputError("circles found please check exchangeForwardId")
+			}
+			conf.ForwardId = &exchangeForwardId
+			cs.updateConf(conf, iceId)
+			return conf.GetMixId(), nil
+		}
+	}
+
+	operateConf := cs.serverService.GetMixConfById(app, *editNode.SelectId, iceId)
+	if operateConf == nil {
+		return 0, IDNotExist("selectId", *editNode.SelectId)
+	}
+
+	debug := int8(1)
+	if !editNode.IsDebug() {
+		debug = 0
+	}
+	operateConf.Debug = &debug
+	inverse := editNode.IsInverse()
+	operateConf.Inverse = &inverse
+	operateConf.TimeType = editNode.TimeType
+	operateConf.Start = editNode.Start
+	operateConf.End = editNode.End
+
+	if editNode.NodeType != nil {
+		if IsRelation(operateConf.Type) && !IsRelation(*editNode.NodeType) {
+			operateConf.SonIds = ""
+		}
+		operateConf.Type = *editNode.NodeType
+	}
+	operateConf.App = app
+	if editNode.Name != "" {
+		operateConf.Name = editNode.Name
+	}
+
+	if editNode.NodeType != nil && IsLeaf(*editNode.NodeType) {
+		leafNodeInfo := cs.leafClassCheck(app, editNode.ConfName, *editNode.NodeType)
+		if editNode.ConfField != "" {
+			if checkRes := checkIllegalAndAdjustJson(editNode, leafNodeInfo); checkRes != "" {
+				return 0, ConfigFieldIllegal(checkRes)
+			}
+		}
+		operateConf.ConfName = editNode.ConfName
+		operateConf.ConfField = editNode.ConfField
+	}
+	cs.updateConf(operateConf, iceId)
+	return operateConf.GetMixId(), nil
+}
+
+func (cs *ConfService) moveNode(editNode *IceEditNode) (int64, error) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+
+	app := *editNode.App
+	iceId := *editNode.IceId
+
+	if editNode.ParentId != nil && editNode.Index != nil {
+		parent := cs.serverService.GetMixConfById(app, *editNode.ParentId, iceId)
+		if parent == nil {
+			return 0, IDNotExist("parentId", *editNode.ParentId)
+		}
+		if parent.SonIds == "" {
+			return 0, InputError("parent no child")
+		}
+		if IsLeaf(parent.Type) {
+			return 0, InputError("parentId not parent")
+		}
+		sonIds := strings.Split(parent.SonIds, ",")
+		index := *editNode.Index
+		selectIdStr := strconv.FormatInt(*editNode.SelectId, 10)
+		if index < 0 || index >= len(sonIds) || sonIds[index] != selectIdStr {
+			return 0, InputError("parent do not have this son with input index")
+		}
+
+		// Move to forward of another node
+		if editNode.MoveToNextId != nil {
+			moveToNext := cs.serverService.GetMixConfById(app, *editNode.MoveToNextId, iceId)
+			if moveToNext == nil {
+				return 0, IDNotExist("moveToNextId", *editNode.MoveToNextId)
+			}
+			if moveToNext.ForwardId != nil {
+				return 0, CustomError(fmt.Sprintf("move to moveToNext:%d already has forward", *editNode.MoveToNextId))
+			}
+			if cs.serverService.HaveCircle(app, iceId, moveToNext.GetMixId(), *editNode.SelectId) {
+				return 0, InputError("无法移动，存在循环引用")
+			}
+			moveToNext.ForwardId = editNode.SelectId
+			// Remove from parent
+			var parts []string
+			for i, s := range sonIds {
+				if i != index {
+					parts = append(parts, s)
+				}
+			}
+			parent.SonIds = strings.Join(parts, ",")
+			cs.updateConf(moveToNext, iceId)
+			cs.updateConf(parent, iceId)
+			return *editNode.SelectId, nil
+		}
+
+		// Move within same parent or to different parent
+		moveToParentId := editNode.MoveToParentId
+		if moveToParentId == nil || *moveToParentId == *editNode.ParentId {
+			// Reorder within same parent
+			if len(sonIds) == 1 {
+				return *editNode.SelectId, nil
+			}
+			if editNode.MoveTo == nil && index == len(sonIds)-1 {
+				return *editNode.SelectId, nil
+			}
+			if editNode.MoveTo != nil && *editNode.MoveTo == index {
+				return *editNode.SelectId, nil
+			}
+
+			if editNode.MoveTo == nil || *editNode.MoveTo >= len(sonIds) {
+				// Move to end
+				var parts []string
+				for i, s := range sonIds {
+					if i != index {
+						parts = append(parts, s)
+					}
+				}
+				parent.SonIds = strings.Join(parts, ",") + "," + selectIdStr
+			} else {
+				var parts []string
+				for i, s := range sonIds {
+					if *editNode.MoveTo == i {
+						parts = append(parts, selectIdStr)
+					}
+					if i != index {
+						parts = append(parts, s)
+					}
+				}
+				parent.SonIds = strings.Join(parts, ",")
+			}
+			cs.updateConf(parent, iceId)
+		} else {
+			// Move to different parent
+			moveToParent := cs.serverService.GetMixConfById(app, *moveToParentId, iceId)
+			if moveToParent == nil {
+				return 0, IDNotExist("moveToParentId", *moveToParentId)
+			}
+			if IsLeaf(moveToParent.Type) {
+				return 0, InputError("move to parentId not parent")
+			}
+			if cs.serverService.HaveCircle(app, iceId, moveToParent.GetMixId(), *editNode.SelectId) {
+				return 0, InputError("无法移动，存在循环引用")
+			}
+
+			// Add to new parent
+			if editNode.MoveTo == nil {
+				if moveToParent.SonIds == "" {
+					moveToParent.SonIds = selectIdStr
+				} else {
+					moveToParent.SonIds = moveToParent.SonIds + "," + selectIdStr
+				}
+			} else {
+				if moveToParent.SonIds == "" {
+					moveToParent.SonIds = selectIdStr
+				} else {
+					moveToSonIds := strings.Split(moveToParent.SonIds, ",")
+					if *editNode.MoveTo >= len(moveToSonIds) || *editNode.MoveTo < 0 {
+						moveToParent.SonIds = moveToParent.SonIds + "," + selectIdStr
+					} else {
+						var parts []string
+						for i, s := range moveToSonIds {
+							if *editNode.MoveTo == i {
+								parts = append(parts, selectIdStr)
+							}
+							parts = append(parts, s)
+						}
+						moveToParent.SonIds = strings.Join(parts, ",")
+					}
+				}
+			}
+
+			// Remove from old parent
+			var parts []string
+			for i, s := range sonIds {
+				if i != index {
+					parts = append(parts, s)
+				}
+			}
+			parent.SonIds = strings.Join(parts, ",")
+			cs.updateConf(moveToParent, iceId)
+			cs.updateConf(parent, iceId)
+		}
+		return *editNode.SelectId, nil
+	}
+
+	// Move from forward position
+	if editNode.NextId != nil {
+		next := cs.serverService.GetMixConfById(app, *editNode.NextId, iceId)
+		if next == nil {
+			return 0, IDNotExist("nextId", *editNode.NextId)
+		}
+		if next.ForwardId == nil || *next.ForwardId != *editNode.SelectId {
+			return 0, CustomError(fmt.Sprintf("next:%d not have this forward:%d", *editNode.NextId, *editNode.SelectId))
+		}
+
+		if editNode.MoveToNextId != nil {
+			if *editNode.NextId == *editNode.MoveToNextId {
+				return *editNode.SelectId, nil
+			}
+			moveToNext := cs.serverService.GetMixConfById(app, *editNode.MoveToNextId, iceId)
+			if moveToNext == nil {
+				return 0, IDNotExist("moveToNextId", *editNode.MoveToNextId)
+			}
+			if moveToNext.ForwardId != nil {
+				return 0, CustomError(fmt.Sprintf("move to next:%d already has forward", *editNode.MoveToNextId))
+			}
+			if cs.serverService.HaveCircle(app, iceId, moveToNext.GetMixId(), *editNode.SelectId) {
+				return 0, InputError("无法移动，存在循环引用")
+			}
+			moveToNext.ForwardId = editNode.SelectId
+			next.ForwardId = nil
+			cs.updateConf(moveToNext, iceId)
+			cs.updateConf(next, iceId)
+			return *editNode.SelectId, nil
+		}
+
+		if editNode.MoveToParentId != nil {
+			sameNode := *editNode.MoveToParentId == *editNode.NextId
+			var moveToParent *IceConf
+			if sameNode {
+				moveToParent = next
+			} else {
+				moveToParent = cs.serverService.GetMixConfById(app, *editNode.MoveToParentId, iceId)
+				if moveToParent == nil {
+					return 0, IDNotExist("moveToParentId", *editNode.MoveToParentId)
+				}
+			}
+			if IsLeaf(moveToParent.Type) {
+				return 0, InputError("move to parentId not parent")
+			}
+			if cs.serverService.HaveCircle(app, iceId, moveToParent.GetMixId(), *editNode.SelectId) {
+				return 0, InputError("无法移动，存在循环引用")
+			}
+
+			selectIdStr := strconv.FormatInt(*editNode.SelectId, 10)
+			if editNode.MoveTo == nil {
+				if moveToParent.SonIds == "" {
+					moveToParent.SonIds = selectIdStr
+				} else {
+					moveToParent.SonIds = moveToParent.SonIds + "," + selectIdStr
+				}
+			} else {
+				if moveToParent.SonIds == "" {
+					moveToParent.SonIds = selectIdStr
+				} else {
+					moveToSonIds := strings.Split(moveToParent.SonIds, ",")
+					if *editNode.MoveTo >= len(moveToSonIds) || *editNode.MoveTo < 0 {
+						moveToParent.SonIds = moveToParent.SonIds + "," + selectIdStr
+					} else {
+						var parts []string
+						for i, s := range moveToSonIds {
+							if *editNode.MoveTo == i {
+								parts = append(parts, selectIdStr)
+							}
+							parts = append(parts, s)
+						}
+						moveToParent.SonIds = strings.Join(parts, ",")
+					}
+				}
+			}
+			next.ForwardId = nil
+			if sameNode {
+				cs.updateConf(next, iceId)
+			} else {
+				cs.updateConf(moveToParent, iceId)
+				cs.updateConf(next, iceId)
+			}
+			return *editNode.SelectId, nil
+		}
+	}
+	return *editNode.SelectId, nil
+}
+
+func (cs *ConfService) createNewConf(editNode *IceEditNode, app int) (*IceConf, error) {
+	confId, err := cs.storage.NextConfId(app)
+	if err != nil {
+		return nil, err
+	}
+
+	debug := int8(1)
+	if !editNode.IsDebug() {
+		debug = 0
+	}
+	inverse := editNode.IsInverse()
+	now := timeNowMs()
+
+	nodeType := NodeTypeNone
+	if editNode.NodeType != nil {
+		nodeType = *editNode.NodeType
+	}
+
+	conf := &IceConf{
+		ID:       confId,
+		App:      app,
+		Type:     nodeType,
+		Debug:    &debug,
+		Inverse:  &inverse,
+		TimeType: editNode.TimeType,
+		Start:    editNode.Start,
+		End:      editNode.End,
+		Status:   Int8Ptr(StatusOnline),
+		CreateAt: &now,
+		UpdateAt: &now,
+	}
+	if editNode.Name != "" {
+		conf.Name = editNode.Name
+	}
+
+	if IsLeaf(nodeType) {
+		leafNodeInfo := cs.leafClassCheck(app, editNode.ConfName, nodeType)
+		if editNode.ConfField != "" {
+			if checkRes := checkIllegalAndAdjustJson(editNode, leafNodeInfo); checkRes != "" {
+				return nil, ConfigFieldIllegal(checkRes)
+			}
+		}
+		conf.ConfName = editNode.ConfName
+		conf.ConfField = editNode.ConfField
+	}
+
+	return conf, nil
+}
+
+func (cs *ConfService) saveConfUpdate(conf *IceConf, iceId int64) {
+	conf.IceId = &iceId
+	conf.ConfId = &conf.ID
+	ensureConfDefaults(conf)
+	if conf.CreateAt == nil {
+		now := timeNowMs()
+		conf.CreateAt = &now
+	}
+	if err := cs.storage.SaveConfUpdate(conf.App, iceId, conf); err != nil {
+		panic(InternalError(err.Error()))
+	}
+}
+
+func (cs *ConfService) updateConf(conf *IceConf, iceId int64) {
+	now := timeNowMs()
+	conf.UpdateAt = &now
+	ensureConfDefaults(conf)
+	if !conf.IsUpdating() {
+		conf.IceId = &iceId
+		conf.ConfId = &conf.ID
+	}
+	if err := cs.serverService.UpdateLocalConfUpdateCache(conf); err != nil {
+		panic(InternalError(err.Error()))
+	}
+}
+
+func (cs *ConfService) paramHandle(editNode *IceEditNode) error {
+	if editNode.App == nil || editNode.IceId == nil || editNode.SelectId == nil || editNode.EditType == nil || !IsValidEditType(*editNode.EditType) {
+		return InputError("app|iceId|selectId|editType")
+	}
+
+	tt := TimeTypeNone
+	if editNode.TimeType != nil {
+		tt = *editNode.TimeType
+	}
+	if !IsValidTimeType(tt) {
+		editNode.TimeType = Int8Ptr(TimeTypeNone)
+		tt = TimeTypeNone
+	}
+
+	switch tt {
+	case TimeTypeNone:
+		editNode.Start = nil
+		editNode.End = nil
+	case TimeTypeAfterStart:
+		if editNode.Start == nil {
+			return InputError("start null")
+		}
+		editNode.End = nil
+	case TimeTypeBeforeEnd:
+		if editNode.End == nil {
+			return InputError("end null")
+		}
+		editNode.Start = nil
+	case TimeTypeBetween:
+		if editNode.Start == nil || editNode.End == nil {
+			return InputError("start|end null")
+		}
+	}
+
+	if editNode.NodeType != nil && IsRelation(*editNode.NodeType) {
+		editNode.ConfName = ""
+		editNode.ConfField = ""
+	}
+
+	if editNode.Name != "" && len(editNode.Name) > 50 {
+		return InputError("name too long (>50)")
+	}
+
+	// Defaults
+	if editNode.Debug == nil {
+		editNode.Debug = BoolPtr(true)
+	}
+	if editNode.Inverse == nil {
+		editNode.Inverse = BoolPtr(false)
+	}
+	if editNode.TimeType == nil {
+		editNode.TimeType = Int8Ptr(TimeTypeNone)
+	}
+	return nil
+}
+
+func (cs *ConfService) GetConfLeafClass(app int, nodeType int8, lane string) []*IceLeafClass {
+	clazzMap := cs.clientManager.GetLeafTypeClasses(app, nodeType, lane)
+	if len(clazzMap) == 0 {
+		return []*IceLeafClass{}
+	}
+	var result []*IceLeafClass
+	for clazz, info := range clazzMap {
+		order := 100
+		if info.Order != nil {
+			order = *info.Order
+		}
+		result = append(result, &IceLeafClass{
+			FullName: clazz,
+			Name:     info.Name,
+			Order:    order,
+		})
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Order < result[j].Order
+	})
+	return result
+}
+
+func (cs *ConfService) leafClassCheck(app int, clazz string, nodeType int8) *LeafNodeInfo {
+	if clazz == "" {
+		return nil
+	}
+	clazzMap := cs.clientManager.GetLeafTypeClasses(app, nodeType, "")
+	if len(clazzMap) == 0 {
+		return nil
+	}
+	return clazzMap[clazz]
+}
+
+func (cs *ConfService) LeafClassCheckAPI(app int, clazz string, nodeType int8) error {
+	if clazz == "" || !IsLeaf(nodeType) {
+		return InputError("app|clazz|type")
+	}
+	cs.leafClassCheck(app, clazz, nodeType)
+	return nil
+}
+
+func (cs *ConfService) ConfDetail(app int, confId int64, address string, iceId int64, lane string) (*IceShowConf, error) {
+	root := cs.serverService.GetConfMixById(app, confId, iceId, lane)
+	if root == nil {
+		return nil, ConfNotFound(app, "confId", confId)
+	}
+	showConf := &IceShowConf{
+		App:  app,
+		Root: root,
+	}
+	addUniqueKey(root, "", true, false)
+	count := countUpdating(root)
+	showConf.UpdateCount = &count
+	return showConf, nil
+}
+
+func countUpdating(node *IceShowNode) int {
+	if node == nil {
+		return 0
+	}
+	count := 0
+	if node.ShowConf != nil && node.ShowConf.Updating != nil && *node.ShowConf.Updating {
+		count++
+	}
+	if node.Forward != nil {
+		count += countUpdating(node.Forward)
+	}
+	for _, child := range node.Children {
+		count += countUpdating(child)
+	}
+	return count
+}
+
+func addUniqueKey(node *IceShowNode, prefix string, root, forward bool) {
+	if node == nil || node.ShowConf == nil {
+		return
+	}
+	idx := 0
+	if node.Index != nil {
+		idx = *node.Index
+	}
+	uniqueKey := fmt.Sprintf("%d_%d", node.ShowConf.NodeId, idx)
+	if prefix != "" {
+		uniqueKey = prefix + "_" + uniqueKey
+	}
+	if root {
+		uniqueKey += "_r"
+	}
+	if forward {
+		uniqueKey += "_f"
+	}
+	node.ShowConf.UniqueKey = uniqueKey
+
+	if node.Forward != nil {
+		addUniqueKey(node.Forward, uniqueKey, false, true)
+	}
+	for _, child := range node.Children {
+		addUniqueKey(child, uniqueKey, false, false)
+	}
+}
+
+// checkIllegalAndAdjustJson validates and adjusts JSON config
+func checkIllegalAndAdjustJson(editNode *IceEditNode, nodeInfo *LeafNodeInfo) string {
+	var obj map[string]interface{}
+	decoder := json.NewDecoder(bytes.NewReader([]byte(editNode.ConfField)))
+	decoder.UseNumber()
+	if err := decoder.Decode(&obj); err != nil {
+		return "json illegal"
+	}
+
+	if nodeInfo != nil {
+		// Re-serialize to normalize
+		result := make(map[string]interface{})
+		for k, v := range obj {
+			fieldType := getFieldType(k, nodeInfo)
+			if fieldType == "" {
+				result[k] = v
+				continue
+			}
+			// If value is string but field type is not string, try to parse
+			if strVal, ok := v.(string); ok && !isStringType(fieldType) {
+				if isObjectType(fieldType) {
+					if len(strVal) > 1 && strings.HasPrefix(strVal, "\"") && strings.HasSuffix(strVal, "\"") {
+						result[k] = strVal[1 : len(strVal)-1]
+						continue
+					}
+				}
+				var parsed interface{}
+				innerDec := json.NewDecoder(bytes.NewReader([]byte(strVal)))
+				innerDec.UseNumber()
+				if err := innerDec.Decode(&parsed); err != nil {
+					if isObjectType(fieldType) {
+						result[k] = v
+						continue
+					}
+					return fmt.Sprintf("filed:%s type:%s input:%s", k, fieldType, strVal)
+				}
+				result[k] = parsed
+			} else {
+				result[k] = v
+			}
+		}
+		adjusted, err := json.Marshal(result)
+		if err == nil {
+			editNode.ConfField = string(adjusted)
+		}
+	}
+	return ""
+}
+
+var stringTypes = map[string]bool{
+	"java.lang.String": true, "string": true, "str": true,
+}
+
+var objectTypes = map[string]bool{
+	"java.lang.Object": true, "object": true, "interface{}": true,
+}
+
+func isStringType(t string) bool { return stringTypes[t] }
+func isObjectType(t string) bool { return objectTypes[t] }
+
+func getFieldType(fieldName string, nodeInfo *LeafNodeInfo) string {
+	for _, f := range nodeInfo.IceFields {
+		if f.Field == fieldName {
+			return f.Type
+		}
+	}
+	for _, f := range nodeInfo.HideFields {
+		if f.Field == fieldName {
+			return f.Type
+		}
+	}
+	return ""
+}

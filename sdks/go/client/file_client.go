@@ -221,23 +221,22 @@ func (c *FileClient) loadAllConfig() (*dto.TransferDto, error) {
 		}
 	}
 
-	// Read bases
+	// Read bases (recursively walk directories to support folder structure)
 	basesPath := filepath.Join(appPath, dirBases)
-	if entries, err := os.ReadDir(basesPath); err == nil {
-		for _, entry := range entries {
-			if !entry.IsDir() && filepath.Ext(entry.Name()) == suffixJSON {
-				filePath := filepath.Join(basesPath, entry.Name())
-				if data, err := os.ReadFile(filePath); err == nil {
-					var base dto.BaseDto
-					if err := json.Unmarshal(data, &base); err == nil {
-						if base.Status != statusDeleted {
-							d.InsertOrUpdateBases = append(d.InsertOrUpdateBases, base)
-						}
-					}
+	filepath.WalkDir(basesPath, func(path string, entry os.DirEntry, err error) error {
+		if err != nil || entry.IsDir() {
+			return nil
+		}
+		if filepath.Ext(entry.Name()) == suffixJSON {
+			if data, readErr := os.ReadFile(path); readErr == nil {
+				var base dto.BaseDto
+				if json.Unmarshal(data, &base) == nil && base.Status != statusDeleted {
+					d.InsertOrUpdateBases = append(d.InsertOrUpdateBases, base)
 				}
 			}
 		}
-	}
+		return nil
+	})
 
 	// Read confs
 	confsPath := filepath.Join(appPath, dirConfs)
