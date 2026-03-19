@@ -70,49 +70,18 @@ docker run -d --name ice-server -p 8121:8121 \
 <details open>
 <summary><b>Java</b> · <a href="https://waitmoon.com/en/guide/getting-started.html">Documentation</a></summary>
 
-**Spring Boot 3.x**
-
-```xml
-<dependency>
-  <groupId>com.waitmoon.ice</groupId>
-  <artifactId>ice-spring-boot-starter-3x</artifactId>
-  <version>2.0.1</version>
-</dependency>
-```
-
-**Spring Boot 2.x**
-
-```xml
-<dependency>
-  <groupId>com.waitmoon.ice</groupId>
-  <artifactId>ice-spring-boot-starter-2x</artifactId>
-  <version>2.0.1</version>
-</dependency>
-```
-
-**Non-Spring**
-
 ```xml
 <dependency>
   <groupId>com.waitmoon.ice</groupId>
   <artifactId>ice-core</artifactId>
-  <version>2.0.1</version>
+  <version>3.0.2</version>
 </dependency>
 ```
 
-Configuration:
-
-```yaml
-ice:
-  app: 1
-  storage:
-    path: ./ice-data
-  scan: com.your.package
-```
-
-Usage:
-
 ```java
+IceFileClient client = new IceFileClient(1, "./ice-data", "com.your.package");
+client.start();
+
 IcePack pack = new IcePack();
 pack.setIceId(1L);
 pack.setRoam(new IceRoam().put("uid", 12345));
