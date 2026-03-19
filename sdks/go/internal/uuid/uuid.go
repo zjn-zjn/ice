@@ -92,3 +92,16 @@ func GenerateShortId() string {
 
 	return string(out[:11])
 }
+
+var alphanumeric = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+
+// GenerateAlphanumId generates a random alphanumeric ID of given length (62^length combinations).
+func GenerateAlphanumId(length int) string {
+	b := make([]byte, length)
+	randomBytes := make([]byte, length)
+	_, _ = rand.Read(randomBytes)
+	for i := 0; i < length; i++ {
+		b[i] = alphanumeric[int(randomBytes[i])%62]
+	}
+	return string(b)
+}

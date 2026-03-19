@@ -78,3 +78,11 @@ def generate_short_id() -> str:
     
     return ''.join(out[:11])
 
+
+_ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+
+
+def generate_alphanum_id(length: int) -> str:
+    """Generate a random alphanumeric ID of given length (62^length combinations)."""
+    return ''.join(secrets.choice(_ALPHANUMERIC) for _ in range(length))
+

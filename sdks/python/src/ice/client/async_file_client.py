@@ -145,12 +145,10 @@ class AsyncFileClient:
         return self._loaded_version
     
     def _get_address(self) -> str:
-        """Get the client address (hostname:pid)."""
-        try:
-            hostname = socket.gethostname()
-        except Exception:
-            hostname = "unknown"
-        return f"{hostname}:{os.getpid()}"
+        """Get the client address (ip_id)."""
+        from ice.client.file_client import _get_host_ip
+        from ice._internal.uuid import generate_alphanum_id
+        return f"{_get_host_ip()}_{generate_alphanum_id(5)}"
     
     def _get_app_path(self) -> str:
         """Get the path to the app directory."""

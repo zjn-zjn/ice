@@ -20,16 +20,16 @@ public final class IceAddressUtils {
         if (app == null) {
             throw new RuntimeException("app can not be null while init address");
         }
-        String host = null;
-        try {
-            host = InetAddress.getLocalHost().getHostAddress();
-            if ("127.0.0.1".equals(host)) {
+        String host = getHostIp();
+        if (host == null) {
+            try {
                 host = InetAddress.getLocalHost().getHostName();
+            } catch (UnknownHostException e) {
+                //ignore
             }
-        } catch (UnknownHostException e) {
-            //ignore
         }
-        return host == null ? (app + "/" + UUIDUtils.generateShortId()) : (host + "/" + app + "/" + UUIDUtils.generateShortId());
+        String id = UUIDUtils.generateAlphanumId(5);
+        return host == null ? id : (host + "_" + id);
     }
 
     public static String getAddress() {

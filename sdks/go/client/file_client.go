@@ -4,6 +4,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -475,11 +476,30 @@ func (c *FileClient) updateHeartbeat() {
 }
 
 func getAddress(app int) string {
-	hostname, _ := os.Hostname()
-	if hostname == "" {
-		hostname = "unknown"
+	host := getHostIP()
+	if host == "" {
+		host = "unknown"
 	}
-	return hostname + "/" + strconv.Itoa(app) + "/" + uuid.GenerateShortId()
+	return host + "_" + uuid.GenerateAlphanumId(5)
+}
+
+func getHostIP() string {
+	if ifaces, err := net.Interfaces(); err == nil {
+		for _, iface := range ifaces {
+			if iface.Flags&net.FlagLoopback != 0 {
+				continue
+			}
+			if addrs, err := iface.Addrs(); err == nil {
+				for _, addr := range addrs {
+					if ipnet, ok := addr.(*net.IPNet); ok && ipnet.IP.To4() != nil {
+						return ipnet.IP.String()
+					}
+				}
+			}
+		}
+	}
+	hostname, _ := os.Hostname()
+	return hostname
 }
 
 // GetApp returns the app ID.

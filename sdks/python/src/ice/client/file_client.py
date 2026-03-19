@@ -14,7 +14,7 @@ from ice.dto import ConfDto, BaseDto, TransferDto, ClientInfo
 from ice.cache import conf_cache, handler_cache
 from ice.leaf.registry import get_leaf_nodes
 from ice._internal.executor import init_executor, shutdown_executor
-from ice._internal.uuid import generate_short_id
+from ice._internal.uuid import generate_alphanum_id
 from ice import log
 
 if TYPE_CHECKING:
@@ -34,6 +34,21 @@ SUFFIX_TMP = ".tmp"
 
 DEFAULT_POLL_INTERVAL = 5.0  # seconds
 DEFAULT_HEARTBEAT_INTERVAL = 30.0  # seconds
+
+
+def _get_host_ip() -> str:
+    """Get a non-loopback IPv4 address for machine identification, fallback to hostname."""
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ip = info[4][0]
+            if not ip.startswith("127."):
+                return ip
+    except Exception:
+        pass
+    try:
+        return socket.gethostname()
+    except Exception:
+        return "unknown"
 
 
 class FileClient:
@@ -161,12 +176,8 @@ class FileClient:
         return self._loaded_version
     
     def _get_address(self) -> str:
-        """Get the client address (hostname/app/uuid) - same format as Java/Go."""
-        try:
-            hostname = socket.gethostname()
-        except Exception:
-            hostname = "unknown"
-        return f"{hostname}/{self.app}/{generate_short_id()}"
+        """Get the client address (ip_id) - same format as Java/Go."""
+        return f"{_get_host_ip()}_{generate_alphanum_id(5)}"
     
     def _get_app_path(self) -> str:
         """Get the path to the app directory."""
