@@ -239,12 +239,12 @@ public final class IceFileClient {
             dto.setVersion(0);
         }
 
-        // Read all bases
+        // Read all bases (recursively walk directories to support folder structure)
         Path basesPath = appPath.resolve(IceStorageConstants.DIR_BASES);
         List<IceBaseDto> bases = new ArrayList<>();
         if (Files.exists(basesPath)) {
-            Files.list(basesPath)
-                    .filter(p -> p.toString().endsWith(IceStorageConstants.SUFFIX_JSON))
+            Files.walk(basesPath)
+                    .filter(p -> !Files.isDirectory(p) && p.toString().endsWith(IceStorageConstants.SUFFIX_JSON))
                     .forEach(p -> {
                         try {
                             String content = new String(Files.readAllBytes(p), StandardCharsets.UTF_8);

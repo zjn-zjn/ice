@@ -58,6 +58,7 @@ func main() {
 		cfg.Ice.Pool.Parallelism,
 		cfg.GetPollInterval(),
 		cfg.GetHeartbeatInterval(),
+		"",
 	)
 	if err != nil {
 		slog.Error("failed to create file client", "error", err)
