@@ -1,16 +1,16 @@
-package main
+package model
 
 import "fmt"
 
 // Error codes matching Java ErrorCode enum
 const (
-	CodeInternalError     = -1
-	CodeInputError        = -2
-	CodeIDNotExist        = -3
-	CodeAlreadyExist      = -5
-	CodeConfNotFound      = -6
+	CodeInternalError      = -1
+	CodeInputError         = -2
+	CodeIDNotExist         = -3
+	CodeAlreadyExist       = -5
+	CodeConfNotFound       = -6
 	CodeConfigFieldIllegal = -14
-	CodeCustom            = -255
+	CodeCustom             = -255
 )
 
 type ErrorCodeError struct {

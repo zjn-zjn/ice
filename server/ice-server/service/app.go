@@ -1,20 +1,23 @@
-package main
+package service
 
 import (
 	"sort"
 	"strings"
+
+	"github.com/waitmoon/ice-server/model"
+	"github.com/waitmoon/ice-server/storage"
 )
 
 type AppService struct {
-	storage       *Storage
+	storage       *storage.Storage
 	clientManager *ClientManager
 }
 
-func NewAppService(storage *Storage, clientManager *ClientManager) *AppService {
+func NewAppService(storage *storage.Storage, clientManager *ClientManager) *AppService {
 	return &AppService{storage: storage, clientManager: clientManager}
 }
 
-func (as *AppService) AppEdit(app *IceApp) (int, error) {
+func (as *AppService) AppEdit(app *model.IceApp) (int, error) {
 	if app.ID == nil {
 		// Create new app
 		nextId, err := as.storage.NextAppId()
@@ -23,9 +26,9 @@ func (as *AppService) AppEdit(app *IceApp) (int, error) {
 		}
 		app.ID = &nextId
 		if app.Status == nil {
-			app.Status = Int8Ptr(StatusOnline)
+			app.Status = model.Int8Ptr(model.StatusOnline)
 		}
-		now := timeNowMs()
+		now := model.TimeNowMs()
 		app.CreateAt = &now
 	} else {
 		// Edit existing app
@@ -34,7 +37,7 @@ func (as *AppService) AppEdit(app *IceApp) (int, error) {
 			return 0, err
 		}
 		if existing == nil {
-			return 0, IDNotExist("app", *app.ID)
+			return 0, model.IDNotExist("app", *app.ID)
 		}
 		if app.Status == nil {
 			app.Status = existing.Status
@@ -44,11 +47,11 @@ func (as *AppService) AppEdit(app *IceApp) (int, error) {
 		}
 	}
 
-	now := timeNowMs()
+	now := model.TimeNowMs()
 	app.UpdateAt = &now
 
 	// Ensure directories
-	as.storage.ensureAppDirectories(*app.ID)
+	as.storage.EnsureAppDirectories(*app.ID)
 
 	if err := as.storage.SaveApp(app); err != nil {
 		return 0, err
@@ -56,14 +59,14 @@ func (as *AppService) AppEdit(app *IceApp) (int, error) {
 	return *app.ID, nil
 }
 
-func (as *AppService) AppList(pageNum, pageSize int, name string, appId *int) (*PageResult, error) {
+func (as *AppService) AppList(pageNum, pageSize int, name string, appId *int) (*model.PageResult, error) {
 	apps, err := as.storage.ListApps()
 	if err != nil {
 		return nil, err
 	}
 
 	// Filter
-	var filtered []*IceApp
+	var filtered []*model.IceApp
 	for _, app := range apps {
 		if appId != nil {
 			if app.ID != nil && *app.ID == *appId {
@@ -102,10 +105,10 @@ func (as *AppService) AppList(pageNum, pageSize int, name string, appId *int) (*
 	if start < total {
 		list = filtered[start:end]
 	} else {
-		list = []*IceApp{}
+		list = []*model.IceApp{}
 	}
 
-	return NewPageResult(list, int64(total), pageNum, pageSize), nil
+	return model.NewPageResult(list, int64(total), pageNum, pageSize), nil
 }
 
 func (as *AppService) GetRegisterClients(app int) map[string]bool {

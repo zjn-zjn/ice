@@ -4,33 +4,38 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/waitmoon/ice-server/config"
+	"github.com/waitmoon/ice-server/handler"
+	"github.com/waitmoon/ice-server/service"
+	"github.com/waitmoon/ice-server/storage"
 )
 
 func main() {
 	// Load config
-	config := LoadConfig()
+	cfg := config.Load()
 
 	// Initialize storage
-	storage, err := NewStorage(config.StoragePath)
+	store, err := storage.NewStorage(cfg.StoragePath)
 	if err != nil {
 		log.Fatalf("failed to initialize storage: %v", err)
 	}
 
 	// Initialize client manager
-	clientManager := NewClientManager(config, storage)
+	clientManager := service.NewClientManager(cfg, store)
 
 	// Initialize services
-	serverService := NewServerService(storage, clientManager, config)
-	baseService := NewBaseService(storage, serverService)
-	confService := NewConfService(storage, serverService, clientManager)
-	appService := NewAppService(storage, clientManager)
-	folderService := NewFolderService(storage, baseService)
+	serverService := service.NewServerService(store, clientManager, cfg)
+	baseService := service.NewBaseService(store, serverService)
+	confService := service.NewConfService(store, serverService, clientManager)
+	appService := service.NewAppService(store, clientManager)
+	folderService := service.NewFolderService(store, baseService)
 
 	// Initialize handlers
-	baseHandler := NewBaseHandler(baseService, serverService)
-	confHandler := NewConfHandler(confService, serverService, appService, clientManager)
-	appHandler := NewAppHandler(appService, serverService)
-	folderHandler := NewFolderHandler(folderService, baseService)
+	baseHandler := handler.NewBaseHandler(baseService, serverService)
+	confHandler := handler.NewConfHandler(confService, serverService, appService, clientManager)
+	appHandler := handler.NewAppHandler(appService, serverService)
+	folderHandler := handler.NewFolderHandler(folderService, baseService)
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -40,19 +45,19 @@ func main() {
 	folderHandler.Register(mux)
 
 	// SPA file server (catch-all for frontend)
-	spaHandler := newSPAFileServer()
+	spaHandler := NewSPAFileServer()
 	mux.Handle("/", spaHandler)
 
 	// Start scheduler
-	scheduler := NewScheduler(config, serverService, clientManager)
+	scheduler := service.NewScheduler(cfg, serverService, clientManager)
 	scheduler.Start()
 
 	// Start server
-	addr := fmt.Sprintf(":%d", config.Port)
-	log.Printf("ice-server starting on %s (storage: %s)", addr, config.StoragePath)
+	addr := fmt.Sprintf(":%d", cfg.Port)
+	log.Printf("ice-server starting on %s (storage: %s)", addr, cfg.StoragePath)
 
-	handler := corsMiddleware(mux)
-	if err := http.ListenAndServe(addr, handler); err != nil {
+	corsHandler := handler.CorsMiddleware(mux)
+	if err := http.ListenAndServe(addr, corsHandler); err != nil {
 		log.Fatalf("server failed: %v", err)
 	}
 }

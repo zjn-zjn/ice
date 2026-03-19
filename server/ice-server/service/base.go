@@ -1,30 +1,33 @@
-package main
+package service
 
 import (
 	"encoding/json"
 	"sort"
 	"strings"
+
+	"github.com/waitmoon/ice-server/model"
+	"github.com/waitmoon/ice-server/storage"
 )
 
 type BaseService struct {
-	storage       *Storage
+	storage       *storage.Storage
 	serverService *ServerService
 }
 
-func NewBaseService(storage *Storage, serverService *ServerService) *BaseService {
+func NewBaseService(storage *storage.Storage, serverService *ServerService) *BaseService {
 	return &BaseService{storage: storage, serverService: serverService}
 }
 
-func (bs *BaseService) BaseList(search *IceBaseSearch) (*PageResult, error) {
+func (bs *BaseService) BaseList(search *model.IceBaseSearch) (*model.PageResult, error) {
 	allBases, err := bs.storage.ListBases(search.App)
 	if err != nil {
 		return nil, err
 	}
 
 	// Filter
-	var filtered []*IceBase
+	var filtered []*model.IceBase
 	for _, b := range allBases {
-		if b.Status == nil || *b.Status != StatusOnline {
+		if b.Status == nil || *b.Status != model.StatusOnline {
 			continue
 		}
 		if search.BaseId != nil {
@@ -77,27 +80,27 @@ func (bs *BaseService) BaseList(search *IceBaseSearch) (*PageResult, error) {
 	if start < total {
 		list = filtered[start:end]
 	} else {
-		list = []*IceBase{}
+		list = []*model.IceBase{}
 	}
 
-	return NewPageResult(list, int64(total), search.PageNum, search.PageSize), nil
+	return model.NewPageResult(list, int64(total), search.PageNum, search.PageSize), nil
 }
 
-func (bs *BaseService) BaseCreate(base *IceBase) (int64, error) {
+func (bs *BaseService) BaseCreate(base *model.IceBase) (int64, error) {
 	return bs.BaseCreateAtPath(base, "")
 }
 
 // BaseCreateAtPath creates a base at a specific folder path (relative to bases/)
-func (bs *BaseService) BaseCreateAtPath(base *IceBase, path string) (int64, error) {
+func (bs *BaseService) BaseCreateAtPath(base *model.IceBase, path string) (int64, error) {
 	if base.App == nil {
-		return 0, InputError("app required")
+		return 0, model.InputError("app required")
 	}
-	transferDto := &IceTransferDto{}
+	transferDto := &model.IceTransferDto{}
 
 	if base.ID != nil {
 		existing, _ := bs.storage.GetBase(*base.App, *base.ID)
-		if existing != nil && existing.Status != nil && *existing.Status != StatusDeleted {
-			return 0, AlreadyExist("iceId")
+		if existing != nil && existing.Status != nil && *existing.Status != model.StatusDeleted {
+			return 0, model.AlreadyExist("iceId")
 		}
 		if err := bs.storage.EnsureBaseIdNotLessThan(*base.App, *base.ID); err != nil {
 			return 0, err
@@ -110,22 +113,22 @@ func (bs *BaseService) BaseCreateAtPath(base *IceBase, path string) (int64, erro
 		base.ID = &nextId
 	}
 
-	now := timeNowMs()
+	now := model.TimeNowMs()
 	base.CreateAt = &now
 	if base.Debug == nil {
-		base.Debug = Int8Ptr(0)
+		base.Debug = model.Int8Ptr(0)
 	}
 	if base.Scenes == "" {
 		base.Scenes = ""
 	}
 	if base.Status == nil {
-		base.Status = Int8Ptr(StatusOnline)
+		base.Status = model.Int8Ptr(model.StatusOnline)
 	}
 	if base.TimeType == nil {
-		base.TimeType = Int8Ptr(TimeTypeNone)
+		base.TimeType = model.Int8Ptr(model.TimeTypeNone)
 	}
 	if base.Priority == nil {
-		base.Priority = Int64Ptr(1)
+		base.Priority = model.Int64Ptr(1)
 	}
 
 	if base.ConfID == nil {
@@ -133,21 +136,21 @@ func (bs *BaseService) BaseCreateAtPath(base *IceBase, path string) (int64, erro
 		if err != nil {
 			return 0, err
 		}
-		createConf := &IceConf{
+		createConf := &model.IceConf{
 			ID:       confId,
 			App:      *base.App,
-			Status:   Int8Ptr(StatusOnline),
-			Type:     NodeTypeNone,
-			Inverse:  BoolPtr(false),
-			Debug:    Int8Ptr(1),
-			TimeType: Int8Ptr(TimeTypeNone),
+			Status:   model.Int8Ptr(model.StatusOnline),
+			Type:     model.NodeTypeNone,
+			Inverse:  model.BoolPtr(false),
+			Debug:    model.Int8Ptr(1),
+			TimeType: model.Int8Ptr(model.TimeTypeNone),
 			CreateAt: &now,
 			UpdateAt: &now,
 		}
 		if err := bs.storage.SaveConf(createConf); err != nil {
 			return 0, err
 		}
-		transferDto.InsertOrUpdateConfs = []*IceConf{createConf}
+		transferDto.InsertOrUpdateConfs = []*model.IceConf{createConf}
 		base.ConfID = &confId
 	}
 
@@ -160,7 +163,7 @@ func (bs *BaseService) BaseCreateAtPath(base *IceBase, path string) (int64, erro
 	if err := bs.storage.SaveBaseAtPath(base, path); err != nil {
 		return 0, err
 	}
-	transferDto.InsertOrUpdateBases = []*IceBase{base}
+	transferDto.InsertOrUpdateBases = []*model.IceBase{base}
 
 	newVersion, err := bs.serverService.GetAndIncrementVersion(*base.App)
 	if err != nil {
@@ -172,22 +175,22 @@ func (bs *BaseService) BaseCreateAtPath(base *IceBase, path string) (int64, erro
 	return *base.ID, nil
 }
 
-func (bs *BaseService) BaseEdit(base *IceBase) (int64, error) {
+func (bs *BaseService) BaseEdit(base *model.IceBase) (int64, error) {
 	if base.App == nil {
-		return 0, InputError("app required")
+		return 0, model.InputError("app required")
 	}
 	if base.ID == nil {
-		return 0, InputError("id required for edit")
+		return 0, model.InputError("id required for edit")
 	}
 	origin, err := bs.storage.GetBase(*base.App, *base.ID)
 	if err != nil {
 		return 0, err
 	}
-	if origin == nil || (origin.Status != nil && *origin.Status == StatusOffline) {
-		return 0, IDNotExist("iceId", *base.ID)
+	if origin == nil || (origin.Status != nil && *origin.Status == model.StatusOffline) {
+		return 0, model.IDNotExist("iceId", *base.ID)
 	}
 
-	transferDto := &IceTransferDto{}
+	transferDto := &model.IceTransferDto{}
 
 	base.ConfID = origin.ConfID
 	base.CreateAt = origin.CreateAt
@@ -210,14 +213,14 @@ func (bs *BaseService) BaseEdit(base *IceBase) (int64, error) {
 	if err := timeCheck(base); err != nil {
 		return 0, err
 	}
-	now := timeNowMs()
+	now := model.TimeNowMs()
 	base.UpdateAt = &now
 	if err := bs.storage.SaveBase(base); err != nil {
 		return 0, err
 	}
 
-	if base.Status != nil && *base.Status == StatusOnline {
-		transferDto.InsertOrUpdateBases = []*IceBase{base}
+	if base.Status != nil && *base.Status == model.StatusOnline {
+		transferDto.InsertOrUpdateBases = []*model.IceBase{base}
 	} else {
 		transferDto.DeleteBaseIds = []int64{*base.ID}
 	}
@@ -232,36 +235,36 @@ func (bs *BaseService) BaseEdit(base *IceBase) (int64, error) {
 	return *base.ID, nil
 }
 
-func timeCheck(base *IceBase) error {
-	now := timeNowMs()
+func timeCheck(base *model.IceBase) error {
+	now := model.TimeNowMs()
 	base.UpdateAt = &now
 
-	tt := TimeTypeNone
+	tt := model.TimeTypeNone
 	if base.TimeType != nil {
 		tt = *base.TimeType
 	}
-	if !IsValidTimeType(tt) {
-		base.TimeType = Int8Ptr(TimeTypeNone)
-		tt = TimeTypeNone
+	if !model.IsValidTimeType(tt) {
+		base.TimeType = model.Int8Ptr(model.TimeTypeNone)
+		tt = model.TimeTypeNone
 	}
 
 	switch tt {
-	case TimeTypeNone:
+	case model.TimeTypeNone:
 		base.Start = nil
 		base.End = nil
-	case TimeTypeAfterStart:
+	case model.TimeTypeAfterStart:
 		if base.Start == nil {
-			return InputError("start null")
+			return model.InputError("start null")
 		}
 		base.End = nil
-	case TimeTypeBeforeEnd:
+	case model.TimeTypeBeforeEnd:
 		if base.End == nil {
-			return InputError("end null")
+			return model.InputError("end null")
 		}
 		base.Start = nil
-	case TimeTypeBetween:
+	case model.TimeTypeBetween:
 		if base.Start == nil || base.End == nil {
-			return InputError("start|end null")
+			return model.InputError("start|end null")
 		}
 	}
 	return nil
@@ -273,7 +276,7 @@ func (bs *BaseService) Push(app int, iceId int64, reason string) (int64, error) 
 		return 0, err
 	}
 	if base == nil || (base.App != nil && *base.App != app) {
-		return 0, IDNotExist("iceId", iceId)
+		return 0, model.IDNotExist("iceId", iceId)
 	}
 
 	pushData := bs.getPushData(base)
@@ -286,8 +289,8 @@ func (bs *BaseService) Push(app int, iceId int64, reason string) (int64, error) 
 	if err != nil {
 		return 0, err
 	}
-	now := timeNowMs()
-	history := &IcePushHistory{
+	now := model.TimeNowMs()
+	history := &model.IcePushHistory{
 		ID:       &pushId,
 		App:      app,
 		IceId:    iceId,
@@ -302,17 +305,17 @@ func (bs *BaseService) Push(app int, iceId int64, reason string) (int64, error) 
 	return pushId, nil
 }
 
-func (bs *BaseService) getPushData(base *IceBase) *PushData {
-	pushData := &PushData{
+func (bs *BaseService) getPushData(base *model.IceBase) *model.PushData {
+	pushData := &model.PushData{
 		App:  *base.App,
-		Base: baseToDtoWithName(base),
+		Base: BaseToDtoWithName(base),
 	}
 
 	confUpdates := bs.serverService.GetAllUpdateConfList(*base.App, *base.ID)
 	if len(confUpdates) > 0 {
-		dtos := make([]*IceConf, len(confUpdates))
+		dtos := make([]*model.IceConf, len(confUpdates))
 		for i, c := range confUpdates {
-			dtos[i] = confToDtoWithName(c)
+			dtos[i] = ConfToDtoWithName(c)
 		}
 		pushData.ConfUpdates = dtos
 	}
@@ -320,9 +323,9 @@ func (bs *BaseService) getPushData(base *IceBase) *PushData {
 	if base.ConfID != nil {
 		activeConfs := bs.serverService.GetAllActiveConfSet(*base.App, *base.ConfID)
 		if len(activeConfs) > 0 {
-			dtos := make([]*IceConf, len(activeConfs))
+			dtos := make([]*model.IceConf, len(activeConfs))
 			for i, c := range activeConfs {
-				dtos[i] = confToDtoWithName(c)
+				dtos[i] = ConfToDtoWithName(c)
 			}
 			pushData.Confs = dtos
 		}
@@ -330,7 +333,7 @@ func (bs *BaseService) getPushData(base *IceBase) *PushData {
 	return pushData
 }
 
-func (bs *BaseService) History(app int, iceId *int64, pageNum, pageSize int) (*PageResult, error) {
+func (bs *BaseService) History(app int, iceId *int64, pageNum, pageSize int) (*model.PageResult, error) {
 	all, err := bs.storage.ListPushHistories(app, iceId)
 	if err != nil {
 		return nil, err
@@ -350,9 +353,9 @@ func (bs *BaseService) History(app int, iceId *int64, pageNum, pageSize int) (*P
 	if start < total {
 		list = all[start:end]
 	} else {
-		list = []*IcePushHistory{}
+		list = []*model.IcePushHistory{}
 	}
-	return NewPageResult(list, int64(total), pageNum, pageSize), nil
+	return model.NewPageResult(list, int64(total), pageNum, pageSize), nil
 }
 
 func (bs *BaseService) ExportData(app int, iceId int64, pushId *int64) (string, error) {
@@ -364,7 +367,7 @@ func (bs *BaseService) ExportData(app int, iceId int64, pushId *int64) (string, 
 		if history != nil {
 			return history.PushData, nil
 		}
-		return "", IDNotExist("pushId", *pushId)
+		return "", model.IDNotExist("pushId", *pushId)
 	}
 
 	base, err := bs.storage.GetBase(app, iceId)
@@ -379,11 +382,11 @@ func (bs *BaseService) ExportData(app int, iceId int64, pushId *int64) (string, 
 		}
 		return string(jsonData), nil
 	}
-	return "", IDNotExist("iceId", iceId)
+	return "", model.IDNotExist("iceId", iceId)
 }
 
 func (bs *BaseService) ExportBatchData(app int, iceIds []int64) (string, error) {
-	var pushDataList []*PushData
+	var pushDataList []*model.PushData
 	for _, iceId := range iceIds {
 		base, err := bs.storage.GetBase(app, iceId)
 		if err != nil {
@@ -406,25 +409,25 @@ func (bs *BaseService) Rollback(app int, pushId int64) error {
 		return err
 	}
 	if history == nil {
-		return IDNotExist("pushId", pushId)
+		return model.IDNotExist("pushId", pushId)
 	}
 
-	var pushData PushData
+	var pushData model.PushData
 	if err := json.Unmarshal([]byte(history.PushData), &pushData); err != nil {
 		return err
 	}
 	return bs.ImportData(&pushData)
 }
 
-func (bs *BaseService) ImportData(data *PushData) error {
-	now := timeNowMs()
+func (bs *BaseService) ImportData(data *model.PushData) error {
+	now := model.TimeNowMs()
 
 	// Import confUpdates
 	for _, confUpdate := range data.ConfUpdates {
 		confUpdate.App = data.App
 		confUpdate.UpdateAt = &now
 		if confUpdate.Status == nil {
-			confUpdate.Status = Int8Ptr(StatusOnline)
+			confUpdate.Status = model.Int8Ptr(model.StatusOnline)
 		}
 		if confUpdate.IceId != nil {
 			if err := bs.storage.SaveConfUpdate(data.App, *confUpdate.IceId, confUpdate); err != nil {
@@ -439,7 +442,7 @@ func (bs *BaseService) ImportData(data *PushData) error {
 		conf.App = data.App
 		conf.UpdateAt = &now
 		if conf.Status == nil {
-			conf.Status = Int8Ptr(StatusOnline)
+			conf.Status = model.Int8Ptr(model.StatusOnline)
 		}
 		if oldConf != nil && oldConf.CreateAt != nil {
 			conf.CreateAt = oldConf.CreateAt
@@ -458,7 +461,7 @@ func (bs *BaseService) ImportData(data *PushData) error {
 		base.App = &data.App
 		base.UpdateAt = &now
 		if base.Status == nil {
-			base.Status = Int8Ptr(StatusOnline)
+			base.Status = model.Int8Ptr(model.StatusOnline)
 		}
 		if oldBase != nil && oldBase.CreateAt != nil {
 			base.CreateAt = oldBase.CreateAt
@@ -466,22 +469,22 @@ func (bs *BaseService) ImportData(data *PushData) error {
 			base.CreateAt = &now
 		}
 		if base.TimeType == nil {
-			base.TimeType = Int8Ptr(TimeTypeNone)
+			base.TimeType = model.Int8Ptr(model.TimeTypeNone)
 		}
 		if base.Priority == nil {
-			base.Priority = Int64Ptr(1)
+			base.Priority = model.Int64Ptr(1)
 		}
 		if err := bs.storage.SaveBase(base); err != nil {
 			return err
 		}
 
 		// Version update
-		transferDto := &IceTransferDto{}
+		transferDto := &model.IceTransferDto{}
 		if len(data.Confs) > 0 {
 			transferDto.InsertOrUpdateConfs = data.Confs
 		}
-		if base.Status != nil && *base.Status == StatusOnline {
-			transferDto.InsertOrUpdateBases = []*IceBase{base}
+		if base.Status != nil && *base.Status == model.StatusOnline {
+			transferDto.InsertOrUpdateBases = []*model.IceBase{base}
 		} else {
 			transferDto.DeleteBaseIds = []int64{*base.ID}
 		}
@@ -500,3 +503,7 @@ func (bs *BaseService) Delete(app int, pushId int64) error {
 	return bs.storage.DeletePushHistory(app, pushId)
 }
 
+// DeleteBase deletes a base by ID (hard delete)
+func (bs *BaseService) DeleteBase(app int, baseId int64) error {
+	return bs.storage.DeleteBase(app, baseId, true)
+}

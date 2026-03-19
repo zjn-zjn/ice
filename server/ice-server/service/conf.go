@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"bytes"
@@ -8,50 +8,53 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/waitmoon/ice-server/model"
+	"github.com/waitmoon/ice-server/storage"
 )
 
 type ConfService struct {
-	storage       *Storage
+	storage       *storage.Storage
 	serverService *ServerService
 	clientManager *ClientManager
 	mu            sync.Mutex
 }
 
-func NewConfService(storage *Storage, serverService *ServerService, clientManager *ClientManager) *ConfService {
+func NewConfService(storage *storage.Storage, serverService *ServerService, clientManager *ClientManager) *ConfService {
 	return &ConfService{storage: storage, serverService: serverService, clientManager: clientManager}
 }
 
-func (cs *ConfService) ConfEdit(editNode *IceEditNode) (int64, error) {
+func (cs *ConfService) ConfEdit(editNode *model.IceEditNode) (*model.EditConfResponse, error) {
 	if err := cs.paramHandle(editNode); err != nil {
-		return 0, err
+		return nil, err
 	}
 	switch *editNode.EditType {
-	case EditTypeAddSon:
+	case model.EditTypeAddSon:
 		return cs.addSon(editNode)
-	case EditTypeEdit:
+	case model.EditTypeEdit:
 		return cs.edit(editNode)
-	case EditTypeDelete:
+	case model.EditTypeDelete:
 		return cs.deleteNode(editNode)
-	case EditTypeAddForward:
+	case model.EditTypeAddForward:
 		return cs.addForward(editNode)
-	case EditTypeExchange:
+	case model.EditTypeExchange:
 		return cs.exchange(editNode)
-	case EditTypeMove:
+	case model.EditTypeMove:
 		return cs.moveNode(editNode)
 	}
-	return 0, InputError("unknown editType")
+	return nil, model.InputError("unknown editType")
 }
 
-func (cs *ConfService) addSon(editNode *IceEditNode) (int64, error) {
+func (cs *ConfService) addSon(editNode *model.IceEditNode) (*model.EditConfResponse, error) {
 	app := *editNode.App
 	iceId := *editNode.IceId
 
 	operateConf := cs.serverService.GetMixConfById(app, *editNode.SelectId, iceId)
 	if operateConf == nil {
-		return 0, IDNotExist("selectId", *editNode.SelectId)
+		return nil, model.IDNotExist("selectId", *editNode.SelectId)
 	}
-	if IsLeaf(operateConf.Type) {
-		return 0, InputError(fmt.Sprintf("only relation can have son id:%d", *editNode.SelectId))
+	if model.IsLeaf(operateConf.Type) {
+		return nil, model.InputError(fmt.Sprintf("only relation can have son id:%d", *editNode.SelectId))
 	}
 
 	if editNode.MultiplexIds != "" {
@@ -64,11 +67,11 @@ func (cs *ConfService) addSon(editNode *IceEditNode) (int64, error) {
 			sonIdList = append(sonIdList, id)
 		}
 		if cs.serverService.HaveCircleMulti(app, iceId, operateConf.GetMixId(), sonIdList) {
-			return 0, InputError("circles found please check sonIds")
+			return nil, model.InputError("circles found please check sonIds")
 		}
 		children := cs.serverService.GetMixConfListByIds(app, sonIdSet, iceId)
 		if children == nil || len(children) != len(sonIdSet) {
-			return 0, InputError("one of son id not exist:" + editNode.MultiplexIds)
+			return nil, model.InputError("one of son id not exist:" + editNode.MultiplexIds)
 		}
 		if operateConf.SonIds == "" {
 			operateConf.SonIds = editNode.MultiplexIds
@@ -76,12 +79,13 @@ func (cs *ConfService) addSon(editNode *IceEditNode) (int64, error) {
 			operateConf.SonIds = operateConf.SonIds + "," + editNode.MultiplexIds
 		}
 		cs.updateConf(operateConf, iceId)
-		return operateConf.GetMixId(), nil
+		nodes := cs.assembleMultiplexNodes(app, iceId, editNode.Lane, sonIdList)
+		return &model.EditConfResponse{NodeId: operateConf.GetMixId(), Nodes: nodes}, nil
 	}
 
 	createConf, err := cs.createNewConf(editNode, app)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	if operateConf.SonIds == "" {
 		operateConf.SonIds = strconv.FormatInt(createConf.GetMixId(), 10)
@@ -92,16 +96,16 @@ func (cs *ConfService) addSon(editNode *IceEditNode) (int64, error) {
 	createConf.ConfId = &createConf.ID
 	cs.saveConfUpdate(createConf, iceId)
 	cs.updateConf(operateConf, iceId)
-	return createConf.GetMixId(), nil
+	return &model.EditConfResponse{NodeId: createConf.GetMixId()}, nil
 }
 
-func (cs *ConfService) edit(editNode *IceEditNode) (int64, error) {
+func (cs *ConfService) edit(editNode *model.IceEditNode) (*model.EditConfResponse, error) {
 	app := *editNode.App
 	iceId := *editNode.IceId
 
 	operateConf := cs.serverService.GetMixConfById(app, *editNode.SelectId, iceId)
 	if operateConf == nil {
-		return 0, IDNotExist("selectId", *editNode.SelectId)
+		return nil, model.IDNotExist("selectId", *editNode.SelectId)
 	}
 
 	debug := int8(1)
@@ -120,30 +124,30 @@ func (cs *ConfService) edit(editNode *IceEditNode) (int64, error) {
 		operateConf.Name = ""
 	}
 
-	if IsLeaf(operateConf.Type) {
+	if model.IsLeaf(operateConf.Type) {
 		leafNodeInfo := cs.leafClassCheck(app, operateConf.ConfName, operateConf.Type)
 		if editNode.ConfField != "" {
 			if checkRes := checkIllegalAndAdjustJson(editNode, leafNodeInfo); checkRes != "" {
-				return 0, ConfigFieldIllegal(checkRes)
+				return nil, model.ConfigFieldIllegal(checkRes)
 			}
 		}
 		operateConf.ConfField = editNode.ConfField
 	}
 	cs.updateConf(operateConf, iceId)
-	return operateConf.GetMixId(), nil
+	return &model.EditConfResponse{NodeId: operateConf.GetMixId()}, nil
 }
 
-func (cs *ConfService) deleteNode(editNode *IceEditNode) (int64, error) {
+func (cs *ConfService) deleteNode(editNode *model.IceEditNode) (*model.EditConfResponse, error) {
 	app := *editNode.App
 	iceId := *editNode.IceId
 
 	if editNode.ParentId != nil {
 		operateConf := cs.serverService.GetMixConfById(app, *editNode.ParentId, iceId)
 		if operateConf == nil {
-			return 0, IDNotExist("parentId", *editNode.ParentId)
+			return nil, model.IDNotExist("parentId", *editNode.ParentId)
 		}
 		if operateConf.SonIds == "" {
-			return 0, InputError("parent no children")
+			return nil, model.InputError("parent no children")
 		}
 		sonIdStrs := strings.Split(operateConf.SonIds, ",")
 		index := -1
@@ -151,7 +155,7 @@ func (cs *ConfService) deleteNode(editNode *IceEditNode) (int64, error) {
 			index = *editNode.Index
 		}
 		if index < 0 || index >= len(sonIdStrs) || sonIdStrs[index] != strconv.FormatInt(*editNode.SelectId, 10) {
-			return 0, InputError("parent do not have this son with input index")
+			return nil, model.InputError("parent do not have this son with input index")
 		}
 		// Remove the son at index
 		var sb strings.Builder
@@ -165,53 +169,54 @@ func (cs *ConfService) deleteNode(editNode *IceEditNode) (int64, error) {
 		}
 		operateConf.SonIds = sb.String()
 		cs.updateConf(operateConf, iceId)
-		return operateConf.GetMixId(), nil
+		return &model.EditConfResponse{NodeId: operateConf.GetMixId()}, nil
 	}
 
 	if editNode.NextId != nil {
 		operateConf := cs.serverService.GetMixConfById(app, *editNode.NextId, iceId)
 		if operateConf == nil {
-			return 0, IDNotExist("nextId", *editNode.NextId)
+			return nil, model.IDNotExist("nextId", *editNode.NextId)
 		}
 		if operateConf.ForwardId == nil || *operateConf.ForwardId != *editNode.SelectId {
-			return 0, InputError(fmt.Sprintf("nextId:%d not have this forward:%d", *editNode.NextId, *editNode.SelectId))
+			return nil, model.InputError(fmt.Sprintf("nextId:%d not have this forward:%d", *editNode.NextId, *editNode.SelectId))
 		}
 		operateConf.ForwardId = nil
 		cs.updateConf(operateConf, iceId)
-		return operateConf.GetMixId(), nil
+		return &model.EditConfResponse{NodeId: operateConf.GetMixId()}, nil
 	}
-	return 0, InputError("root not support delete")
+	return nil, model.InputError("root not support delete")
 }
 
-func (cs *ConfService) addForward(editNode *IceEditNode) (int64, error) {
+func (cs *ConfService) addForward(editNode *model.IceEditNode) (*model.EditConfResponse, error) {
 	app := *editNode.App
 	iceId := *editNode.IceId
 
 	operateConf := cs.serverService.GetMixConfById(app, *editNode.SelectId, iceId)
 	if operateConf == nil {
-		return 0, IDNotExist("selectId", *editNode.SelectId)
+		return nil, model.IDNotExist("selectId", *editNode.SelectId)
 	}
 	if operateConf.ForwardId != nil {
-		return 0, AlreadyExist("forward")
+		return nil, model.AlreadyExist("forward")
 	}
 
 	if editNode.MultiplexIds != "" {
 		forwardId, _ := strconv.ParseInt(editNode.MultiplexIds, 10, 64)
 		if cs.serverService.HaveCircle(app, iceId, operateConf.GetMixId(), forwardId) {
-			return 0, InputError("circles found please check forwardIds")
+			return nil, model.InputError("circles found please check forwardIds")
 		}
 		forward := cs.serverService.GetMixConfById(app, forwardId, iceId)
 		if forward == nil {
-			return 0, IDNotExist("forwardId", forwardId)
+			return nil, model.IDNotExist("forwardId", forwardId)
 		}
 		operateConf.ForwardId = &forwardId
 		cs.updateConf(operateConf, iceId)
-		return operateConf.GetMixId(), nil
+		nodes := cs.assembleMultiplexNodes(app, iceId, editNode.Lane, []int64{forwardId})
+		return &model.EditConfResponse{NodeId: operateConf.GetMixId(), Nodes: nodes}, nil
 	}
 
 	createConf, err := cs.createNewConf(editNode, app)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	fwdId := createConf.GetMixId()
 	operateConf.ForwardId = &fwdId
@@ -219,34 +224,36 @@ func (cs *ConfService) addForward(editNode *IceEditNode) (int64, error) {
 	createConf.ConfId = &createConf.ID
 	cs.saveConfUpdate(createConf, iceId)
 	cs.updateConf(operateConf, iceId)
-	return createConf.GetMixId(), nil
+	return &model.EditConfResponse{NodeId: createConf.GetMixId()}, nil
 }
 
-func (cs *ConfService) exchange(editNode *IceEditNode) (int64, error) {
+func (cs *ConfService) exchange(editNode *model.IceEditNode) (*model.EditConfResponse, error) {
 	app := *editNode.App
 	iceId := *editNode.IceId
 
 	if editNode.MultiplexIds != "" {
 		if editNode.ParentId == nil && editNode.NextId == nil {
-			return 0, InputError("root not support exchange by id")
+			return nil, model.InputError("root not support exchange by id")
 		}
 		if editNode.ParentId != nil {
 			conf := cs.serverService.GetMixConfById(app, *editNode.ParentId, iceId)
 			if conf == nil {
-				return 0, IDNotExist("parentId", *editNode.ParentId)
+				return nil, model.IDNotExist("parentId", *editNode.ParentId)
 			}
 			sonIdStrs := strings.Split(editNode.MultiplexIds, ",")
 			sonIdSet := make(map[int64]bool, len(sonIdStrs))
+			sonIdList := make([]int64, 0, len(sonIdStrs))
 			for _, s := range sonIdStrs {
 				id, _ := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
 				sonIdSet[id] = true
+				sonIdList = append(sonIdList, id)
 			}
 			children := cs.serverService.GetMixConfListByIds(app, sonIdSet, iceId)
 			if children == nil || len(children) != len(sonIdSet) {
-				return 0, IDNotExist("one of sonId", editNode.MultiplexIds)
+				return nil, model.IDNotExist("one of sonId", editNode.MultiplexIds)
 			}
 			if cs.serverService.HaveCircleSet(app, iceId, *editNode.ParentId, sonIdSet) {
-				return 0, InputError("circles found please check input sonIds")
+				return nil, model.InputError("circles found please check input sonIds")
 			}
 			sonIds := strings.Split(conf.SonIds, ",")
 			index := -1
@@ -254,34 +261,36 @@ func (cs *ConfService) exchange(editNode *IceEditNode) (int64, error) {
 				index = *editNode.Index
 			}
 			if index < 0 || index >= len(sonIds) || sonIds[index] != strconv.FormatInt(*editNode.SelectId, 10) {
-				return 0, InputError("parent do not have this son with input index")
+				return nil, model.InputError("parent do not have this son with input index")
 			}
 			sonIds[index] = editNode.MultiplexIds
 			conf.SonIds = strings.Join(sonIds, ",")
 			cs.updateConf(conf, iceId)
-			return conf.GetMixId(), nil
+			nodes := cs.assembleMultiplexNodes(app, iceId, editNode.Lane, sonIdList)
+			return &model.EditConfResponse{NodeId: conf.GetMixId(), Nodes: nodes}, nil
 		}
 		if editNode.NextId != nil {
 			conf := cs.serverService.GetMixConfById(app, *editNode.NextId, iceId)
 			if conf == nil {
-				return 0, IDNotExist("nextId", *editNode.NextId)
+				return nil, model.IDNotExist("nextId", *editNode.NextId)
 			}
 			if conf.ForwardId == nil {
-				return 0, InputError(fmt.Sprintf("nextId:%d no forward", *editNode.NextId))
+				return nil, model.InputError(fmt.Sprintf("nextId:%d no forward", *editNode.NextId))
 			}
 			exchangeForwardId, _ := strconv.ParseInt(editNode.MultiplexIds, 10, 64)
 			if cs.serverService.HaveCircle(app, iceId, *editNode.NextId, exchangeForwardId) {
-				return 0, InputError("circles found please check exchangeForwardId")
+				return nil, model.InputError("circles found please check exchangeForwardId")
 			}
 			conf.ForwardId = &exchangeForwardId
 			cs.updateConf(conf, iceId)
-			return conf.GetMixId(), nil
+			nodes := cs.assembleMultiplexNodes(app, iceId, editNode.Lane, []int64{exchangeForwardId})
+			return &model.EditConfResponse{NodeId: conf.GetMixId(), Nodes: nodes}, nil
 		}
 	}
 
 	operateConf := cs.serverService.GetMixConfById(app, *editNode.SelectId, iceId)
 	if operateConf == nil {
-		return 0, IDNotExist("selectId", *editNode.SelectId)
+		return nil, model.IDNotExist("selectId", *editNode.SelectId)
 	}
 
 	debug := int8(1)
@@ -296,7 +305,7 @@ func (cs *ConfService) exchange(editNode *IceEditNode) (int64, error) {
 	operateConf.End = editNode.End
 
 	if editNode.NodeType != nil {
-		if IsRelation(operateConf.Type) && !IsRelation(*editNode.NodeType) {
+		if model.IsRelation(operateConf.Type) && !model.IsRelation(*editNode.NodeType) {
 			operateConf.SonIds = ""
 		}
 		operateConf.Type = *editNode.NodeType
@@ -306,21 +315,21 @@ func (cs *ConfService) exchange(editNode *IceEditNode) (int64, error) {
 		operateConf.Name = editNode.Name
 	}
 
-	if editNode.NodeType != nil && IsLeaf(*editNode.NodeType) {
+	if editNode.NodeType != nil && model.IsLeaf(*editNode.NodeType) {
 		leafNodeInfo := cs.leafClassCheck(app, editNode.ConfName, *editNode.NodeType)
 		if editNode.ConfField != "" {
 			if checkRes := checkIllegalAndAdjustJson(editNode, leafNodeInfo); checkRes != "" {
-				return 0, ConfigFieldIllegal(checkRes)
+				return nil, model.ConfigFieldIllegal(checkRes)
 			}
 		}
 		operateConf.ConfName = editNode.ConfName
 		operateConf.ConfField = editNode.ConfField
 	}
 	cs.updateConf(operateConf, iceId)
-	return operateConf.GetMixId(), nil
+	return &model.EditConfResponse{NodeId: operateConf.GetMixId()}, nil
 }
 
-func (cs *ConfService) moveNode(editNode *IceEditNode) (int64, error) {
+func (cs *ConfService) moveNode(editNode *model.IceEditNode) (*model.EditConfResponse, error) {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
@@ -330,32 +339,32 @@ func (cs *ConfService) moveNode(editNode *IceEditNode) (int64, error) {
 	if editNode.ParentId != nil && editNode.Index != nil {
 		parent := cs.serverService.GetMixConfById(app, *editNode.ParentId, iceId)
 		if parent == nil {
-			return 0, IDNotExist("parentId", *editNode.ParentId)
+			return nil, model.IDNotExist("parentId", *editNode.ParentId)
 		}
 		if parent.SonIds == "" {
-			return 0, InputError("parent no child")
+			return nil, model.InputError("parent no child")
 		}
-		if IsLeaf(parent.Type) {
-			return 0, InputError("parentId not parent")
+		if model.IsLeaf(parent.Type) {
+			return nil, model.InputError("parentId not parent")
 		}
 		sonIds := strings.Split(parent.SonIds, ",")
 		index := *editNode.Index
 		selectIdStr := strconv.FormatInt(*editNode.SelectId, 10)
 		if index < 0 || index >= len(sonIds) || sonIds[index] != selectIdStr {
-			return 0, InputError("parent do not have this son with input index")
+			return nil, model.InputError("parent do not have this son with input index")
 		}
 
 		// Move to forward of another node
 		if editNode.MoveToNextId != nil {
 			moveToNext := cs.serverService.GetMixConfById(app, *editNode.MoveToNextId, iceId)
 			if moveToNext == nil {
-				return 0, IDNotExist("moveToNextId", *editNode.MoveToNextId)
+				return nil, model.IDNotExist("moveToNextId", *editNode.MoveToNextId)
 			}
 			if moveToNext.ForwardId != nil {
-				return 0, CustomError(fmt.Sprintf("move to moveToNext:%d already has forward", *editNode.MoveToNextId))
+				return nil, model.CustomError(fmt.Sprintf("move to moveToNext:%d already has forward", *editNode.MoveToNextId))
 			}
 			if cs.serverService.HaveCircle(app, iceId, moveToNext.GetMixId(), *editNode.SelectId) {
-				return 0, InputError("无法移动，存在循环引用")
+				return nil, model.InputError("无法移动，存在循环引用")
 			}
 			moveToNext.ForwardId = editNode.SelectId
 			// Remove from parent
@@ -368,7 +377,7 @@ func (cs *ConfService) moveNode(editNode *IceEditNode) (int64, error) {
 			parent.SonIds = strings.Join(parts, ",")
 			cs.updateConf(moveToNext, iceId)
 			cs.updateConf(parent, iceId)
-			return *editNode.SelectId, nil
+			return &model.EditConfResponse{NodeId: *editNode.SelectId}, nil
 		}
 
 		// Move within same parent or to different parent
@@ -376,13 +385,13 @@ func (cs *ConfService) moveNode(editNode *IceEditNode) (int64, error) {
 		if moveToParentId == nil || *moveToParentId == *editNode.ParentId {
 			// Reorder within same parent
 			if len(sonIds) == 1 {
-				return *editNode.SelectId, nil
+				return &model.EditConfResponse{NodeId: *editNode.SelectId}, nil
 			}
 			if editNode.MoveTo == nil && index == len(sonIds)-1 {
-				return *editNode.SelectId, nil
+				return &model.EditConfResponse{NodeId: *editNode.SelectId}, nil
 			}
 			if editNode.MoveTo != nil && *editNode.MoveTo == index {
-				return *editNode.SelectId, nil
+				return &model.EditConfResponse{NodeId: *editNode.SelectId}, nil
 			}
 
 			if editNode.MoveTo == nil || *editNode.MoveTo >= len(sonIds) {
@@ -411,13 +420,13 @@ func (cs *ConfService) moveNode(editNode *IceEditNode) (int64, error) {
 			// Move to different parent
 			moveToParent := cs.serverService.GetMixConfById(app, *moveToParentId, iceId)
 			if moveToParent == nil {
-				return 0, IDNotExist("moveToParentId", *moveToParentId)
+				return nil, model.IDNotExist("moveToParentId", *moveToParentId)
 			}
-			if IsLeaf(moveToParent.Type) {
-				return 0, InputError("move to parentId not parent")
+			if model.IsLeaf(moveToParent.Type) {
+				return nil, model.InputError("move to parentId not parent")
 			}
 			if cs.serverService.HaveCircle(app, iceId, moveToParent.GetMixId(), *editNode.SelectId) {
-				return 0, InputError("无法移动，存在循环引用")
+				return nil, model.InputError("无法移动，存在循环引用")
 			}
 
 			// Add to new parent
@@ -458,56 +467,56 @@ func (cs *ConfService) moveNode(editNode *IceEditNode) (int64, error) {
 			cs.updateConf(moveToParent, iceId)
 			cs.updateConf(parent, iceId)
 		}
-		return *editNode.SelectId, nil
+		return &model.EditConfResponse{NodeId: *editNode.SelectId}, nil
 	}
 
 	// Move from forward position
 	if editNode.NextId != nil {
 		next := cs.serverService.GetMixConfById(app, *editNode.NextId, iceId)
 		if next == nil {
-			return 0, IDNotExist("nextId", *editNode.NextId)
+			return nil, model.IDNotExist("nextId", *editNode.NextId)
 		}
 		if next.ForwardId == nil || *next.ForwardId != *editNode.SelectId {
-			return 0, CustomError(fmt.Sprintf("next:%d not have this forward:%d", *editNode.NextId, *editNode.SelectId))
+			return nil, model.CustomError(fmt.Sprintf("next:%d not have this forward:%d", *editNode.NextId, *editNode.SelectId))
 		}
 
 		if editNode.MoveToNextId != nil {
 			if *editNode.NextId == *editNode.MoveToNextId {
-				return *editNode.SelectId, nil
+				return &model.EditConfResponse{NodeId: *editNode.SelectId}, nil
 			}
 			moveToNext := cs.serverService.GetMixConfById(app, *editNode.MoveToNextId, iceId)
 			if moveToNext == nil {
-				return 0, IDNotExist("moveToNextId", *editNode.MoveToNextId)
+				return nil, model.IDNotExist("moveToNextId", *editNode.MoveToNextId)
 			}
 			if moveToNext.ForwardId != nil {
-				return 0, CustomError(fmt.Sprintf("move to next:%d already has forward", *editNode.MoveToNextId))
+				return nil, model.CustomError(fmt.Sprintf("move to next:%d already has forward", *editNode.MoveToNextId))
 			}
 			if cs.serverService.HaveCircle(app, iceId, moveToNext.GetMixId(), *editNode.SelectId) {
-				return 0, InputError("无法移动，存在循环引用")
+				return nil, model.InputError("无法移动，存在循环引用")
 			}
 			moveToNext.ForwardId = editNode.SelectId
 			next.ForwardId = nil
 			cs.updateConf(moveToNext, iceId)
 			cs.updateConf(next, iceId)
-			return *editNode.SelectId, nil
+			return &model.EditConfResponse{NodeId: *editNode.SelectId}, nil
 		}
 
 		if editNode.MoveToParentId != nil {
 			sameNode := *editNode.MoveToParentId == *editNode.NextId
-			var moveToParent *IceConf
+			var moveToParent *model.IceConf
 			if sameNode {
 				moveToParent = next
 			} else {
 				moveToParent = cs.serverService.GetMixConfById(app, *editNode.MoveToParentId, iceId)
 				if moveToParent == nil {
-					return 0, IDNotExist("moveToParentId", *editNode.MoveToParentId)
+					return nil, model.IDNotExist("moveToParentId", *editNode.MoveToParentId)
 				}
 			}
-			if IsLeaf(moveToParent.Type) {
-				return 0, InputError("move to parentId not parent")
+			if model.IsLeaf(moveToParent.Type) {
+				return nil, model.InputError("move to parentId not parent")
 			}
 			if cs.serverService.HaveCircle(app, iceId, moveToParent.GetMixId(), *editNode.SelectId) {
-				return 0, InputError("无法移动，存在循环引用")
+				return nil, model.InputError("无法移动，存在循环引用")
 			}
 
 			selectIdStr := strconv.FormatInt(*editNode.SelectId, 10)
@@ -543,13 +552,25 @@ func (cs *ConfService) moveNode(editNode *IceEditNode) (int64, error) {
 				cs.updateConf(moveToParent, iceId)
 				cs.updateConf(next, iceId)
 			}
-			return *editNode.SelectId, nil
+			return &model.EditConfResponse{NodeId: *editNode.SelectId}, nil
 		}
 	}
-	return *editNode.SelectId, nil
+	return &model.EditConfResponse{NodeId: *editNode.SelectId}, nil
 }
 
-func (cs *ConfService) createNewConf(editNode *IceEditNode, app int) (*IceConf, error) {
+func (cs *ConfService) assembleMultiplexNodes(app int, iceId int64, lane string, ids []int64) []*model.IceShowNode {
+	var nodes []*model.IceShowNode
+	for _, id := range ids {
+		node := cs.serverService.GetConfMixById(app, id, iceId, lane)
+		if node != nil {
+			AddUniqueKey(node, "", false, false)
+			nodes = append(nodes, node)
+		}
+	}
+	return nodes
+}
+
+func (cs *ConfService) createNewConf(editNode *model.IceEditNode, app int) (*model.IceConf, error) {
 	confId, err := cs.storage.NextConfId(app)
 	if err != nil {
 		return nil, err
@@ -560,14 +581,14 @@ func (cs *ConfService) createNewConf(editNode *IceEditNode, app int) (*IceConf, 
 		debug = 0
 	}
 	inverse := editNode.IsInverse()
-	now := timeNowMs()
+	now := model.TimeNowMs()
 
-	nodeType := NodeTypeNone
+	nodeType := model.NodeTypeNone
 	if editNode.NodeType != nil {
 		nodeType = *editNode.NodeType
 	}
 
-	conf := &IceConf{
+	conf := &model.IceConf{
 		ID:       confId,
 		App:      app,
 		Type:     nodeType,
@@ -576,7 +597,7 @@ func (cs *ConfService) createNewConf(editNode *IceEditNode, app int) (*IceConf, 
 		TimeType: editNode.TimeType,
 		Start:    editNode.Start,
 		End:      editNode.End,
-		Status:   Int8Ptr(StatusOnline),
+		Status:   model.Int8Ptr(model.StatusOnline),
 		CreateAt: &now,
 		UpdateAt: &now,
 	}
@@ -584,11 +605,11 @@ func (cs *ConfService) createNewConf(editNode *IceEditNode, app int) (*IceConf, 
 		conf.Name = editNode.Name
 	}
 
-	if IsLeaf(nodeType) {
+	if model.IsLeaf(nodeType) {
 		leafNodeInfo := cs.leafClassCheck(app, editNode.ConfName, nodeType)
 		if editNode.ConfField != "" {
 			if checkRes := checkIllegalAndAdjustJson(editNode, leafNodeInfo); checkRes != "" {
-				return nil, ConfigFieldIllegal(checkRes)
+				return nil, model.ConfigFieldIllegal(checkRes)
 			}
 		}
 		conf.ConfName = editNode.ConfName
@@ -598,100 +619,100 @@ func (cs *ConfService) createNewConf(editNode *IceEditNode, app int) (*IceConf, 
 	return conf, nil
 }
 
-func (cs *ConfService) saveConfUpdate(conf *IceConf, iceId int64) {
+func (cs *ConfService) saveConfUpdate(conf *model.IceConf, iceId int64) {
 	conf.IceId = &iceId
 	conf.ConfId = &conf.ID
-	ensureConfDefaults(conf)
+	EnsureConfDefaults(conf)
 	if conf.CreateAt == nil {
-		now := timeNowMs()
+		now := model.TimeNowMs()
 		conf.CreateAt = &now
 	}
 	if err := cs.storage.SaveConfUpdate(conf.App, iceId, conf); err != nil {
-		panic(InternalError(err.Error()))
+		panic(model.InternalError(err.Error()))
 	}
 }
 
-func (cs *ConfService) updateConf(conf *IceConf, iceId int64) {
-	now := timeNowMs()
+func (cs *ConfService) updateConf(conf *model.IceConf, iceId int64) {
+	now := model.TimeNowMs()
 	conf.UpdateAt = &now
-	ensureConfDefaults(conf)
+	EnsureConfDefaults(conf)
 	if !conf.IsUpdating() {
 		conf.IceId = &iceId
 		conf.ConfId = &conf.ID
 	}
 	if err := cs.serverService.UpdateLocalConfUpdateCache(conf); err != nil {
-		panic(InternalError(err.Error()))
+		panic(model.InternalError(err.Error()))
 	}
 }
 
-func (cs *ConfService) paramHandle(editNode *IceEditNode) error {
-	if editNode.App == nil || editNode.IceId == nil || editNode.SelectId == nil || editNode.EditType == nil || !IsValidEditType(*editNode.EditType) {
-		return InputError("app|iceId|selectId|editType")
+func (cs *ConfService) paramHandle(editNode *model.IceEditNode) error {
+	if editNode.App == nil || editNode.IceId == nil || editNode.SelectId == nil || editNode.EditType == nil || !model.IsValidEditType(*editNode.EditType) {
+		return model.InputError("app|iceId|selectId|editType")
 	}
 
-	tt := TimeTypeNone
+	tt := model.TimeTypeNone
 	if editNode.TimeType != nil {
 		tt = *editNode.TimeType
 	}
-	if !IsValidTimeType(tt) {
-		editNode.TimeType = Int8Ptr(TimeTypeNone)
-		tt = TimeTypeNone
+	if !model.IsValidTimeType(tt) {
+		editNode.TimeType = model.Int8Ptr(model.TimeTypeNone)
+		tt = model.TimeTypeNone
 	}
 
 	switch tt {
-	case TimeTypeNone:
+	case model.TimeTypeNone:
 		editNode.Start = nil
 		editNode.End = nil
-	case TimeTypeAfterStart:
+	case model.TimeTypeAfterStart:
 		if editNode.Start == nil {
-			return InputError("start null")
+			return model.InputError("start null")
 		}
 		editNode.End = nil
-	case TimeTypeBeforeEnd:
+	case model.TimeTypeBeforeEnd:
 		if editNode.End == nil {
-			return InputError("end null")
+			return model.InputError("end null")
 		}
 		editNode.Start = nil
-	case TimeTypeBetween:
+	case model.TimeTypeBetween:
 		if editNode.Start == nil || editNode.End == nil {
-			return InputError("start|end null")
+			return model.InputError("start|end null")
 		}
 	}
 
-	if editNode.NodeType != nil && IsRelation(*editNode.NodeType) {
+	if editNode.NodeType != nil && model.IsRelation(*editNode.NodeType) {
 		editNode.ConfName = ""
 		editNode.ConfField = ""
 	}
 
 	if editNode.Name != "" && len(editNode.Name) > 50 {
-		return InputError("name too long (>50)")
+		return model.InputError("name too long (>50)")
 	}
 
 	// Defaults
 	if editNode.Debug == nil {
-		editNode.Debug = BoolPtr(true)
+		editNode.Debug = model.BoolPtr(true)
 	}
 	if editNode.Inverse == nil {
-		editNode.Inverse = BoolPtr(false)
+		editNode.Inverse = model.BoolPtr(false)
 	}
 	if editNode.TimeType == nil {
-		editNode.TimeType = Int8Ptr(TimeTypeNone)
+		editNode.TimeType = model.Int8Ptr(model.TimeTypeNone)
 	}
 	return nil
 }
 
-func (cs *ConfService) GetConfLeafClass(app int, nodeType int8, lane string) []*IceLeafClass {
+func (cs *ConfService) GetConfLeafClass(app int, nodeType int8, lane string) []*model.IceLeafClass {
 	clazzMap := cs.clientManager.GetLeafTypeClasses(app, nodeType, lane)
 	if len(clazzMap) == 0 {
-		return []*IceLeafClass{}
+		return []*model.IceLeafClass{}
 	}
-	var result []*IceLeafClass
+	var result []*model.IceLeafClass
 	for clazz, info := range clazzMap {
 		order := 100
 		if info.Order != nil {
 			order = *info.Order
 		}
-		result = append(result, &IceLeafClass{
+		result = append(result, &model.IceLeafClass{
 			FullName: clazz,
 			Name:     info.Name,
 			Order:    order,
@@ -703,7 +724,7 @@ func (cs *ConfService) GetConfLeafClass(app int, nodeType int8, lane string) []*
 	return result
 }
 
-func (cs *ConfService) leafClassCheck(app int, clazz string, nodeType int8) *LeafNodeInfo {
+func (cs *ConfService) leafClassCheck(app int, clazz string, nodeType int8) *model.LeafNodeInfo {
 	if clazz == "" {
 		return nil
 	}
@@ -715,29 +736,29 @@ func (cs *ConfService) leafClassCheck(app int, clazz string, nodeType int8) *Lea
 }
 
 func (cs *ConfService) LeafClassCheckAPI(app int, clazz string, nodeType int8) error {
-	if clazz == "" || !IsLeaf(nodeType) {
-		return InputError("app|clazz|type")
+	if clazz == "" || !model.IsLeaf(nodeType) {
+		return model.InputError("app|clazz|type")
 	}
 	cs.leafClassCheck(app, clazz, nodeType)
 	return nil
 }
 
-func (cs *ConfService) ConfDetail(app int, confId int64, address string, iceId int64, lane string) (*IceShowConf, error) {
+func (cs *ConfService) ConfDetail(app int, confId int64, address string, iceId int64, lane string) (*model.IceShowConf, error) {
 	root := cs.serverService.GetConfMixById(app, confId, iceId, lane)
 	if root == nil {
-		return nil, ConfNotFound(app, "confId", confId)
+		return nil, model.ConfNotFound(app, "confId", confId)
 	}
-	showConf := &IceShowConf{
+	showConf := &model.IceShowConf{
 		App:  app,
 		Root: root,
 	}
-	addUniqueKey(root, "", true, false)
-	count := countUpdating(root)
+	AddUniqueKey(root, "", true, false)
+	count := CountUpdating(root)
 	showConf.UpdateCount = &count
 	return showConf, nil
 }
 
-func countUpdating(node *IceShowNode) int {
+func CountUpdating(node *model.IceShowNode) int {
 	if node == nil {
 		return 0
 	}
@@ -746,15 +767,15 @@ func countUpdating(node *IceShowNode) int {
 		count++
 	}
 	if node.Forward != nil {
-		count += countUpdating(node.Forward)
+		count += CountUpdating(node.Forward)
 	}
 	for _, child := range node.Children {
-		count += countUpdating(child)
+		count += CountUpdating(child)
 	}
 	return count
 }
 
-func addUniqueKey(node *IceShowNode, prefix string, root, forward bool) {
+func AddUniqueKey(node *model.IceShowNode, prefix string, root, forward bool) {
 	if node == nil || node.ShowConf == nil {
 		return
 	}
@@ -775,15 +796,15 @@ func addUniqueKey(node *IceShowNode, prefix string, root, forward bool) {
 	node.ShowConf.UniqueKey = uniqueKey
 
 	if node.Forward != nil {
-		addUniqueKey(node.Forward, uniqueKey, false, true)
+		AddUniqueKey(node.Forward, uniqueKey, false, true)
 	}
 	for _, child := range node.Children {
-		addUniqueKey(child, uniqueKey, false, false)
+		AddUniqueKey(child, uniqueKey, false, false)
 	}
 }
 
 // checkIllegalAndAdjustJson validates and adjusts JSON config
-func checkIllegalAndAdjustJson(editNode *IceEditNode, nodeInfo *LeafNodeInfo) string {
+func checkIllegalAndAdjustJson(editNode *model.IceEditNode, nodeInfo *model.LeafNodeInfo) string {
 	var obj map[string]interface{}
 	decoder := json.NewDecoder(bytes.NewReader([]byte(editNode.ConfField)))
 	decoder.UseNumber()
@@ -842,7 +863,7 @@ var objectTypes = map[string]bool{
 func isStringType(t string) bool { return stringTypes[t] }
 func isObjectType(t string) bool { return objectTypes[t] }
 
-func getFieldType(fieldName string, nodeInfo *LeafNodeInfo) string {
+func getFieldType(fieldName string, nodeInfo *model.LeafNodeInfo) string {
 	for _, f := range nodeInfo.IceFields {
 		if f.Field == fieldName {
 			return f.Type

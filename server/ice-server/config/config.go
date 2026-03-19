@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"flag"
@@ -17,7 +17,7 @@ type Config struct {
 	RecycleProtectDays int
 }
 
-func LoadConfig() *Config {
+func Load() *Config {
 	cfg := &Config{
 		Port:               8121,
 		StoragePath:        "./ice-data",

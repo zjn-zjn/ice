@@ -1,8 +1,9 @@
-package main
+package model
 
 import (
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Status constants (matching IceStorageConstants)
@@ -14,19 +15,19 @@ const (
 
 // NodeType constants (matching NodeTypeEnum)
 const (
-	NodeTypeNone    int8 = 0
-	NodeTypeAnd     int8 = 1
-	NodeTypeTrue    int8 = 2
-	NodeTypeAll     int8 = 3
-	NodeTypeAny     int8 = 4
-	NodeTypeFlow    int8 = 5
-	NodeTypeResult  int8 = 6
+	NodeTypeNone     int8 = 0
+	NodeTypeAnd      int8 = 1
+	NodeTypeTrue     int8 = 2
+	NodeTypeAll      int8 = 3
+	NodeTypeAny      int8 = 4
+	NodeTypeFlow     int8 = 5
+	NodeTypeResult   int8 = 6
 	NodeTypeLeafNone int8 = 7
-	NodeTypePNone   int8 = 8
-	NodeTypePAnd    int8 = 9
-	NodeTypePTrue   int8 = 10
-	NodeTypePAll    int8 = 11
-	NodeTypePAny    int8 = 12
+	NodeTypePNone    int8 = 8
+	NodeTypePAnd     int8 = 9
+	NodeTypePTrue    int8 = 10
+	NodeTypePAll     int8 = 11
+	NodeTypePAny     int8 = 12
 )
 
 // TimeType constants (matching TimeTypeEnum)
@@ -74,6 +75,11 @@ func IsValidTimeType(t int8) bool {
 
 func IsValidEditType(t int) bool {
 	return t >= EditTypeAddSon && t <= EditTypeMove
+}
+
+// TimeNowMs returns current time in milliseconds
+func TimeNowMs() int64 {
+	return time.Now().UnixMilli()
 }
 
 // ---- Data Models (matching Java DTOs, stored as JSON) ----
@@ -207,6 +213,13 @@ type IceEditNode struct {
 	MoveToNextId   *int64  `json:"moveToNextId,omitempty"`
 	NextId         *int64  `json:"nextId,omitempty"`
 	Inverse        *bool   `json:"inverse,omitempty"`
+	Lane           string  `json:"lane,omitempty"`
+}
+
+// EditConfResponse is the response for editConf API
+type EditConfResponse struct {
+	NodeId int64          `json:"nodeId"`
+	Nodes  []*IceShowNode `json:"nodes,omitempty"`
 }
 
 func (e *IceEditNode) GetTimeType() int8 {
@@ -268,11 +281,11 @@ type IceBaseCreate struct {
 
 // IceTransferDto is the version update data
 type IceTransferDto struct {
-	Version              int64      `json:"version"`
-	InsertOrUpdateConfs  []*IceConf `json:"insertOrUpdateConfs,omitempty"`
-	DeleteConfIds        []int64    `json:"deleteConfIds,omitempty"`
-	InsertOrUpdateBases  []*IceBase `json:"insertOrUpdateBases,omitempty"`
-	DeleteBaseIds        []int64    `json:"deleteBaseIds,omitempty"`
+	Version             int64      `json:"version"`
+	InsertOrUpdateConfs []*IceConf `json:"insertOrUpdateConfs,omitempty"`
+	DeleteConfIds       []int64    `json:"deleteConfIds,omitempty"`
+	InsertOrUpdateBases []*IceBase `json:"insertOrUpdateBases,omitempty"`
+	DeleteBaseIds       []int64    `json:"deleteBaseIds,omitempty"`
 }
 
 // IceClientInfo represents a registered client
@@ -375,4 +388,3 @@ func Int8Ptr(v int8) *int8     { return &v }
 func Int64Ptr(v int64) *int64  { return &v }
 func IntPtr(v int) *int        { return &v }
 func BoolPtr(v bool) *bool     { return &v }
-

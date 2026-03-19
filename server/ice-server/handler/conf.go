@@ -1,17 +1,20 @@
-package main
+package handler
 
 import (
 	"net/http"
+
+	"github.com/waitmoon/ice-server/model"
+	"github.com/waitmoon/ice-server/service"
 )
 
 type ConfHandler struct {
-	confService   *ConfService
-	serverService *ServerService
-	appService    *AppService
-	clientManager *ClientManager
+	confService   *service.ConfService
+	serverService *service.ServerService
+	appService    *service.AppService
+	clientManager *service.ClientManager
 }
 
-func NewConfHandler(confService *ConfService, serverService *ServerService, appService *AppService, clientManager *ClientManager) *ConfHandler {
+func NewConfHandler(confService *service.ConfService, serverService *service.ServerService, appService *service.AppService, clientManager *service.ClientManager) *ConfHandler {
 	return &ConfHandler{
 		confService:   confService,
 		serverService: serverService,
@@ -21,52 +24,52 @@ func NewConfHandler(confService *ConfService, serverService *ServerService, appS
 }
 
 func (h *ConfHandler) Register(mux *http.ServeMux) {
-	mux.HandleFunc("/ice-server/conf/edit", wrapHandler(h.confEdit))
-	mux.HandleFunc("/ice-server/conf/leaf/class", wrapHandler(h.leafClass))
-	mux.HandleFunc("/ice-server/conf/class/check", wrapHandler(h.classCheck))
-	mux.HandleFunc("/ice-server/conf/lane/list", wrapHandler(h.laneList))
-	mux.HandleFunc("/ice-server/conf/detail", wrapHandler(h.confDetail))
-	mux.HandleFunc("/ice-server/conf/node-meta", wrapHandler(h.nodeMeta))
-	mux.HandleFunc("/ice-server/conf/release", wrapHandler(h.release))
-	mux.HandleFunc("/ice-server/conf/update_clean", wrapHandler(h.updateClean))
+	mux.HandleFunc("/ice-server/conf/edit", WrapHandler(h.confEdit))
+	mux.HandleFunc("/ice-server/conf/leaf/class", WrapHandler(h.leafClass))
+	mux.HandleFunc("/ice-server/conf/class/check", WrapHandler(h.classCheck))
+	mux.HandleFunc("/ice-server/conf/lane/list", WrapHandler(h.laneList))
+	mux.HandleFunc("/ice-server/conf/detail", WrapHandler(h.confDetail))
+	mux.HandleFunc("/ice-server/conf/node-meta", WrapHandler(h.nodeMeta))
+	mux.HandleFunc("/ice-server/conf/release", WrapHandler(h.release))
+	mux.HandleFunc("/ice-server/conf/update_clean", WrapHandler(h.updateClean))
 }
 
 func (h *ConfHandler) confEdit(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	var editNode IceEditNode
-	if err := readJSONBody(r, &editNode); err != nil {
-		return nil, InputError("editNode")
+	var editNode model.IceEditNode
+	if err := ReadJSONBody(r, &editNode); err != nil {
+		return nil, model.InputError("editNode")
 	}
 	return h.confService.ConfEdit(&editNode)
 }
 
 func (h *ConfHandler) leafClass(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	app, err := queryIntRequired(r, "app")
+	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
 	}
-	nodeType := queryInt8(r, "type")
+	nodeType := QueryInt8(r, "type")
 	if nodeType == nil {
-		return nil, InputError("type required")
+		return nil, model.InputError("type required")
 	}
-	lane := queryStr(r, "lane", "")
+	lane := QueryStr(r, "lane", "")
 	return h.confService.GetConfLeafClass(app, *nodeType, lane), nil
 }
 
 func (h *ConfHandler) classCheck(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	app, err := queryIntRequired(r, "app")
+	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
 	}
-	clazz := queryStr(r, "clazz", "")
-	nodeType := queryInt8(r, "type")
+	clazz := QueryStr(r, "clazz", "")
+	nodeType := QueryInt8(r, "type")
 	if nodeType == nil {
-		return nil, InputError("type required")
+		return nil, model.InputError("type required")
 	}
 	return nil, h.confService.LeafClassCheckAPI(app, clazz, *nodeType)
 }
 
 func (h *ConfHandler) laneList(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	app, err := queryIntRequired(r, "app")
+	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
 	}
@@ -74,20 +77,20 @@ func (h *ConfHandler) laneList(w http.ResponseWriter, r *http.Request) (interfac
 }
 
 func (h *ConfHandler) confDetail(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	app, err := queryIntRequired(r, "app")
+	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
 	}
-	iceId, err := queryInt64Required(r, "iceId")
+	iceId, err := QueryInt64Required(r, "iceId")
 	if err != nil {
 		return nil, err
 	}
-	confId := queryInt64(r, "confId")
-	lane := queryStr(r, "lane", "")
+	confId := QueryInt64(r, "confId")
+	lane := QueryStr(r, "lane", "")
 
 	base := h.serverService.GetActiveBaseById(app, iceId)
 	if base == nil {
-		return nil, InputError("app|iceId")
+		return nil, model.InputError("app|iceId")
 	}
 
 	actualConfId := int64(0)
@@ -97,7 +100,7 @@ func (h *ConfHandler) confDetail(w http.ResponseWriter, r *http.Request) (interf
 		actualConfId = *base.ConfID
 	}
 
-	address := queryStr(r, "address", "server")
+	address := QueryStr(r, "address", "server")
 	showConf, err := h.confService.ConfDetail(app, actualConfId, address, iceId, lane)
 	if err != nil {
 		return nil, err
@@ -107,12 +110,12 @@ func (h *ConfHandler) confDetail(w http.ResponseWriter, r *http.Request) (interf
 }
 
 func (h *ConfHandler) nodeMeta(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	app, err := queryIntRequired(r, "app")
+	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
 	}
-	lane := queryStr(r, "lane", "")
-	address := queryStr(r, "address", "")
+	lane := QueryStr(r, "lane", "")
+	address := QueryStr(r, "address", "")
 
 	result := make(map[string]interface{})
 	registry := h.clientManager.GetClientRegistry(app)
@@ -144,7 +147,7 @@ func (h *ConfHandler) nodeMeta(w http.ResponseWriter, r *http.Request) (interfac
 	if actualAddress != "" {
 		addressExists := false
 		if registry != nil {
-			var clients []*ShowClientInfo
+			var clients []*model.ShowClientInfo
 			if actualLane == "" {
 				clients = registry.MainClients
 			} else if registry.LaneClients != nil {
@@ -181,11 +184,11 @@ func (h *ConfHandler) nodeMeta(w http.ResponseWriter, r *http.Request) (interfac
 }
 
 func (h *ConfHandler) release(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	app, err := queryIntRequired(r, "app")
+	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
 	}
-	iceId, err := queryInt64Required(r, "iceId")
+	iceId, err := QueryInt64Required(r, "iceId")
 	if err != nil {
 		return nil, err
 	}
@@ -196,11 +199,11 @@ func (h *ConfHandler) release(w http.ResponseWriter, r *http.Request) (interface
 }
 
 func (h *ConfHandler) updateClean(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	app, err := queryIntRequired(r, "app")
+	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
 	}
-	iceId, err := queryInt64Required(r, "iceId")
+	iceId, err := QueryInt64Required(r, "iceId")
 	if err != nil {
 		return nil, err
 	}

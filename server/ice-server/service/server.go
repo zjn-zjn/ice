@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"encoding/json"
@@ -7,16 +7,20 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/waitmoon/ice-server/config"
+	"github.com/waitmoon/ice-server/model"
+	"github.com/waitmoon/ice-server/storage"
 )
 
 type ServerService struct {
-	storage       *Storage
+	storage       *storage.Storage
 	clientManager *ClientManager
-	config        *Config
+	config        *config.Config
 	mu            sync.Mutex
 }
 
-func NewServerService(storage *Storage, clientManager *ClientManager, config *Config) *ServerService {
+func NewServerService(storage *storage.Storage, clientManager *ClientManager, config *config.Config) *ServerService {
 	return &ServerService{
 		storage:       storage,
 		clientManager: clientManager,
@@ -24,7 +28,7 @@ func NewServerService(storage *Storage, clientManager *ClientManager, config *Co
 	}
 }
 
-func (s *ServerService) GetInitConfig(app int) (*IceTransferDto, error) {
+func (s *ServerService) GetInitConfig(app int) (*model.IceTransferDto, error) {
 	version, err := s.storage.GetVersion(app)
 	if err != nil {
 		return nil, err
@@ -37,28 +41,28 @@ func (s *ServerService) GetInitConfig(app int) (*IceTransferDto, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &IceTransferDto{
+	return &model.IceTransferDto{
 		Version:             version,
 		InsertOrUpdateBases: bases,
 		InsertOrUpdateConfs: confs,
 	}, nil
 }
 
-func (s *ServerService) getActiveOnlineConfs(app int) ([]*IceConf, error) {
+func (s *ServerService) getActiveOnlineConfs(app int) ([]*model.IceConf, error) {
 	all, err := s.storage.ListActiveConfs(app)
 	if err != nil {
 		return nil, err
 	}
-	var result []*IceConf
+	var result []*model.IceConf
 	for _, c := range all {
-		if c.Status != nil && *c.Status == StatusOnline {
+		if c.Status != nil && *c.Status == model.StatusOnline {
 			result = append(result, c)
 		}
 	}
 	return result, nil
 }
 
-func (s *ServerService) GetActiveConfById(app int, confId int64) *IceConf {
+func (s *ServerService) GetActiveConfById(app int, confId int64) *model.IceConf {
 	conf, err := s.storage.GetConf(app, confId)
 	if err != nil {
 		log.Printf("failed to get active conf by id:%d: %v", confId, err)
@@ -67,7 +71,7 @@ func (s *ServerService) GetActiveConfById(app int, confId int64) *IceConf {
 	return conf
 }
 
-func (s *ServerService) GetUpdateConfById(app int, confId, iceId int64) *IceConf {
+func (s *ServerService) GetUpdateConfById(app int, confId, iceId int64) *model.IceConf {
 	conf, err := s.storage.GetConfUpdate(app, iceId, confId)
 	if err != nil {
 		log.Printf("failed to get update conf by id:%d: %v", confId, err)
@@ -76,7 +80,7 @@ func (s *ServerService) GetUpdateConfById(app int, confId, iceId int64) *IceConf
 	return conf
 }
 
-func (s *ServerService) GetMixConfById(app int, confId, iceId int64) *IceConf {
+func (s *ServerService) GetMixConfById(app int, confId, iceId int64) *model.IceConf {
 	updateConf := s.GetUpdateConfById(app, confId, iceId)
 	if updateConf != nil {
 		return updateConf
@@ -84,11 +88,11 @@ func (s *ServerService) GetMixConfById(app int, confId, iceId int64) *IceConf {
 	return s.GetActiveConfById(app, confId)
 }
 
-func (s *ServerService) GetMixConfListByIds(app int, confIds map[int64]bool, iceId int64) []*IceConf {
+func (s *ServerService) GetMixConfListByIds(app int, confIds map[int64]bool, iceId int64) []*model.IceConf {
 	if len(confIds) == 0 {
 		return nil
 	}
-	result := make([]*IceConf, 0, len(confIds))
+	result := make([]*model.IceConf, 0, len(confIds))
 	for confId := range confIds {
 		conf := s.GetMixConfById(app, confId, iceId)
 		if conf == nil {
@@ -99,7 +103,7 @@ func (s *ServerService) GetMixConfListByIds(app int, confIds map[int64]bool, ice
 	return result
 }
 
-func (s *ServerService) GetActiveBaseById(app int, iceId int64) *IceBase {
+func (s *ServerService) GetActiveBaseById(app int, iceId int64) *model.IceBase {
 	base, err := s.storage.GetBase(app, iceId)
 	if err != nil {
 		log.Printf("failed to get active base by id:%d: %v", iceId, err)
@@ -108,21 +112,21 @@ func (s *ServerService) GetActiveBaseById(app int, iceId int64) *IceBase {
 	return base
 }
 
-func (s *ServerService) GetConfMixById(app int, confId, iceId int64, lane string) *IceShowNode {
+func (s *ServerService) GetConfMixById(app int, confId, iceId int64, lane string) *model.IceShowNode {
 	root := s.GetMixConfById(app, confId, iceId)
 	return s.assembleShowNode(root, app, iceId, lane)
 }
 
-func (s *ServerService) assembleShowNode(node *IceConf, app int, iceId int64, lane string) *IceShowNode {
+func (s *ServerService) assembleShowNode(node *model.IceConf, app int, iceId int64, lane string) *model.IceShowNode {
 	if node == nil {
 		return nil
 	}
 	showNode := confToShow(node)
 
-	if IsRelation(node.Type) {
+	if model.IsRelation(node.Type) {
 		if showNode.SonIds != "" {
 			sonIdStrs := strings.Split(showNode.SonIds, ",")
-			var children []*IceShowNode
+			var children []*model.IceShowNode
 			for i, sonStr := range sonIdStrs {
 				sonStr = strings.TrimSpace(sonStr)
 				if sonStr == "" {
@@ -132,7 +136,7 @@ func (s *ServerService) assembleShowNode(node *IceConf, app int, iceId int64, la
 				child := s.GetMixConfById(app, sonId, iceId)
 				if child != nil {
 					showChild := s.assembleShowNode(child, app, iceId, lane)
-					showChild.ParentId = Int64Ptr(node.GetMixId())
+					showChild.ParentId = model.Int64Ptr(node.GetMixId())
 					idx := i
 					showChild.Index = &idx
 					children = append(children, showChild)
@@ -140,14 +144,14 @@ func (s *ServerService) assembleShowNode(node *IceConf, app int, iceId int64, la
 			}
 			showNode.Children = children
 		}
-	} else if IsLeaf(node.Type) && node.ConfName != "" {
+	} else if model.IsLeaf(node.Type) && node.ConfName != "" {
 		nodeInfo := s.clientManager.GetNodeInfo(node.App, "", node.ConfName, node.Type, lane)
 		if nodeInfo != nil {
-			showNode.ShowConf.HaveMeta = BoolPtr(true)
+			showNode.ShowConf.HaveMeta = model.BoolPtr(true)
 			showNode.ShowConf.NodeInfo = nodeInfo
 			fillFieldValues(nodeInfo, node.ConfField)
 		} else {
-			showNode.ShowConf.HaveMeta = BoolPtr(false)
+			showNode.ShowConf.HaveMeta = model.BoolPtr(false)
 		}
 	}
 
@@ -155,14 +159,14 @@ func (s *ServerService) assembleShowNode(node *IceConf, app int, iceId int64, la
 		forwardConf := s.GetMixConfById(app, *showNode.ForwardId, iceId)
 		forwardNode := s.assembleShowNode(forwardConf, app, iceId, lane)
 		if forwardNode != nil {
-			forwardNode.NextId = Int64Ptr(node.GetMixId())
+			forwardNode.NextId = model.Int64Ptr(node.GetMixId())
 			showNode.Forward = forwardNode
 		}
 	}
 	return showNode
 }
 
-func fillFieldValues(nodeInfo *LeafNodeInfo, confField string) {
+func fillFieldValues(nodeInfo *model.LeafNodeInfo, confField string) {
 	if confField == "" || confField == "{}" {
 		return
 	}
@@ -175,7 +179,7 @@ func fillFieldValues(nodeInfo *LeafNodeInfo, confField string) {
 		return
 	}
 
-	fillFields := func(fields []*IceFieldInfo) {
+	fillFields := func(fields []*model.IceFieldInfo) {
 		for _, f := range fields {
 			if val, ok := fieldValues[f.Field]; ok {
 				f.Value = val
@@ -188,36 +192,36 @@ func fillFieldValues(nodeInfo *LeafNodeInfo, confField string) {
 	fillFields(nodeInfo.HideFields)
 }
 
-func (s *ServerService) UpdateLocalConfUpdateCache(conf *IceConf) error {
-	ensureConfDefaults(conf)
+func (s *ServerService) UpdateLocalConfUpdateCache(conf *model.IceConf) error {
+	EnsureConfDefaults(conf)
 	return s.storage.SaveConfUpdate(conf.App, *conf.IceId, conf)
 }
 
-func (s *ServerService) UpdateLocalConfActiveCache(conf *IceConf) error {
+func (s *ServerService) UpdateLocalConfActiveCache(conf *model.IceConf) error {
 	activeCopy := *conf
 	activeCopy.IceId = nil
 	activeCopy.ConfId = nil
-	ensureConfDefaults(&activeCopy)
+	EnsureConfDefaults(&activeCopy)
 	return s.storage.SaveConf(&activeCopy)
 }
 
-func ensureConfDefaults(conf *IceConf) {
+func EnsureConfDefaults(conf *model.IceConf) {
 	if conf.Status == nil {
-		conf.Status = Int8Ptr(StatusOnline)
+		conf.Status = model.Int8Ptr(model.StatusOnline)
 	}
 	if conf.TimeType == nil {
-		conf.TimeType = Int8Ptr(TimeTypeNone)
+		conf.TimeType = model.Int8Ptr(model.TimeTypeNone)
 	}
 	if conf.Debug == nil {
-		conf.Debug = Int8Ptr(1)
+		conf.Debug = model.Int8Ptr(1)
 	}
 	if conf.UpdateAt == nil {
-		now := timeNowMs()
+		now := model.TimeNowMs()
 		conf.UpdateAt = &now
 	}
 }
 
-func (s *ServerService) UpdateLocalBaseCache(base *IceBase) error {
+func (s *ServerService) UpdateLocalBaseCache(base *model.IceBase) error {
 	return s.storage.SaveBase(base)
 }
 
@@ -316,7 +320,7 @@ func (s *ServerService) GetAndIncrementVersion(app int) (int64, error) {
 	return next, nil
 }
 
-func (s *ServerService) Release(app int, iceId int64) (*IceTransferDto, error) {
+func (s *ServerService) Release(app int, iceId int64) (*model.IceTransferDto, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -328,9 +332,9 @@ func (s *ServerService) Release(app int, iceId int64) (*IceTransferDto, error) {
 		return nil, nil
 	}
 
-	transferDto := &IceTransferDto{}
-	var releasedConfs []*IceConf
-	now := timeNowMs()
+	transferDto := &model.IceTransferDto{}
+	var releasedConfs []*model.IceConf
+	now := model.TimeNowMs()
 
 	for _, confUpdate := range confUpdates {
 		var confId int64
@@ -342,7 +346,7 @@ func (s *ServerService) Release(app int, iceId int64) (*IceTransferDto, error) {
 
 		oldConf, _ := s.storage.GetConf(app, confId)
 
-		newConf := &IceConf{
+		newConf := &model.IceConf{
 			ID:         confId,
 			App:        confUpdate.App,
 			Name:       confUpdate.Name,
@@ -362,19 +366,19 @@ func (s *ServerService) Release(app int, iceId int64) (*IceTransferDto, error) {
 		if confUpdate.Status != nil {
 			newConf.Status = confUpdate.Status
 		} else {
-			newConf.Status = Int8Ptr(StatusOnline)
+			newConf.Status = model.Int8Ptr(model.StatusOnline)
 		}
 		// TimeType with default
 		if confUpdate.TimeType != nil {
 			newConf.TimeType = confUpdate.TimeType
 		} else {
-			newConf.TimeType = Int8Ptr(TimeTypeNone)
+			newConf.TimeType = model.Int8Ptr(model.TimeTypeNone)
 		}
 		// Debug with default
 		if confUpdate.Debug != nil {
 			newConf.Debug = confUpdate.Debug
 		} else {
-			newConf.Debug = Int8Ptr(1)
+			newConf.Debug = model.Int8Ptr(1)
 		}
 		// Preserve createAt
 		if oldConf != nil && oldConf.CreateAt != nil {
@@ -417,7 +421,7 @@ func (s *ServerService) UpdateClean(app int, iceId int64) error {
 	return s.storage.DeleteAllConfUpdates(app, iceId)
 }
 
-func (s *ServerService) GetAllUpdateConfList(app int, iceId int64) []*IceConf {
+func (s *ServerService) GetAllUpdateConfList(app int, iceId int64) []*model.IceConf {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -429,16 +433,16 @@ func (s *ServerService) GetAllUpdateConfList(app int, iceId int64) []*IceConf {
 	return confs
 }
 
-func (s *ServerService) GetAllActiveConfSet(app int, rootId int64) []*IceConf {
+func (s *ServerService) GetAllActiveConfSet(app int, rootId int64) []*model.IceConf {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	var result []*IceConf
+	var result []*model.IceConf
 	visited := make(map[int64]bool)
 	s.assembleActiveConf(app, &result, rootId, visited)
 	return result
 }
 
-func (s *ServerService) assembleActiveConf(app int, confList *[]*IceConf, nodeId int64, visited map[int64]bool) {
+func (s *ServerService) assembleActiveConf(app int, confList *[]*model.IceConf, nodeId int64, visited map[int64]bool) {
 	if visited[nodeId] {
 		return
 	}
@@ -450,7 +454,7 @@ func (s *ServerService) assembleActiveConf(app int, confList *[]*IceConf, nodeId
 	}
 	*confList = append(*confList, conf)
 
-	if IsRelation(conf.Type) {
+	if model.IsRelation(conf.Type) {
 		for _, sonId := range conf.GetSonLongIds() {
 			s.assembleActiveConf(app, confList, sonId, visited)
 		}
@@ -462,7 +466,7 @@ func (s *ServerService) assembleActiveConf(app int, confList *[]*IceConf, nodeId
 
 func (s *ServerService) Recycle(recycleApp *int) {
 	log.Println("ice recycle start")
-	start := timeNowMs()
+	start := model.TimeNowMs()
 
 	if recycleApp != nil {
 		s.recycleByApp(*recycleApp)
@@ -478,7 +482,7 @@ func (s *ServerService) Recycle(recycleApp *int) {
 			}
 		}
 	}
-	log.Printf("ice recycle end %dms", timeNowMs()-start)
+	log.Printf("ice recycle end %dms", model.TimeNowMs()-start)
 }
 
 func (s *ServerService) recycleByApp(app int) {
@@ -488,7 +492,7 @@ func (s *ServerService) recycleByApp(app int) {
 		return
 	}
 
-	protectThreshold := timeNowMs() - int64(s.config.RecycleProtectDays)*24*60*60*1000
+	protectThreshold := model.TimeNowMs() - int64(s.config.RecycleProtectDays)*24*60*60*1000
 	hard := s.config.RecycleWay != "soft"
 
 	allConfs, err := s.storage.ListConfs(app)
@@ -496,7 +500,7 @@ func (s *ServerService) recycleByApp(app int) {
 		log.Printf("failed to list confs for app:%d: %v", app, err)
 	} else {
 		for _, conf := range allConfs {
-			if conf.Status != nil && *conf.Status != StatusDeleted && !reachableIds[conf.ID] {
+			if conf.Status != nil && *conf.Status != model.StatusDeleted && !reachableIds[conf.ID] {
 				if conf.UpdateAt != nil && *conf.UpdateAt > protectThreshold {
 					continue
 				}
@@ -517,7 +521,7 @@ func (s *ServerService) recycleByApp(app int) {
 			if base.ID == nil || base.Status == nil {
 				continue
 			}
-			if *base.Status == StatusOffline {
+			if *base.Status == model.StatusOffline {
 				if base.UpdateAt != nil && *base.UpdateAt > protectThreshold {
 					continue
 				}
@@ -609,27 +613,27 @@ func (s *ServerService) assembleReachableIdsFromUpdates(app int, reachableIds ma
 }
 
 // confToShow converts an IceConf to an IceShowNode (matching ServerConstant.confToShow)
-func confToShow(conf *IceConf) *IceShowNode {
-	show := &IceShowNode{}
-	showConf := &NodeShowConf{}
+func confToShow(conf *model.IceConf) *model.IceShowNode {
+	show := &model.IceShowNode{}
+	showConf := &model.NodeShowConf{}
 	show.ShowConf = showConf
 
 	show.ForwardId = conf.ForwardId
-	showConf.Debug = BoolPtr(conf.Debug == nil || *conf.Debug == 1)
+	showConf.Debug = model.BoolPtr(conf.Debug == nil || *conf.Debug == 1)
 	showConf.NodeId = conf.GetMixId()
 	showConf.ErrorState = conf.ErrorState
 
 	show.Start = conf.Start
 	show.End = conf.End
-	if conf.TimeType != nil && *conf.TimeType != TimeTypeNone {
+	if conf.TimeType != nil && *conf.TimeType != model.TimeTypeNone {
 		show.TimeType = conf.TimeType
 	}
 
-	if IsRelation(conf.Type) {
+	if model.IsRelation(conf.Type) {
 		if conf.SonIds != "" {
 			show.SonIds = conf.SonIds
 		}
-		name := fmt.Sprintf("%d-%s", conf.GetMixId(), NodeTypeName(conf.Type))
+		name := fmt.Sprintf("%d-%s", conf.GetMixId(), model.NodeTypeName(conf.Type))
 		if conf.Name != "" {
 			name += "-" + conf.Name
 		}
@@ -651,17 +655,17 @@ func confToShow(conf *IceConf) *IceShowNode {
 		showConf.LabelName = name
 	}
 
-	showConf.Updating = BoolPtr(conf.IsUpdating())
-	showConf.Inverse = BoolPtr(conf.IsInverse())
+	showConf.Updating = model.BoolPtr(conf.IsUpdating())
+	showConf.Inverse = model.BoolPtr(conf.IsInverse())
 	showConf.NodeName = conf.Name
 	showConf.NodeType = &conf.Type
 
 	return show
 }
 
-// confToDtoWithName creates a DTO optimized for push data (matching ServerConstant.confToDtoWithName)
-func confToDtoWithName(conf *IceConf) *IceConf {
-	dto := &IceConf{
+// ConfToDtoWithName creates a DTO optimized for push data (matching ServerConstant.confToDtoWithName)
+func ConfToDtoWithName(conf *model.IceConf) *model.IceConf {
+	dto := &model.IceConf{
 		ID:         conf.ID,
 		Type:       conf.Type,
 		ForwardId:  conf.ForwardId,
@@ -674,10 +678,10 @@ func confToDtoWithName(conf *IceConf) *IceConf {
 	if conf.Debug != nil && *conf.Debug != 1 {
 		dto.Debug = conf.Debug
 	}
-	if conf.TimeType != nil && *conf.TimeType != TimeTypeNone {
+	if conf.TimeType != nil && *conf.TimeType != model.TimeTypeNone {
 		dto.TimeType = conf.TimeType
 	}
-	if IsLeaf(conf.Type) {
+	if model.IsLeaf(conf.Type) {
 		dto.ConfName = conf.ConfName
 		if conf.ConfField != "" && conf.ConfField != "{}" {
 			dto.ConfField = conf.ConfField
@@ -694,9 +698,9 @@ func confToDtoWithName(conf *IceConf) *IceConf {
 	return dto
 }
 
-// baseToDtoWithName creates a DTO for push data (matching ServerConstant.baseToDtoWithName)
-func baseToDtoWithName(base *IceBase) *IceBase {
-	dto := &IceBase{
+// BaseToDtoWithName creates a DTO for push data (matching ServerConstant.baseToDtoWithName)
+func BaseToDtoWithName(base *model.IceBase) *model.IceBase {
+	dto := &model.IceBase{
 		ID:     base.ID,
 		ConfID: base.ConfID,
 	}
@@ -705,7 +709,7 @@ func baseToDtoWithName(base *IceBase) *IceBase {
 	}
 	dto.Start = base.Start
 	dto.End = base.End
-	if base.TimeType != nil && *base.TimeType != TimeTypeNone {
+	if base.TimeType != nil && *base.TimeType != model.TimeTypeNone {
 		dto.TimeType = base.TimeType
 	}
 	if base.Scenes != "" {

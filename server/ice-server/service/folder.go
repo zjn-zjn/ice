@@ -1,22 +1,23 @@
-package main
+package service
 
 import (
-	"fmt"
 	iofs "io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/waitmoon/ice-server/model"
+	"github.com/waitmoon/ice-server/storage"
 )
 
 type FolderService struct {
-	storage     *Storage
+	storage     *storage.Storage
 	baseService *BaseService
 }
 
-func NewFolderService(storage *Storage, baseService *BaseService) *FolderService {
+func NewFolderService(storage *storage.Storage, baseService *BaseService) *FolderService {
 	return &FolderService{storage: storage, baseService: baseService}
 }
 
@@ -31,16 +32,16 @@ func sanitizePath(p string) (string, error) {
 	}
 	// reject path traversal
 	if strings.Contains(p, "..") {
-		return "", InputError("非法路径")
+		return "", model.InputError("非法路径")
 	}
 	// reject special characters
 	for _, seg := range strings.Split(p, "/") {
 		if seg == "" || seg == "." {
-			return "", InputError("非法路径")
+			return "", model.InputError("非法路径")
 		}
 		// reject names starting with _ (reserved for system files like _base_id.txt)
 		if strings.HasPrefix(seg, "_") {
-			return "", InputError("文件夹名不能以_开头")
+			return "", model.InputError("文件夹名不能以_开头")
 		}
 	}
 	return filepath.ToSlash(filepath.Clean(p)), nil
@@ -50,16 +51,16 @@ func sanitizePath(p string) (string, error) {
 func sanitizeFolderName(name string) error {
 	name = strings.TrimSpace(name)
 	if name == "" {
-		return InputError("文件夹名不能为空")
+		return model.InputError("文件夹名不能为空")
 	}
 	if strings.Contains(name, "/") || strings.Contains(name, "\\") {
-		return InputError("文件夹名不能包含路径分隔符")
+		return model.InputError("文件夹名不能包含路径分隔符")
 	}
 	if name == "." || name == ".." {
-		return InputError("非法文件夹名")
+		return model.InputError("非法文件夹名")
 	}
 	if strings.HasPrefix(name, "_") {
-		return InputError("文件夹名不能以_开头")
+		return model.InputError("文件夹名不能以_开头")
 	}
 	return nil
 }
@@ -84,16 +85,16 @@ func (fs *FolderService) FolderCreate(app int, parentPath, name string) error {
 		// verify parent exists
 		parentDir := filepath.Join(basesDir, parentPath)
 		if info, err := os.Stat(parentDir); err != nil || !info.IsDir() {
-			return InputError("父目录不存在")
+			return model.InputError("父目录不存在")
 		}
 		targetDir = filepath.Join(basesDir, parentPath, name)
 	}
 
 	if _, err := os.Stat(targetDir); err == nil {
-		return AlreadyExist("文件夹 " + name)
+		return model.AlreadyExist("文件夹 " + name)
 	}
 
-	fs.storage.ensureAppDirectories(app)
+	fs.storage.EnsureAppDirectories(app)
 	return os.MkdirAll(targetDir, 0755)
 }
 
@@ -104,7 +105,7 @@ func (fs *FolderService) FolderRename(app int, folderPath, newName string) error
 		return err
 	}
 	if folderPath == "" {
-		return InputError("不能重命名根目录")
+		return model.InputError("不能重命名根目录")
 	}
 	if err := sanitizeFolderName(newName); err != nil {
 		return err
@@ -113,13 +114,13 @@ func (fs *FolderService) FolderRename(app int, folderPath, newName string) error
 	basesDir := fs.storage.BasesDir(app)
 	oldDir := filepath.Join(basesDir, folderPath)
 	if info, err := os.Stat(oldDir); err != nil || !info.IsDir() {
-		return IDNotExist("文件夹", folderPath)
+		return model.IDNotExist("文件夹", folderPath)
 	}
 
 	parentDir := filepath.Dir(oldDir)
 	newDir := filepath.Join(parentDir, newName)
 	if _, err := os.Stat(newDir); err == nil {
-		return AlreadyExist("文件夹 " + newName)
+		return model.AlreadyExist("文件夹 " + newName)
 	}
 
 	if err := os.Rename(oldDir, newDir); err != nil {
@@ -150,13 +151,13 @@ func (fs *FolderService) FolderDelete(app int, folderPath string) (*FolderDelete
 		return nil, err
 	}
 	if folderPath == "" {
-		return nil, InputError("不能删除根目录")
+		return nil, model.InputError("不能删除根目录")
 	}
 
 	basesDir := fs.storage.BasesDir(app)
 	targetDir := filepath.Join(basesDir, folderPath)
 	if info, err := os.Stat(targetDir); err != nil || !info.IsDir() {
-		return nil, IDNotExist("文件夹", folderPath)
+		return nil, model.IDNotExist("文件夹", folderPath)
 	}
 
 	// count items before deleting
@@ -167,8 +168,8 @@ func (fs *FolderService) FolderDelete(app int, folderPath string) (*FolderDelete
 		}
 		if d.IsDir() && path != targetDir {
 			result.FolderCount++
-		} else if !d.IsDir() && strings.HasSuffix(d.Name(), suffixJson) {
-			name := strings.TrimSuffix(d.Name(), suffixJson)
+		} else if !d.IsDir() && strings.HasSuffix(d.Name(), storage.SuffixJson) {
+			name := strings.TrimSuffix(d.Name(), storage.SuffixJson)
 			if _, parseErr := strconv.ParseInt(name, 10, 64); parseErr == nil {
 				result.BaseCount++
 			}
@@ -194,7 +195,7 @@ func (fs *FolderService) FolderMove(app int, folderPath, targetPath string) erro
 		return err
 	}
 	if folderPath == "" {
-		return InputError("不能移动根目录")
+		return model.InputError("不能移动根目录")
 	}
 	targetPath, err = sanitizePath(targetPath)
 	if err != nil {
@@ -204,14 +205,14 @@ func (fs *FolderService) FolderMove(app int, folderPath, targetPath string) erro
 	basesDir := fs.storage.BasesDir(app)
 	srcDir := filepath.Join(basesDir, folderPath)
 	if info, err := os.Stat(srcDir); err != nil || !info.IsDir() {
-		return IDNotExist("文件夹", folderPath)
+		return model.IDNotExist("文件夹", folderPath)
 	}
 
 	folderName := filepath.Base(srcDir)
 
 	// prevent moving into self
 	if targetPath == folderPath || strings.HasPrefix(targetPath+"/", folderPath+"/") {
-		return InputError("不能将文件夹移动到自身或其子目录中")
+		return model.InputError("不能将文件夹移动到自身或其子目录中")
 	}
 
 	var destDir string
@@ -220,7 +221,7 @@ func (fs *FolderService) FolderMove(app int, folderPath, targetPath string) erro
 	} else {
 		destParent := filepath.Join(basesDir, targetPath)
 		if info, err := os.Stat(destParent); err != nil || !info.IsDir() {
-			return IDNotExist("目标文件夹", targetPath)
+			return model.IDNotExist("目标文件夹", targetPath)
 		}
 		destDir = filepath.Join(destParent, folderName)
 	}
@@ -229,7 +230,7 @@ func (fs *FolderService) FolderMove(app int, folderPath, targetPath string) erro
 		return nil
 	}
 	if _, err := os.Stat(destDir); err == nil {
-		return AlreadyExist("文件夹 " + folderName)
+		return model.AlreadyExist("文件夹 " + folderName)
 	}
 
 	if err := os.Rename(srcDir, destDir); err != nil {
@@ -276,7 +277,7 @@ func (fs *FolderService) FolderList(app int, path string, pageNum, pageSize int,
 	}
 
 	basesDir := fs.storage.BasesDir(app)
-	fs.storage.ensureAppDirectories(app)
+	fs.storage.EnsureAppDirectories(app)
 
 	// Path fallback: walk up to find nearest existing ancestor
 	actualPath := path
@@ -321,7 +322,6 @@ func (fs *FolderService) FolderList(app int, path string, pageNum, pageSize int,
 	}
 
 	// Phase 1: Lightweight classification - only look at filenames, no JSON reads
-	// os.ReadDir returns entries sorted by name ascending, iterate in reverse for descending order
 	var folderNames []string
 	var baseIDs []int64
 
@@ -336,8 +336,8 @@ func (fs *FolderService) FolderList(app int, path string, pageNum, pageSize int,
 				continue
 			}
 			folderNames = append(folderNames, folderName)
-		} else if strings.HasSuffix(e.Name(), suffixJson) {
-			name := strings.TrimSuffix(e.Name(), suffixJson)
+		} else if strings.HasSuffix(e.Name(), storage.SuffixJson) {
+			name := strings.TrimSuffix(e.Name(), storage.SuffixJson)
 			id, parseErr := strconv.ParseInt(name, 10, 64)
 			if parseErr != nil {
 				continue
@@ -346,18 +346,18 @@ func (fs *FolderService) FolderList(app int, path string, pageNum, pageSize int,
 		}
 	}
 
-	// Sort baseIDs numerically descending (ReadDir sorts by string, not number)
+	// Sort baseIDs numerically descending
 	sort.Slice(baseIDs, func(i, j int) bool { return baseIDs[i] > baseIDs[j] })
 
 	// Phase 2: If name filter, must read base JSONs to filter by name
 	if nameFilter != "" {
 		var filtered []int64
 		for _, id := range baseIDs {
-			base, err := readJsonFileTyped[IceBase](filepath.Join(targetDir, strconv.FormatInt(id, 10)+suffixJson))
+			base, err := storage.ReadJsonFileTyped[model.IceBase](filepath.Join(targetDir, strconv.FormatInt(id, 10)+storage.SuffixJson))
 			if err != nil || base == nil {
 				continue
 			}
-			if base.Status != nil && *base.Status == StatusDeleted {
+			if base.Status != nil && *base.Status == model.StatusDeleted {
 				continue
 			}
 			if strings.Contains(base.Name, nameFilter) {
@@ -392,11 +392,11 @@ func (fs *FolderService) FolderList(app int, path string, pageNum, pageSize int,
 			})
 		} else {
 			id := baseIDs[idx-totalFolders]
-			base, readErr := readJsonFileTyped[IceBase](filepath.Join(targetDir, strconv.FormatInt(id, 10)+suffixJson))
+			base, readErr := storage.ReadJsonFileTyped[model.IceBase](filepath.Join(targetDir, strconv.FormatInt(id, 10)+storage.SuffixJson))
 			if readErr != nil || base == nil {
 				continue
 			}
-			if base.Status != nil && *base.Status == StatusDeleted {
+			if base.Status != nil && *base.Status == model.StatusDeleted {
 				continue
 			}
 			idCopy := id
@@ -431,10 +431,10 @@ func (fs *FolderService) countBasesRecursive(dir string) int {
 		if err != nil || d.IsDir() {
 			return nil
 		}
-		if !strings.HasSuffix(d.Name(), suffixJson) {
+		if !strings.HasSuffix(d.Name(), storage.SuffixJson) {
 			return nil
 		}
-		name := strings.TrimSuffix(d.Name(), suffixJson)
+		name := strings.TrimSuffix(d.Name(), storage.SuffixJson)
 		if _, parseErr := strconv.ParseInt(name, 10, 64); parseErr == nil {
 			count++
 		}
@@ -455,7 +455,7 @@ type FolderTreeNode struct {
 // FolderTree returns the recursive folder tree (no bases)
 func (fs *FolderService) FolderTree(app int) ([]*FolderTreeNode, error) {
 	basesDir := fs.storage.BasesDir(app)
-	fs.storage.ensureAppDirectories(app)
+	fs.storage.EnsureAppDirectories(app)
 
 	if _, err := os.Stat(basesDir); os.IsNotExist(err) {
 		return []*FolderTreeNode{}, nil
@@ -530,7 +530,7 @@ func (fs *FolderService) BatchMove(app int, items []BatchItem, targetPath string
 	if targetPath != "" {
 		targetDir := filepath.Join(basesDir, targetPath)
 		if info, err := os.Stat(targetDir); err != nil || !info.IsDir() {
-			return IDNotExist("目标文件夹", targetPath)
+			return model.IDNotExist("目标文件夹", targetPath)
 		}
 	}
 
@@ -602,7 +602,7 @@ func (fs *FolderService) ExportFolder(app int, path string) (string, error) {
 	}
 
 	if info, err := os.Stat(targetDir); err != nil || !info.IsDir() {
-		return "", IDNotExist("文件夹", path)
+		return "", model.IDNotExist("文件夹", path)
 	}
 
 	// collect all base IDs recursively
@@ -611,10 +611,10 @@ func (fs *FolderService) ExportFolder(app int, path string) (string, error) {
 		if err != nil || d.IsDir() {
 			return nil
 		}
-		if !strings.HasSuffix(d.Name(), suffixJson) {
+		if !strings.HasSuffix(d.Name(), storage.SuffixJson) {
 			return nil
 		}
-		name := strings.TrimSuffix(d.Name(), suffixJson)
+		name := strings.TrimSuffix(d.Name(), storage.SuffixJson)
 		id, parseErr := strconv.ParseInt(name, 10, 64)
 		if parseErr != nil {
 			return nil
@@ -655,8 +655,8 @@ func (fs *FolderService) CountItemsRecursive(app int, path string) (folderCount,
 			if !strings.HasPrefix(name, "_") && !strings.HasPrefix(name, ".") {
 				folderCount++
 			}
-		} else if !d.IsDir() && strings.HasSuffix(d.Name(), suffixJson) {
-			name := strings.TrimSuffix(d.Name(), suffixJson)
+		} else if !d.IsDir() && strings.HasSuffix(d.Name(), storage.SuffixJson) {
+			name := strings.TrimSuffix(d.Name(), storage.SuffixJson)
 			if _, parseErr := strconv.ParseInt(name, 10, 64); parseErr == nil {
 				baseCount++
 			}
@@ -664,10 +664,4 @@ func (fs *FolderService) CountItemsRecursive(app int, path string) (folderCount,
 		return nil
 	})
 	return
-}
-
-func init() {
-	// suppress unused import warnings
-	_ = fmt.Sprintf
-	_ = log.Println
 }

@@ -1,4 +1,4 @@
-package main
+package model
 
 // WebResult is the unified API response wrapper
 type WebResult struct {
@@ -17,11 +17,11 @@ func FailResult(code int, msg string) *WebResult {
 
 // PageResult is the paginated response wrapper
 type PageResult struct {
-	Total   int64       `json:"total"`
-	PageNum int         `json:"pageNum"`
-	PageSize int        `json:"pageSize"`
-	Pages   int         `json:"pages"`
-	List    interface{} `json:"list"`
+	Total    int64       `json:"total"`
+	PageNum  int         `json:"pageNum"`
+	PageSize int         `json:"pageSize"`
+	Pages    int         `json:"pages"`
+	List     interface{} `json:"list"`
 }
 
 func NewPageResult(list interface{}, total int64, pageNum, pageSize int) *PageResult {

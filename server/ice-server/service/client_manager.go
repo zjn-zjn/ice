@@ -1,27 +1,31 @@
-package main
+package service
 
 import (
 	"log"
 	"sort"
+
+	"github.com/waitmoon/ice-server/config"
+	"github.com/waitmoon/ice-server/model"
+	"github.com/waitmoon/ice-server/storage"
 )
 
 type ClientManager struct {
-	config  *Config
-	storage *Storage
+	config  *config.Config
+	storage *storage.Storage
 }
 
-func NewClientManager(config *Config, storage *Storage) *ClientManager {
+func NewClientManager(config *config.Config, storage *storage.Storage) *ClientManager {
 	return &ClientManager{config: config, storage: storage}
 }
 
-func (cm *ClientManager) GetActiveClients(app int, lane string) ([]*IceClientInfo, error) {
+func (cm *ClientManager) GetActiveClients(app int, lane string) ([]*model.IceClientInfo, error) {
 	clients, err := cm.storage.ListClients(app, lane)
 	if err != nil {
 		return nil, err
 	}
 	timeoutMs := cm.config.ClientTimeout.Milliseconds()
-	now := timeNowMs()
-	var result []*IceClientInfo
+	now := model.TimeNowMs()
+	var result []*model.IceClientInfo
 	for _, c := range clients {
 		if c.LastHeartbeat != nil && (now-*c.LastHeartbeat) < timeoutMs {
 			result = append(result, c)
@@ -46,7 +50,7 @@ func (cm *ClientManager) GetRegisterClients(app int) map[string]bool {
 	return result
 }
 
-func (cm *ClientManager) getValidLatestClient(app int, lane string) *IceClientInfo {
+func (cm *ClientManager) getValidLatestClient(app int, lane string) *model.IceClientInfo {
 	latestClient, err := cm.storage.GetLatestClient(app, lane)
 	if err != nil || latestClient == nil {
 		return nil
@@ -67,15 +71,15 @@ func (cm *ClientManager) getValidLatestClient(app int, lane string) *IceClientIn
 	return latestClient
 }
 
-func (cm *ClientManager) isClientActive(client *IceClientInfo) bool {
+func (cm *ClientManager) isClientActive(client *model.IceClientInfo) bool {
 	if client == nil || client.LastHeartbeat == nil {
 		return false
 	}
-	return (timeNowMs() - *client.LastHeartbeat) < cm.config.ClientTimeout.Milliseconds()
+	return (model.TimeNowMs() - *client.LastHeartbeat) < cm.config.ClientTimeout.Milliseconds()
 }
 
-func (cm *ClientManager) GetLeafTypeClasses(app int, nodeType int8, lane string) map[string]*LeafNodeInfo {
-	result := make(map[string]*LeafNodeInfo)
+func (cm *ClientManager) GetLeafTypeClasses(app int, nodeType int8, lane string) map[string]*model.LeafNodeInfo {
+	result := make(map[string]*model.LeafNodeInfo)
 
 	// Load trunk leafNodes
 	trunkClient := cm.getValidLatestClient(app, "")
@@ -102,7 +106,7 @@ func (cm *ClientManager) GetLeafTypeClasses(app int, nodeType int8, lane string)
 	return result
 }
 
-func (cm *ClientManager) GetNodeInfo(app int, address, clazz string, nodeType int8, lane string) *LeafNodeInfo {
+func (cm *ClientManager) GetNodeInfo(app int, address, clazz string, nodeType int8, lane string) *model.LeafNodeInfo {
 	// If lane specified, try lane first
 	if lane != "" {
 		result := cm.findNodeInfoInClient(app, lane, clazz, nodeType)
@@ -114,7 +118,7 @@ func (cm *ClientManager) GetNodeInfo(app int, address, clazz string, nodeType in
 	return cm.findNodeInfoInClient(app, "", clazz, nodeType)
 }
 
-func (cm *ClientManager) findNodeInfoInClient(app int, lane, clazz string, nodeType int8) *LeafNodeInfo {
+func (cm *ClientManager) findNodeInfoInClient(app int, lane, clazz string, nodeType int8) *model.LeafNodeInfo {
 	latestClient := cm.getValidLatestClient(app, lane)
 	if latestClient == nil || len(latestClient.LeafNodes) == 0 {
 		return nil
@@ -136,8 +140,8 @@ func (cm *ClientManager) ListLanes(app int) []string {
 	return lanes
 }
 
-func (cm *ClientManager) GetClientRegistry(app int) *ClientRegistryInfo {
-	registry := &ClientRegistryInfo{}
+func (cm *ClientManager) GetClientRegistry(app int) *model.ClientRegistryInfo {
+	registry := &model.ClientRegistryInfo{}
 
 	mainClients, err := cm.GetActiveClients(app, "")
 	if err == nil {
@@ -146,7 +150,7 @@ func (cm *ClientManager) GetClientRegistry(app int) *ClientRegistryInfo {
 
 	lanes := cm.ListLanes(app)
 	if len(lanes) > 0 {
-		laneMap := make(map[string][]*ShowClientInfo)
+		laneMap := make(map[string][]*model.ShowClientInfo)
 		for _, lane := range lanes {
 			laneClients, err := cm.GetActiveClients(app, lane)
 			if err == nil && len(laneClients) > 0 {
@@ -160,31 +164,31 @@ func (cm *ClientManager) GetClientRegistry(app int) *ClientRegistryInfo {
 	return registry
 }
 
-func toShowClientInfoList(clients []*IceClientInfo) []*ShowClientInfo {
+func toShowClientInfoList(clients []*model.IceClientInfo) []*model.ShowClientInfo {
 	if len(clients) == 0 {
-		return []*ShowClientInfo{}
+		return []*model.ShowClientInfo{}
 	}
-	result := make([]*ShowClientInfo, len(clients))
+	result := make([]*model.ShowClientInfo, len(clients))
 	for i, c := range clients {
-		result[i] = &ShowClientInfo{Address: c.Address}
+		result[i] = &model.ShowClientInfo{Address: c.Address}
 	}
 	return result
 }
 
-func (cm *ClientManager) GetAllLeafClasses(app int, lane string) map[int8][]*LeafNodeInfo {
-	result := make(map[int8][]*LeafNodeInfo)
+func (cm *ClientManager) GetAllLeafClasses(app int, lane string) map[int8][]*model.LeafNodeInfo {
+	result := make(map[int8][]*model.LeafNodeInfo)
 	types := []int8{5, 6, 7}
 	for _, t := range types {
 		clazzMap := cm.GetLeafTypeClasses(app, t, lane)
 		if len(clazzMap) > 0 {
-			var list []*LeafNodeInfo
+			var list []*model.LeafNodeInfo
 			for clazz, info := range clazzMap {
 				copied := copyNodeInfo(info)
 				if copied != nil {
 					copied.Clazz = clazz
 					copied.Type = t
 					if copied.Order == nil {
-						copied.Order = IntPtr(100)
+						copied.Order = model.IntPtr(100)
 					}
 				}
 				if copied != nil {
@@ -202,7 +206,7 @@ func (cm *ClientManager) GetAllLeafClasses(app int, lane string) map[int8][]*Lea
 	return result
 }
 
-func (cm *ClientManager) GetClientLeafClasses(app int, address, lane string) map[int8][]*LeafNodeInfo {
+func (cm *ClientManager) GetClientLeafClasses(app int, address, lane string) map[int8][]*model.LeafNodeInfo {
 	client, _ := cm.storage.GetClient(app, lane, address)
 	if client == nil {
 		client, _ = cm.storage.GetClient(app, "", address)
@@ -211,13 +215,13 @@ func (cm *ClientManager) GetClientLeafClasses(app int, address, lane string) map
 		return nil
 	}
 
-	result := make(map[int8][]*LeafNodeInfo)
+	result := make(map[int8][]*model.LeafNodeInfo)
 	for _, info := range client.LeafNodes {
 		t := info.Type
 		copied := copyNodeInfo(info)
 		if copied != nil {
 			if copied.Order == nil {
-				copied.Order = IntPtr(100)
+				copied.Order = model.IntPtr(100)
 			}
 			result[t] = append(result[t], copied)
 		} else {
@@ -265,9 +269,9 @@ func (cm *ClientManager) cleanInactiveClientsForApp(app int, lane string) {
 	}
 
 	timeoutMs := cm.config.ClientTimeout.Milliseconds()
-	now := timeNowMs()
+	now := model.TimeNowMs()
 
-	var activeClients, inactiveClients []*IceClientInfo
+	var activeClients, inactiveClients []*model.IceClientInfo
 	for _, c := range clients {
 		if c.LastHeartbeat != nil && (now-*c.LastHeartbeat) < timeoutMs {
 			activeClients = append(activeClients, c)
@@ -306,7 +310,7 @@ func (cm *ClientManager) cleanInactiveClientsForApp(app int, lane string) {
 	}
 }
 
-func (cm *ClientManager) updateLatestClientIfNeeded(app int, lane string, activeClients, inactiveClients []*IceClientInfo) {
+func (cm *ClientManager) updateLatestClientIfNeeded(app int, lane string, activeClients, inactiveClients []*model.IceClientInfo) {
 	latestClient, _ := cm.storage.GetLatestClient(app, lane)
 
 	needUpdate := false
@@ -322,7 +326,7 @@ func (cm *ClientManager) updateLatestClientIfNeeded(app int, lane string, active
 	}
 
 	if needUpdate {
-		var newLatest *IceClientInfo
+		var newLatest *model.IceClientInfo
 		for _, c := range activeClients {
 			if len(c.LeafNodes) > 0 {
 				newLatest = c
@@ -337,11 +341,11 @@ func (cm *ClientManager) updateLatestClientIfNeeded(app int, lane string, active
 	}
 }
 
-func copyNodeInfo(source *LeafNodeInfo) *LeafNodeInfo {
+func copyNodeInfo(source *model.LeafNodeInfo) *model.LeafNodeInfo {
 	if source == nil {
 		return nil
 	}
-	result := &LeafNodeInfo{
+	result := &model.LeafNodeInfo{
 		Name:  source.Name,
 		Clazz: source.Clazz,
 		Type:  source.Type,
@@ -349,9 +353,9 @@ func copyNodeInfo(source *LeafNodeInfo) *LeafNodeInfo {
 		Order: source.Order,
 	}
 	if source.IceFields != nil {
-		result.IceFields = make([]*IceFieldInfo, len(source.IceFields))
+		result.IceFields = make([]*model.IceFieldInfo, len(source.IceFields))
 		for i, f := range source.IceFields {
-			result.IceFields[i] = &IceFieldInfo{
+			result.IceFields[i] = &model.IceFieldInfo{
 				Field: f.Field,
 				Type:  f.Type,
 				Name:  f.Name,
@@ -360,9 +364,9 @@ func copyNodeInfo(source *LeafNodeInfo) *LeafNodeInfo {
 		}
 	}
 	if source.HideFields != nil {
-		result.HideFields = make([]*IceFieldInfo, len(source.HideFields))
+		result.HideFields = make([]*model.IceFieldInfo, len(source.HideFields))
 		for i, f := range source.HideFields {
-			result.HideFields[i] = &IceFieldInfo{
+			result.HideFields[i] = &model.IceFieldInfo{
 				Field: f.Field,
 				Type:  f.Type,
 				Name:  f.Name,

@@ -1,35 +1,38 @@
-package main
+package handler
 
 import (
 	"net/http"
+
+	"github.com/waitmoon/ice-server/model"
+	"github.com/waitmoon/ice-server/service"
 )
 
 type FolderHandler struct {
-	folderService *FolderService
-	baseService   *BaseService
+	folderService *service.FolderService
+	baseService   *service.BaseService
 }
 
-func NewFolderHandler(folderService *FolderService, baseService *BaseService) *FolderHandler {
+func NewFolderHandler(folderService *service.FolderService, baseService *service.BaseService) *FolderHandler {
 	return &FolderHandler{folderService: folderService, baseService: baseService}
 }
 
 func (h *FolderHandler) Register(mux *http.ServeMux) {
 	// Folder CRUD
-	mux.HandleFunc("/ice-server/folder/create", wrapHandler(h.folderCreate))
-	mux.HandleFunc("/ice-server/folder/rename", wrapHandler(h.folderRename))
-	mux.HandleFunc("/ice-server/folder/delete", wrapHandler(h.folderDelete))
-	mux.HandleFunc("/ice-server/folder/move", wrapHandler(h.folderMove))
+	mux.HandleFunc("/ice-server/folder/create", WrapHandler(h.folderCreate))
+	mux.HandleFunc("/ice-server/folder/rename", WrapHandler(h.folderRename))
+	mux.HandleFunc("/ice-server/folder/delete", WrapHandler(h.folderDelete))
+	mux.HandleFunc("/ice-server/folder/move", WrapHandler(h.folderMove))
 
 	// Directory listing & tree
-	mux.HandleFunc("/ice-server/folder/list", wrapHandler(h.folderList))
-	mux.HandleFunc("/ice-server/folder/tree", wrapHandler(h.folderTree))
+	mux.HandleFunc("/ice-server/folder/list", WrapHandler(h.folderList))
+	mux.HandleFunc("/ice-server/folder/tree", WrapHandler(h.folderTree))
 
 	// Batch operations
-	mux.HandleFunc("/ice-server/base/batch/move", wrapHandler(h.batchMove))
-	mux.HandleFunc("/ice-server/base/batch/delete", wrapHandler(h.batchDelete))
+	mux.HandleFunc("/ice-server/base/batch/move", WrapHandler(h.batchMove))
+	mux.HandleFunc("/ice-server/base/batch/delete", WrapHandler(h.batchDelete))
 
 	// Folder export
-	mux.HandleFunc("/ice-server/base/export/folder", wrapHandler(h.exportFolder))
+	mux.HandleFunc("/ice-server/base/export/folder", WrapHandler(h.exportFolder))
 }
 
 // POST /ice-server/folder/create  body: { app, path, name }
@@ -39,14 +42,14 @@ func (h *FolderHandler) folderCreate(w http.ResponseWriter, r *http.Request) (in
 		Path string `json:"path"`
 		Name string `json:"name"`
 	}
-	if err := readJSONBody(r, &body); err != nil {
-		return nil, InputError("json body")
+	if err := ReadJSONBody(r, &body); err != nil {
+		return nil, model.InputError("json body")
 	}
 	if body.App == 0 {
-		return nil, InputError("app required")
+		return nil, model.InputError("app required")
 	}
 	if body.Name == "" {
-		return nil, InputError("name required")
+		return nil, model.InputError("name required")
 	}
 	return nil, h.folderService.FolderCreate(body.App, body.Path, body.Name)
 }
@@ -58,17 +61,17 @@ func (h *FolderHandler) folderRename(w http.ResponseWriter, r *http.Request) (in
 		Path    string `json:"path"`
 		NewName string `json:"newName"`
 	}
-	if err := readJSONBody(r, &body); err != nil {
-		return nil, InputError("json body")
+	if err := ReadJSONBody(r, &body); err != nil {
+		return nil, model.InputError("json body")
 	}
 	if body.App == 0 {
-		return nil, InputError("app required")
+		return nil, model.InputError("app required")
 	}
 	if body.Path == "" {
-		return nil, InputError("path required")
+		return nil, model.InputError("path required")
 	}
 	if body.NewName == "" {
-		return nil, InputError("newName required")
+		return nil, model.InputError("newName required")
 	}
 	return nil, h.folderService.FolderRename(body.App, body.Path, body.NewName)
 }
@@ -79,14 +82,14 @@ func (h *FolderHandler) folderDelete(w http.ResponseWriter, r *http.Request) (in
 		App  int    `json:"app"`
 		Path string `json:"path"`
 	}
-	if err := readJSONBody(r, &body); err != nil {
-		return nil, InputError("json body")
+	if err := ReadJSONBody(r, &body); err != nil {
+		return nil, model.InputError("json body")
 	}
 	if body.App == 0 {
-		return nil, InputError("app required")
+		return nil, model.InputError("app required")
 	}
 	if body.Path == "" {
-		return nil, InputError("path required")
+		return nil, model.InputError("path required")
 	}
 	return h.folderService.FolderDelete(body.App, body.Path)
 }
@@ -98,34 +101,34 @@ func (h *FolderHandler) folderMove(w http.ResponseWriter, r *http.Request) (inte
 		Path       string `json:"path"`
 		TargetPath string `json:"targetPath"`
 	}
-	if err := readJSONBody(r, &body); err != nil {
-		return nil, InputError("json body")
+	if err := ReadJSONBody(r, &body); err != nil {
+		return nil, model.InputError("json body")
 	}
 	if body.App == 0 {
-		return nil, InputError("app required")
+		return nil, model.InputError("app required")
 	}
 	if body.Path == "" {
-		return nil, InputError("path required")
+		return nil, model.InputError("path required")
 	}
 	return nil, h.folderService.FolderMove(body.App, body.Path, body.TargetPath)
 }
 
 // GET /ice-server/folder/list?app=&path=&pageNum=&pageSize=&name=
 func (h *FolderHandler) folderList(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	app, err := queryIntRequired(r, "app")
+	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
 	}
-	path := queryStr(r, "path", "")
-	pageNum := queryInt(r, "pageNum", 1)
-	pageSize := queryInt(r, "pageSize", 20)
-	name := queryStr(r, "name", "")
+	path := QueryStr(r, "path", "")
+	pageNum := QueryInt(r, "pageNum", 1)
+	pageSize := QueryInt(r, "pageSize", 20)
+	name := QueryStr(r, "name", "")
 	return h.folderService.FolderList(app, path, pageNum, pageSize, name)
 }
 
 // GET /ice-server/folder/tree?app=
 func (h *FolderHandler) folderTree(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	app, err := queryIntRequired(r, "app")
+	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
 	}
@@ -135,18 +138,18 @@ func (h *FolderHandler) folderTree(w http.ResponseWriter, r *http.Request) (inte
 // POST /ice-server/base/batch/move  body: { app, items, targetPath }
 func (h *FolderHandler) batchMove(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	var body struct {
-		App        int         `json:"app"`
-		Items      []BatchItem `json:"items"`
-		TargetPath string      `json:"targetPath"`
+		App        int                 `json:"app"`
+		Items      []service.BatchItem `json:"items"`
+		TargetPath string              `json:"targetPath"`
 	}
-	if err := readJSONBody(r, &body); err != nil {
-		return nil, InputError("json body")
+	if err := ReadJSONBody(r, &body); err != nil {
+		return nil, model.InputError("json body")
 	}
 	if body.App == 0 {
-		return nil, InputError("app required")
+		return nil, model.InputError("app required")
 	}
 	if len(body.Items) == 0 {
-		return nil, InputError("items required")
+		return nil, model.InputError("items required")
 	}
 	return nil, h.folderService.BatchMove(body.App, body.Items, body.TargetPath)
 }
@@ -154,31 +157,31 @@ func (h *FolderHandler) batchMove(w http.ResponseWriter, r *http.Request) (inter
 // POST /ice-server/base/batch/delete  body: { app, items }
 func (h *FolderHandler) batchDelete(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	var body struct {
-		App   int         `json:"app"`
-		Items []BatchItem `json:"items"`
+		App   int                 `json:"app"`
+		Items []service.BatchItem `json:"items"`
 	}
-	if err := readJSONBody(r, &body); err != nil {
-		return nil, InputError("json body")
+	if err := ReadJSONBody(r, &body); err != nil {
+		return nil, model.InputError("json body")
 	}
 	if body.App == 0 {
-		return nil, InputError("app required")
+		return nil, model.InputError("app required")
 	}
 	if len(body.Items) == 0 {
-		return nil, InputError("items required")
+		return nil, model.InputError("items required")
 	}
 	return nil, h.folderService.BatchDelete(body.App, body.Items)
 }
 
 // GET /ice-server/base/export/folder?app=&path=
 func (h *FolderHandler) exportFolder(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	app, err := queryIntRequired(r, "app")
+	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
 	}
-	path := queryStr(r, "path", "")
+	path := QueryStr(r, "path", "")
 	data, exportErr := h.folderService.ExportFolder(app, path)
 	if exportErr != nil {
 		return nil, exportErr
 	}
-	return &WebResult{Ret: 0, Data: data}, nil
+	return &model.WebResult{Ret: 0, Data: data}, nil
 }

@@ -17,7 +17,7 @@ type spaFileServer struct {
 	fsys    fs.FS
 }
 
-func newSPAFileServer() http.Handler {
+func NewSPAFileServer() http.Handler {
 	subFS, err := fs.Sub(webFS, "web")
 	if err != nil {
 		// If web directory doesn't exist or is empty, return a noop handler

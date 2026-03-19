@@ -1,19 +1,21 @@
-package main
+package service
 
 import (
 	"log"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/waitmoon/ice-server/config"
 )
 
 type Scheduler struct {
-	config        *Config
+	config        *config.Config
 	serverService *ServerService
 	clientManager *ClientManager
 }
 
-func NewScheduler(config *Config, serverService *ServerService, clientManager *ClientManager) *Scheduler {
+func NewScheduler(config *config.Config, serverService *ServerService, clientManager *ClientManager) *Scheduler {
 	return &Scheduler{config: config, serverService: serverService, clientManager: clientManager}
 }
 
