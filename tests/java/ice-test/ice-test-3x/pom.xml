@@ -34,7 +34,7 @@
     <dependencies>
         <dependency>
             <groupId>com.waitmoon.ice</groupId>
-            <artifactId>ice-spring-boot-starter-3x</artifactId>
+            <artifactId>ice-core</artifactId>
             <version>${ice.version}</version>
         </dependency>
         <dependency>

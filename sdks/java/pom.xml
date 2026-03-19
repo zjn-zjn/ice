@@ -23,15 +23,11 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <!-- Spring Boot versions for starter modules -->
-        <spring-boot-2x.version>2.7.18</spring-boot-2x.version>
-        <spring-boot-3x.version>3.4.2</spring-boot-3x.version>
     </properties>
 
     <modules>
         <module>ice-common</module>
         <module>ice-core</module>
-        <module>ice-spring-boot</module>
     </modules>
 
     <!--License-->
