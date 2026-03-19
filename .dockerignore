@@ -18,8 +18,7 @@ logs/
 *.tmp
 *.bak
 
-# 其他模块的 target（保留 server/ice-server/target）
+# Build artifacts
 sdks/java/ice-common/target/
 sdks/java/ice-core/target/
-sdks/java/ice-spring-boot/target/
 tests/java/ice-test/target/
