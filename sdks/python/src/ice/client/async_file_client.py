@@ -208,19 +208,20 @@ class AsyncFileClient:
             if confs:
                 conf_cache.insert_or_update_confs(confs)
         
-        # Load bases
+        # Load bases (recursively walk directories to support folder structure)
         bases_path = os.path.join(app_path, DIR_BASES)
         if os.path.isdir(bases_path):
             bases: list[BaseDto] = []
-            for filename in os.listdir(bases_path):
-                if filename.endswith(SUFFIX_JSON):
-                    filepath = os.path.join(bases_path, filename)
-                    try:
-                        with open(filepath, "r") as f:
-                            data = json.load(f)
-                            bases.append(self._dict_to_base_dto(data))
-                    except Exception as e:
-                        log.warn("failed to load base", file=filepath, error=str(e))
+            for dirpath, _, filenames in os.walk(bases_path):
+                for filename in filenames:
+                    if filename.endswith(SUFFIX_JSON):
+                        filepath = os.path.join(dirpath, filename)
+                        try:
+                            with open(filepath, "r") as f:
+                                data = json.load(f)
+                                bases.append(self._dict_to_base_dto(data))
+                        except Exception as e:
+                            log.warn("failed to load base", file=filepath, error=str(e))
             
             if bases:
                 handler_cache.insert_or_update_handlers(bases)
