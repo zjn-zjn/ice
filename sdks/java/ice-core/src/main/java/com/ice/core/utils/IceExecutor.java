@@ -2,8 +2,7 @@ package com.ice.core.utils;
 
 import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.core.base.BaseNode;
-import com.ice.core.context.IceContext;
-import com.ice.core.context.IceParallelContext;
+import com.ice.core.context.IceRoam;
 import com.ice.core.handler.IceHandler;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -30,29 +29,29 @@ public final class IceExecutor {
         IceExecutor.executor = executor;
     }
 
-    public static Future<NodeRunStateEnum> submitNodeCallable(BaseNode node, IceParallelContext ctx) {
+    public static Future<NodeRunStateEnum> submitNodeCallable(BaseNode node, IceRoam roam, boolean[] done) {
         return executor.submit(() -> {
-            if (!ctx.isDone()) {
-                return node.process(ctx.getCtx());
+            if (!done[0]) {
+                return node.process(roam);
             }
             return NodeRunStateEnum.NONE;
         });
     }
 
-    public static Future<NodeRunStateEnum> submitNodeCallable(BaseNode node, IceContext ctx) {
-        return executor.submit(() -> node.process(ctx));
+    public static Future<NodeRunStateEnum> submitNodeCallable(BaseNode node, IceRoam roam) {
+        return executor.submit(() -> node.process(roam));
     }
 
-    public static Future<?> submitNodeRunnable(BaseNode node, IceContext ctx) {
+    public static Future<?> submitNodeRunnable(BaseNode node, IceRoam roam) {
         return executor.submit(() -> {
-            node.process(ctx);
+            node.process(roam);
         });
     }
 
-    public static Future<IceContext> submitHandler(IceHandler handler, IceContext ctx) {
+    public static Future<IceRoam> submitHandler(IceHandler handler, IceRoam roam) {
         return executor.submit(() -> {
-            handler.handle(ctx);
-            return ctx;
+            handler.handle(roam);
+            return roam;
         });
     }
 }

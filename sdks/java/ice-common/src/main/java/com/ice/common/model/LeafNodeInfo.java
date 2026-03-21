@@ -19,6 +19,24 @@ public final class LeafNodeInfo {
     private Integer order;
     private List<IceFieldInfo> iceFields;
     private List<IceFieldInfo> hideFields;
+    private List<RoamKeyMeta> roamKeys;
+
+    @Data
+    public static class RoamKeyMeta {
+        private String direction;    // "read" | "write" | "read_write"
+        private String accessMode;   // "direct" | "union"
+        private String accessMethod; // "get" | "getDeep" | "put" | "putDeep"
+        private List<KeyPart> keyParts;
+    }
+
+    @Data
+    public static class KeyPart {
+        private String type;         // "literal" | "field" | "roamDerived" | "composite"
+        private String value;        // type=literal
+        private String ref;          // type=field, class field name
+        private String fromKey;      // type=roamDerived, source roam key
+        private List<KeyPart> parts; // type=composite
+    }
 
     @Data
     public static class IceFieldInfo {

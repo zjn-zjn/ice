@@ -80,10 +80,3 @@ const (
 	TimeBetween TimeType = 7
 )
 
-// RequestType represents the type of request.
-type RequestType int
-
-const (
-	// RequestFormal is a formal/production request.
-	RequestFormal RequestType = 0
-)

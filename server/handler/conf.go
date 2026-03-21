@@ -34,7 +34,10 @@ func (h *ConfHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/ice-server/conf/update_clean", WrapHandler(h.updateClean))
 }
 
-func (h *ConfHandler) confEdit(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *ConfHandler) confEdit(w http.ResponseWriter, r *http.Request) (any, error) {
+	if err := RequirePost(r); err != nil {
+		return nil, err
+	}
 	var editNode model.IceEditNode
 	if err := ReadJSONBody(r, &editNode); err != nil {
 		return nil, model.InputError("editNode")
@@ -42,7 +45,7 @@ func (h *ConfHandler) confEdit(w http.ResponseWriter, r *http.Request) (interfac
 	return h.confService.ConfEdit(&editNode)
 }
 
-func (h *ConfHandler) leafClass(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *ConfHandler) leafClass(w http.ResponseWriter, r *http.Request) (any, error) {
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -55,7 +58,7 @@ func (h *ConfHandler) leafClass(w http.ResponseWriter, r *http.Request) (interfa
 	return h.confService.GetConfLeafClass(app, *nodeType, lane), nil
 }
 
-func (h *ConfHandler) classCheck(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *ConfHandler) classCheck(w http.ResponseWriter, r *http.Request) (any, error) {
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -68,7 +71,7 @@ func (h *ConfHandler) classCheck(w http.ResponseWriter, r *http.Request) (interf
 	return nil, h.confService.LeafClassCheckAPI(app, clazz, *nodeType)
 }
 
-func (h *ConfHandler) laneList(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *ConfHandler) laneList(w http.ResponseWriter, r *http.Request) (any, error) {
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -76,7 +79,7 @@ func (h *ConfHandler) laneList(w http.ResponseWriter, r *http.Request) (interfac
 	return h.clientManager.ListLanes(app), nil
 }
 
-func (h *ConfHandler) confDetail(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *ConfHandler) confDetail(w http.ResponseWriter, r *http.Request) (any, error) {
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -106,10 +109,11 @@ func (h *ConfHandler) confDetail(w http.ResponseWriter, r *http.Request) (interf
 		return nil, err
 	}
 	showConf.IceId = iceId
+	showConf.Name = base.Name
 	return showConf, nil
 }
 
-func (h *ConfHandler) nodeMeta(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *ConfHandler) nodeMeta(w http.ResponseWriter, r *http.Request) (any, error) {
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -117,7 +121,7 @@ func (h *ConfHandler) nodeMeta(w http.ResponseWriter, r *http.Request) (interfac
 	lane := QueryStr(r, "lane", "")
 	address := QueryStr(r, "address", "")
 
-	result := make(map[string]interface{})
+	result := make(map[string]any)
 	registry := h.clientManager.GetClientRegistry(app)
 	lanes := h.clientManager.ListLanes(app)
 	result["clientRegistry"] = registry
@@ -169,7 +173,7 @@ func (h *ConfHandler) nodeMeta(w http.ResponseWriter, r *http.Request) (interfac
 	}
 
 	if actualAddress != "" {
-		result["leafClassMap"] = h.clientManager.GetClientLeafClasses(app, actualAddress, actualLane)
+		result["leafClassMap"] = h.clientManager.GetClientLeafClasses(app, actualLane)
 	} else {
 		result["leafClassMap"] = h.clientManager.GetAllLeafClasses(app, actualLane)
 	}
@@ -183,7 +187,10 @@ func (h *ConfHandler) nodeMeta(w http.ResponseWriter, r *http.Request) (interfac
 	return result, nil
 }
 
-func (h *ConfHandler) release(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *ConfHandler) release(w http.ResponseWriter, r *http.Request) (any, error) {
+	if err := RequirePost(r); err != nil {
+		return nil, err
+	}
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -198,7 +205,10 @@ func (h *ConfHandler) release(w http.ResponseWriter, r *http.Request) (interface
 	return []string{}, nil
 }
 
-func (h *ConfHandler) updateClean(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *ConfHandler) updateClean(w http.ResponseWriter, r *http.Request) (any, error) {
+	if err := RequirePost(r); err != nil {
+		return nil, err
+	}
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err

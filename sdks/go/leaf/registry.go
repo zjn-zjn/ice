@@ -38,52 +38,22 @@ type AfterPropertiesSet interface {
 //   - SHUT_DOWN: re-panic the error and stop execution
 //   - TRUE/FALSE/NONE: use this state and continue execution
 type LeafErrorHandler interface {
-	ErrorHandle(ctx stdctx.Context, iceCtx *icecontext.Context, err error) enum.RunState
+	ErrorHandle(ctx stdctx.Context, roam *icecontext.Roam, err error) enum.RunState
 }
 
-// LeafFlow is implemented by flow-type leaf nodes with Context parameter.
+// LeafFlow is implemented by flow-type leaf nodes.
 type LeafFlow interface {
-	DoFlow(ctx stdctx.Context, iceCtx *icecontext.Context) bool
+	DoFlow(ctx stdctx.Context, roam *icecontext.Roam) bool
 }
 
-// LeafPackFlow is implemented by flow-type leaf nodes with Pack parameter.
-type LeafPackFlow interface {
-	DoPackFlow(ctx stdctx.Context, pack *icecontext.Pack) bool
-}
-
-// LeafRoamFlow is implemented by flow-type leaf nodes with Roam parameter.
-type LeafRoamFlow interface {
-	DoRoamFlow(ctx stdctx.Context, roam *icecontext.Roam) bool
-}
-
-// LeafResult is implemented by result-type leaf nodes with Context parameter.
+// LeafResult is implemented by result-type leaf nodes.
 type LeafResult interface {
-	DoResult(ctx stdctx.Context, iceCtx *icecontext.Context) bool
+	DoResult(ctx stdctx.Context, roam *icecontext.Roam) bool
 }
 
-// LeafPackResult is implemented by result-type leaf nodes with Pack parameter.
-type LeafPackResult interface {
-	DoPackResult(ctx stdctx.Context, pack *icecontext.Pack) bool
-}
-
-// LeafRoamResult is implemented by result-type leaf nodes with Roam parameter.
-type LeafRoamResult interface {
-	DoRoamResult(ctx stdctx.Context, roam *icecontext.Roam) bool
-}
-
-// LeafNone is implemented by none-type leaf nodes with Context parameter.
+// LeafNone is implemented by none-type leaf nodes.
 type LeafNone interface {
-	DoNone(ctx stdctx.Context, iceCtx *icecontext.Context)
-}
-
-// LeafPackNone is implemented by none-type leaf nodes with Pack parameter.
-type LeafPackNone interface {
-	DoPackNone(ctx stdctx.Context, pack *icecontext.Pack)
-}
-
-// LeafRoamNone is implemented by none-type leaf nodes with Roam parameter.
-type LeafRoamNone interface {
-	DoRoamNone(ctx stdctx.Context, roam *icecontext.Roam)
+	DoNone(ctx stdctx.Context, roam *icecontext.Roam)
 }
 
 // leafEntry holds registration info for a leaf type.
@@ -93,6 +63,7 @@ type leafEntry struct {
 	nodeType   enum.NodeType
 	iceFields  []dto.IceFieldInfo
 	hideFields []dto.IceFieldInfo
+	roamKeys   []dto.RoamKeyMeta
 }
 
 // LeafNode is a node that can have its base properties set.
@@ -105,14 +76,45 @@ type LeafNode interface {
 var (
 	registry      = make(map[string]*leafEntry)
 	aliasRegistry = make(map[string]string) // alias -> className
+	roamKeysStore = make(map[string][]dto.RoamKeyMeta) // className -> roamKeys (populated by generated code)
 	mu            sync.RWMutex
 )
 
+// SetRoamKeys sets the roam key metadata for a given class name.
+// This is typically called from generated code (roam_keys_gen.go) during init().
+func SetRoamKeys(className string, keys []dto.RoamKeyMeta) {
+	mu.Lock()
+	defer mu.Unlock()
+	roamKeysStore[className] = keys
+	// Also update existing entry if already registered
+	if entry, ok := registry[className]; ok {
+		entry.roamKeys = keys
+	}
+}
+
+// ApplyRoamKeysMap applies a map of short struct names to roam key metadata.
+// It matches short names (e.g. "ScoreFlow") to registered full class names
+// (e.g. "com.ice.test.flow.ScoreFlow") by suffix.
+func ApplyRoamKeysMap(m map[string][]dto.RoamKeyMeta) {
+	mu.Lock()
+	defer mu.Unlock()
+	for shortName, keys := range m {
+		suffix := "." + shortName
+		for fullName, entry := range registry {
+			if strings.HasSuffix(fullName, suffix) || fullName == shortName {
+				roamKeysStore[fullName] = keys
+				entry.roamKeys = keys
+				break
+			}
+		}
+	}
+}
+
 // Register registers a leaf node factory with the given class name.
 // The factory should return a pointer to a struct that implements one of:
-// - LeafFlow, LeafPackFlow, LeafRoamFlow (for flow type)
-// - LeafResult, LeafPackResult, LeafRoamResult (for result type)
-// - LeafNone, LeafPackNone, LeafRoamNone (for none type)
+// - LeafFlow (for flow type)
+// - LeafResult (for result type)
+// - LeafNone (for none type)
 //
 // Fields are automatically extracted from the struct using reflection:
 // - Fields with `ice:"name:xxx,desc:xxx"` tag become iceFields (visible in UI)
@@ -138,6 +140,7 @@ func Register(className string, meta *LeafMeta, factory func() any) {
 		nodeType:   nodeType,
 		iceFields:  iceFields,
 		hideFields: hideFields,
+		roamKeys:   roamKeysStore[className],
 	}
 
 	// Register aliases
@@ -249,32 +252,11 @@ func getTypeName(t reflect.Type) string {
 
 // detectNodeType detects the node type based on the interfaces implemented.
 func detectNodeType(leaf any) enum.NodeType {
-	// Check Flow types
-	if _, ok := leaf.(LeafRoamFlow); ok {
-		return enum.TypeLeafFlow
-	}
-	if _, ok := leaf.(LeafPackFlow); ok {
-		return enum.TypeLeafFlow
-	}
 	if _, ok := leaf.(LeafFlow); ok {
 		return enum.TypeLeafFlow
 	}
-	// Check Result types
-	if _, ok := leaf.(LeafRoamResult); ok {
-		return enum.TypeLeafResult
-	}
-	if _, ok := leaf.(LeafPackResult); ok {
-		return enum.TypeLeafResult
-	}
 	if _, ok := leaf.(LeafResult); ok {
 		return enum.TypeLeafResult
-	}
-	// Check None types
-	if _, ok := leaf.(LeafRoamNone); ok {
-		return enum.TypeLeafNone
-	}
-	if _, ok := leaf.(LeafPackNone); ok {
-		return enum.TypeLeafNone
 	}
 	if _, ok := leaf.(LeafNone); ok {
 		return enum.TypeLeafNone
@@ -342,8 +324,8 @@ func (f *flowLeafNode) SetBase(base *node.Base) {
 	f.Base = *base
 }
 
-func (f *flowLeafNode) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	return node.ProcessWithBase(ctx, &f.Base, iceCtx, f.doLeaf, f.getErrorHandler())
+func (f *flowLeafNode) Process(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
+	return node.ProcessWithBase(ctx, &f.Base, roam, f.doLeaf, f.getErrorHandler())
 }
 
 // getErrorHandler returns the error handler if the instance implements LeafErrorHandler.
@@ -354,20 +336,12 @@ func (f *flowLeafNode) getErrorHandler() node.ErrorHandler {
 	return nil
 }
 
-func (f *flowLeafNode) doLeaf(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	var result bool
-
-	// Try most specific first (Roam), then Pack, then Context
-	if leaf, ok := f.instance.(LeafRoamFlow); ok {
-		result = leaf.DoRoamFlow(ctx, iceCtx.Pack.Roam)
-	} else if leaf, ok := f.instance.(LeafPackFlow); ok {
-		result = leaf.DoPackFlow(ctx, iceCtx.Pack)
-	} else if leaf, ok := f.instance.(LeafFlow); ok {
-		result = leaf.DoFlow(ctx, iceCtx)
-	}
-
-	if result {
-		return enum.TRUE
+func (f *flowLeafNode) doLeaf(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
+	if leaf, ok := f.instance.(LeafFlow); ok {
+		if leaf.DoFlow(ctx, roam) {
+			return enum.TRUE
+		}
+		return enum.FALSE
 	}
 	return enum.FALSE
 }
@@ -377,8 +351,8 @@ type leafErrorHandlerAdapter struct {
 	handler LeafErrorHandler
 }
 
-func (a *leafErrorHandlerAdapter) ErrorHandle(ctx stdctx.Context, iceCtx *icecontext.Context, err error) enum.RunState {
-	return a.handler.ErrorHandle(ctx, iceCtx, err)
+func (a *leafErrorHandlerAdapter) ErrorHandle(ctx stdctx.Context, roam *icecontext.Roam, err error) enum.RunState {
+	return a.handler.ErrorHandle(ctx, roam, err)
 }
 
 // resultLeafNode wraps a result-type leaf.
@@ -392,8 +366,8 @@ func (r *resultLeafNode) SetBase(base *node.Base) {
 	r.Base = *base
 }
 
-func (r *resultLeafNode) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	return node.ProcessWithBase(ctx, &r.Base, iceCtx, r.doLeaf, r.getErrorHandler())
+func (r *resultLeafNode) Process(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
+	return node.ProcessWithBase(ctx, &r.Base, roam, r.doLeaf, r.getErrorHandler())
 }
 
 // getErrorHandler returns the error handler if the instance implements LeafErrorHandler.
@@ -404,19 +378,12 @@ func (r *resultLeafNode) getErrorHandler() node.ErrorHandler {
 	return nil
 }
 
-func (r *resultLeafNode) doLeaf(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	var result bool
-
-	if leaf, ok := r.instance.(LeafRoamResult); ok {
-		result = leaf.DoRoamResult(ctx, iceCtx.Pack.Roam)
-	} else if leaf, ok := r.instance.(LeafPackResult); ok {
-		result = leaf.DoPackResult(ctx, iceCtx.Pack)
-	} else if leaf, ok := r.instance.(LeafResult); ok {
-		result = leaf.DoResult(ctx, iceCtx)
-	}
-
-	if result {
-		return enum.TRUE
+func (r *resultLeafNode) doLeaf(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
+	if leaf, ok := r.instance.(LeafResult); ok {
+		if leaf.DoResult(ctx, roam) {
+			return enum.TRUE
+		}
+		return enum.FALSE
 	}
 	return enum.FALSE
 }
@@ -432,8 +399,8 @@ func (n *noneLeafNode) SetBase(base *node.Base) {
 	n.Base = *base
 }
 
-func (n *noneLeafNode) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	return node.ProcessWithBase(ctx, &n.Base, iceCtx, n.doLeaf, n.getErrorHandler())
+func (n *noneLeafNode) Process(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
+	return node.ProcessWithBase(ctx, &n.Base, roam, n.doLeaf, n.getErrorHandler())
 }
 
 // getErrorHandler returns the error handler if the instance implements LeafErrorHandler.
@@ -444,13 +411,9 @@ func (n *noneLeafNode) getErrorHandler() node.ErrorHandler {
 	return nil
 }
 
-func (n *noneLeafNode) doLeaf(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	if leaf, ok := n.instance.(LeafRoamNone); ok {
-		leaf.DoRoamNone(ctx, iceCtx.Pack.Roam)
-	} else if leaf, ok := n.instance.(LeafPackNone); ok {
-		leaf.DoPackNone(ctx, iceCtx.Pack)
-	} else if leaf, ok := n.instance.(LeafNone); ok {
-		leaf.DoNone(ctx, iceCtx)
+func (n *noneLeafNode) doLeaf(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
+	if leaf, ok := n.instance.(LeafNone); ok {
+		leaf.DoNone(ctx, roam)
 	}
 	return enum.NONE
 }
@@ -468,6 +431,7 @@ func GetLeafNodes() []dto.LeafNodeInfo {
 			Order:      100,
 			IceFields:  entry.iceFields,
 			HideFields: entry.hideFields,
+			RoamKeys:   entry.roamKeys,
 		}
 		if entry.meta != nil {
 			info.Name = entry.meta.Name

@@ -346,7 +346,6 @@ func setNodeProperties(n node.Node, confDto *dto.ConfDto) {
 
 func setBaseProperties(base *node.Base, confDto *dto.ConfDto) {
 	base.IceNodeId = confDto.Id
-	base.IceNodeDebug = confDto.Debug == 0 || confDto.Debug == 1
 	base.IceInverse = confDto.Inverse
 	base.IceTimeType = enum.TimeType(confDto.TimeType)
 	base.IceStart = confDto.Start

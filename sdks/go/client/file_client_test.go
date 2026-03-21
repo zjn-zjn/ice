@@ -47,7 +47,6 @@ func setupTestStorage(t *testing.T) string {
 		Scenes:   "scene1",
 		TimeType: byte(enum.TimeNone),
 		Debug:    1,
-		Priority: 1,
 	}
 	baseData, _ := json.Marshal(base)
 	if err := os.WriteFile(filepath.Join(appDir, "bases", "1.json"), baseData, 0644); err != nil {

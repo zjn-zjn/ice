@@ -16,17 +16,17 @@ class ScoreFlow:
     """Checks if roam[key] >= score."""
     score: Annotated[float, IceField(name="分数阈值", desc="判断分数的阈值")] = 0.0
     key: Annotated[str, IceField(name="取值键", desc="从roam中取值的键名")] = ""
-    
-    def do_roam_flow(self, roam: Roam) -> bool:
-        value = roam.get_multi(self.key)
+
+    def do_flow(self, roam: Roam) -> bool:
+        value = roam.get_deep(self.key)
         if value is None:
             return False
-        
+
         try:
             value_score = float(value)
         except (ValueError, TypeError):
             return False
-        
+
         return value_score >= self.score
 
 
@@ -40,15 +40,15 @@ class ScoreFlow2:
     """Another variant of score checking."""
     score: Annotated[float, IceField(name="分数阈值", desc="判断分数的阈值")] = 0.0
     key: Annotated[str, IceField(name="取值键", desc="从roam中取值的键名")] = ""
-    
-    def do_roam_flow(self, roam: Roam) -> bool:
-        value = roam.get_multi(self.key)
+
+    def do_flow(self, roam: Roam) -> bool:
+        value = roam.get_deep(self.key)
         if value is None:
             return False
-        
+
         try:
             value_score = float(value)
         except (ValueError, TypeError):
             return False
-        
+
         return value_score >= self.score

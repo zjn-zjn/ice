@@ -16,7 +16,6 @@ class ConfDto:
     start: int = 0
     end: int = 0
     forwardId: int = 0
-    debug: int = 0
     errorState: int = 0
     inverse: bool = False
     name: str = ""
@@ -39,7 +38,6 @@ class BaseDto:
     start: int = 0
     end: int = 0
     debug: int = 0
-    priority: int = 0
     app: int = 0
     name: str = ""
     status: int = 0
@@ -69,6 +67,25 @@ class IceFieldInfo:
 
 
 @dataclass
+class KeyPart:
+    """Describes one segment of a roam key."""
+    type: str = ""           # "literal" | "field" | "roamDerived" | "composite"
+    value: str = ""          # type=literal
+    ref: str = ""            # type=field, class field name
+    fromKey: str = ""        # type=roamDerived, source roam key
+    parts: list["KeyPart"] = field(default_factory=list)  # type=composite
+
+
+@dataclass
+class RoamKeyMeta:
+    """Describes a roam key access found in a leaf node's business method."""
+    direction: str = ""      # "read" | "write" | "read_write"
+    accessMode: str = ""     # "direct" | "union"
+    accessMethod: str = ""   # "get" | "getDeep" | "put" | "putDeep"
+    keyParts: list[KeyPart] = field(default_factory=list)
+
+
+@dataclass
 class LeafNodeInfo:
     """Information about a leaf node class."""
     type: int = 0
@@ -78,6 +95,7 @@ class LeafNodeInfo:
     order: int = 100
     iceFields: list[IceFieldInfo] = field(default_factory=list)
     hideFields: list[IceFieldInfo] = field(default_factory=list)
+    roamKeys: list[RoamKeyMeta] = field(default_factory=list)
 
 
 @dataclass
@@ -97,7 +115,6 @@ class AppDto:
     """Application DTO (compatible with Java IceAppDto)."""
     id: int = 0
     name: str = ""
-    secret: str = ""
     createAt: int = 0
     updateAt: int = 0
 

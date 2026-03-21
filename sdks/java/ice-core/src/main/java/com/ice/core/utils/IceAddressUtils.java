@@ -20,6 +20,10 @@ public final class IceAddressUtils {
         if (app == null) {
             throw new RuntimeException("app can not be null while init address");
         }
+        return generateAddress();
+    }
+
+    private static String generateAddress() {
         String host = getHostIp();
         if (host == null) {
             try {
@@ -28,8 +32,11 @@ public final class IceAddressUtils {
                 //ignore
             }
         }
+        if (host == null) {
+            host = "unknown";
+        }
         String id = UUIDUtils.generateAlphanumId(5);
-        return host == null ? id : (host + "_" + id);
+        return host + "_" + id;
     }
 
     public static String getAddress() {

@@ -43,18 +43,18 @@ func getPool() *ants.Pool {
 	return pool
 }
 
-// NodeProcessor is a function that processes a context and returns a state.
+// NodeProcessor is a function that processes a roam and returns a state.
 type NodeProcessor interface {
-	Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState
+	Process(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState
 }
 
 // SubmitNode submits a node for parallel execution and returns a channel for the result.
-func SubmitNode(ctx stdctx.Context, node NodeProcessor, iceCtx *icecontext.Context) <-chan NodeResult {
+func SubmitNode(ctx stdctx.Context, node NodeProcessor, roam *icecontext.Roam) <-chan NodeResult {
 	ch := make(chan NodeResult, 1)
 	p := getPool()
 	if p == nil {
 		// Fallback to synchronous execution
-		result := node.Process(ctx, iceCtx)
+		result := node.Process(ctx, roam)
 		ch <- NodeResult{State: result}
 		return ch
 	}
@@ -65,51 +65,13 @@ func SubmitNode(ctx stdctx.Context, node NodeProcessor, iceCtx *icecontext.Conte
 				ch <- NodeResult{State: enum.SHUT_DOWN, Err: nil}
 			}
 		}()
-		result := node.Process(ctx, iceCtx)
+		result := node.Process(ctx, roam)
 		ch <- NodeResult{State: result}
 	})
 	if err != nil {
 		// Fallback to synchronous execution
-		result := node.Process(ctx, iceCtx)
+		result := node.Process(ctx, roam)
 		ch <- NodeResult{State: result}
-	}
-	return ch
-}
-
-// SubmitNodeWithDone submits a node for parallel execution with a done flag check.
-func SubmitNodeWithDone(ctx stdctx.Context, node NodeProcessor, pCtx *icecontext.ParallelContext) <-chan NodeResult {
-	ch := make(chan NodeResult, 1)
-	p := getPool()
-	if p == nil {
-		if !pCtx.IsDone() {
-			result := node.Process(ctx, pCtx.Ctx)
-			ch <- NodeResult{State: result}
-		} else {
-			ch <- NodeResult{State: enum.NONE}
-		}
-		return ch
-	}
-
-	err := p.Submit(func() {
-		defer func() {
-			if r := recover(); r != nil {
-				ch <- NodeResult{State: enum.SHUT_DOWN}
-			}
-		}()
-		if !pCtx.IsDone() {
-			result := node.Process(ctx, pCtx.Ctx)
-			ch <- NodeResult{State: result}
-		} else {
-			ch <- NodeResult{State: enum.NONE}
-		}
-	})
-	if err != nil {
-		if !pCtx.IsDone() {
-			result := node.Process(ctx, pCtx.Ctx)
-			ch <- NodeResult{State: result}
-		} else {
-			ch <- NodeResult{State: enum.NONE}
-		}
 	}
 	return ch
 }

@@ -1,10 +1,10 @@
 server:
-  port: 8084
+  port: 8086
 
 ice:
   app: 1
   storage:
-    path: ../../../ice-data
+    path: ../../../server/ice-data
   poll-interval: 5
   heartbeat-interval: 10
   pool:

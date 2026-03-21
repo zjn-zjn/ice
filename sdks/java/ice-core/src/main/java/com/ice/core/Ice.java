@@ -1,13 +1,9 @@
 package com.ice.core;
 
-import com.ice.core.context.IceContext;
-import com.ice.core.context.IcePack;
 import com.ice.core.context.IceRoam;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 /**
  * @author waitmoon
@@ -21,55 +17,32 @@ public final class Ice {
     /*
      * careless result async exec handler
      */
-    public static List<Future<IceContext>> asyncProcess(IcePack pack) {
-        return IceDispatcher.asyncDispatcher(pack);
+    public static List<Future<IceRoam>> asyncProcess(IceRoam roam) {
+        return IceDispatcher.asyncDispatcher(roam);
     }
 
     /*
      * care result sync exec handler
      */
-    public static void syncProcess(IcePack pack) {
-        IceDispatcher.syncDispatcher(pack);
+    public static List<IceRoam> syncProcess(IceRoam roam) {
+        return IceDispatcher.syncDispatcher(roam);
     }
 
     /*
      * care result with single roam
      */
-    public static IceRoam processSingleRoam(IcePack pack) {
-        IceContext ctx = processSingleCtx(pack);
-        if (ctx != null && ctx.getPack() != null) {
-            return ctx.getPack().getRoam();
+    public static IceRoam processSingle(IceRoam roam) {
+        List<IceRoam> roamList = IceDispatcher.syncDispatcher(roam);
+        if (roamList == null || roamList.isEmpty()) {
+            return null;
         }
-        return null;
+        return roamList.get(0);
     }
 
     /*
      * care result with list roam
      */
-    public static List<IceRoam> processRoam(IcePack pack) {
-        List<IceContext> ctxList = IceDispatcher.syncDispatcher(pack);
-        if (ctxList == null || ctxList.isEmpty()) {
-            return null;
-        }
-        return ctxList.stream().map(ctx -> ctx.getPack().getRoam())
-                .collect(Collectors.toCollection(() -> new ArrayList<>(ctxList.size())));
-    }
-
-    /*
-     * care result with single ctx
-     */
-    public static IceContext processSingleCtx(IcePack pack) {
-        List<IceContext> ctxList = processCtx(pack);
-        if (ctxList == null || ctxList.isEmpty()) {
-            return null;
-        }
-        return ctxList.get(0);
-    }
-
-    /*
-     * care result with single ctx list
-     */
-    public static List<IceContext> processCtx(IcePack pack) {
-        return IceDispatcher.syncDispatcher(pack);
+    public static List<IceRoam> process(IceRoam roam) {
+        return IceDispatcher.syncDispatcher(roam);
     }
 }

@@ -41,10 +41,18 @@ func (s *ServerService) GetInitConfig(app int) (*model.IceTransferDto, error) {
 	if err != nil {
 		return nil, err
 	}
+	dtoBases := make([]*model.IceBase, len(bases))
+	for i, b := range bases {
+		dtoBases[i] = BaseToDtoWithName(b)
+	}
+	dtoConfs := make([]*model.IceConf, len(confs))
+	for i, c := range confs {
+		dtoConfs[i] = ConfToDtoWithName(c)
+	}
 	return &model.IceTransferDto{
 		Version:             version,
-		InsertOrUpdateBases: bases,
-		InsertOrUpdateConfs: confs,
+		InsertOrUpdateBases: dtoBases,
+		InsertOrUpdateConfs: dtoConfs,
 	}, nil
 }
 
@@ -132,7 +140,10 @@ func (s *ServerService) assembleShowNode(node *model.IceConf, app int, iceId int
 				if sonStr == "" {
 					continue
 				}
-				sonId := parseInt64(sonStr)
+				sonId, err := parseInt64(sonStr)
+				if err != nil {
+					continue
+				}
 				child := s.GetMixConfById(app, sonId, iceId)
 				if child != nil {
 					showChild := s.assembleShowNode(child, app, iceId, lane)
@@ -170,7 +181,7 @@ func fillFieldValues(nodeInfo *model.LeafNodeInfo, confField string) {
 	if confField == "" || confField == "{}" {
 		return
 	}
-	var fieldValues map[string]interface{}
+	var fieldValues map[string]any
 	if err := json.Unmarshal([]byte(confField), &fieldValues); err != nil {
 		log.Printf("failed to parse confField: %s: %v", confField, err)
 		return
@@ -211,9 +222,6 @@ func EnsureConfDefaults(conf *model.IceConf) {
 	}
 	if conf.TimeType == nil {
 		conf.TimeType = model.Int8Ptr(model.TimeTypeNone)
-	}
-	if conf.Debug == nil {
-		conf.Debug = model.Int8Ptr(1)
 	}
 	if conf.UpdateAt == nil {
 		now := model.TimeNowMs()
@@ -374,12 +382,6 @@ func (s *ServerService) Release(app int, iceId int64) (*model.IceTransferDto, er
 		} else {
 			newConf.TimeType = model.Int8Ptr(model.TimeTypeNone)
 		}
-		// Debug with default
-		if confUpdate.Debug != nil {
-			newConf.Debug = confUpdate.Debug
-		} else {
-			newConf.Debug = model.Int8Ptr(1)
-		}
 		// Preserve createAt
 		if oldConf != nil && oldConf.CreateAt != nil {
 			newConf.CreateAt = oldConf.CreateAt
@@ -393,7 +395,9 @@ func (s *ServerService) Release(app int, iceId int64) (*model.IceTransferDto, er
 			return nil, err
 		}
 		releasedConfs = append(releasedConfs, newConf)
-		s.storage.DeleteConfUpdate(app, iceId, confId)
+		if err := s.storage.DeleteConfUpdate(app, iceId, confId); err != nil {
+			return nil, err
+		}
 	}
 
 	// Increment version
@@ -409,7 +413,9 @@ func (s *ServerService) Release(app int, iceId int64) (*model.IceTransferDto, er
 	transferDto.Version = newVersion
 	transferDto.InsertOrUpdateConfs = releasedConfs
 
-	s.storage.SaveVersionUpdate(app, newVersion, transferDto)
+	if err := s.storage.SaveVersionUpdate(app, newVersion, transferDto); err != nil {
+		return nil, err
+	}
 	s.storage.CleanOldVersions(app, s.config.VersionRetention)
 
 	return transferDto, nil
@@ -597,8 +603,8 @@ func (s *ServerService) assembleReachableIdsFromUpdates(app int, reachableIds ma
 				for _, sonStr := range strings.Split(update.SonIds, ",") {
 					sonStr = strings.TrimSpace(sonStr)
 					if sonStr != "" {
-						id := parseInt64(sonStr)
-						if id > 0 {
+						id, err := parseInt64(sonStr)
+						if err == nil && id > 0 {
 							reachableIds[id] = true
 						}
 					}
@@ -619,7 +625,6 @@ func confToShow(conf *model.IceConf) *model.IceShowNode {
 	show.ShowConf = showConf
 
 	show.ForwardId = conf.ForwardId
-	showConf.Debug = model.BoolPtr(conf.Debug == nil || *conf.Debug == 1)
 	showConf.NodeId = conf.GetMixId()
 	showConf.ErrorState = conf.ErrorState
 
@@ -675,9 +680,6 @@ func ConfToDtoWithName(conf *model.IceConf) *model.IceConf {
 		ConfId:     conf.ConfId,
 		IceId:      conf.IceId,
 	}
-	if conf.Debug != nil && *conf.Debug != 1 {
-		dto.Debug = conf.Debug
-	}
 	if conf.TimeType != nil && *conf.TimeType != model.TimeTypeNone {
 		dto.TimeType = conf.TimeType
 	}
@@ -721,7 +723,140 @@ func BaseToDtoWithName(base *model.IceBase) *model.IceBase {
 	return dto
 }
 
-func parseInt64(s string) int64 {
-	n, _ := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
-	return n
+// GetMockSchema traverses the rule tree and collects read roamKeys from all leaf nodes.
+// If address is specified, checks if that client is active. If not, falls back to lane → trunk
+// and sets fallback=true in the response.
+func (s *ServerService) GetMockSchema(app int, iceId, confId int64, lane, address string) *model.MockSchemaResponse {
+	var rootConfId int64
+	if confId > 0 {
+		rootConfId = confId
+	} else if iceId > 0 {
+		base := s.GetActiveBaseById(app, iceId)
+		if base == nil || base.ConfID == nil {
+			return nil
+		}
+		rootConfId = *base.ConfID
+	}
+
+	// Check if the requested address is active; if not, fallback
+	fallback := false
+	effectiveAddress := address
+	if address != "" {
+		if !s.clientManager.IsClientActive(app, lane, address) && !s.clientManager.IsClientActive(app, "", address) {
+			// Address is offline, fallback
+			fallback = true
+			effectiveAddress = ""
+		}
+	}
+
+	seen := make(map[string]bool)
+	var fields []*model.MockSchemaField
+	s.collectMockSchema(app, rootConfId, iceId, lane, effectiveAddress, seen, &fields, make(map[int64]bool))
+	return &model.MockSchemaResponse{Fields: fields, Fallback: fallback}
+}
+
+func (s *ServerService) collectMockSchema(app int, confId, iceId int64, lane, address string, seen map[string]bool, fields *[]*model.MockSchemaField, visited map[int64]bool) {
+	if visited[confId] {
+		return
+	}
+	visited[confId] = true
+
+	// Use active (published) conf only — mock executes on client which runs the active version
+	conf := s.GetActiveConfById(app, confId)
+	if conf == nil {
+		return
+	}
+
+	if model.IsRelation(conf.Type) {
+		for _, sonId := range conf.GetSonLongIds() {
+			s.collectMockSchema(app, sonId, iceId, lane, address, seen, fields, visited)
+		}
+	} else if model.IsLeaf(conf.Type) && conf.ConfName != "" {
+		nodeInfo := s.clientManager.GetNodeInfo(conf.App, address, conf.ConfName, conf.Type, lane)
+		if nodeInfo != nil {
+			var fieldValues map[string]any
+			if conf.ConfField != "" && conf.ConfField != "{}" {
+				_ = json.Unmarshal([]byte(conf.ConfField), &fieldValues)
+			}
+			for _, rk := range nodeInfo.RoamKeys {
+				if rk.Direction != "read" && rk.Direction != "read_write" {
+					continue
+				}
+				key, dynamic := resolveKeyParts(rk.KeyParts, fieldValues)
+				if key == "" {
+					continue
+				}
+				if seen[key] {
+					continue
+				}
+				seen[key] = true
+				*fields = append(*fields, &model.MockSchemaField{
+					Key:      key,
+					NodeId:   conf.GetMixId(),
+					NodeName: conf.Name,
+					Dynamic:  dynamic,
+				})
+			}
+		}
+	}
+
+	if conf.ForwardId != nil {
+		s.collectMockSchema(app, *conf.ForwardId, iceId, lane, address, seen, fields, visited)
+	}
+}
+
+// resolveKeyParts resolves key parts to a string key.
+// Returns (key, dynamic). For dynamic keys, returns the literal prefix with a trailing "*".
+func resolveKeyParts(parts []*model.KeyPart, fieldValues map[string]any) (string, bool) {
+	if len(parts) == 0 {
+		return "", false
+	}
+	var sb strings.Builder
+	for _, p := range parts {
+		switch p.Type {
+		case "literal":
+			sb.WriteString(p.Value)
+		case "field":
+			// field type: ref points to an iceField name, resolve from confField values
+			// Try exact match first, then case-insensitive (Go exports as "Key", JSON stores as "key")
+			if p.Ref != "" && fieldValues != nil {
+				if v, ok := fieldValues[p.Ref]; ok {
+					sb.WriteString(fmt.Sprintf("%v", v))
+					continue
+				}
+				lower := strings.ToLower(p.Ref[:1]) + p.Ref[1:]
+				if v, ok := fieldValues[lower]; ok {
+					sb.WriteString(fmt.Sprintf("%v", v))
+					continue
+				}
+			}
+			// no configured value, use field ref name as placeholder and mark dynamic
+			if p.Ref != "" {
+				sb.WriteString("${" + p.Ref + "}")
+			}
+			return sb.String(), true
+		case "ref", "dynamic":
+			if sb.Len() > 0 {
+				sb.WriteString("*")
+				return sb.String(), true
+			}
+			return "*", true
+		case "concat":
+			key, dyn := resolveKeyParts(p.Parts, fieldValues)
+			if key == "" {
+				return "", false
+			}
+			sb.WriteString(key)
+			if dyn {
+				return sb.String(), true
+			}
+		default:
+			return "", false
+		}
+	}
+	return sb.String(), false
+}
+
+func parseInt64(s string) (int64, error) {
+	return strconv.ParseInt(strings.TrimSpace(s), 10, 64)
 }

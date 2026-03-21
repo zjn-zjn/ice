@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ice.context.context import Context
+    from ice.context.roam import Roam
     from ice.node.base import Node
     from ice.enums import RunState
 
@@ -20,17 +20,17 @@ _executor: ThreadPoolExecutor | None = None
 def init_executor(parallelism: int = -1) -> None:
     """
     Initialize the global thread pool executor.
-    
+
     Args:
         parallelism: Number of worker threads. -1 means use CPU count.
     """
     global _executor
     if _executor is not None:
         return
-    
+
     if parallelism <= 0:
         parallelism = os.cpu_count() or 4
-    
+
     _executor = ThreadPoolExecutor(max_workers=parallelism, thread_name_prefix="ice-worker")
 
 
@@ -57,26 +57,25 @@ class NodeResult:
     error: Exception | None = None
 
 
-def submit_node(node: Node, ctx: Context) -> Future[NodeResult]:
+def submit_node(node: Node, roam: Roam) -> Future[NodeResult]:
     """
     Submit a node for execution in the thread pool.
-    
+
     Args:
         node: The node to execute
-        ctx: The execution context (should be a copy for parallel execution)
-    
+        roam: The roam data (should be a clone for parallel execution)
+
     Returns:
         A Future containing the NodeResult
     """
     from ice.enums import RunState
-    
+
     def execute() -> NodeResult:
         try:
-            state = node.process(ctx)
+            state = node.process(roam)
             return NodeResult(state=state)
         except Exception as e:
             return NodeResult(state=RunState.SHUT_DOWN, error=e)
-    
+
     executor = get_executor()
     return executor.submit(execute)
-

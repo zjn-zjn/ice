@@ -16,22 +16,10 @@ type AmountResult struct {
 	Value float64 `json:"value" ice:"name:余额值,desc:要发放的余额数量"`
 }
 
-// DoRoamResult implements the RoamResult interface.
-func (a *AmountResult) DoRoamResult(ctx context.Context, roam *icecontext.Roam) bool {
-	uidVal := roam.GetMulti(a.Key)
-	if uidVal == nil || a.Value <= 0 {
-		return false
-	}
-
-	var uid int
-	switch v := uidVal.(type) {
-	case int:
-		uid = v
-	case int64:
-		uid = int(v)
-	case float64:
-		uid = int(v)
-	default:
+// DoResult implements the LeafResult interface.
+func (a *AmountResult) DoResult(ctx context.Context, roam *icecontext.Roam) bool {
+	uid := roam.ValueDeep(a.Key).Int()
+	if uid == 0 || a.Value <= 0 {
 		return false
 	}
 
@@ -46,22 +34,10 @@ type AmountResult2 struct {
 	Value float64 `json:"value" ice:"name:余额值,desc:要发放的余额数量"`
 }
 
-// DoRoamResult implements the RoamResult interface.
-func (a *AmountResult2) DoRoamResult(ctx context.Context, roam *icecontext.Roam) bool {
-	uidVal := roam.GetMulti(a.Key)
-	if uidVal == nil || a.Value <= 0 {
-		return false
-	}
-
-	var uid int
-	switch v := uidVal.(type) {
-	case int:
-		uid = v
-	case int64:
-		uid = int(v)
-	case float64:
-		uid = int(v)
-	default:
+// DoResult implements the LeafResult interface.
+func (a *AmountResult2) DoResult(ctx context.Context, roam *icecontext.Roam) bool {
+	uid := roam.ValueDeep(a.Key).Int()
+	if uid == 0 || a.Value <= 0 {
 		return false
 	}
 

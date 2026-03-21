@@ -5,10 +5,18 @@
     <link rel="icon" type="image/svg+xml" href="/assets/favicon-CVwNI4FJ.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ice配置后台</title>
-    <script type="module" crossorigin src="/assets/index-CWxTHYmL.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-s-RCWZd0.css">
+    <script type="module" crossorigin src="/assets/index-DF3LCywu.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CzzYe_qU.css">
   </head>
   <body>
+    <script>
+      ;(function() {
+        var t = localStorage.getItem('ice-theme')
+        if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        document.documentElement.setAttribute('data-theme', t)
+        if (t === 'dark') document.body.style.background = '#141414'
+      })()
+    </script>
     <div id="root"></div>
   </body>
 </html>

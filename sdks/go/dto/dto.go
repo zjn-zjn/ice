@@ -12,7 +12,6 @@ type ConfDto struct {
 	Start      int64  `json:"start,omitempty"`
 	End        int64  `json:"end,omitempty"`
 	ForwardId  int64  `json:"forwardId,omitempty"`
-	Debug      byte   `json:"debug,omitempty"`
 	ErrorState byte   `json:"errorState,omitempty"`
 	Inverse    bool   `json:"inverse,omitempty"`
 	Name       string `json:"name,omitempty"`
@@ -34,8 +33,7 @@ type BaseDto struct {
 	Start    int64  `json:"start,omitempty"`
 	End      int64  `json:"end,omitempty"`
 	Debug    byte   `json:"debug,omitempty"`
-	Priority int64  `json:"priority,omitempty"`
-	App      int    `json:"app,omitempty"`
+	App int `json:"app,omitempty"`
 	Name     string `json:"name,omitempty"`
 	Status   byte   `json:"status,omitempty"`
 	CreateAt int64  `json:"createAt,omitempty"`
@@ -71,6 +69,24 @@ type LeafNodeInfo struct {
 	Order      int            `json:"order,omitempty"`
 	IceFields  []IceFieldInfo `json:"iceFields,omitempty"`
 	HideFields []IceFieldInfo `json:"hideFields,omitempty"`
+	RoamKeys   []RoamKeyMeta  `json:"roamKeys,omitempty"`
+}
+
+// RoamKeyMeta describes a roam key access found in a leaf node's business method.
+type RoamKeyMeta struct {
+	Direction    string    `json:"direction"`              // "read" | "write" | "read_write"
+	AccessMode   string    `json:"accessMode"`             // "direct" | "union"
+	AccessMethod string    `json:"accessMethod"`           // "get" | "getDeep" | "put" | "putDeep"
+	KeyParts     []KeyPart `json:"keyParts,omitempty"`
+}
+
+// KeyPart describes one segment of a roam key.
+type KeyPart struct {
+	Type    string    `json:"type"`              // "literal" | "field" | "roamDerived" | "composite"
+	Value   string    `json:"value,omitempty"`   // type=literal
+	Ref     string    `json:"ref,omitempty"`     // type=field, class field name
+	FromKey string    `json:"fromKey,omitempty"` // type=roamDerived, source roam key
+	Parts   []KeyPart `json:"parts,omitempty"`   // type=composite
 }
 
 // IceFieldInfo represents information about a field in a leaf node.
@@ -87,7 +103,6 @@ type IceFieldInfo struct {
 type AppDto struct {
 	Id       int64  `json:"id"`
 	Name     string `json:"name"`
-	Secret   string `json:"secret,omitempty"`
 	CreateAt int64  `json:"createAt,omitempty"`
 	UpdateAt int64  `json:"updateAt,omitempty"`
 }

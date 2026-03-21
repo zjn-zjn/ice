@@ -2,10 +2,29 @@
 
 from __future__ import annotations
 
+import contextvars
 import json
 import logging
 from abc import ABC, abstractmethod
 from typing import Any
+
+# Context variable for trace ID (like Java MDC / Go context)
+_trace_id_var: contextvars.ContextVar[str] = contextvars.ContextVar('traceId', default='')
+
+
+def set_trace_id(trace_id: str) -> contextvars.Token[str]:
+    """Set trace ID in current context. Returns token for reset."""
+    return _trace_id_var.set(trace_id)
+
+
+def get_trace_id() -> str:
+    """Get trace ID from current context."""
+    return _trace_id_var.get()
+
+
+def reset_trace_id(token: contextvars.Token[str]) -> None:
+    """Reset trace ID to previous value."""
+    _trace_id_var.reset(token)
 
 
 class Logger(ABC):
@@ -38,6 +57,10 @@ class DefaultLogger(Logger):
     def __init__(self) -> None:
         self._logger = logging.getLogger("ice")
     
+    def _trace_prefix(self) -> str:
+        trace_id = _trace_id_var.get()
+        return f"[{trace_id}] " if trace_id else ""
+
     def _format_kwargs(self, kwargs: dict[str, Any]) -> str:
         """Format kwargs as key=value pairs, converting complex objects to JSON."""
         if not kwargs:
@@ -58,16 +81,16 @@ class DefaultLogger(Logger):
         return " " + " ".join(parts)
     
     def debug(self, msg: str, **kwargs: Any) -> None:
-        self._logger.debug(msg + self._format_kwargs(kwargs))
-    
+        self._logger.debug(self._trace_prefix() + msg + self._format_kwargs(kwargs))
+
     def info(self, msg: str, **kwargs: Any) -> None:
-        self._logger.info(msg + self._format_kwargs(kwargs))
-    
+        self._logger.info(self._trace_prefix() + msg + self._format_kwargs(kwargs))
+
     def warn(self, msg: str, **kwargs: Any) -> None:
-        self._logger.warning(msg + self._format_kwargs(kwargs))
-    
+        self._logger.warning(self._trace_prefix() + msg + self._format_kwargs(kwargs))
+
     def error(self, msg: str, **kwargs: Any) -> None:
-        self._logger.error(msg + self._format_kwargs(kwargs))
+        self._logger.error(self._trace_prefix() + msg + self._format_kwargs(kwargs))
 
 
 # Global logger instance

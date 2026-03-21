@@ -341,7 +341,6 @@ public final class IceConfCache {
 
     private static void assembleBasicInfo(BaseNode node, IceConfDto confDto) {
         node.setIceNodeId(confDto.getId());
-        node.setIceNodeDebug(confDto.getDebug() == null || confDto.getDebug() == 1);
         node.setIceInverse(confDto.getInverse() != null && confDto.getInverse());
         node.setIceTimeTypeEnum(TimeTypeEnum.getEnumDefaultNone(confDto.getTimeType()));
         node.setIceStart(confDto.getStart() == null ? 0 : confDto.getStart());

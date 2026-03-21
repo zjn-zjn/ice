@@ -22,7 +22,7 @@ func (e *ErrorCodeError) Error() string {
 	return e.Msg
 }
 
-func InternalError(params ...interface{}) *ErrorCodeError {
+func InternalError(params ...any) *ErrorCodeError {
 	msg := "内部错误"
 	if len(params) > 0 {
 		msg = fmt.Sprintf("%v", params[0])
@@ -30,7 +30,7 @@ func InternalError(params ...interface{}) *ErrorCodeError {
 	return &ErrorCodeError{Code: CodeInternalError, Msg: msg}
 }
 
-func InputError(params ...interface{}) *ErrorCodeError {
+func InputError(params ...any) *ErrorCodeError {
 	msg := "输入错误"
 	if len(params) > 0 {
 		msg = fmt.Sprintf("输入错误: %v", params[0])
@@ -38,11 +38,11 @@ func InputError(params ...interface{}) *ErrorCodeError {
 	return &ErrorCodeError{Code: CodeInputError, Msg: msg}
 }
 
-func IDNotExist(name string, id interface{}) *ErrorCodeError {
+func IDNotExist(name string, id any) *ErrorCodeError {
 	return &ErrorCodeError{Code: CodeIDNotExist, Msg: fmt.Sprintf("%s:%v 不存在", name, id)}
 }
 
-func AlreadyExist(params ...interface{}) *ErrorCodeError {
+func AlreadyExist(params ...any) *ErrorCodeError {
 	msg := "已存在"
 	if len(params) > 0 {
 		msg = fmt.Sprintf("%v 已存在", params[0])
@@ -50,7 +50,7 @@ func AlreadyExist(params ...interface{}) *ErrorCodeError {
 	return &ErrorCodeError{Code: CodeAlreadyExist, Msg: msg}
 }
 
-func ConfNotFound(app int, name string, id interface{}) *ErrorCodeError {
+func ConfNotFound(app int, name string, id any) *ErrorCodeError {
 	return &ErrorCodeError{Code: CodeConfNotFound, Msg: fmt.Sprintf("app:%d %s:%v 配置未找到", app, name, id)}
 }
 

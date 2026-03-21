@@ -62,6 +62,9 @@ func (bs *BaseService) BaseList(search *model.IceBaseSearch) (*model.PageResult,
 
 	// Sort by ID descending
 	sort.Slice(filtered, func(i, j int) bool {
+		if filtered[i].ID == nil || filtered[j].ID == nil {
+			return filtered[i].ID != nil
+		}
 		return *filtered[i].ID > *filtered[j].ID
 	})
 
@@ -76,7 +79,7 @@ func (bs *BaseService) BaseList(search *model.IceBaseSearch) (*model.PageResult,
 		end = total
 	}
 
-	var list interface{}
+	var list any
 	if start < total {
 		list = filtered[start:end]
 	} else {
@@ -118,19 +121,13 @@ func (bs *BaseService) BaseCreateAtPath(base *model.IceBase, path string) (int64
 	if base.Debug == nil {
 		base.Debug = model.Int8Ptr(0)
 	}
-	if base.Scenes == "" {
-		base.Scenes = ""
-	}
+	// Scenes can be empty, no default needed
 	if base.Status == nil {
 		base.Status = model.Int8Ptr(model.StatusOnline)
 	}
 	if base.TimeType == nil {
 		base.TimeType = model.Int8Ptr(model.TimeTypeNone)
 	}
-	if base.Priority == nil {
-		base.Priority = model.Int64Ptr(1)
-	}
-
 	if base.ConfID == nil {
 		confId, err := bs.storage.NextConfId(*base.App)
 		if err != nil {
@@ -142,7 +139,6 @@ func (bs *BaseService) BaseCreateAtPath(base *model.IceBase, path string) (int64
 			Status:   model.Int8Ptr(model.StatusOnline),
 			Type:     model.NodeTypeNone,
 			Inverse:  model.BoolPtr(false),
-			Debug:    model.Int8Ptr(1),
 			TimeType: model.Int8Ptr(model.TimeTypeNone),
 			CreateAt: &now,
 			UpdateAt: &now,
@@ -170,7 +166,9 @@ func (bs *BaseService) BaseCreateAtPath(base *model.IceBase, path string) (int64
 		return 0, err
 	}
 	transferDto.Version = newVersion
-	bs.storage.SaveVersionUpdate(*base.App, newVersion, transferDto)
+	if err := bs.storage.SaveVersionUpdate(*base.App, newVersion, transferDto); err != nil {
+		return 0, err
+	}
 
 	return *base.ID, nil
 }
@@ -186,7 +184,7 @@ func (bs *BaseService) BaseEdit(base *model.IceBase) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if origin == nil || (origin.Status != nil && *origin.Status == model.StatusOffline) {
+	if origin == nil || (origin.Status != nil && *origin.Status != model.StatusOnline) {
 		return 0, model.IDNotExist("iceId", *base.ID)
 	}
 
@@ -206,10 +204,6 @@ func (bs *BaseService) BaseEdit(base *model.IceBase) (int64, error) {
 	if base.TimeType == nil {
 		base.TimeType = origin.TimeType
 	}
-	if base.Priority == nil {
-		base.Priority = origin.Priority
-	}
-
 	if err := timeCheck(base); err != nil {
 		return 0, err
 	}
@@ -230,7 +224,9 @@ func (bs *BaseService) BaseEdit(base *model.IceBase) (int64, error) {
 		return 0, err
 	}
 	transferDto.Version = newVersion
-	bs.storage.SaveVersionUpdate(*base.App, newVersion, transferDto)
+	if err := bs.storage.SaveVersionUpdate(*base.App, newVersion, transferDto); err != nil {
+		return 0, err
+	}
 
 	return *base.ID, nil
 }
@@ -349,7 +345,7 @@ func (bs *BaseService) History(app int, iceId *int64, pageNum, pageSize int) (*m
 		end = total
 	}
 
-	var list interface{}
+	var list any
 	if start < total {
 		list = all[start:end]
 	} else {
@@ -390,7 +386,7 @@ func (bs *BaseService) ExportBatchData(app int, iceIds []int64) (string, error) 
 	for _, iceId := range iceIds {
 		base, err := bs.storage.GetBase(app, iceId)
 		if err != nil {
-			continue
+			return "", err
 		}
 		if base != nil {
 			pushDataList = append(pushDataList, bs.getPushData(base))
@@ -471,9 +467,6 @@ func (bs *BaseService) ImportData(data *model.PushData) error {
 		if base.TimeType == nil {
 			base.TimeType = model.Int8Ptr(model.TimeTypeNone)
 		}
-		if base.Priority == nil {
-			base.Priority = model.Int64Ptr(1)
-		}
 		if err := bs.storage.SaveBase(base); err != nil {
 			return err
 		}
@@ -493,7 +486,9 @@ func (bs *BaseService) ImportData(data *model.PushData) error {
 			return err
 		}
 		transferDto.Version = newVersion
-		bs.storage.SaveVersionUpdate(data.App, newVersion, transferDto)
+		if err := bs.storage.SaveVersionUpdate(data.App, newVersion, transferDto); err != nil {
+			return err
+		}
 	}
 
 	return nil

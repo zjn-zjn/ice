@@ -7,20 +7,22 @@ import (
 	"time"
 
 	"github.com/waitmoon/ice-server/config"
+	"github.com/waitmoon/ice-server/storage"
 )
 
 type Scheduler struct {
 	config        *config.Config
 	serverService *ServerService
 	clientManager *ClientManager
+	storage       *storage.Storage
 }
 
-func NewScheduler(config *config.Config, serverService *ServerService, clientManager *ClientManager) *Scheduler {
-	return &Scheduler{config: config, serverService: serverService, clientManager: clientManager}
+func NewScheduler(config *config.Config, serverService *ServerService, clientManager *ClientManager, store *storage.Storage) *Scheduler {
+	return &Scheduler{config: config, serverService: serverService, clientManager: clientManager, storage: store}
 }
 
 func (s *Scheduler) Start() {
-	// Client cleanup: runs at clientTimeout interval
+	// Cleanup: client + mock, runs at clientTimeout interval (30s)
 	go func() {
 		ticker := time.NewTicker(s.config.ClientTimeout)
 		defer ticker.Stop()
@@ -28,10 +30,13 @@ func (s *Scheduler) Start() {
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						log.Printf("client cleanup panic: %v", r)
+						log.Printf("cleanup panic: %v", r)
 					}
 				}()
 				s.clientManager.CleanInactiveClients()
+				if err := s.storage.CleanStaleMocks(2 * time.Minute); err != nil {
+					log.Printf("mock cleanup error: %v", err)
+				}
 			}()
 		}
 	}()
@@ -62,7 +67,7 @@ func (s *Scheduler) Start() {
 		}
 	}()
 
-	log.Printf("scheduler started: client cleanup every %v, recycle cron: %s", s.config.ClientTimeout, s.config.RecycleCron)
+	log.Printf("scheduler started: cleanup every %v, recycle cron: %s", s.config.ClientTimeout, s.config.RecycleCron)
 }
 
 // parseCronTime extracts hour and minute from a simple cron expression

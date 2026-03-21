@@ -4,9 +4,8 @@ import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.Expression;
 import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.core.annotation.IceIgnore;
-import com.ice.core.context.IceContext;
 import com.ice.core.context.IceRoam;
-import com.ice.core.leaf.roam.BaseLeafRoamFlow;
+import com.ice.core.leaf.base.BaseLeafFlow;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Data
 @Slf4j
 @EqualsAndHashCode(callSuper = true)
-public class AviatorFlow extends BaseLeafRoamFlow {
+public class AviatorFlow extends BaseLeafFlow {
 
     private String exp;
 
@@ -27,7 +26,7 @@ public class AviatorFlow extends BaseLeafRoamFlow {
     private Expression compiledExpression;
 
     @Override
-    protected boolean doRoamFlow(IceRoam roam) {
+    protected boolean doFlow(IceRoam roam) {
         return (boolean) compiledExpression.execute(roam);
     }
 
@@ -38,8 +37,8 @@ public class AviatorFlow extends BaseLeafRoamFlow {
         }
     }
 
-    public NodeRunStateEnum errorHandle(IceContext ctx, Throwable t) {
+    public NodeRunStateEnum errorHandle(IceRoam roam, Throwable t) {
         log.error("error occur id:{} e:", this.findIceNodeId(), t);
-        return super.errorHandle(ctx, t);
+        return super.errorHandle(roam, t);
     }
 }

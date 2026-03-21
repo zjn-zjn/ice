@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"encoding/json"
 	stdctx "context"
 
 	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
@@ -13,10 +14,9 @@ import (
 
 // DebugFlag constants for controlling debug output.
 const (
-	DebugInPack  byte = 1 << 0 // Log input pack
+	DebugInRoam  byte = 1 << 0 // Log input roam
 	DebugProcess byte = 1 << 1 // Log execution process
 	DebugOutRoam byte = 1 << 2 // Log output roam
-	DebugOutPack byte = 1 << 3 // Log output pack
 )
 
 // Handler represents an ice handler that processes requests.
@@ -38,48 +38,75 @@ func NewHandler() *Handler {
 	}
 }
 
-// Handle processes a context.
-func (h *Handler) Handle(ctx stdctx.Context, iceCtx *icecontext.Context) {
-	if h.hasDebug(DebugInPack) {
-		log.Info(ctx, "handle in", "iceId", h.IceId, "pack", iceCtx.Pack)
+// metaSuffix builds log args from meta: id/scene/nid/ts, only non-zero values.
+func metaSuffix(roam *icecontext.Roam) []any {
+	meta := roam.GetMeta()
+	var args []any
+	if meta.Id > 0 {
+		args = append(args, "id", meta.Id)
 	}
+	if meta.Scene != "" {
+		args = append(args, "scene", meta.Scene)
+	}
+	if meta.Nid > 0 {
+		args = append(args, "nid", meta.Nid)
+	}
+	args = append(args, "ts", meta.Ts)
+	return args
+}
 
-	if timeutil.TimeDisabled(h.TimeType, iceCtx.Pack.RequestTime, h.Start, h.End) {
+// roamWithoutIce returns JSON string of roam data excluding _ice.
+func roamWithoutIce(roam *icecontext.Roam) string {
+	data := roam.Data()
+	delete(data, "_ice")
+	b, _ := json.Marshal(data)
+	return string(b)
+}
+
+// Handle processes a roam.
+func (h *Handler) Handle(ctx stdctx.Context, roam *icecontext.Roam) {
+	if timeutil.TimeDisabled(h.TimeType, roam.GetIceTs(), h.Start, h.End) {
 		return
 	}
 
+	if h.hasDebug(DebugInRoam) {
+		args := append([]any{"roam", roamWithoutIce(roam)}, metaSuffix(roam)...)
+		log.Info(ctx, "handle in", args...)
+	}
+
 	if h.Root != nil {
-		h.Root.Process(ctx, iceCtx)
+		h.Root.Process(ctx, roam)
 
 		if h.hasDebug(DebugProcess) {
-			log.Info(ctx, "handle process", "iceId", h.IceId, "process", iceCtx.ProcessInfo.String())
+			args := append([]any{"process", roam.GetIceProcess().String()}, metaSuffix(roam)...)
+			log.Info(ctx, "handle process", args...)
 		}
-		if h.hasDebug(DebugOutPack) {
-			log.Info(ctx, "handle out", "iceId", h.IceId, "pack", iceCtx.Pack)
-		} else if h.hasDebug(DebugOutRoam) {
-			log.Info(ctx, "handle out", "iceId", h.IceId, "roam", iceCtx.Pack.Roam)
+		if h.hasDebug(DebugOutRoam) {
+			args := append([]any{"roam", roamWithoutIce(roam)}, metaSuffix(roam)...)
+			log.Info(ctx, "handle out", args...)
 		}
 	} else {
-		log.Error(ctx, "root not exist", "iceId", h.IceId)
+		log.Error(ctx, "root not exist", metaSuffix(roam)...)
 	}
 }
 
-// HandleWithConfId processes a context using conf ID.
-func (h *Handler) HandleWithConfId(ctx stdctx.Context, iceCtx *icecontext.Context) {
-	if h.hasDebug(DebugInPack) {
-		log.Info(ctx, "handle confId in", "confId", h.ConfId, "pack", iceCtx.Pack)
+// HandleWithNodeId processes a roam using node ID.
+func (h *Handler) HandleWithNodeId(ctx stdctx.Context, roam *icecontext.Roam) {
+	if h.hasDebug(DebugInRoam) {
+		args := append([]any{"roam", roamWithoutIce(roam)}, metaSuffix(roam)...)
+		log.Info(ctx, "handle in", args...)
 	}
 
 	if h.Root != nil {
-		h.Root.Process(ctx, iceCtx)
+		h.Root.Process(ctx, roam)
 
 		if h.hasDebug(DebugProcess) {
-			log.Info(ctx, "handle confId process", "confId", h.ConfId, "process", iceCtx.ProcessInfo.String())
+			args := append([]any{"process", roam.GetIceProcess().String()}, metaSuffix(roam)...)
+			log.Info(ctx, "handle process", args...)
 		}
-		if h.hasDebug(DebugOutPack) {
-			log.Info(ctx, "handle confId out", "confId", h.ConfId, "pack", iceCtx.Pack)
-		} else if h.hasDebug(DebugOutRoam) {
-			log.Info(ctx, "handle confId out", "confId", h.ConfId, "roam", iceCtx.Pack.Roam)
+		if h.hasDebug(DebugOutRoam) {
+			args := append([]any{"roam", roamWithoutIce(roam)}, metaSuffix(roam)...)
+			log.Info(ctx, "handle out", args...)
 		}
 	}
 }

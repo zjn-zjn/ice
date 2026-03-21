@@ -2,7 +2,7 @@ package com.ice.core.leaf.base;
 
 import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.core.base.BaseLeaf;
-import com.ice.core.context.IceContext;
+import com.ice.core.context.IceRoam;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -18,8 +18,8 @@ public abstract class BaseLeafFlow extends BaseLeaf {
      * process leaf flow
      */
     @Override
-    protected NodeRunStateEnum doLeaf(IceContext ctx) {
-        if (doFlow(ctx)) {
+    protected NodeRunStateEnum doLeaf(IceRoam roam) {
+        if (doFlow(roam)) {
             return NodeRunStateEnum.TRUE;
         }
         return NodeRunStateEnum.FALSE;
@@ -28,5 +28,5 @@ public abstract class BaseLeafFlow extends BaseLeaf {
     /*
      * process leaf flow
      */
-    protected abstract boolean doFlow(IceContext ctx);
+    protected abstract boolean doFlow(IceRoam roam);
 }

@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.waitmoon.ice</groupId>
         <artifactId>ice</artifactId>
-        <version>3.0.2</version>
+        <version>4.0.0</version>
     </parent>
     <packaging>jar</packaging>
     <artifactId>ice-core</artifactId>
@@ -32,6 +32,11 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm</artifactId>
+            <version>9.7.1</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

@@ -25,8 +25,8 @@ type ScoreCheck struct {
     Threshold int `json:"threshold"`
 }
 
-// DoRoamFlow 实现 LeafRoamFlow 接口
-func (s *ScoreCheck) DoRoamFlow(roam *context.Roam) bool {
+// DoFlow 实现 LeafFlow 接口
+func (s *ScoreCheck) DoFlow(roam *context.Roam) bool {
     return roam.GetInt("score", 0) >= s.Threshold
 }
 
@@ -58,33 +58,27 @@ func main() {
     client.WaitStarted()
     
     // 执行规则
-    pack := ice.NewPack().
-        SetIceId(1).
-        SetRoam(ice.NewRoam().Put("score", 85))
-    
-    results := ice.SyncProcess(pack)
+    roam := ice.NewRoamWithMeta()
+    roam.GetMeta().Id = 1
+    roam.Put("score", 85)
+
+    results := ice.SyncProcess(roam)
     // 处理结果...
 }
 ```
 
 ## 叶子节点类型
 
-Go SDK 支持 9 种叶子节点接口，自动检测类型：
+Go SDK 支持 3 种叶子节点接口，自动检测类型：
 
 ### Flow 类型（返回 TRUE/FALSE）
-- `LeafRoamFlow` - `DoRoamFlow(roam *Roam) bool`
-- `LeafPackFlow` - `DoPackFlow(pack *Pack) bool`
-- `LeafFlow` - `DoFlow(ctx *Context) bool`
+- `LeafFlow` - `DoFlow(roam *Roam) bool`
 
 ### Result 类型（返回 TRUE/FALSE）
-- `LeafRoamResult` - `DoRoamResult(roam *Roam) bool`
-- `LeafPackResult` - `DoPackResult(pack *Pack) bool`
-- `LeafResult` - `DoResult(ctx *Context) bool`
+- `LeafResult` - `DoResult(roam *Roam) bool`
 
 ### None 类型（返回 NONE）
-- `LeafRoamNone` - `DoRoamNone(roam *Roam)`
-- `LeafPackNone` - `DoPackNone(pack *Pack)`
-- `LeafNone` - `DoNone(ctx *Context)`
+- `LeafNone` - `DoNone(roam *Roam)`
 
 ## 关系节点
 
@@ -132,16 +126,15 @@ ice.InitExecutor(100)
 线程安全的 map，支持：
 - `Put(key, value)` - 存储值
 - `Get(key)` - 获取值
-- `GetMulti("a.b.c")` - 多级 key 访问
-- `GetUnion("@key")` - 引用其他 key 的值
+- `GetDeep("a.b.c")` - 多级 key 访问
+- `Resolve("@key")` - 引用其他 key 的值
 
-### Pack
+### IceMeta
 
-执行输入：
-- `IceId` - Handler ID
+执行元信息（嵌入在 Roam 中）：
+- `Id` - Handler ID
 - `Scene` - 场景名
-- `ConfId` - 配置节点 ID
-- `Roam` - 业务数据
+- `Nid` - 配置节点 ID
 - `Debug` - 调试标志
 
 ## 与 Java 兼容性

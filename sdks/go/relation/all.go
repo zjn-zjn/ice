@@ -25,11 +25,11 @@ func NewAll() *All {
 }
 
 // Process implements the Node interface.
-func (a *All) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	return node.ProcessWithBase(ctx, &a.Base, iceCtx, a.processNode, nil)
+func (a *All) Process(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
+	return node.ProcessWithBase(ctx, &a.Base, roam, a.processNode, nil)
 }
 
-func (a *All) processNode(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
+func (a *All) processNode(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
 	if a.Children == nil || a.Children.IsEmpty() {
 		return enum.NONE
 	}
@@ -39,7 +39,7 @@ func (a *All) processNode(ctx stdctx.Context, iceCtx *icecontext.Context) enum.R
 	for listNode := a.Children.First(); listNode != nil; listNode = listNode.Next {
 		n := listNode.Item
 		if n != nil {
-			state := n.Process(ctx, iceCtx)
+			state := n.Process(ctx, roam)
 			if !hasTrue && state == enum.TRUE {
 				hasTrue = true
 			}

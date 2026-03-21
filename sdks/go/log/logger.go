@@ -10,9 +10,6 @@ import (
 // TraceKey is the context key for trace ID.
 type TraceKey struct{}
 
-// SpanKey is the context key for span ID.
-type SpanKey struct{}
-
 // Logger is the interface for logging with context support.
 type Logger interface {
 	Debug(ctx context.Context, msg string, args ...any)
@@ -62,48 +59,38 @@ type slogLogger struct {
 	logger *slog.Logger
 }
 
-// extractTraceArgs extracts trace info from context and prepends to args.
-func extractTraceArgs(ctx context.Context, args []any) []any {
+// tracePrefix returns "[traceId] " if trace ID exists in context, empty string otherwise.
+func tracePrefix(ctx context.Context) string {
 	if ctx == nil {
-		return args
+		return ""
 	}
-	var traceArgs []any
-	if traceId := ctx.Value(TraceKey{}); traceId != nil {
-		traceArgs = append(traceArgs, "traceId", traceId)
+	if v := ctx.Value(TraceKey{}); v != nil {
+		if s, ok := v.(string); ok && s != "" {
+			return "[" + s + "] "
+		}
 	}
-	if spanId := ctx.Value(SpanKey{}); spanId != nil {
-		traceArgs = append(traceArgs, "spanId", spanId)
-	}
-	if len(traceArgs) > 0 {
-		return append(traceArgs, args...)
-	}
-	return args
+	return ""
 }
 
 func (l *slogLogger) Debug(ctx context.Context, msg string, args ...any) {
-	l.logger.DebugContext(ctx, msg, extractTraceArgs(ctx, args)...)
+	l.logger.DebugContext(ctx, tracePrefix(ctx)+msg, args...)
 }
 
 func (l *slogLogger) Info(ctx context.Context, msg string, args ...any) {
-	l.logger.InfoContext(ctx, msg, extractTraceArgs(ctx, args)...)
+	l.logger.InfoContext(ctx, tracePrefix(ctx)+msg, args...)
 }
 
 func (l *slogLogger) Warn(ctx context.Context, msg string, args ...any) {
-	l.logger.WarnContext(ctx, msg, extractTraceArgs(ctx, args)...)
+	l.logger.WarnContext(ctx, tracePrefix(ctx)+msg, args...)
 }
 
 func (l *slogLogger) Error(ctx context.Context, msg string, args ...any) {
-	l.logger.ErrorContext(ctx, msg, extractTraceArgs(ctx, args)...)
+	l.logger.ErrorContext(ctx, tracePrefix(ctx)+msg, args...)
 }
 
 // WithTraceId returns a new context with the given trace ID.
 func WithTraceId(ctx context.Context, traceId string) context.Context {
 	return context.WithValue(ctx, TraceKey{}, traceId)
-}
-
-// WithSpanId returns a new context with the given span ID.
-func WithSpanId(ctx context.Context, spanId string) context.Context {
-	return context.WithValue(ctx, SpanKey{}, spanId)
 }
 
 // GetTraceId returns the trace ID from context.
@@ -112,19 +99,6 @@ func GetTraceId(ctx context.Context) string {
 		return ""
 	}
 	if v := ctx.Value(TraceKey{}); v != nil {
-		if s, ok := v.(string); ok {
-			return s
-		}
-	}
-	return ""
-}
-
-// GetSpanId returns the span ID from context.
-func GetSpanId(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	if v := ctx.Value(SpanKey{}); v != nil {
 		if s, ok := v.(string); ok {
 			return s
 		}

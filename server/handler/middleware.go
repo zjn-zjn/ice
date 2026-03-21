@@ -14,7 +14,7 @@ import (
 )
 
 // HandlerFunc is a handler that returns data and optional error
-type HandlerFunc func(w http.ResponseWriter, r *http.Request) (interface{}, error)
+type HandlerFunc func(w http.ResponseWriter, r *http.Request) (any, error)
 
 // WrapHandler wraps a HandlerFunc into an http.HandlerFunc, handling response serialization
 func WrapHandler(fn HandlerFunc) http.HandlerFunc {
@@ -52,7 +52,7 @@ func WrapHandler(fn HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func writeJSON(w http.ResponseWriter, r *http.Request, data interface{}) {
+func writeJSON(w http.ResponseWriter, r *http.Request, data any) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		http.Error(w, `{"ret":-1,"msg":"json marshal error"}`, http.StatusInternalServerError)
@@ -65,8 +65,12 @@ func writeJSON(w http.ResponseWriter, r *http.Request, data interface{}) {
 	if len(jsonData) > 1024 && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		w.Header().Set("Content-Encoding", "gzip")
 		gz := gzip.NewWriter(w)
-		defer gz.Close()
-		gz.Write(jsonData)
+		if _, err := gz.Write(jsonData); err != nil {
+			log.Printf("gzip write error: %v", err)
+		}
+		if err := gz.Close(); err != nil {
+			log.Printf("gzip close error: %v", err)
+		}
 		return
 	}
 
@@ -89,9 +93,16 @@ func CorsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// RequirePost returns an error if the request method is not POST
+func RequirePost(r *http.Request) error {
+	if r.Method != http.MethodPost {
+		return model.InputError("method POST required")
+	}
+	return nil
+}
+
 // ReadJSONBody reads and unmarshals JSON from request body
-func ReadJSONBody(r *http.Request, v interface{}) error {
-	defer r.Body.Close()
+func ReadJSONBody(r *http.Request, v any) error {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return err

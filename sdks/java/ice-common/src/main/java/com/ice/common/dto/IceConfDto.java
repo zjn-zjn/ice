@@ -26,8 +26,6 @@ public final class IceConfDto {
 
     private Long forwardId;
 
-    private Byte debug;
-
     private Byte errorState;
 
     private Boolean inverse;

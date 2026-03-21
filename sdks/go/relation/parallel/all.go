@@ -25,11 +25,11 @@ func NewAll() *All {
 }
 
 // Process implements the Node interface.
-func (a *All) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	return node.ProcessWithBase(ctx, &a.Base, iceCtx, a.processNode, nil)
+func (a *All) Process(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
+	return node.ProcessWithBase(ctx, &a.Base, roam, a.processNode, nil)
 }
 
-func (a *All) processNode(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
+func (a *All) processNode(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
 	if a.Children == nil || a.Children.IsEmpty() {
 		return enum.NONE
 	}
@@ -39,7 +39,7 @@ func (a *All) processNode(ctx stdctx.Context, iceCtx *icecontext.Context) enum.R
 		if n == nil {
 			return enum.NONE
 		}
-		return n.Process(ctx, iceCtx)
+		return n.Process(ctx, roam)
 	}
 
 	// Submit all children for parallel execution
@@ -52,7 +52,7 @@ func (a *All) processNode(ctx stdctx.Context, iceCtx *icecontext.Context) enum.R
 	for listNode := a.Children.First(); listNode != nil; listNode = listNode.Next {
 		n := listNode.Item
 		if n != nil {
-			ch := executor.SubmitNode(ctx, n, iceCtx)
+			ch := executor.SubmitNode(ctx, n, roam)
 			pairs = append(pairs, pair{nodeId: n.GetNodeId(), ch: ch})
 		}
 	}

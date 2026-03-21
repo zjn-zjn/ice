@@ -4,13 +4,17 @@ package com.ice.core.handler;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.exception.NodeException;
 import com.ice.core.base.BaseNode;
-import com.ice.core.context.IceContext;
+import com.ice.core.context.IceMeta;
+import com.ice.core.context.IceRoam;
 import com.ice.core.utils.IceErrorHandle;
 import com.ice.core.utils.IceTimeUtils;
 import com.ice.core.utils.JacksonUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -43,7 +47,7 @@ public final class IceHandler {
 
     /*
      * handler's debug
-     * control pack process roam print
+     * control roam process print
      */
     private byte debug;
 
@@ -52,56 +56,87 @@ public final class IceHandler {
      */
     private BaseNode root;
 
-    public void handle(IceContext ctx) {
-        if (DebugEnum.filter(DebugEnum.IN_PACK, debug)) {
-            log.info("handle id:{} in pack:{}", this.iceId, JacksonUtils.toJsonString(ctx.getPack()));
-        }
-        if (IceTimeUtils.timeDisable(timeTypeEnum, ctx.getPack().getRequestTime(), start, end)) {
-            return;
+    public void handle(IceRoam roam) {
+        String trace = roam.getIceTrace();
+        String tp = trace != null ? "[" + trace + "] " : "";
+        if (trace != null) {
+            MDC.put("traceId", trace);
         }
         try {
+            if (IceTimeUtils.timeDisable(timeTypeEnum, roam.getIceTs(), start, end)) {
+                return;
+            }
+            if (DebugEnum.filter(DebugEnum.IN_ROAM, debug)) {
+                log.info("{}handle in roam:{}{}", tp, roamWithoutIce(roam), metaSuffix(roam));
+            }
             if (root != null) {
-                root.process(ctx);
+                root.process(roam);
                 if (DebugEnum.filter(DebugEnum.PROCESS, debug)) {
-                    log.info("handle id:{} process:{}", this.iceId, ctx.getProcessInfo().toString());
+                    log.info("{}handle process:{}{}", tp, roam.getIceProcess().toString(), metaSuffix(roam));
                 }
-                if (DebugEnum.filter(DebugEnum.OUT_PACK, debug)) {
-                    log.info("handle id:{} out pack:{}", this.iceId, JacksonUtils.toJsonString(ctx.getPack()));
-                } else {
-                    if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
-                        log.info("handle id:{} out roam:{}", this.iceId, JacksonUtils.toJsonString(ctx.getPack().getRoam()));
-                    }
+                if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
+                    log.info("{}handle out roam:{}{}", tp, roamWithoutIce(roam), metaSuffix(roam));
                 }
             } else {
-                log.error("root not exist please check! iceId:{}", this.iceId);
+                log.error("{}root not exist{}", tp, metaSuffix(roam));
             }
         } catch (Throwable t) {
-            IceErrorHandle.errorHandle(this, ctx, t);
+            IceErrorHandle.errorHandle(this, roam, t);
             throw t;
+        } finally {
+            MDC.remove("traceId");
         }
     }
 
-    public void handleWithConfId(IceContext ctx) {
-        if (DebugEnum.filter(DebugEnum.IN_PACK, debug)) {
-            log.info("handle confId:{} in pack:{}", this.confId, JacksonUtils.toJsonString(ctx.getPack()));
+    public void handleWithNodeId(IceRoam roam) {
+        String trace = roam.getIceTrace();
+        String tp = trace != null ? "[" + trace + "] " : "";
+        if (trace != null) {
+            MDC.put("traceId", trace);
         }
         try {
-            root.process(ctx);
-            if (DebugEnum.filter(DebugEnum.PROCESS, debug)) {
-                log.info("handle confId:{} process:{}", this.confId, ctx.getProcessInfo().toString());
+            if (DebugEnum.filter(DebugEnum.IN_ROAM, debug)) {
+                log.info("{}handle in roam:{}{}", tp, roamWithoutIce(roam), metaSuffix(roam));
             }
-            if (DebugEnum.filter(DebugEnum.OUT_PACK, debug)) {
-                log.info("handle confId:{} out pack:{}", this.confId, JacksonUtils.toJsonString(ctx.getPack()));
-            } else {
-                if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
-                    log.info("handle confId:{} out roam:{}", this.confId, JacksonUtils.toJsonString(ctx.getPack().getRoam()));
+            if (root != null) {
+                root.process(roam);
+                if (DebugEnum.filter(DebugEnum.PROCESS, debug)) {
+                    log.info("{}handle process:{}{}", tp, roam.getIceProcess().toString(), metaSuffix(roam));
                 }
+                if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
+                    log.info("{}handle out roam:{}{}", tp, roamWithoutIce(roam), metaSuffix(roam));
+                }
+            } else {
+                log.error("{}root not exist{}", tp, metaSuffix(roam));
             }
-        } catch (NodeException ne) {
-            log.error("error occur in node confId:{} node:{} ctx:{}", this.confId, ne.getNodeId(), JacksonUtils.toJsonString(ctx), ne);
-        } catch (Exception e) {
-            log.error("error occur confId:{} ctx:{}", this.confId, JacksonUtils.toJsonString(ctx), e);
+        } catch (Throwable t) {
+            IceErrorHandle.errorHandle(this, roam, t);
+            throw t;
+        } finally {
+            MDC.remove("traceId");
         }
+    }
+
+    private static String metaSuffix(IceRoam roam) {
+        IceMeta meta = roam.getIceMeta();
+        StringBuilder sb = new StringBuilder();
+        if (meta.getId() > 0) {
+            sb.append(" id=").append(meta.getId());
+        }
+        if (meta.getScene() != null && !meta.getScene().isEmpty()) {
+            sb.append(" scene=").append(meta.getScene());
+        }
+        if (meta.getNid() > 0) {
+            sb.append(" nid=").append(meta.getNid());
+        }
+        sb.append(" ts=").append(meta.getTs());
+        return sb.toString();
+    }
+
+    private static String roamWithoutIce(IceRoam roam) {
+        Map<String, Object> data = new LinkedHashMap<>(roam);
+        data.remove("_ice");
+        return JacksonUtils.toJsonString(data);
     }
 
     public Long getIceId() {
@@ -118,21 +153,17 @@ public final class IceHandler {
      */
     private enum DebugEnum {
         /*
-         * enter PACK 1
+         * input ROAM 1
          */
-        IN_PACK,
+        IN_ROAM,
         /*
          * execution process (used together with node debug) 2
          */
         PROCESS,
         /*
-         * finale ROAM 4
+         * output ROAM 4
          */
-        OUT_ROAM,
-        /*
-         * finale PACK 8
-         */
-        OUT_PACK;
+        OUT_ROAM;
 
         private final byte mask;
 

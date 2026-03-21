@@ -12,10 +12,9 @@ import (
 
 // Node is the interface that all ice nodes must implement.
 type Node interface {
-	Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState
+	Process(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState
 	GetNodeId() int64
 	GetLogName() string
-	IsDebug() bool
 	IsInverse() bool
 }
 
@@ -26,13 +25,13 @@ type Node interface {
 //   - SHUT_DOWN or nil: re-panic the error
 //   - TRUE/FALSE/NONE: use this state and continue execution
 type ErrorHandler interface {
-	ErrorHandle(ctx stdctx.Context, iceCtx *icecontext.Context, err error) enum.RunState
+	ErrorHandle(ctx stdctx.Context, roam *icecontext.Roam, err error) enum.RunState
 }
 
 // GlobalErrorHandler is a function type for the global error handler.
-// It receives the node, context, ice context, and the error.
+// It receives the node, context, roam, and the error.
 // Returns the RunState to determine behavior (same as ErrorHandler).
-type GlobalErrorHandler func(node Node, ctx stdctx.Context, iceCtx *icecontext.Context, err error) enum.RunState
+type GlobalErrorHandler func(node Node, ctx stdctx.Context, roam *icecontext.Roam, err error) enum.RunState
 
 var globalErrorHandler GlobalErrorHandler
 
@@ -57,7 +56,6 @@ type Base struct {
 	IceTimeType   enum.TimeType
 	IceStart      int64
 	IceEnd        int64
-	IceNodeDebug  bool
 	IceInverse    bool
 	IceForward    Node
 	IceErrorState *enum.RunState
@@ -73,11 +71,6 @@ func (b *Base) GetNodeId() int64 {
 // GetLogName returns the log name.
 func (b *Base) GetLogName() string {
 	return b.IceLogName
-}
-
-// IsDebug returns whether debug is enabled for this node.
-func (b *Base) IsDebug() bool {
-	return b.IceNodeDebug
 }
 
 // IsInverse returns whether the result should be inverted.
@@ -104,10 +97,10 @@ func (b *Base) GetForward() Node {
 // This implements the template method pattern for Go.
 // The errorHandler parameter is optional (can be nil) - if the node implements ErrorHandler,
 // pass it here for custom error handling.
-func ProcessWithBase(ctx stdctx.Context, base *Base, iceCtx *icecontext.Context, processNode func(stdctx.Context, *icecontext.Context) enum.RunState, errorHandler ErrorHandler) (result enum.RunState) {
+func ProcessWithBase(ctx stdctx.Context, base *Base, roam *icecontext.Roam, processNode func(stdctx.Context, *icecontext.Roam) enum.RunState, errorHandler ErrorHandler) (result enum.RunState) {
 	// Time check
-	if timeutil.TimeDisabled(base.IceTimeType, iceCtx.Pack.RequestTime, base.IceStart, base.IceEnd) {
-		CollectInfo(iceCtx.ProcessInfo, base, 'O', 0)
+	if timeutil.TimeDisabled(base.IceTimeType, roam.GetIceTs(), base.IceStart, base.IceEnd) {
+		CollectInfo(roam.GetIceProcess(), base, 'O', 0)
 		return enum.NONE
 	}
 
@@ -117,7 +110,7 @@ func ProcessWithBase(ctx stdctx.Context, base *Base, iceCtx *icecontext.Context,
 	defer func() {
 		if r := recover(); r != nil {
 			elapsed := currentTimeMillis() - start
-			
+
 			// Convert panic value to error
 			var err error
 			if e, ok := r.(error); ok {
@@ -125,46 +118,46 @@ func ProcessWithBase(ctx stdctx.Context, base *Base, iceCtx *icecontext.Context,
 			} else {
 				err = fmt.Errorf("%v", r)
 			}
-			
+
 			// 1. First try node-level error handler
 			var errorState enum.RunState = enum.SHUT_DOWN
 			if errorHandler != nil {
-				errorState = errorHandler.ErrorHandle(ctx, iceCtx, err)
+				errorState = errorHandler.ErrorHandle(ctx, roam, err)
 			} else if globalErrorHandler != nil {
 				// 2. Fall back to global error handler
 				// Note: we don't have the node here, pass nil
-				errorState = globalErrorHandler(nil, ctx, iceCtx, err)
+				errorState = globalErrorHandler(nil, ctx, roam, err)
 			}
-			
+
 			// 3. Config-level error state has highest priority
 			if base.IceErrorState != nil {
 				errorState = *base.IceErrorState
 			}
-			
+
 			if errorState != enum.SHUT_DOWN {
 				result = errorState
-				CollectInfo(iceCtx.ProcessInfo, base, stateToChar(result), elapsed)
+				CollectInfo(roam.GetIceProcess(), base, stateToChar(result), elapsed)
 				// Apply inverse even on error
 				if base.IceInverse {
 					result = inverse(result)
 				}
 				return // named return value will be returned
 			}
-			
+
 			// SHUT_DOWN - re-panic
-			CollectInfo(iceCtx.ProcessInfo, base, 'S', elapsed)
+			CollectInfo(roam.GetIceProcess(), base, 'S', elapsed)
 			panic(r)
 		}
 	}()
 
 	// Forward check
 	if base.IceForward != nil {
-		forwardRes := base.IceForward.Process(ctx, iceCtx)
+		forwardRes := base.IceForward.Process(ctx, roam)
 		if forwardRes == enum.FALSE {
-			CollectRejectInfo(iceCtx.ProcessInfo, base)
+			CollectRejectInfo(roam.GetIceProcess(), base)
 			return enum.FALSE
 		}
-		result = processNode(ctx, iceCtx)
+		result = processNode(ctx, roam)
 		// Forward combines like AND relation
 		if forwardRes == enum.NONE {
 			// result stays as is
@@ -172,10 +165,10 @@ func ProcessWithBase(ctx stdctx.Context, base *Base, iceCtx *icecontext.Context,
 			result = enum.TRUE
 		}
 	} else {
-		result = processNode(ctx, iceCtx)
+		result = processNode(ctx, roam)
 	}
 
-	CollectInfo(iceCtx.ProcessInfo, base, stateToChar(result), currentTimeMillis()-start)
+	CollectInfo(roam.GetIceProcess(), base, stateToChar(result), currentTimeMillis()-start)
 
 	// Inverse
 	if base.IceInverse {

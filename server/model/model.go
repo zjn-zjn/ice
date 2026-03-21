@@ -104,7 +104,6 @@ type IceBase struct {
 	Start    *int64  `json:"start,omitempty"`
 	End      *int64  `json:"end,omitempty"`
 	Debug    *int8   `json:"debug,omitempty"`
-	Priority *int64  `json:"priority,omitempty"`
 	CreateAt *int64  `json:"createAt,omitempty"`
 	UpdateAt *int64  `json:"updateAt,omitempty"`
 }
@@ -123,7 +122,6 @@ type IceConf struct {
 	TimeType   *int8  `json:"timeType,omitempty"`
 	Start      *int64 `json:"start,omitempty"`
 	End        *int64 `json:"end,omitempty"`
-	Debug      *int8  `json:"debug,omitempty"`
 	ErrorState *int8  `json:"errorState,omitempty"`
 	CreateAt   *int64 `json:"createAt,omitempty"`
 	UpdateAt   *int64 `json:"updateAt,omitempty"`
@@ -184,13 +182,6 @@ func (c *IceConf) GetTimeType() int8 {
 	return TimeTypeNone
 }
 
-func (c *IceConf) GetDebug() int8 {
-	if c.Debug != nil {
-		return *c.Debug
-	}
-	return 1
-}
-
 // IceEditNode represents an edit operation from the frontend
 type IceEditNode struct {
 	App            *int    `json:"app"`
@@ -205,7 +196,6 @@ type IceEditNode struct {
 	TimeType       *int8   `json:"timeType,omitempty"`
 	Start          *int64  `json:"start,omitempty"`
 	End            *int64  `json:"end,omitempty"`
-	Debug          *bool   `json:"debug,omitempty"`
 	ParentId       *int64  `json:"parentId,omitempty"`
 	Index          *int    `json:"index,omitempty"`
 	MoveTo         *int    `json:"moveTo,omitempty"`
@@ -227,10 +217,6 @@ func (e *IceEditNode) GetTimeType() int8 {
 		return *e.TimeType
 	}
 	return TimeTypeNone
-}
-
-func (e *IceEditNode) IsDebug() bool {
-	return e.Debug == nil || *e.Debug
 }
 
 func (e *IceEditNode) IsInverse() bool {
@@ -308,6 +294,24 @@ type LeafNodeInfo struct {
 	Order      *int             `json:"order,omitempty"`
 	IceFields  []*IceFieldInfo  `json:"iceFields,omitempty"`
 	HideFields []*IceFieldInfo  `json:"hideFields,omitempty"`
+	RoamKeys   []*RoamKeyMeta   `json:"roamKeys,omitempty"`
+}
+
+// RoamKeyMeta describes a roam key access found in a leaf node.
+type RoamKeyMeta struct {
+	Direction    string     `json:"direction"`
+	AccessMode   string     `json:"accessMode"`
+	AccessMethod string     `json:"accessMethod"`
+	KeyParts     []*KeyPart `json:"keyParts,omitempty"`
+}
+
+// KeyPart describes one segment of a roam key.
+type KeyPart struct {
+	Type    string     `json:"type"`
+	Value   string     `json:"value,omitempty"`
+	Ref     string     `json:"ref,omitempty"`
+	FromKey string     `json:"fromKey,omitempty"`
+	Parts   []*KeyPart `json:"parts,omitempty"`
 }
 
 func (n *LeafNodeInfo) GetOrder() int {
@@ -323,7 +327,7 @@ type IceFieldInfo struct {
 	Name      string      `json:"name,omitempty"`
 	Desc      string      `json:"desc,omitempty"`
 	Type      string      `json:"type,omitempty"`
-	Value     interface{} `json:"value"`
+	Value     any `json:"value"`
 	ValueNull *bool       `json:"valueNull,omitempty"`
 }
 
@@ -331,10 +335,9 @@ type IceFieldInfo struct {
 
 // IceShowConf is the top-level display model for conf detail
 type IceShowConf struct {
-	Address        string                           `json:"address,omitempty"`
-	ConfId         int64                            `json:"confId,omitempty"`
 	App            int                              `json:"app,omitempty"`
 	IceId          int64                            `json:"iceId,omitempty"`
+	Name           string                           `json:"name,omitempty"`
 	Root           *IceShowNode                     `json:"root,omitempty"`
 	UpdateCount    *int                             `json:"updateCount,omitempty"`
 	ClientRegistry *ClientRegistryInfo              `json:"clientRegistry,omitempty"`
@@ -368,7 +371,6 @@ type IceShowNode struct {
 type NodeShowConf struct {
 	UniqueKey       string        `json:"uniqueKey,omitempty"`
 	NodeId          int64         `json:"nodeId,omitempty"`
-	Debug           *bool         `json:"debug,omitempty"`
 	ErrorState      *int8         `json:"errorState,omitempty"`
 	Inverse         *bool         `json:"inverse,omitempty"`
 	NodeType        *int8         `json:"nodeType,omitempty"`
@@ -388,3 +390,63 @@ func Int8Ptr(v int8) *int8     { return &v }
 func Int64Ptr(v int64) *int64  { return &v }
 func IntPtr(v int) *int        { return &v }
 func BoolPtr(v bool) *bool     { return &v }
+
+// ClientHeartbeat is the lightweight heartbeat data written separately from meta.
+type ClientHeartbeat struct {
+	LastHeartbeat *int64 `json:"lastHeartbeat,omitempty"`
+	LoadedVersion *int64 `json:"loadedVersion,omitempty"`
+}
+
+// ---- Mock Execution Models ----
+
+// MockRequest is the request from server to client for mock execution.
+type MockRequest struct {
+	MockId   string         `json:"mockId"`
+	App      int            `json:"app"`
+	IceId    int64          `json:"iceId,omitempty"`
+	ConfId   int64          `json:"confId,omitempty"`
+	Scene    string         `json:"scene,omitempty"`
+	Ts       int64          `json:"ts,omitempty"`
+	Debug    byte           `json:"debug,omitempty"`
+	Roam     map[string]any `json:"roam,omitempty"`
+	CreateAt int64          `json:"createAt"`
+}
+
+// MockResult is the result from client to server after mock execution.
+type MockResult struct {
+	MockId    string         `json:"mockId"`
+	Success   bool           `json:"success"`
+	Roam      map[string]any `json:"roam,omitempty"`
+	Trace     string         `json:"trace,omitempty"`
+	Ts        int64          `json:"ts,omitempty"`
+	Process   string         `json:"process,omitempty"`
+	Error     string         `json:"error,omitempty"`
+	Fallback  bool           `json:"fallback,omitempty"`
+	ExecuteAt int64          `json:"executeAt"`
+}
+
+// MockExecuteRequest is the API input from frontend to server.
+type MockExecuteRequest struct {
+	App    int            `json:"app"`
+	IceId  int64          `json:"iceId,omitempty"`
+	ConfId int64          `json:"confId,omitempty"`
+	Scene  string         `json:"scene,omitempty"`
+	Ts     int64          `json:"ts,omitempty"`
+	Debug  byte           `json:"debug,omitempty"`
+	Roam   map[string]any `json:"roam,omitempty"`
+	Target string         `json:"target"`
+}
+
+// MockSchemaField describes a roam input field for mock execution.
+type MockSchemaField struct {
+	Key    string `json:"key"`
+	NodeId int64  `json:"nodeId"`
+	NodeName  string `json:"nodeName,omitempty"`
+	Dynamic   bool   `json:"dynamic,omitempty"`
+}
+
+// MockSchemaResponse wraps schema fields with fallback info.
+type MockSchemaResponse struct {
+	Fields   []*MockSchemaField `json:"fields"`
+	Fallback bool               `json:"fallback,omitempty"` // true if target address/lane was offline and fell back
+}

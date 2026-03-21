@@ -25,11 +25,11 @@ func NewNone() *None {
 }
 
 // Process implements the Node interface.
-func (n *None) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
-	return node.ProcessWithBase(ctx, &n.Base, iceCtx, n.processNode, nil)
+func (n *None) Process(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
+	return node.ProcessWithBase(ctx, &n.Base, roam, n.processNode, nil)
 }
 
-func (n *None) processNode(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
+func (n *None) processNode(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
 	if n.Children == nil || n.Children.IsEmpty() {
 		return enum.NONE
 	}
@@ -37,7 +37,7 @@ func (n *None) processNode(ctx stdctx.Context, iceCtx *icecontext.Context) enum.
 	if n.Children.Size() == 1 {
 		child := n.Children.Get(0)
 		if child != nil {
-			child.Process(ctx, iceCtx)
+			child.Process(ctx, roam)
 		}
 		return enum.NONE
 	}
@@ -48,7 +48,7 @@ func (n *None) processNode(ctx stdctx.Context, iceCtx *icecontext.Context) enum.
 	for listNode := n.Children.First(); listNode != nil; listNode = listNode.Next {
 		child := listNode.Item
 		if child != nil {
-			ch := executor.SubmitNode(ctx, child, iceCtx)
+			ch := executor.SubmitNode(ctx, child, roam)
 			channels = append(channels, ch)
 		}
 	}

@@ -16,8 +16,8 @@ type ScoreCheck struct {
 	Threshold int `json:"threshold"`
 }
 
-func (s *ScoreCheck) DoRoamFlow(ctx stdctx.Context, roam *icecontext.Roam) bool {
-	return roam.GetInt("score", 0) >= s.Threshold
+func (s *ScoreCheck) DoFlow(ctx stdctx.Context, roam *icecontext.Roam) bool {
+	return roam.Value("score").IntOr(0) >= s.Threshold
 }
 
 // SetResult is a sample result leaf node.
@@ -26,7 +26,7 @@ type SetResult struct {
 	Value string `json:"value"`
 }
 
-func (s *SetResult) DoRoamResult(ctx stdctx.Context, roam *icecontext.Roam) bool {
+func (s *SetResult) DoResult(ctx stdctx.Context, roam *icecontext.Roam) bool {
 	roam.Put(s.Key, s.Value)
 	return true
 }
@@ -45,41 +45,47 @@ func TestRoam(t *testing.T) {
 	roam.Put("name", "test")
 	roam.Put("score", 85)
 
-	if roam.GetString("name") != "test" {
+	if roam.Value("name").String() != "test" {
 		t.Error("expected name=test")
 	}
-	if roam.GetInt("score", 0) != 85 {
+	if roam.Value("score").IntOr(0) != 85 {
 		t.Error("expected score=85")
 	}
 
-	// Test multi-key
-	roam.PutMulti("user.profile.age", 25)
-	if roam.GetMulti("user.profile.age") != 25 {
+	// Test deep-key
+	roam.PutDeep("user.profile.age", 25)
+	if roam.GetDeep("user.profile.age") != 25 {
 		t.Error("expected user.profile.age=25")
 	}
 
-	// Test GetUnion
+	// Test Resolve
 	roam.Put("ref", "@score")
-	if roam.GetUnion(roam.Get("ref")) != 85 {
+	if roam.Resolve(roam.Get("ref")) != 85 {
 		t.Error("expected @score to resolve to 85")
 	}
 }
 
-func TestPack(t *testing.T) {
-	pack := NewPack()
-	pack.SetIceId(1).SetScene("test").SetDebug(1)
+func TestRoamWithMeta(t *testing.T) {
+	roam := NewRoamWithMeta()
+	meta := roam.GetMeta()
+	if meta == nil {
+		t.Fatal("expected meta to be non-nil")
+	}
+	meta.Id = 1
+	meta.Scene = "test"
+	meta.Debug = 1
 
-	if pack.IceId != 1 {
+	if roam.GetIceId() != 1 {
 		t.Error("expected iceId=1")
 	}
-	if pack.Scene != "test" {
+	if roam.GetIceScene() != "test" {
 		t.Error("expected scene=test")
 	}
 
 	// Test clone
-	clone := pack.Clone()
-	clone.IceId = 2
-	if pack.IceId != 1 {
+	clone := roam.Clone()
+	clone.GetMeta().Id = 2
+	if roam.GetIceId() != 1 {
 		t.Error("clone should not affect original")
 	}
 }
@@ -90,10 +96,10 @@ func TestAndRelation(t *testing.T) {
 	and.IceLogName = "TestAnd"
 
 	ctx := stdctx.Background()
-	iceCtx := NewContext(1, NewPack())
+	roam := NewRoamWithMeta()
 
 	// Empty children -> NONE
-	result := and.Process(ctx, iceCtx)
+	result := and.Process(ctx, roam)
 	if result != enum.NONE {
 		t.Errorf("expected NONE, got %v", result)
 	}
@@ -121,21 +127,19 @@ func TestLeafNode(t *testing.T) {
 	}
 
 	// Test with score >= threshold
-	pack := NewPack()
-	pack.Roam.Put("score", 85)
-	iceCtx := NewContext(1, pack)
+	roam := NewRoamWithMeta()
+	roam.Put("score", 85)
 
-	result := leafNode.Process(ctx, iceCtx)
+	result := leafNode.Process(ctx, roam)
 	if result != enum.TRUE {
 		t.Errorf("expected TRUE for score=85, threshold=80, got %v", result)
 	}
 
 	// Test with score < threshold
-	pack2 := NewPack()
-	pack2.Roam.Put("score", 70)
-	iceCtx2 := NewContext(1, pack2)
+	roam2 := NewRoamWithMeta()
+	roam2.Put("score", 70)
 
-	result2 := leafNode.Process(ctx, iceCtx2)
+	result2 := leafNode.Process(ctx, roam2)
 	if result2 != enum.FALSE {
 		t.Errorf("expected FALSE for score=70, threshold=80, got %v", result2)
 	}
@@ -179,15 +183,14 @@ func TestLinkedList(t *testing.T) {
 func TestProcessWithBase(t *testing.T) {
 	ctx := stdctx.Background()
 	base := &node.Base{
-		IceNodeId:    1,
-		IceLogName:   "Test",
-		IceNodeDebug: true,
+		IceNodeId:  1,
+		IceLogName: "Test",
 	}
 
-	iceCtx := NewContext(1, NewPack())
+	roam := NewRoamWithMeta()
 
 	called := false
-	result := node.ProcessWithBase(ctx, base, iceCtx, func(c stdctx.Context, ic *icecontext.Context) enum.RunState {
+	result := node.ProcessWithBase(ctx, base, roam, func(c stdctx.Context, r *icecontext.Roam) enum.RunState {
 		called = true
 		return enum.TRUE
 	}, nil)
@@ -200,19 +203,8 @@ func TestProcessWithBase(t *testing.T) {
 	}
 
 	// Check debug info was collected
-	if iceCtx.ProcessInfo.Len() == 0 {
+	if roam.GetIceProcess().Len() == 0 {
 		t.Error("expected debug info to be collected")
-	}
-}
-
-func TestPackString(t *testing.T) {
-	pack := NewPack()
-	pack.SetIceId(1).SetScene("test")
-	pack.Roam.Put("key", "value")
-
-	str := pack.String()
-	if str == "" || str == "{}" {
-		t.Error("expected non-empty JSON string")
 	}
 }
 

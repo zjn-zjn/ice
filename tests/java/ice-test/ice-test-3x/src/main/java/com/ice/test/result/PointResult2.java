@@ -1,9 +1,8 @@
 package com.ice.test.result;
 
 import com.ice.core.annotation.IceField;
-import com.ice.core.context.IcePack;
 import com.ice.core.context.IceRoam;
-import com.ice.core.leaf.pack.BaseLeafPackResult;
+import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.test.service.SendService;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -15,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class PointResult2 extends BaseLeafPackResult {
+public class PointResult2 extends BaseLeafResult {
 
     @Autowired
     private SendService sendService;
@@ -26,19 +25,18 @@ public class PointResult2 extends BaseLeafPackResult {
     private Object value;
 
     @Override
-    protected boolean doPackResult(IcePack pack) {
-        IceRoam roam = pack.getRoam();
-        Integer uid = roam.getMulti(key);
+    protected boolean doResult(IceRoam roam) {
+        Number uid = roam.getDeep(key);
         if (uid == null) {
             return false;
         }
-        Integer value = roam.getUnion(this.value);
-        if (value <= 0) {
+        Number value = roam.resolve(this.value);
+        if (value == null || value.intValue() <= 0) {
             return false;
         }
-        boolean res = sendService.sendPoint(uid, value);
-        roam.putMulti("result." + "sendPoint", value);
-        roam.putMulti("result." + "scene", pack.getScene());
+        boolean res = sendService.sendPoint(uid.intValue(), value.intValue());
+        roam.putDeep("result." + "sendPoint", value);
+        roam.putDeep("result." + "scene", roam.getIceScene());
         return res;
     }
 }

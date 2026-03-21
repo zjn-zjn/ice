@@ -1,7 +1,7 @@
 package com.ice.test.flow;
 
 import com.ice.core.context.IceRoam;
-import com.ice.core.leaf.roam.BaseLeafRoamFlow;
+import com.ice.core.leaf.base.BaseLeafFlow;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -11,7 +11,7 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ScoreFlow extends BaseLeafRoamFlow {
+public class ScoreFlow extends BaseLeafFlow {
 
     private double score;
 
@@ -23,12 +23,11 @@ public class ScoreFlow extends BaseLeafRoamFlow {
      * @param roam 传递roam
      */
     @Override
-    protected boolean doRoamFlow(IceRoam roam) {
-        Object value = roam.getMulti(key);
+    protected boolean doFlow(IceRoam roam) {
+        Number value = roam.getDeep(key);
         if (value == null) {
             return false;
         }
-        double valueScore = Double.parseDouble(value.toString());
-        return !(valueScore < score);
+        return value.doubleValue() >= score;
     }
 }
