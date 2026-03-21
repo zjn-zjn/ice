@@ -38,9 +38,9 @@ public final class IceStorageConstants {
     public static final byte STATUS_DELETED = -1;
 
     // Default configuration values
-    public static final int DEFAULT_POLL_INTERVAL_SECONDS = 5;
+    public static final int DEFAULT_POLL_INTERVAL_SECONDS = 2;
     public static final int DEFAULT_HEARTBEAT_INTERVAL_SECONDS = 10;
-    public static final int DEFAULT_CLIENT_TIMEOUT_SECONDS = 60;
+    public static final int DEFAULT_CLIENT_TIMEOUT_SECONDS = 30;
     public static final int DEFAULT_VERSION_RETENTION = 1000;
 }
 

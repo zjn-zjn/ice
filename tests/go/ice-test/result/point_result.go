@@ -12,22 +12,10 @@ type PointResult struct {
 	Value float64 `json:"value" ice:"name:积分值,desc:要发放的积分数量"`
 }
 
-// DoRoamResult implements the RoamResult interface.
-func (p *PointResult) DoRoamResult(ctx context.Context, roam *icecontext.Roam) bool {
-	uidVal := roam.GetMulti(p.Key)
-	if uidVal == nil || p.Value <= 0 {
-		return false
-	}
-
-	var uid int
-	switch v := uidVal.(type) {
-	case int:
-		uid = v
-	case int64:
-		uid = int(v)
-	case float64:
-		uid = int(v)
-	default:
+// DoResult implements the LeafResult interface.
+func (p *PointResult) DoResult(ctx context.Context, roam *icecontext.Roam) bool {
+	uid := roam.ValueDeep(p.Key).Int()
+	if uid == 0 || p.Value <= 0 {
 		return false
 	}
 
@@ -42,22 +30,10 @@ type PointResult2 struct {
 	Value float64 `json:"value" ice:"name:积分值,desc:要发放的积分数量"`
 }
 
-// DoRoamResult implements the RoamResult interface.
-func (p *PointResult2) DoRoamResult(ctx context.Context, roam *icecontext.Roam) bool {
-	uidVal := roam.GetMulti(p.Key)
-	if uidVal == nil || p.Value <= 0 {
-		return false
-	}
-
-	var uid int
-	switch v := uidVal.(type) {
-	case int:
-		uid = v
-	case int64:
-		uid = int(v)
-	case float64:
-		uid = int(v)
-	default:
+// DoResult implements the LeafResult interface.
+func (p *PointResult2) DoResult(ctx context.Context, roam *icecontext.Roam) bool {
+	uid := roam.ValueDeep(p.Key).Int()
+	if uid == 0 || p.Value <= 0 {
 		return false
 	}
 
@@ -72,8 +48,8 @@ type InitConfigResult struct {
 	ConfigValue string `json:"configValue" ice:"name:配置值,desc:要设置的配置值"`
 }
 
-// DoRoamResult implements the RoamResult interface.
-func (i *InitConfigResult) DoRoamResult(ctx context.Context, roam *icecontext.Roam) bool {
+// DoResult implements the LeafResult interface.
+func (i *InitConfigResult) DoResult(ctx context.Context, roam *icecontext.Roam) bool {
 	if i.ConfigKey == "" {
 		return false
 	}

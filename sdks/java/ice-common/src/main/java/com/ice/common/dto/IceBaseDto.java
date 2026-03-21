@@ -22,8 +22,6 @@ public final class IceBaseDto {
 
     private Byte debug;
 
-    private Long priority;
-
     private Integer app;
 
     private String name;

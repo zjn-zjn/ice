@@ -36,7 +36,7 @@ func (h *FolderHandler) Register(mux *http.ServeMux) {
 }
 
 // POST /ice-server/folder/create  body: { app, path, name }
-func (h *FolderHandler) folderCreate(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *FolderHandler) folderCreate(w http.ResponseWriter, r *http.Request) (any, error) {
 	var body struct {
 		App  int    `json:"app"`
 		Path string `json:"path"`
@@ -55,7 +55,7 @@ func (h *FolderHandler) folderCreate(w http.ResponseWriter, r *http.Request) (in
 }
 
 // POST /ice-server/folder/rename  body: { app, path, newName }
-func (h *FolderHandler) folderRename(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *FolderHandler) folderRename(w http.ResponseWriter, r *http.Request) (any, error) {
 	var body struct {
 		App     int    `json:"app"`
 		Path    string `json:"path"`
@@ -77,7 +77,7 @@ func (h *FolderHandler) folderRename(w http.ResponseWriter, r *http.Request) (in
 }
 
 // POST /ice-server/folder/delete  body: { app, path }
-func (h *FolderHandler) folderDelete(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *FolderHandler) folderDelete(w http.ResponseWriter, r *http.Request) (any, error) {
 	var body struct {
 		App  int    `json:"app"`
 		Path string `json:"path"`
@@ -95,7 +95,7 @@ func (h *FolderHandler) folderDelete(w http.ResponseWriter, r *http.Request) (in
 }
 
 // POST /ice-server/folder/move  body: { app, path, targetPath }
-func (h *FolderHandler) folderMove(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *FolderHandler) folderMove(w http.ResponseWriter, r *http.Request) (any, error) {
 	var body struct {
 		App        int    `json:"app"`
 		Path       string `json:"path"`
@@ -114,7 +114,7 @@ func (h *FolderHandler) folderMove(w http.ResponseWriter, r *http.Request) (inte
 }
 
 // GET /ice-server/folder/list?app=&path=&pageNum=&pageSize=&name=
-func (h *FolderHandler) folderList(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *FolderHandler) folderList(w http.ResponseWriter, r *http.Request) (any, error) {
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func (h *FolderHandler) folderList(w http.ResponseWriter, r *http.Request) (inte
 }
 
 // GET /ice-server/folder/tree?app=
-func (h *FolderHandler) folderTree(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *FolderHandler) folderTree(w http.ResponseWriter, r *http.Request) (any, error) {
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -136,7 +136,7 @@ func (h *FolderHandler) folderTree(w http.ResponseWriter, r *http.Request) (inte
 }
 
 // POST /ice-server/base/batch/move  body: { app, items, targetPath }
-func (h *FolderHandler) batchMove(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *FolderHandler) batchMove(w http.ResponseWriter, r *http.Request) (any, error) {
 	var body struct {
 		App        int                 `json:"app"`
 		Items      []service.BatchItem `json:"items"`
@@ -155,7 +155,7 @@ func (h *FolderHandler) batchMove(w http.ResponseWriter, r *http.Request) (inter
 }
 
 // POST /ice-server/base/batch/delete  body: { app, items }
-func (h *FolderHandler) batchDelete(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *FolderHandler) batchDelete(w http.ResponseWriter, r *http.Request) (any, error) {
 	var body struct {
 		App   int                 `json:"app"`
 		Items []service.BatchItem `json:"items"`
@@ -173,7 +173,7 @@ func (h *FolderHandler) batchDelete(w http.ResponseWriter, r *http.Request) (int
 }
 
 // GET /ice-server/base/export/folder?app=&path=
-func (h *FolderHandler) exportFolder(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *FolderHandler) exportFolder(w http.ResponseWriter, r *http.Request) (any, error) {
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err

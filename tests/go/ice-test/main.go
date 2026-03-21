@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	ice "github.com/zjn-zjn/ice/sdks/go"
+	"github.com/zjn-zjn/ice/sdks/go/leaf"
 	"github.com/zjn-zjn/ice/tests/go/ice-test/config"
 )
 
@@ -50,6 +51,9 @@ func main() {
 
 	// Register leaf nodes
 	registerLeafNodes()
+
+	// Apply generated roam key metadata
+	leaf.ApplyRoamKeysMap(RoamKeysMap)
 
 	// Create and start file client
 	client, err := ice.NewClientWithOptions(
@@ -104,50 +108,49 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var packData map[string]any
-	if err := json.NewDecoder(r.Body).Decode(&packData); err != nil {
+	var reqData map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&reqData); err != nil {
 		http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	pack := ice.NewPack()
+	roam := ice.NewRoamWithMeta()
+	meta := roam.GetMeta()
 
-	// Parse pack fields
-	if iceId, ok := packData["iceId"].(float64); ok {
-		pack.SetIceId(int64(iceId))
+	// Parse meta fields
+	if iceId, ok := reqData["iceId"].(float64); ok {
+		meta.Id = int64(iceId)
 	}
-	if scene, ok := packData["scene"].(string); ok {
-		pack.SetScene(scene)
+	if scene, ok := reqData["scene"].(string); ok {
+		meta.Scene = scene
 	}
-	if confId, ok := packData["confId"].(float64); ok {
-		pack.SetConfId(int64(confId))
+	if confId, ok := reqData["confId"].(float64); ok {
+		meta.Nid = int64(confId)
 	}
-	if debug, ok := packData["debug"].(float64); ok {
-		pack.Debug = byte(debug)
+	if debug, ok := reqData["debug"].(float64); ok {
+		meta.Debug = byte(debug)
 	}
-	if roamData, ok := packData["roam"].(map[string]any); ok {
+	if roamData, ok := reqData["roam"].(map[string]any); ok {
 		for k, v := range roamData {
-			pack.Roam.Put(k, v)
+			roam.Put(k, v)
 		}
 	}
 
 	// Create context with trace ID
-	ctx := ice.WithTraceId(r.Context(), pack.TraceId)
+	ctx := ice.WithTraceId(r.Context(), meta.Trace)
 
 	// Process
-	ctxList := ice.SyncProcess(ctx, pack)
+	roamList := ice.SyncProcess(ctx, roam)
 
 	// Return result
-	result := make([]map[string]any, 0, len(ctxList))
-	for _, iceCtx := range ctxList {
+	result := make([]map[string]any, 0, len(roamList))
+	for _, r := range roamList {
 		item := map[string]any{
-			"iceId": iceCtx.IceId,
+			"iceId": r.GetIceId(),
+			"roam":  r.Data(),
 		}
-		if iceCtx.Pack != nil {
-			item["roam"] = iceCtx.Pack.Roam.Data()
-		}
-		if iceCtx.ProcessInfo != nil {
-			item["processInfo"] = iceCtx.ProcessInfo.String()
+		if r.GetIceProcess() != nil {
+			item["processInfo"] = r.GetIceProcess().String()
 		}
 		result = append(result, item)
 	}
@@ -161,15 +164,16 @@ func handleRecharge(w http.ResponseWriter, r *http.Request) {
 	cost, _ := strconv.Atoi(r.URL.Query().Get("cost"))
 	uid, _ := strconv.Atoi(r.URL.Query().Get("uid"))
 
-	pack := ice.NewPack().SetScene("recharge")
-	pack.Roam.Put("cost", cost)
-	pack.Roam.Put("uid", uid)
+	roam := ice.NewRoamWithMeta()
+	roam.GetMeta().Scene = "recharge"
+	roam.Put("cost", cost)
+	roam.Put("uid", uid)
 
-	ctx := ice.WithTraceId(r.Context(), pack.TraceId)
-	ice.SyncProcess(ctx, pack)
+	ctx := ice.WithTraceId(r.Context(), roam.GetIceTrace())
+	ice.SyncProcess(ctx, roam)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(pack)
+	json.NewEncoder(w).Encode(roam.Data())
 }
 
 // handleConsume handles GET /consume?cost=xxx&uid=xxx
@@ -177,15 +181,16 @@ func handleConsume(w http.ResponseWriter, r *http.Request) {
 	cost, _ := strconv.Atoi(r.URL.Query().Get("cost"))
 	uid, _ := strconv.Atoi(r.URL.Query().Get("uid"))
 
-	pack := ice.NewPack().SetScene("consume")
-	pack.Roam.Put("cost", cost)
-	pack.Roam.Put("uid", uid)
+	roam := ice.NewRoamWithMeta()
+	roam.GetMeta().Scene = "consume"
+	roam.Put("cost", cost)
+	roam.Put("uid", uid)
 
-	ctx := ice.WithTraceId(r.Context(), pack.TraceId)
-	ice.SyncProcess(ctx, pack)
+	ctx := ice.WithTraceId(r.Context(), roam.GetIceTrace())
+	ice.SyncProcess(ctx, roam)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(pack)
+	json.NewEncoder(w).Encode(roam.Data())
 }
 
 // handleHealth handles GET /health

@@ -23,15 +23,18 @@ func (h *AppHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/ice-server/app/recycle", WrapHandler(h.recycle))
 }
 
-func (h *AppHandler) appList(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *AppHandler) appList(w http.ResponseWriter, r *http.Request) (any, error) {
 	pageNum := QueryInt(r, "pageNum", 1)
-	pageSize := QueryInt(r, "pageSize", 1000)
+	pageSize := QueryInt(r, "pageSize", 20)
 	name := QueryStr(r, "name", "")
 	app := QueryIntPtr(r, "app")
 	return h.appService.AppList(pageNum, pageSize, name, app)
 }
 
-func (h *AppHandler) appEdit(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *AppHandler) appEdit(w http.ResponseWriter, r *http.Request) (any, error) {
+	if err := RequirePost(r); err != nil {
+		return nil, err
+	}
 	var app model.IceApp
 	if err := ReadJSONBody(r, &app); err != nil {
 		return nil, model.InputError("app")
@@ -39,12 +42,12 @@ func (h *AppHandler) appEdit(w http.ResponseWriter, r *http.Request) (interface{
 	return h.appService.AppEdit(&app)
 }
 
-func (h *AppHandler) recycle(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *AppHandler) recycle(w http.ResponseWriter, r *http.Request) (any, error) {
 	app := QueryIntPtr(r, "app")
 	go func() {
 		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("recycle panic: %v", r)
+			if rv := recover(); rv != nil {
+				log.Printf("recycle panic: %v", rv)
 			}
 		}()
 		h.serverService.Recycle(app)

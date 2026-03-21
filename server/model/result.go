@@ -4,10 +4,10 @@ package model
 type WebResult struct {
 	Ret  int         `json:"ret"`
 	Msg  string      `json:"msg,omitempty"`
-	Data interface{} `json:"data,omitempty"`
+	Data any `json:"data,omitempty"`
 }
 
-func SuccessResult(data interface{}) *WebResult {
+func SuccessResult(data any) *WebResult {
 	return &WebResult{Ret: 0, Data: data}
 }
 
@@ -21,10 +21,10 @@ type PageResult struct {
 	PageNum  int         `json:"pageNum"`
 	PageSize int         `json:"pageSize"`
 	Pages    int         `json:"pages"`
-	List     interface{} `json:"list"`
+	List     any `json:"list"`
 }
 
-func NewPageResult(list interface{}, total int64, pageNum, pageSize int) *PageResult {
+func NewPageResult(list any, total int64, pageNum, pageSize int) *PageResult {
 	pages := 0
 	if pageSize > 0 {
 		pages = int(total+int64(pageSize)-1) / pageSize

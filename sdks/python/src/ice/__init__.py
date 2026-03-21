@@ -5,8 +5,7 @@ A Python implementation of the Ice rule engine, compatible with Java and Go SDKs
 """
 
 from ice.context.roam import Roam
-from ice.context.pack import Pack
-from ice.context.context import Context
+from ice.context.meta import IceMeta
 from ice.enums import RunState, NodeType, TimeType
 from ice.leaf.registry import leaf, register_leaf, get_leaf_nodes, LeafMeta, IceField, IceIgnore, FieldMeta
 from ice.log import Logger, set_logger
@@ -16,8 +15,6 @@ from ice.node.base import set_global_error_handler, ErrorHandler
 from ice.dispatcher import (
     sync_process,
     async_process,
-    process_ctx,
-    process_single_ctx,
     process_roam,
     process_single_roam,
     get_handler_by_id,
@@ -33,8 +30,7 @@ except Exception:
 __all__ = [
     # Context
     "Roam",
-    "Pack",
-    "Context",
+    "IceMeta",
     # Enums
     "RunState",
     "NodeType",
@@ -59,12 +55,9 @@ __all__ = [
     "sync_process",
     "async_process",
     # Processing (convenience - matching Java/Go)
-    "process_ctx",
-    "process_single_ctx",
     "process_roam",
     "process_single_roam",
     # Handler access (matching Go)
     "get_handler_by_id",
     "get_handlers_by_scene",
 ]
-

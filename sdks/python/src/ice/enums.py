@@ -43,15 +43,11 @@ class NodeType(IntEnum):
 
 
 class TimeType(IntEnum):
-    """Time control type."""
-    NONE = 0
-    BETWEEN = 1
-    AFTER_START = 2
-    BEFORE_END = 3
+    """Time control type - values must match Java/Go."""
+    NONE = 1
+    AFTER_START = 5
+    BEFORE_END = 6
+    BETWEEN = 7
 
 
-class RequestType(IntEnum):
-    """Request type enum."""
-    FORMAL = 0
-    MOCK = 1
 

@@ -15,7 +15,7 @@ type mockNode struct {
 	state enum.RunState
 }
 
-func (m *mockNode) Process(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState {
+func (m *mockNode) Process(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState {
 	return m.state
 }
 
@@ -30,9 +30,9 @@ func TestAnd_EmptyChildren(t *testing.T) {
 	and := NewAnd()
 	and.IceNodeId = 1
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
+	roam := icecontext.NewRoamWithMeta()
 
-	result := and.Process(ctx, iceCtx)
+	result := and.Process(ctx, roam)
 	if result != enum.NONE {
 		t.Errorf("expected NONE for empty children, got %v", result)
 	}
@@ -45,8 +45,8 @@ func TestAnd_AllTrue(t *testing.T) {
 	and.Children.Add(newMockNode(3, enum.TRUE))
 
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
-	result := and.Process(ctx, iceCtx)
+	roam := icecontext.NewRoamWithMeta()
+	result := and.Process(ctx, roam)
 	if result != enum.TRUE {
 		t.Errorf("expected TRUE, got %v", result)
 	}
@@ -60,8 +60,8 @@ func TestAnd_HasFalse(t *testing.T) {
 	and.Children.Add(newMockNode(4, enum.TRUE))
 
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
-	result := and.Process(ctx, iceCtx)
+	roam := icecontext.NewRoamWithMeta()
+	result := and.Process(ctx, roam)
 	if result != enum.FALSE {
 		t.Errorf("expected FALSE (short-circuit), got %v", result)
 	}
@@ -74,8 +74,8 @@ func TestAnd_AllNone(t *testing.T) {
 	and.Children.Add(newMockNode(3, enum.NONE))
 
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
-	result := and.Process(ctx, iceCtx)
+	roam := icecontext.NewRoamWithMeta()
+	result := and.Process(ctx, roam)
 	if result != enum.NONE {
 		t.Errorf("expected NONE, got %v", result)
 	}
@@ -85,9 +85,9 @@ func TestAny_EmptyChildren(t *testing.T) {
 	any := NewAny()
 	any.IceNodeId = 1
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
+	roam := icecontext.NewRoamWithMeta()
 
-	result := any.Process(ctx, iceCtx)
+	result := any.Process(ctx, roam)
 	if result != enum.NONE {
 		t.Errorf("expected NONE for empty children, got %v", result)
 	}
@@ -101,8 +101,8 @@ func TestAny_HasTrue(t *testing.T) {
 	any.Children.Add(newMockNode(4, enum.FALSE))
 
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
-	result := any.Process(ctx, iceCtx)
+	roam := icecontext.NewRoamWithMeta()
+	result := any.Process(ctx, roam)
 	if result != enum.TRUE {
 		t.Errorf("expected TRUE (short-circuit), got %v", result)
 	}
@@ -115,8 +115,8 @@ func TestAny_AllFalse(t *testing.T) {
 	any.Children.Add(newMockNode(3, enum.FALSE))
 
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
-	result := any.Process(ctx, iceCtx)
+	roam := icecontext.NewRoamWithMeta()
+	result := any.Process(ctx, roam)
 	if result != enum.FALSE {
 		t.Errorf("expected FALSE, got %v", result)
 	}
@@ -132,8 +132,8 @@ func TestAll_ExecutesAll(t *testing.T) {
 	all.Children.Add(newMockNode(4, enum.TRUE))
 
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
-	result := all.Process(ctx, iceCtx)
+	roam := icecontext.NewRoamWithMeta()
+	result := all.Process(ctx, roam)
 
 	// Should return TRUE because there's at least one TRUE
 	if result != enum.TRUE {
@@ -148,8 +148,8 @@ func TestAll_OnlyFalse(t *testing.T) {
 	all.Children.Add(newMockNode(3, enum.FALSE))
 
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
-	result := all.Process(ctx, iceCtx)
+	roam := icecontext.NewRoamWithMeta()
+	result := all.Process(ctx, roam)
 	if result != enum.FALSE {
 		t.Errorf("expected FALSE, got %v", result)
 	}
@@ -162,8 +162,8 @@ func TestTrue_AlwaysReturnsTrue(t *testing.T) {
 	tr.Children.Add(newMockNode(3, enum.FALSE))
 
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
-	result := tr.Process(ctx, iceCtx)
+	roam := icecontext.NewRoamWithMeta()
+	result := tr.Process(ctx, roam)
 	if result != enum.TRUE {
 		t.Errorf("expected TRUE, got %v", result)
 	}
@@ -174,8 +174,8 @@ func TestTrue_EmptyReturnsTrue(t *testing.T) {
 	tr.IceNodeId = 1
 
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
-	result := tr.Process(ctx, iceCtx)
+	roam := icecontext.NewRoamWithMeta()
+	result := tr.Process(ctx, roam)
 	if result != enum.TRUE {
 		t.Errorf("expected TRUE for empty children, got %v", result)
 	}
@@ -188,8 +188,8 @@ func TestNone_AlwaysReturnsNone(t *testing.T) {
 	none.Children.Add(newMockNode(3, enum.FALSE))
 
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
-	result := none.Process(ctx, iceCtx)
+	roam := icecontext.NewRoamWithMeta()
+	result := none.Process(ctx, roam)
 	if result != enum.NONE {
 		t.Errorf("expected NONE, got %v", result)
 	}
@@ -202,8 +202,8 @@ func TestRelation_Inverse(t *testing.T) {
 	and.Children.Add(newMockNode(2, enum.TRUE))
 
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, icecontext.NewPack())
-	result := and.Process(ctx, iceCtx)
+	roam := icecontext.NewRoamWithMeta()
+	result := and.Process(ctx, roam)
 	if result != enum.FALSE {
 		t.Errorf("expected FALSE (inversed TRUE), got %v", result)
 	}
@@ -216,12 +216,11 @@ func TestRelation_TimeDisabled(t *testing.T) {
 	and.IceStart = 100
 	and.IceEnd = 200
 
-	pack := icecontext.NewPack()
-	pack.RequestTime = 50 // Before start
+	roam := icecontext.NewRoamWithMeta()
+	roam.GetMeta().Ts = 50 // Before start
 
 	ctx := stdctx.Background()
-	iceCtx := icecontext.NewContext(1, pack)
-	result := and.Process(ctx, iceCtx)
+	result := and.Process(ctx, roam)
 	if result != enum.NONE {
 		t.Errorf("expected NONE (time disabled), got %v", result)
 	}

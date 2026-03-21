@@ -16,6 +16,7 @@ from ice.leaf.registry import get_leaf_nodes
 from ice._internal.executor import init_executor, shutdown_executor
 from ice._internal.uuid import generate_alphanum_id
 from ice import log
+from ice.context.roam import Roam
 
 if TYPE_CHECKING:
     pass
@@ -27,13 +28,14 @@ DIR_CONFS = "confs"
 DIR_VERSIONS = "versions"
 DIR_CLIENTS = "clients"
 DIR_LANE = "lane"
+DIR_MOCK = "mock"
 FILE_VERSION = "version.txt"
 SUFFIX_JSON = ".json"
 SUFFIX_UPD = "_upd.json"
 SUFFIX_TMP = ".tmp"
 
-DEFAULT_POLL_INTERVAL = 5.0  # seconds
-DEFAULT_HEARTBEAT_INTERVAL = 30.0  # seconds
+DEFAULT_POLL_INTERVAL = 2.0  # seconds
+DEFAULT_HEARTBEAT_INTERVAL = 10.0  # seconds
 
 
 def _get_host_ip() -> str:
@@ -49,6 +51,28 @@ def _get_host_ip() -> str:
         return socket.gethostname()
     except Exception:
         return "unknown"
+
+
+def _find_node_by_id(node, node_id: int):
+    """Walk the tree to find a node by its ID."""
+    if node is None:
+        return None
+    if node.get_node_id() == node_id:
+        return node
+    # Check forward
+    from ice.node.base import Base
+    if isinstance(node, Base) and node.ice_forward is not None:
+        found = _find_node_by_id(node.ice_forward, node_id)
+        if found is not None:
+            return found
+    # Check children (relation nodes)
+    from ice.node.relation import Relation
+    if isinstance(node, Relation):
+        for child in node.children:
+            found = _find_node_by_id(child, node_id)
+            if found is not None:
+                return found
+    return None
 
 
 class FileClient:
@@ -87,12 +111,12 @@ class FileClient:
         self.lane = lane.strip() if lane and lane.strip() else None
         
         self._address = self._get_address()
+        self._start_time_ms = int(time.time() * 1000)
         self._loaded_version = 0
         self._started = False
         self._destroyed = False
         self._stop_event = threading.Event()
         self._poll_thread: threading.Thread | None = None
-        self._heartbeat_thread: threading.Thread | None = None
         self._start_lock = threading.Lock()
     
     def start(self) -> None:
@@ -120,13 +144,6 @@ class FileClient:
             )
             self._poll_thread.start()
             
-            self._heartbeat_thread = threading.Thread(
-                target=self._heartbeat_worker,
-                name="ice-heartbeat",
-                daemon=True,
-            )
-            self._heartbeat_thread.start()
-            
             self._started = True
             log.info("ice client started", app=self.app, lane=self.lane, version=self._loaded_version)
     
@@ -139,11 +156,9 @@ class FileClient:
             self._destroyed = True
             self._stop_event.set()
             
-            # Wait for threads to stop
+            # Wait for thread to stop
             if self._poll_thread and self._poll_thread.is_alive():
                 self._poll_thread.join(timeout=2.0)
-            if self._heartbeat_thread and self._heartbeat_thread.is_alive():
-                self._heartbeat_thread.join(timeout=2.0)
             
             # Unregister client
             self._unregister_client()
@@ -184,24 +199,27 @@ class FileClient:
         return os.path.join(self.storage_path, str(self.app))
     
     def _version_poller(self) -> None:
-        """Background thread that polls for version updates."""
+        """Background thread that polls for version updates and heartbeats."""
+        heartbeat_ticks = max(1, int(self.heartbeat_interval / self.poll_interval))
+        tick_count = 0
         while not self._stop_event.is_set():
             try:
                 self._check_and_load_updates()
             except Exception as e:
                 log.warn("error polling version", error=str(e))
-            
-            self._stop_event.wait(self.poll_interval)
-    
-    def _heartbeat_worker(self) -> None:
-        """Background thread that sends heartbeats."""
-        while not self._stop_event.is_set():
             try:
-                self._update_heartbeat()
+                self._check_mocks()
             except Exception as e:
-                log.warn("error updating heartbeat", error=str(e))
-            
-            self._stop_event.wait(self.heartbeat_interval)
+                log.warn("error checking mocks", error=str(e))
+            tick_count += 1
+            if tick_count >= heartbeat_ticks:
+                tick_count = 0
+                try:
+                    self._update_heartbeat()
+                except Exception as e:
+                    log.warn("error updating heartbeat", error=str(e))
+
+            self._stop_event.wait(self.poll_interval)
     
     def _load_all_config(self) -> None:
         """Load all configurations from files."""
@@ -324,17 +342,21 @@ class FileClient:
             return os.path.join(self.storage_path, DIR_CLIENTS, str(self.app), DIR_LANE, self.lane)
         return os.path.join(self.storage_path, DIR_CLIENTS, str(self.app))
 
-    def _get_client_file_path(self) -> str:
-        """Get the client file path with safe filename (replace / and : with _)."""
-        safe_address = self._address.replace(":", "_").replace("/", "_")
-        return os.path.join(self._get_clients_dir(), f"{safe_address}.json")
-    
+    def _safe_address(self) -> str:
+        return self._address.replace(":", "_").replace("/", "_")
+
+    def _meta_file_path(self) -> str:
+        return os.path.join(self._get_clients_dir(), f"m_{self._safe_address()}.json")
+
+    def _beat_file_path(self) -> str:
+        return os.path.join(self._get_clients_dir(), f"b_{self._safe_address()}.json")
+
     def _register_client(self) -> None:
         """Register this client in the clients directory."""
         try:
             clients_dir = self._get_clients_dir()
             os.makedirs(clients_dir, exist_ok=True)
-            
+
             leaf_nodes = get_leaf_nodes()
             client_info = ClientInfo(
                 address=self._address,
@@ -342,50 +364,188 @@ class FileClient:
                 lane=self.lane,
                 leafNodes=leaf_nodes,
                 lastHeartbeat=int(time.time() * 1000),
-                startTime=int(time.time() * 1000),
+                startTime=self._start_time_ms,
                 loadedVersion=self._loaded_version,
             )
-            
-            client_file = self._get_client_file_path()
-            with open(client_file, "w") as f:
-                json.dump(asdict(client_info), f)
-            
+
+            # Write m_{addr}.json (full info with leafNodes)
+            self._write_json_file(self._meta_file_path(), asdict(client_info))
+            # Write b_{addr}.json (heartbeat)
+            self._write_beat_file()
+            # Overwrite _latest.json on registration
             if leaf_nodes:
-                latest_file = os.path.join(clients_dir, "_latest.json")
-                tmp_file = latest_file + SUFFIX_TMP
-                with open(tmp_file, "w") as f:
-                    json.dump(asdict(client_info), f)
-                os.replace(tmp_file, latest_file)
+                self._write_json_file(
+                    os.path.join(clients_dir, "_latest.json"),
+                    asdict(client_info),
+                )
         except Exception as e:
             log.warn("failed to register client", error=str(e))
-    
+
+    def _write_json_file(self, path: str, data: dict) -> None:
+        """Atomic write JSON file via temp + rename."""
+        tmp_path = path + SUFFIX_TMP
+        with open(tmp_path, "w") as f:
+            json.dump(data, f)
+        os.replace(tmp_path, path)
+
+    def _write_beat_file(self) -> None:
+        """Write b_{addr}.json (~50 bytes)."""
+        hb = {"lastHeartbeat": int(time.time() * 1000), "loadedVersion": self._loaded_version}
+        self._write_json_file(self._beat_file_path(), hb)
+
     def _update_heartbeat(self) -> None:
-        """Update the heartbeat timestamp."""
+        """Update the heartbeat file."""
         try:
-            client_file = self._get_client_file_path()
-            
-            if os.path.exists(client_file):
-                with open(client_file, "r") as f:
-                    data = json.load(f)
-                
-                data["lastHeartbeat"] = int(time.time() * 1000)
-                data["loadedVersion"] = self._loaded_version
-                
-                with open(client_file, "w") as f:
-                    json.dump(data, f)
+            if not os.path.exists(self._meta_file_path()):
+                self._register_client()
+                return
+            self._write_beat_file()
         except Exception as e:
             log.warn("failed to update heartbeat", error=str(e))
-    
+
     def _unregister_client(self) -> None:
-        """Remove this client from the clients directory."""
+        """Remove mock dir, then m_, then b_ last."""
         try:
-            client_file = self._get_client_file_path()
-            
-            if os.path.exists(client_file):
-                os.remove(client_file)
+            import shutil
+            mock_dir = self._get_mock_dir()
+            if os.path.isdir(mock_dir):
+                shutil.rmtree(mock_dir, ignore_errors=True)
+            for path in (self._meta_file_path(), self._beat_file_path()):
+                if os.path.exists(path):
+                    os.remove(path)
         except Exception as e:
             log.warn("failed to unregister client", error=str(e))
     
+    def _get_mock_dir(self) -> str:
+        """Get the mock directory for this client."""
+        safe_addr = self._address.replace(":", "_").replace("/", "_")
+        return os.path.join(self.storage_path, DIR_MOCK, str(self.app), safe_addr)
+
+    def _check_mocks(self) -> None:
+        """Check for and execute mock requests."""
+        mock_dir = self._get_mock_dir()
+        if not os.path.isdir(mock_dir):
+            return
+
+        for filename in os.listdir(mock_dir):
+            if not filename.endswith(SUFFIX_JSON) or filename.endswith("_result.json"):
+                continue
+
+            filepath = os.path.join(mock_dir, filename)
+            try:
+                with open(filepath, "r") as f:
+                    req = json.load(f)
+
+                # Delete request file first to prevent re-execution on crash
+                os.remove(filepath)
+
+                result = self._execute_mock(req)
+
+                # Write result file
+                result_path = os.path.join(mock_dir, req["mockId"] + "_result" + SUFFIX_JSON)
+                tmp_path = result_path + SUFFIX_TMP
+                with open(tmp_path, "w") as f:
+                    json.dump(result, f)
+                os.replace(tmp_path, result_path)
+
+                log.info("mock executed", mockId=req["mockId"], success=result["success"])
+            except Exception as e:
+                log.warn("failed to process mock file", file=filename, error=str(e))
+
+    def _execute_mock(self, req: dict) -> dict:
+        """Execute a mock request and return the result dict."""
+        result = {
+            "mockId": req["mockId"],
+            "executeAt": int(time.time() * 1000),
+        }
+
+        try:
+            from ice.handler.handler import Handler
+            from ice.node.relation import Relation
+
+            roam = Roam.create()
+            meta = roam.get_meta()
+            meta.id = req.get("iceId", 0)
+            meta.nid = req.get("confId", 0)
+            meta.scene = req.get("scene", "")
+            meta.debug = req.get("debug", 0)
+            ts = req.get("ts", 0)
+            if ts > 0:
+                meta.ts = ts
+
+            # Put user roam data
+            user_roam = req.get("roam")
+            if user_roam:
+                roam.put_all(user_roam)
+
+            # Dispatch using cache directly (same logic as Go executeMock)
+            handled = False
+            if meta.id > 0 and meta.nid > 0:
+                # Both iceId and confId: get handler by iceId, find confId subtree
+                h = handler_cache.get_handler_by_id(meta.id)
+                if h is not None and h.root is not None:
+                    if meta.debug == 0:
+                        meta.debug = h.debug
+                    subtree = _find_node_by_id(h.root, meta.nid)
+                    if subtree is not None:
+                        sub = Handler()
+                        sub.debug = meta.debug
+                        sub.root = subtree
+                        sub.conf_id = meta.nid
+                        sub.handle_with_node_id(roam)
+                        handled = True
+            elif meta.id > 0:
+                h = handler_cache.get_handler_by_id(meta.id)
+                if h is not None:
+                    if meta.debug == 0:
+                        meta.debug = h.debug
+                    h.handle(roam)
+                    handled = True
+            elif meta.scene:
+                handlers_map = handler_cache.get_handlers_by_scene(meta.scene)
+                if handlers_map:
+                    for h in handlers_map.values():
+                        if meta.debug == 0:
+                            meta.debug = h.debug
+                        meta.id = h.ice_id
+                        h.handle(roam)
+                        handled = True
+                        break  # mock only handles first matching handler
+            elif meta.nid > 0:
+                root = conf_cache.get_conf(meta.nid)
+                if root is not None:
+                    sub = Handler()
+                    sub.debug = meta.debug
+                    sub.root = root
+                    sub.conf_id = meta.nid
+                    sub.handle_with_node_id(roam)
+                    handled = True
+
+            if not handled:
+                result["success"] = False
+                result["error"] = "no matching handler found"
+                result["trace"] = roam.get_ice_trace()
+                result["ts"] = roam.get_ice_ts()
+                return result
+
+            result["success"] = True
+            result["trace"] = roam.get_ice_trace()
+            result["ts"] = roam.get_ice_ts()
+            roam_data = roam.to_dict()
+            roam_data.pop("_ice", None)
+            result["roam"] = roam_data
+
+            process_info = roam.get_meta().get_process_info()
+            if process_info:
+                result["process"] = process_info
+        except Exception as e:
+            result["success"] = False
+            result["error"] = str(e)
+            result["trace"] = roam.get_ice_trace()
+            result["ts"] = roam.get_ice_ts()
+
+        return result
+
     def _dict_to_conf_dto(self, data: dict) -> ConfDto:
         """Convert a dictionary to ConfDto."""
         return ConfDto(
@@ -398,7 +558,6 @@ class FileClient:
             start=data.get("start", 0),
             end=data.get("end", 0),
             forwardId=data.get("forwardId", 0),
-            debug=data.get("debug", 0),
             errorState=data.get("errorState", 0),
             inverse=data.get("inverse", False),
             name=data.get("name", ""),
@@ -420,7 +579,6 @@ class FileClient:
             start=data.get("start", 0),
             end=data.get("end", 0),
             debug=data.get("debug", 0),
-            priority=data.get("priority", 0),
             app=data.get("app", 0),
             name=data.get("name", ""),
             status=data.get("status", 0),

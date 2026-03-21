@@ -275,7 +275,6 @@ def _set_node_properties(node: Node, conf_dto: ConfDto) -> None:
     """Set common node properties from ConfDto."""
     base = Base()
     base.ice_node_id = conf_dto.id
-    base.ice_node_debug = conf_dto.debug in (0, 1)
     base.ice_inverse = conf_dto.inverse
     base.ice_time_type = TimeType(conf_dto.timeType) if conf_dto.timeType in TimeType._value2member_map_ else TimeType.NONE
     base.ice_start = conf_dto.start
@@ -294,7 +293,6 @@ def _set_node_properties(node: Node, conf_dto: ConfDto) -> None:
     # Apply base properties
     if isinstance(node, Relation):
         node.ice_node_id = base.ice_node_id
-        node.ice_node_debug = base.ice_node_debug
         node.ice_inverse = base.ice_inverse
         node.ice_time_type = base.ice_time_type
         node.ice_start = base.ice_start

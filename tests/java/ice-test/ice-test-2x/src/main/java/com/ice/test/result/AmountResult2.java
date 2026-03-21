@@ -1,8 +1,7 @@
 package com.ice.test.result;
 
-import com.ice.core.context.IcePack;
 import com.ice.core.context.IceRoam;
-import com.ice.core.leaf.pack.BaseLeafPackResult;
+import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.test.service.SendService;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -14,7 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class AmountResult2 extends BaseLeafPackResult {
+public class AmountResult2 extends BaseLeafResult {
 
     @Autowired
     private SendService sendService;
@@ -24,19 +23,18 @@ public class AmountResult2 extends BaseLeafPackResult {
     private Object value;
 
     @Override
-    protected boolean doPackResult(IcePack pack) {
-        IceRoam roam = pack.getRoam();
-        Integer uid = roam.getMulti(key);
+    protected boolean doResult(IceRoam roam) {
+        Integer uid = roam.getDeep(key);
         if (uid == null) {
             return false;
         }
-        Integer value = roam.getUnion(this.value);
+        Integer value = roam.resolve(this.value);
         if (value <= 0) {
             return false;
         }
         boolean res = sendService.sendAmount(uid, value);
-        roam.putMulti("result." + "sendAmount", value);
-        roam.putMulti("result." + "scene", pack.getScene());
+        roam.putDeep("result." + "sendAmount", value);
+        roam.putDeep("result." + "scene", roam.getIceScene());
         return res;
     }
 }

@@ -3,7 +3,7 @@ package com.ice.test.result;
 import com.ice.core.annotation.IceField;
 import com.ice.core.annotation.IceNode;
 import com.ice.core.context.IceRoam;
-import com.ice.core.leaf.roam.BaseLeafRoamResult;
+import com.ice.core.leaf.base.BaseLeafResult;
 import com.ice.test.service.SendService;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @IceNode(name = "发放积分节点", desc = "用于发放积分奖励")
-public class PointResult extends BaseLeafRoamResult {
+public class PointResult extends BaseLeafResult {
 
     @Autowired
     private SendService sendService2;
@@ -26,8 +26,8 @@ public class PointResult extends BaseLeafRoamResult {
     private double value;
 
     @Override
-    protected boolean doRoamResult(IceRoam roam) {
-        Integer uid = roam.getMulti(key);
+    protected boolean doResult(IceRoam roam) {
+        Integer uid = roam.getDeep(key);
         if (uid == null || value <= 0) {
             return false;
         }

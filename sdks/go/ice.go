@@ -18,12 +18,10 @@ import (
 
 // Re-export types for convenience
 type (
-	// Context is the execution context.
-	Context = icecontext.Context
-	// Pack is the input pack for execution.
-	Pack = icecontext.Pack
-	// Roam is the data container.
+	// Roam is the data container and execution context.
 	Roam = icecontext.Roam
+	// IceMeta contains ice execution metadata.
+	IceMeta = icecontext.IceMeta
 	// RunState represents the execution result.
 	RunState = enum.RunState
 	// Handler is the ice handler.
@@ -54,12 +52,12 @@ const (
 
 // Re-export constructors
 var (
-	// NewPack creates a new Pack.
-	NewPack = icecontext.NewPack
-	// NewRoam creates a new Roam.
+	// NewRoam creates a new Roam (without meta).
 	NewRoam = icecontext.NewRoam
-	// NewContext creates a new Context.
-	NewContext = icecontext.NewContext
+	// NewRoamWithMeta creates a new Roam with default IceMeta.
+	NewRoamWithMeta = icecontext.NewRoamWithMeta
+	// NewMeta creates a new IceMeta with default values.
+	NewMeta = icecontext.NewMeta
 	// NewClient creates a new FileClient with minimal configuration (app, storagePath).
 	NewClient = client.New
 	// NewClientWithOptions creates a new FileClient with custom options.
@@ -70,12 +68,8 @@ var (
 	SetLogger = icelog.SetLogger
 	// WithTraceId adds trace ID to context.
 	WithTraceId = icelog.WithTraceId
-	// WithSpanId adds span ID to context.
-	WithSpanId = icelog.WithSpanId
 	// GetTraceId gets trace ID from context.
 	GetTraceId = icelog.GetTraceId
-	// GetSpanId gets span ID from context.
-	GetSpanId = icelog.GetSpanId
 	// SetGlobalErrorHandler sets a custom global error handler.
 	// This handler is called when a node does not implement LeafErrorHandler.
 	// If not set, the default behavior is to return SHUT_DOWN (re-panic).
@@ -83,51 +77,27 @@ var (
 )
 
 // SyncProcess executes rules synchronously.
-func SyncProcess(ctx stdctx.Context, pack *Pack) []*Context {
-	return syncDispatcher(ctx, pack)
+func SyncProcess(ctx stdctx.Context, roam *Roam) []*Roam {
+	return syncDispatcher(ctx, roam)
 }
 
 // AsyncProcess executes rules asynchronously.
-func AsyncProcess(ctx stdctx.Context, pack *Pack) []<-chan *Context {
-	return asyncDispatcher(ctx, pack)
+func AsyncProcess(ctx stdctx.Context, roam *Roam) []<-chan *Roam {
+	return asyncDispatcher(ctx, roam)
 }
 
 // ProcessSingleRoam executes and returns a single roam result.
-func ProcessSingleRoam(ctx stdctx.Context, pack *Pack) *Roam {
-	iceCtx := ProcessSingleCtx(ctx, pack)
-	if iceCtx != nil && iceCtx.Pack != nil {
-		return iceCtx.Pack.Roam
+func ProcessSingleRoam(ctx stdctx.Context, roam *Roam) *Roam {
+	roamList := SyncProcess(ctx, roam)
+	if len(roamList) == 0 {
+		return nil
 	}
-	return nil
+	return roamList[0]
 }
 
 // ProcessRoam executes and returns roam results.
-func ProcessRoam(ctx stdctx.Context, pack *Pack) []*Roam {
-	ctxList := SyncProcess(ctx, pack)
-	if len(ctxList) == 0 {
-		return nil
-	}
-	result := make([]*Roam, 0, len(ctxList))
-	for _, iceCtx := range ctxList {
-		if iceCtx.Pack != nil {
-			result = append(result, iceCtx.Pack.Roam)
-		}
-	}
-	return result
-}
-
-// ProcessSingleCtx executes and returns a single context.
-func ProcessSingleCtx(ctx stdctx.Context, pack *Pack) *Context {
-	ctxList := ProcessCtx(ctx, pack)
-	if len(ctxList) == 0 {
-		return nil
-	}
-	return ctxList[0]
-}
-
-// ProcessCtx executes and returns contexts.
-func ProcessCtx(ctx stdctx.Context, pack *Pack) []*Context {
-	return SyncProcess(ctx, pack)
+func ProcessRoam(ctx stdctx.Context, roam *Roam) []*Roam {
+	return SyncProcess(ctx, roam)
 }
 
 // GetHandlerById returns a handler by ID.

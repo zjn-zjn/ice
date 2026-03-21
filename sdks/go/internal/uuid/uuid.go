@@ -4,6 +4,7 @@ package uuid
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"math/big"
 	"strings"
 )
 
@@ -98,10 +99,10 @@ var alphanumeric = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0
 // GenerateAlphanumId generates a random alphanumeric ID of given length (62^length combinations).
 func GenerateAlphanumId(length int) string {
 	b := make([]byte, length)
-	randomBytes := make([]byte, length)
-	_, _ = rand.Read(randomBytes)
+	max := big.NewInt(int64(len(alphanumeric)))
 	for i := 0; i < length; i++ {
-		b[i] = alphanumeric[int(randomBytes[i])%62]
+		n, _ := rand.Int(rand.Reader, max)
+		b[i] = alphanumeric[n.Int64()]
 	}
 	return string(b)
 }

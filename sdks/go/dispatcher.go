@@ -10,176 +10,187 @@ import (
 	icelog "github.com/zjn-zjn/ice/sdks/go/log"
 )
 
-func syncDispatcher(ctx stdctx.Context, pack *Pack) []*Context {
-	if !checkPack(ctx, pack) {
+func syncDispatcher(ctx stdctx.Context, roam *Roam) []*Roam {
+	if !checkRoam(ctx, roam) {
 		return nil
 	}
 
+	meta := roam.GetMeta()
+	if meta.Trace != "" {
+		ctx = icelog.WithTraceId(ctx, meta.Trace)
+	}
+
 	// First: iceId
-	if pack.IceId > 0 {
-		h := cache.GetHandlerById(pack.IceId)
+	if meta.Id > 0 {
+		h := cache.GetHandlerById(meta.Id)
 		if h == nil {
-			icelog.Debug(ctx, "handler maybe expired", "iceId", pack.IceId)
+			icelog.Debug(ctx, "handler maybe expired", "iceId", meta.Id)
 			return nil
 		}
-		iceCtx := icecontext.NewContext(h.IceId, pack)
-		h.Handle(ctx, iceCtx)
-		return []*Context{iceCtx}
+		h.Handle(ctx, roam)
+		return []*Roam{roam}
 	}
 
 	// Second: scene
-	if pack.Scene != "" {
-		handlerMap := cache.GetHandlersByScene(pack.Scene)
+	if meta.Scene != "" {
+		handlerMap := cache.GetHandlersByScene(meta.Scene)
 		if len(handlerMap) == 0 {
-			icelog.Debug(ctx, "handlers maybe all expired", "scene", pack.Scene)
+			icelog.Debug(ctx, "handlers maybe all expired", "scene", meta.Scene)
 			return nil
 		}
 
 		if len(handlerMap) == 1 {
 			for _, h := range handlerMap {
-				iceCtx := icecontext.NewContext(h.IceId, pack)
-				h.Handle(ctx, iceCtx)
-				return []*Context{iceCtx}
+				meta.Id = h.IceId
+				h.Handle(ctx, roam)
+				return []*Roam{roam}
 			}
 		}
 
 		// Multiple handlers - execute in parallel
-		roam := pack.Roam
-		ctxList := make([]*Context, 0, len(handlerMap))
+		roamList := make([]*Roam, 0, len(handlerMap))
 		var wg sync.WaitGroup
 
 		for _, h := range handlerMap {
-			newPack := pack.Clone()
-			if roam != nil {
-				newPack.Roam = roam.ShallowCopy()
-			}
-			iceCtx := icecontext.NewContext(h.IceId, newPack)
-			ctxList = append(ctxList, iceCtx)
+			clonedRoam := roam.Clone()
+			clonedRoam.GetMeta().Id = h.IceId
+			roamList = append(roamList, clonedRoam)
 
 			wg.Add(1)
 			hCopy := h
+			clonedCopy := clonedRoam
 			go func() {
 				defer wg.Done()
-				hCopy.Handle(ctx, iceCtx)
+				hCopy.Handle(ctx, clonedCopy)
 			}()
 		}
 		wg.Wait()
-		return ctxList
+		return roamList
 	}
 
 	// Third: confId
-	confId := pack.ConfId
+	confId := meta.Nid
 	if confId <= 0 {
 		return nil
 	}
 
 	root := cache.GetConfById(confId)
 	if root != nil {
-		iceCtx := icecontext.NewContext(confId, pack)
 		h := &handler.Handler{
-			Debug:  pack.Debug,
+			Debug:  meta.Debug,
 			Root:   root,
 			ConfId: confId,
 		}
-		h.Handle(ctx, iceCtx)
-		return []*Context{iceCtx}
+		h.Handle(ctx, roam)
+		return []*Roam{roam}
 	}
 
 	return nil
 }
 
-func asyncDispatcher(ctx stdctx.Context, pack *Pack) []<-chan *Context {
-	if !checkPack(ctx, pack) {
+func asyncDispatcher(ctx stdctx.Context, roam *Roam) []<-chan *Roam {
+	if !checkRoam(ctx, roam) {
 		return nil
 	}
 
+	meta := roam.GetMeta()
+	if meta.Trace != "" {
+		ctx = icelog.WithTraceId(ctx, meta.Trace)
+	}
+
 	// First: iceId
-	if pack.IceId > 0 {
-		h := cache.GetHandlerById(pack.IceId)
+	if meta.Id > 0 {
+		h := cache.GetHandlerById(meta.Id)
 		if h == nil {
 			return nil
 		}
-		iceCtx := icecontext.NewContext(h.IceId, pack)
-		ch := submitHandler(ctx, h, iceCtx)
-		return []<-chan *Context{ch}
+		ch := submitHandler(ctx, h, roam)
+		return []<-chan *Roam{ch}
 	}
 
 	// Second: scene
-	if pack.Scene != "" {
-		handlerMap := cache.GetHandlersByScene(pack.Scene)
+	if meta.Scene != "" {
+		handlerMap := cache.GetHandlersByScene(meta.Scene)
 		if len(handlerMap) == 0 {
 			return nil
 		}
 
 		if len(handlerMap) == 1 {
 			for _, h := range handlerMap {
-				iceCtx := icecontext.NewContext(h.IceId, pack)
-				ch := submitHandler(ctx, h, iceCtx)
-				return []<-chan *Context{ch}
+				meta.Id = h.IceId
+				ch := submitHandler(ctx, h, roam)
+				return []<-chan *Roam{ch}
 			}
 		}
 
-		roam := pack.Roam
-		chs := make([]<-chan *Context, 0, len(handlerMap))
+		chs := make([]<-chan *Roam, 0, len(handlerMap))
 		for _, h := range handlerMap {
-			newPack := pack.Clone()
-			if roam != nil {
-				newPack.Roam = roam.ShallowCopy()
-			}
-			iceCtx := icecontext.NewContext(h.IceId, newPack)
-			ch := submitHandler(ctx, h, iceCtx)
+			clonedRoam := roam.Clone()
+			clonedRoam.GetMeta().Id = h.IceId
+			ch := submitHandler(ctx, h, clonedRoam)
 			chs = append(chs, ch)
 		}
 		return chs
 	}
 
 	// Third: confId
-	confId := pack.ConfId
+	confId := meta.Nid
 	if confId <= 0 {
 		return nil
 	}
 
 	root := cache.GetConfById(confId)
 	if root != nil {
-		iceCtx := icecontext.NewContext(confId, pack)
 		h := &handler.Handler{
-			Debug:  pack.Debug,
+			Debug:  meta.Debug,
 			Root:   root,
 			ConfId: confId,
 		}
-		ch := submitHandler(ctx, h, iceCtx)
-		return []<-chan *Context{ch}
+		ch := submitHandler(ctx, h, roam)
+		return []<-chan *Roam{ch}
 	}
 
 	return nil
 }
 
-func submitHandler(ctx stdctx.Context, h *handler.Handler, iceCtx *Context) <-chan *Context {
-	ch := make(chan *Context, 1)
+func submitHandler(ctx stdctx.Context, h *handler.Handler, roam *Roam) <-chan *Roam {
+	ch := make(chan *Roam, 1)
 
 	go func() {
 		defer close(ch)
-		h.Handle(ctx, iceCtx)
-		ch <- iceCtx
+		h.Handle(ctx, roam)
+		ch <- roam
 	}()
 
 	return ch
 }
 
-func checkPack(ctx stdctx.Context, pack *Pack) bool {
-	if pack == nil {
-		icelog.Error(ctx, "invalid pack null")
+func checkRoam(ctx stdctx.Context, roam *Roam) bool {
+	if roam == nil {
+		icelog.Error(ctx, "invalid roam null")
 		return false
 	}
-	if pack.IceId > 0 {
+	meta := roam.GetMeta()
+	if meta == nil {
+		icelog.Error(ctx, "invalid roam no meta")
+		return false
+	}
+	if meta.Id > 0 {
 		return true
 	}
-	if pack.Scene != "" {
+	if meta.Scene != "" {
 		return true
 	}
-	if pack.ConfId > 0 {
+	if meta.Nid > 0 {
 		return true
 	}
-	icelog.Error(ctx, "invalid pack none iceId none scene none confId", "pack", pack)
+	icelog.Error(ctx, "invalid roam none iceId none scene none confId", "roam", roam)
 	return false
+}
+
+// newRoamForDispatch creates a Roam with meta initialized from the handler for dispatch.
+func newRoamForDispatch(h *handler.Handler, sourceRoam *icecontext.Roam) *icecontext.Roam {
+	cloned := sourceRoam.Clone()
+	cloned.GetMeta().Id = h.IceId
+	return cloned
 }

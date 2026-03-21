@@ -14,5 +14,5 @@ type Leaf struct {
 
 // LeafProcessor is implemented by leaf nodes to provide their specific logic.
 type LeafProcessor interface {
-	DoLeaf(ctx stdctx.Context, iceCtx *icecontext.Context) enum.RunState
+	DoLeaf(ctx stdctx.Context, roam *icecontext.Roam) enum.RunState
 }

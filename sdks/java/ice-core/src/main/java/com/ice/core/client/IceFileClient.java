@@ -7,14 +7,25 @@ import com.ice.common.dto.IceBaseDto;
 import com.ice.common.dto.IceClientInfo;
 import com.ice.common.dto.IceConfDto;
 import com.ice.common.dto.IceTransferDto;
+import com.ice.common.dto.MockRequest;
+import com.ice.common.dto.MockResult;
 import com.ice.common.enums.NodeTypeEnum;
 import com.ice.common.model.LeafNodeInfo;
+import com.ice.core.base.BaseNode;
+import com.ice.core.base.BaseRelation;
+import com.ice.core.cache.IceConfCache;
+import com.ice.core.cache.IceHandlerCache;
+import com.ice.core.handler.IceHandler;
 import com.ice.core.annotation.IceField;
+import com.ice.core.context.IceMeta;
+import com.ice.core.context.IceRoam;
 import com.ice.core.annotation.IceIgnore;
 import com.ice.core.annotation.IceNode;
 import com.ice.core.leaf.base.BaseLeafFlow;
 import com.ice.core.leaf.base.BaseLeafNone;
 import com.ice.core.leaf.base.BaseLeafResult;
+import com.ice.core.scan.RoamKeyScanner;
+import com.ice.core.utils.IceLinkedList;
 import com.ice.core.utils.IceAddressUtils;
 import com.ice.core.utils.IceBeanUtils;
 import com.ice.core.utils.IceExecutor;
@@ -29,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.stream.Stream;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
@@ -55,12 +67,14 @@ public final class IceFileClient {
     private final String lane;
 
     private List<LeafNodeInfo> leafNodes;
+    private long startTimeMs;
     private volatile long loadedVersion = 0;
     private volatile boolean started = false;
     private volatile boolean destroy = false;
 
     private final AtomicBoolean startedLock = new AtomicBoolean(false);
     private ScheduledExecutorService scheduler;
+    private int heartbeatTickCounter = 0;
 
     // Default configuration
     private static final int DEFAULT_PARALLELISM = -1;
@@ -111,7 +125,7 @@ public final class IceFileClient {
         } else {
             IceExecutor.setExecutor(new ForkJoinPool(parallelism));
         }
-        scheduler = new ScheduledThreadPoolExecutor(2, r -> {
+        scheduler = new ScheduledThreadPoolExecutor(1, r -> {
             Thread t = new Thread(r, "ice-file-client-" + app);
             t.setDaemon(true);
             return t;
@@ -126,7 +140,8 @@ public final class IceFileClient {
      */
     public void start() throws Exception {
         destroy = false;
-        long startTime = System.currentTimeMillis();
+        startTimeMs = System.currentTimeMillis();
+        long startTime = startTimeMs;
 
         // Ensure directories exist
         ensureDirectories();
@@ -137,11 +152,8 @@ public final class IceFileClient {
         // Register client information
         registerClient();
 
-        // Start version polling
+        // Start version polling (heartbeat is merged into poller via counter)
         startVersionPoller();
-
-        // Start heartbeat reporting
-        startHeartbeat();
 
         started = true;
         startedLock.set(true);
@@ -284,22 +296,41 @@ public final class IceFileClient {
         return dto;
     }
 
+    private String safeAddress() {
+        return iceAddress.replace(":", "_").replace("/", "_");
+    }
+
+    private Path metaFilePath() {
+        return getClientsDir().resolve("m_" + safeAddress() + IceStorageConstants.SUFFIX_JSON);
+    }
+
+    private Path beatFilePath() {
+        return getClientsDir().resolve("b_" + safeAddress() + IceStorageConstants.SUFFIX_JSON);
+    }
+
     /**
      * Register client information.
      */
     private void registerClient() throws IOException {
+        Files.createDirectories(getClientsDir());
+
         IceClientInfo clientInfo = new IceClientInfo();
         clientInfo.setAddress(iceAddress);
         clientInfo.setApp(app);
         clientInfo.setLane(lane);
         clientInfo.setLeafNodes(leafNodes);
         clientInfo.setLastHeartbeat(System.currentTimeMillis());
-        clientInfo.setStartTime(System.currentTimeMillis());
+        clientInfo.setStartTime(startTimeMs);
         clientInfo.setLoadedVersion(loadedVersion);
 
-        writeClientInfo(clientInfo);
-        // Overwrite _latest.json on registration, not updated during heartbeat
-        writeLatestInfo(clientInfo);
+        // Write m_{addr}.json (full info with leafNodes)
+        writeJsonFile(metaFilePath(), JacksonUtils.toJsonString(clientInfo));
+        // Write b_{addr}.json (heartbeat)
+        writeBeatFile();
+        // Overwrite _latest.json on registration
+        if (leafNodes != null && !leafNodes.isEmpty()) {
+            writeJsonFile(getClientsDir().resolve("_latest.json"), JacksonUtils.toJsonString(clientInfo));
+        }
         log.info("ice client registered: {}", iceAddress);
     }
 
@@ -308,66 +339,71 @@ public final class IceFileClient {
      */
     private void unregisterClient() {
         try {
-            Path clientPath = getClientFilePath();
-            if (Files.exists(clientPath)) {
-                Files.delete(clientPath);
-                log.info("ice client unregistered: {}", iceAddress);
-            }
+            // Delete mock directory first, then m_, then b_ last
+            deleteDirectory(getMockDir());
+            Files.deleteIfExists(metaFilePath());
+            Files.deleteIfExists(beatFilePath());
+            log.info("ice client unregistered: {}", iceAddress);
         } catch (IOException e) {
             log.error("failed to unregister client", e);
         }
     }
 
-    /**
-     * Write client information (only writes to own client file, does not update _latest.json).
-     */
-    private void writeClientInfo(IceClientInfo clientInfo) throws IOException {
-        Path clientPath = getClientFilePath();
-        String json = JacksonUtils.toJsonString(clientInfo);
-
-        // Ensure directory exists
-        Files.createDirectories(clientPath.getParent());
-
-        // Use temp file + rename for atomicity
-        Path tmpPath = Paths.get(clientPath.toString() + IceStorageConstants.SUFFIX_TMP);
-        Files.write(tmpPath, json.getBytes(StandardCharsets.UTF_8),
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-        Files.move(tmpPath, clientPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
-                java.nio.file.StandardCopyOption.ATOMIC_MOVE);
-    }
-    
-    /**
-     * Update _latest.json (only called on registration, not during heartbeat).
-     */
-    private void writeLatestInfo(IceClientInfo clientInfo) throws IOException {
-        if (leafNodes == null || leafNodes.isEmpty()) {
+    private void deleteDirectory(Path dir) {
+        if (!Files.exists(dir)) {
             return;
         }
-        Path clientPath = getClientFilePath();
-        Path latestPath = clientPath.getParent().resolve("_latest.json");
-        Path latestTmpPath = Paths.get(latestPath.toString() + IceStorageConstants.SUFFIX_TMP);
-        String json = JacksonUtils.toJsonString(clientInfo);
-        Files.write(latestTmpPath, json.getBytes(StandardCharsets.UTF_8),
+        try (Stream<Path> entries = Files.list(dir)) {
+            entries.forEach(p -> {
+                try {
+                    Files.deleteIfExists(p);
+                } catch (IOException ignored) {
+                }
+            });
+            Files.deleteIfExists(dir);
+        } catch (IOException ignored) {
+        }
+    }
+
+    private void writeJsonFile(Path path, String json) throws IOException {
+        Path tmpPath = Paths.get(path.toString() + IceStorageConstants.SUFFIX_TMP);
+        Files.write(tmpPath, json.getBytes(StandardCharsets.UTF_8),
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-        Files.move(latestTmpPath, latestPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+        Files.move(tmpPath, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
                 java.nio.file.StandardCopyOption.ATOMIC_MOVE);
     }
 
-    private Path getClientFilePath() {
-        String safeAddress = iceAddress.replace(":", "_").replace("/", "_");
-        return getClientsDir().resolve(safeAddress + IceStorageConstants.SUFFIX_JSON);
+    private void writeBeatFile() throws IOException {
+        String json = String.format("{\"lastHeartbeat\":%d,\"loadedVersion\":%d}",
+                System.currentTimeMillis(), loadedVersion);
+        writeJsonFile(beatFilePath(), json);
     }
 
     /**
      * Start version polling.
      */
     private void startVersionPoller() {
+        int heartbeatTicks = Math.max(1, heartbeatIntervalSeconds / pollIntervalSeconds);
         scheduler.scheduleWithFixedDelay(() -> {
             if (destroy) return;
             try {
                 checkAndUpdateVersion();
             } catch (Exception e) {
                 log.error("version poll error", e);
+            }
+            try {
+                checkMocks();
+            } catch (Exception e) {
+                log.error("mock check error", e);
+            }
+            heartbeatTickCounter++;
+            if (heartbeatTickCounter >= heartbeatTicks) {
+                heartbeatTickCounter = 0;
+                try {
+                    updateHeartbeat();
+                } catch (Exception e) {
+                    log.error("heartbeat error", e);
+                }
             }
         }, pollIntervalSeconds, pollIntervalSeconds, TimeUnit.SECONDS);
     }
@@ -452,33 +488,10 @@ public final class IceFileClient {
      */
     private void updateClientVersion() {
         try {
-            Path clientPath = getClientFilePath();
-            if (Files.exists(clientPath)) {
-                String content = new String(Files.readAllBytes(clientPath), StandardCharsets.UTF_8);
-                IceClientInfo clientInfo = JacksonUtils.readJson(content, IceClientInfo.class);
-                if (clientInfo != null) {
-                    clientInfo.setLoadedVersion(loadedVersion);
-                    clientInfo.setLastHeartbeat(System.currentTimeMillis());
-                    writeClientInfo(clientInfo);
-                }
-            }
+            writeBeatFile();
         } catch (Exception e) {
             log.error("failed to update client version info", e);
         }
-    }
-
-    /**
-     * Start heartbeat reporting.
-     */
-    private void startHeartbeat() {
-        scheduler.scheduleWithFixedDelay(() -> {
-            if (destroy) return;
-            try {
-                updateHeartbeat();
-            } catch (Exception e) {
-                log.error("heartbeat error", e);
-            }
-        }, heartbeatIntervalSeconds, heartbeatIntervalSeconds, TimeUnit.SECONDS);
     }
 
     /**
@@ -486,18 +499,11 @@ public final class IceFileClient {
      */
     private void updateHeartbeat() {
         try {
-            Path clientPath = getClientFilePath();
-            if (Files.exists(clientPath)) {
-                String content = new String(Files.readAllBytes(clientPath), StandardCharsets.UTF_8);
-                IceClientInfo clientInfo = JacksonUtils.readJson(content, IceClientInfo.class);
-                if (clientInfo != null) {
-                    clientInfo.setLastHeartbeat(System.currentTimeMillis());
-                    writeClientInfo(clientInfo);
-                }
-            } else {
-                // File does not exist, re-register
+            if (!Files.exists(metaFilePath())) {
                 registerClient();
+                return;
             }
+            writeBeatFile();
         } catch (Exception e) {
             log.error("failed to update heartbeat", e);
         }
@@ -573,6 +579,12 @@ public final class IceFileClient {
             if (!hideFields.isEmpty()) {
                 leafNodeInfo.setHideFields(hideFields);
             }
+            // Scan roam key accesses via bytecode analysis
+            List<LeafNodeInfo.RoamKeyMeta> roamKeys = RoamKeyScanner.scan(leafClass);
+            if (!roamKeys.isEmpty()) {
+                leafNodeInfo.setRoamKeys(roamKeys);
+            }
+
             if (BaseLeafFlow.class.isAssignableFrom(leafClass)) {
                 leafNodeInfo.setType(NodeTypeEnum.LEAF_FLOW.getType());
                 leafNodes.add(leafNodeInfo);
@@ -588,6 +600,190 @@ public final class IceFileClient {
                 leafNodes.add(leafNodeInfo);
             }
         }
+    }
+
+    private Path getMockDir() {
+        return Paths.get(storagePath, "mock", String.valueOf(app), safeAddress());
+    }
+
+    private void checkMocks() {
+        Path mockDir = getMockDir();
+        if (!Files.exists(mockDir) || !Files.isDirectory(mockDir)) {
+            return;
+        }
+
+        try (java.util.stream.Stream<Path> paths = Files.list(mockDir)) {
+            List<Path> mockFiles = paths
+                    .filter(p -> p.toString().endsWith(IceStorageConstants.SUFFIX_JSON)
+                            && !p.getFileName().toString().endsWith("_result.json"))
+                    .collect(java.util.stream.Collectors.toList());
+            for (Path p : mockFiles) {
+                try {
+                    String content = new String(Files.readAllBytes(p), StandardCharsets.UTF_8);
+                    MockRequest req = JacksonUtils.readJson(content, MockRequest.class);
+                    if (req == null) continue;
+
+                    // Delete request file first to prevent re-execution on crash
+                    Files.deleteIfExists(p);
+
+                    MockResult result = executeMock(req);
+
+                    // Write result file
+                    String resultFileName = req.getMockId() + "_result" + IceStorageConstants.SUFFIX_JSON;
+                    Path resultPath = mockDir.resolve(resultFileName);
+                    Path tmpPath = Paths.get(resultPath.toString() + IceStorageConstants.SUFFIX_TMP);
+                    String resultJson = JacksonUtils.toJsonString(result);
+                    Files.write(tmpPath, resultJson.getBytes(StandardCharsets.UTF_8),
+                            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                    Files.move(tmpPath, resultPath,
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                            java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+
+                    log.info("mock executed mockId:{} success:{}", req.getMockId(), result.isSuccess());
+                } catch (Exception e) {
+                    log.error("failed to process mock file: {}", p, e);
+                }
+            }
+        } catch (IOException e) {
+            log.error("failed to list mock directory", e);
+        }
+    }
+
+    private MockResult executeMock(MockRequest req) {
+        MockResult result = new MockResult();
+        result.setMockId(req.getMockId());
+        result.setExecuteAt(System.currentTimeMillis());
+        IceRoam roam = IceRoam.create();
+
+        try {
+            IceMeta meta = roam.getIceMeta();
+            meta.setId(req.getIceId());
+            meta.setNid(req.getConfId());
+            meta.setScene(req.getScene());
+            meta.setDebug(req.getDebug());
+            if (req.getTs() > 0) {
+                meta.setTs(req.getTs());
+            }
+
+            // Put user roam data
+            if (req.getRoam() != null) {
+                for (Map.Entry<String, Object> entry : req.getRoam().entrySet()) {
+                    roam.put(entry.getKey(), entry.getValue());
+                }
+            }
+
+            // Dispatch using cache directly (same logic as Go executeMock)
+            boolean handled = false;
+            if (meta.getId() > 0 && meta.getNid() > 0) {
+                // Both iceId and confId: get handler by iceId, find confId subtree
+                IceHandler handler = IceHandlerCache.getHandlerById(meta.getId());
+                if (handler != null && handler.getRoot() != null) {
+                    if (meta.getDebug() == 0) {
+                        meta.setDebug(handler.getDebug());
+                    }
+                    BaseNode subtree = findNodeById(handler.getRoot(), meta.getNid());
+                    if (subtree != null) {
+                        IceHandler sub = new IceHandler();
+                        sub.setDebug(meta.getDebug());
+                        sub.setRoot(subtree);
+                        sub.setConfId(meta.getNid());
+                        sub.handleWithNodeId(roam);
+                        handled = true;
+                    }
+                }
+            } else if (meta.getId() > 0) {
+                IceHandler handler = IceHandlerCache.getHandlerById(meta.getId());
+                if (handler != null) {
+                    if (meta.getDebug() == 0) {
+                        meta.setDebug(handler.getDebug());
+                    }
+                    handler.handle(roam);
+                    handled = true;
+                }
+            } else if (meta.getScene() != null && !meta.getScene().isEmpty()) {
+                Map<Long, IceHandler> handlerMap = IceHandlerCache.getHandlersByScene(meta.getScene());
+                if (handlerMap != null && !handlerMap.isEmpty()) {
+                    for (IceHandler handler : handlerMap.values()) {
+                        if (meta.getDebug() == 0) {
+                            meta.setDebug(handler.getDebug());
+                        }
+                        meta.setId(handler.findIceId());
+                        handler.handle(roam);
+                        handled = true;
+                        break; // mock only handles first matching handler
+                    }
+                }
+            } else if (meta.getNid() > 0) {
+                BaseNode root = IceConfCache.getConfById(meta.getNid());
+                if (root != null) {
+                    IceHandler handler = new IceHandler();
+                    handler.setDebug(meta.getDebug());
+                    handler.setRoot(root);
+                    handler.setConfId(meta.getNid());
+                    handler.handleWithNodeId(roam);
+                    handled = true;
+                }
+            }
+
+            if (!handled) {
+                result.setSuccess(false);
+                result.setError("no matching handler found");
+                result.setTrace(roam.getIceTrace());
+                result.setTs(roam.getIceTs());
+                return result;
+            }
+
+            result.setSuccess(true);
+            result.setTrace(roam.getIceTrace());
+            result.setTs(roam.getIceTs());
+            HashMap<String, Object> roamData = new HashMap<>(roam);
+            roamData.remove("_ice");
+            result.setRoam(roamData);
+
+            StringBuilder process = roam.getIceProcess();
+            if (process != null) {
+                result.setProcess(process.toString());
+            }
+        } catch (Exception e) {
+            result.setSuccess(false);
+            result.setError(e.getMessage());
+            result.setTrace(roam.getIceTrace());
+            result.setTs(roam.getIceTs());
+        }
+
+        return result;
+    }
+
+    /**
+     * Walk the tree to find a node by its ID.
+     */
+    private static BaseNode findNodeById(BaseNode node, long id) {
+        if (node == null) {
+            return null;
+        }
+        if (node.getIceNodeId() == id) {
+            return node;
+        }
+        // Check forward
+        if (node.getIceForward() != null) {
+            BaseNode found = findNodeById(node.getIceForward(), id);
+            if (found != null) {
+                return found;
+            }
+        }
+        // Check children (relation nodes)
+        if (node instanceof BaseRelation) {
+            IceLinkedList<BaseNode> children = ((BaseRelation) node).getIceChildren();
+            if (children != null) {
+                for (IceLinkedList.Node<BaseNode> x = children.getFirst(); x != null; x = x.next) {
+                    BaseNode found = findNodeById(x.item, id);
+                    if (found != null) {
+                        return found;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     public String getIceAddress() {

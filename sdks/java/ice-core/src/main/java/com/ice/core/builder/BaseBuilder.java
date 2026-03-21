@@ -16,7 +16,6 @@ public class BaseBuilder {
         if (node.getIceTimeTypeEnum() == null) {
             node.setIceTimeTypeEnum(TimeTypeEnum.NONE);
         }
-        node.setIceNodeDebug(true);
         this.node = node;
     }
 
@@ -54,8 +53,4 @@ public class BaseBuilder {
         return this;
     }
 
-    public BaseBuilder debug() {
-        this.node.setIceNodeDebug(true);
-        return this;
-    }
 }

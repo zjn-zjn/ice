@@ -43,7 +43,7 @@ ice:
 ## API Endpoints
 
 ### POST /test
-Execute ice rules with a custom pack.
+Execute ice rules with a custom roam.
 
 ```bash
 curl -X POST http://localhost:8084/test \

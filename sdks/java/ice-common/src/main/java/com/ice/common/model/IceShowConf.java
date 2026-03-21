@@ -4,19 +4,13 @@ import lombok.Data;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 /**
  * @author waitmoon
  */
 @Data
 public class IceShowConf {
-    private String address;
-    private long confId;
     private int app;
     private long iceId;
-    @Deprecated
-    private Set<String> registerClients;
     private IceShowNode root;
     private Integer updateCount;
     private ClientRegistryInfo clientRegistry;

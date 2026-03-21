@@ -56,7 +56,6 @@ public class IceFileClientTest {
         base.setStatus(IceStorageConstants.STATUS_ONLINE);
         base.setTimeType((byte) 1);
         base.setDebug((byte) 1);
-        base.setPriority(1L);
         base.setCreateAt(System.currentTimeMillis());
         base.setUpdateAt(System.currentTimeMillis());
 
@@ -70,7 +69,7 @@ public class IceFileClientTest {
         conf.setName("test-root");
         conf.setType((byte) 1); // NONE
         conf.setStatus(IceStorageConstants.STATUS_ONLINE);
-        conf.setDebug((byte) 1);
+
         conf.setTimeType((byte) 1);
         conf.setInverse(false);
         conf.setCreateAt(System.currentTimeMillis());
@@ -195,7 +194,7 @@ public class IceFileClientTest {
         newConf.setName("new-conf");
         newConf.setType((byte) 4); // LEAF_FLOW
         newConf.setStatus(IceStorageConstants.STATUS_ONLINE);
-        newConf.setDebug((byte) 1);
+
         newConf.setTimeType((byte) 1);
         newConf.setInverse(false);
         newConf.setCreateAt(System.currentTimeMillis());

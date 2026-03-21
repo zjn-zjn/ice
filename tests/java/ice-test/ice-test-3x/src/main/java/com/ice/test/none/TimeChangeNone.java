@@ -1,8 +1,8 @@
 package com.ice.test.none;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import com.ice.core.context.IcePack;
-import com.ice.core.leaf.pack.BaseLeafPackNone;
+import com.ice.core.context.IceRoam;
+import com.ice.core.leaf.base.BaseLeafNone;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +16,7 @@ import java.time.ZoneId;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public final class TimeChangeNone extends BaseLeafPackNone {
+public final class TimeChangeNone extends BaseLeafNone {
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime time;
@@ -29,15 +29,15 @@ public final class TimeChangeNone extends BaseLeafPackNone {
     /*
      * 叶子节点处理
      *
-     * @param pack 包裹
+     * @param roam 传递roam
      */
     @Override
-    protected void doPackNone(IcePack pack) {
+    protected void doNone(IceRoam roam) {
         if (!"prod".equals(environment)) {
             if (time != null) {
-                pack.setRequestTime(time.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+                roam.getIceMeta().setTs(time.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             } else {
-                pack.setRequestTime(pack.getRequestTime() + cursorMills);
+                roam.getIceMeta().setTs(roam.getIceTs() + cursorMills);
             }
         }
     }

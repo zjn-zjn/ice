@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/waitmoon/ice-server/config"
 	"github.com/waitmoon/ice-server/handler"
@@ -37,27 +42,52 @@ func main() {
 	appHandler := handler.NewAppHandler(appService, serverService)
 	folderHandler := handler.NewFolderHandler(folderService, baseService)
 
+	// Initialize mock service and handler
+	mockService := service.NewMockService(store, clientManager)
+	mockHandler := handler.NewMockHandler(mockService, serverService)
+
 	// Setup routes
 	mux := http.NewServeMux()
 	baseHandler.Register(mux)
 	confHandler.Register(mux)
 	appHandler.Register(mux)
 	folderHandler.Register(mux)
+	mockHandler.Register(mux)
 
 	// SPA file server (catch-all for frontend)
 	spaHandler := NewSPAFileServer()
 	mux.Handle("/", spaHandler)
 
 	// Start scheduler
-	scheduler := service.NewScheduler(cfg, serverService, clientManager)
+	scheduler := service.NewScheduler(cfg, serverService, clientManager, store)
 	scheduler.Start()
 
-	// Start server
+	// Start server with graceful shutdown
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	log.Printf("ice-server starting on %s (storage: %s)", addr, cfg.StoragePath)
 
 	corsHandler := handler.CorsMiddleware(mux)
-	if err := http.ListenAndServe(addr, corsHandler); err != nil {
-		log.Fatalf("server failed: %v", err)
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: corsHandler,
 	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server failed: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("server shutdown error: %v", err)
+	}
+	log.Println("server stopped")
 }

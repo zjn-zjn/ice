@@ -41,8 +41,6 @@ public class IceShowNode {
 
         private Long nodeId;
 
-        private Boolean debug;
-
         private Byte errorState;
 
         private Boolean inverse;

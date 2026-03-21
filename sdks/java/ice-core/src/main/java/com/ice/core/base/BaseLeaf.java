@@ -1,7 +1,7 @@
 package com.ice.core.base;
 
 import com.ice.common.enums.NodeRunStateEnum;
-import com.ice.core.context.IceContext;
+import com.ice.core.context.IceRoam;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -19,12 +19,12 @@ public abstract class BaseLeaf extends BaseNode {
      * @return process result
      */
     @Override
-    protected NodeRunStateEnum processNode(IceContext ctx) {
-        return doLeaf(ctx);
+    protected NodeRunStateEnum processNode(IceRoam roam) {
+        return doLeaf(roam);
     }
 
     /*
      * process leaf
      */
-    protected abstract NodeRunStateEnum doLeaf(IceContext ctx);
+    protected abstract NodeRunStateEnum doLeaf(IceRoam roam);
 }

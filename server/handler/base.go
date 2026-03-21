@@ -2,7 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
+	"strings"
 
 	"github.com/waitmoon/ice-server/model"
 	"github.com/waitmoon/ice-server/service"
@@ -31,7 +33,7 @@ func (h *BaseHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/ice-server/base/import", WrapHandler(h.importData))
 }
 
-func (h *BaseHandler) baseList(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *BaseHandler) baseList(w http.ResponseWriter, r *http.Request) (any, error) {
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -47,7 +49,10 @@ func (h *BaseHandler) baseList(w http.ResponseWriter, r *http.Request) (interfac
 	return h.baseService.BaseList(search)
 }
 
-func (h *BaseHandler) baseCreate(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *BaseHandler) baseCreate(w http.ResponseWriter, r *http.Request) (any, error) {
+	if err := RequirePost(r); err != nil {
+		return nil, err
+	}
 	var body model.IceBaseCreate
 	if err := ReadJSONBody(r, &body); err != nil {
 		return nil, model.InputError("base")
@@ -55,7 +60,10 @@ func (h *BaseHandler) baseCreate(w http.ResponseWriter, r *http.Request) (interf
 	return h.baseService.BaseCreateAtPath(&body.IceBase, body.Path)
 }
 
-func (h *BaseHandler) baseEdit(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *BaseHandler) baseEdit(w http.ResponseWriter, r *http.Request) (any, error) {
+	if err := RequirePost(r); err != nil {
+		return nil, err
+	}
 	var base model.IceBase
 	if err := ReadJSONBody(r, &base); err != nil {
 		return nil, model.InputError("base")
@@ -63,7 +71,10 @@ func (h *BaseHandler) baseEdit(w http.ResponseWriter, r *http.Request) (interfac
 	return h.baseService.BaseEdit(&base)
 }
 
-func (h *BaseHandler) baseDelete(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *BaseHandler) baseDelete(w http.ResponseWriter, r *http.Request) (any, error) {
+	if err := RequirePost(r); err != nil {
+		return nil, err
+	}
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -75,7 +86,10 @@ func (h *BaseHandler) baseDelete(w http.ResponseWriter, r *http.Request) (interf
 	return nil, h.baseService.DeleteBase(app, id)
 }
 
-func (h *BaseHandler) basePush(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *BaseHandler) basePush(w http.ResponseWriter, r *http.Request) (any, error) {
+	if err := RequirePost(r); err != nil {
+		return nil, err
+	}
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -88,7 +102,7 @@ func (h *BaseHandler) basePush(w http.ResponseWriter, r *http.Request) (interfac
 	return h.baseService.Push(app, iceId, reason)
 }
 
-func (h *BaseHandler) history(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *BaseHandler) history(w http.ResponseWriter, r *http.Request) (any, error) {
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -102,7 +116,10 @@ func (h *BaseHandler) history(w http.ResponseWriter, r *http.Request) (interface
 	return h.baseService.History(app, &iceId, pageNum, pageSize)
 }
 
-func (h *BaseHandler) deleteHistory(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *BaseHandler) deleteHistory(w http.ResponseWriter, r *http.Request) (any, error) {
+	if err := RequirePost(r); err != nil {
+		return nil, err
+	}
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -114,7 +131,7 @@ func (h *BaseHandler) deleteHistory(w http.ResponseWriter, r *http.Request) (int
 	return nil, h.baseService.Delete(app, pushId)
 }
 
-func (h *BaseHandler) export(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *BaseHandler) export(w http.ResponseWriter, r *http.Request) (any, error) {
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -131,7 +148,7 @@ func (h *BaseHandler) export(w http.ResponseWriter, r *http.Request) (interface{
 	return &model.WebResult{Ret: 0, Data: data}, nil
 }
 
-func (h *BaseHandler) exportBatch(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *BaseHandler) exportBatch(w http.ResponseWriter, r *http.Request) (any, error) {
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -144,7 +161,10 @@ func (h *BaseHandler) exportBatch(w http.ResponseWriter, r *http.Request) (inter
 	return &model.WebResult{Ret: 0, Data: data}, nil
 }
 
-func (h *BaseHandler) rollback(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (h *BaseHandler) rollback(w http.ResponseWriter, r *http.Request) (any, error) {
+	if err := RequirePost(r); err != nil {
+		return nil, err
+	}
 	app, err := QueryIntRequired(r, "app")
 	if err != nil {
 		return nil, err
@@ -156,17 +176,41 @@ func (h *BaseHandler) rollback(w http.ResponseWriter, r *http.Request) (interfac
 	return nil, h.baseService.Rollback(app, pushId)
 }
 
-func (h *BaseHandler) importData(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	var body map[string]string
-	if err := ReadJSONBody(r, &body); err != nil {
-		return nil, model.InputError("json body")
+func (h *BaseHandler) importData(w http.ResponseWriter, r *http.Request) (any, error) {
+	if err := RequirePost(r); err != nil {
+		return nil, err
 	}
-	jsonStr, ok := body["json"]
-	if !ok {
-		return nil, model.InputError("json field required")
+	// Limit body size to 64MB
+	r.Body = http.MaxBytesReader(w, r.Body, 64<<20)
+	rawBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		return nil, model.InputError("read body")
+	}
+	// Try to extract json field from {"json": "..."} wrapper (legacy format)
+	var jsonStr string
+	var wrapper struct {
+		Json string `json:"json"`
+	}
+	if json.Unmarshal(rawBody, &wrapper) == nil && wrapper.Json != "" {
+		jsonStr = wrapper.Json
+	} else {
+		jsonStr = string(rawBody)
+	}
+	trimmed := strings.TrimSpace(jsonStr)
+	if strings.HasPrefix(trimmed, "[") {
+		var pushDataList []*model.PushData
+		if err := json.Unmarshal([]byte(trimmed), &pushDataList); err != nil {
+			return nil, model.InputError("invalid json array")
+		}
+		for _, pushData := range pushDataList {
+			if err := h.baseService.ImportData(pushData); err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
 	}
 	var pushData model.PushData
-	if err := json.Unmarshal([]byte(jsonStr), &pushData); err != nil {
+	if err := json.Unmarshal([]byte(trimmed), &pushData); err != nil {
 		return nil, model.InputError("invalid json")
 	}
 	return nil, h.baseService.ImportData(&pushData)

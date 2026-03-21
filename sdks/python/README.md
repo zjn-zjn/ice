@@ -19,8 +19,8 @@ from ice import Roam
 @ice.leaf("com.example.ScoreFlow")
 class ScoreFlow:
     threshold: int = 0
-    
-    def do_roam_flow(self, roam: Roam) -> bool:
+
+    def do_flow(self, roam: Roam) -> bool:
         return roam.get_int("score", 0) >= self.threshold
 ```
 
@@ -31,9 +31,10 @@ class ScoreFlow:
 client = ice.FileClient(app=1, storage_path="./ice-data")
 client.start()
 
-pack = ice.Pack(ice_id=1)
-pack.roam.put("score", 85)
-results = ice.sync_process(pack)
+roam = ice.Roam.create()
+roam.get_meta().id = 1
+roam.put("score", 85)
+results = ice.sync_process(roam)
 
 client.destroy()
 ```
@@ -46,11 +47,12 @@ import asyncio
 async def main():
     client = ice.AsyncFileClient(app=1, storage_path="./ice-data")
     await client.start()
-    
-    pack = ice.Pack(ice_id=1)
-    pack.roam.put("score", 85)
-    results = await ice.async_process(pack)
-    
+
+    roam = ice.Roam.create()
+    roam.get_meta().id = 1
+    roam.put("score", 85)
+    results = await ice.async_process(roam)
+
     await client.destroy()
 
 asyncio.run(main())
@@ -59,19 +61,13 @@ asyncio.run(main())
 ## 叶子节点类型
 
 ### Flow 类型（返回 True/False）
-- `do_flow(ctx: Context) -> bool`
-- `do_pack_flow(pack: Pack) -> bool`
-- `do_roam_flow(roam: Roam) -> bool`
+- `do_flow(roam: Roam) -> bool`
 
 ### Result 类型（返回 True/False）
-- `do_result(ctx: Context) -> bool`
-- `do_pack_result(pack: Pack) -> bool`
-- `do_roam_result(roam: Roam) -> bool`
+- `do_result(roam: Roam) -> bool`
 
 ### None 类型（无返回值）
-- `do_none(ctx: Context) -> None`
-- `do_pack_none(pack: Pack) -> None`
-- `do_roam_none(roam: Roam) -> None`
+- `do_none(roam: Roam) -> None`
 
 ## 版本要求
 

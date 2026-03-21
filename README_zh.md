@@ -82,10 +82,10 @@ docker run -d --name ice-server -p 8121:8121 \
 IceFileClient client = new IceFileClient(1, "./ice-data", "com.your.package");
 client.start();
 
-IcePack pack = new IcePack();
-pack.setIceId(1L);
-pack.setRoam(new IceRoam().put("uid", 12345));
-Ice.syncProcess(pack);
+IceRoam roam = IceRoam.create();
+roam.getIceMeta().setId(1L);
+roam.put("uid", 12345);
+Ice.syncProcess(roam);
 ```
 
 </details>
@@ -107,9 +107,10 @@ func main() {
     client.Start()
     defer client.Destroy()
 
-    pack := ice.NewPack().SetIceId(1)
-    pack.Roam.Put("uid", 12345)
-    ice.SyncProcess(context.Background(), pack)
+    roam := ice.NewRoamWithMeta()
+    roam.GetMeta().Id = 1
+    roam.Put("uid", 12345)
+    ice.SyncProcess(context.Background(), roam)
 }
 ```
 
@@ -130,9 +131,10 @@ import ice
 client = ice.FileClient(app=1, storage_path="./ice-data")
 client.start()
 
-pack = ice.Pack(ice_id=1)
-pack.roam.put("uid", 12345)
-ice.sync_process(pack)
+roam = ice.Roam.create()
+roam.get_meta().id = 1
+roam.put("uid", 12345)
+ice.sync_process(roam)
 ```
 
 </details>

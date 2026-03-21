@@ -101,7 +101,7 @@ func (as *AppService) AppList(pageNum, pageSize int, name string, appId *int) (*
 		end = total
 	}
 
-	var list interface{}
+	var list any
 	if start < total {
 		list = filtered[start:end]
 	} else {

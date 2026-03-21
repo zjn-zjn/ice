@@ -4,6 +4,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -13,11 +14,15 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/zjn-zjn/ice/sdks/go/cache"
+	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
 	"github.com/zjn-zjn/ice/sdks/go/dto"
+	"github.com/zjn-zjn/ice/sdks/go/handler"
 	"github.com/zjn-zjn/ice/sdks/go/internal/executor"
 	"github.com/zjn-zjn/ice/sdks/go/internal/uuid"
 	"github.com/zjn-zjn/ice/sdks/go/leaf"
 	"github.com/zjn-zjn/ice/sdks/go/log"
+	icenode "github.com/zjn-zjn/ice/sdks/go/node"
 )
 
 const (
@@ -26,16 +31,20 @@ const (
 	dirVersions = "versions"
 	dirClients  = "clients"
 	dirLane     = "lane"
+	dirMock     = "mock"
 
 	fileVersion = "version.txt"
 	suffixJSON  = ".json"
 	suffixUpd   = "_upd.json"
-	suffixTmp   = ".tmp"
+	suffixTmp = ".tmp"
+
+	prefixMeta = "m_"
+	prefixBeat = "b_"
 
 	statusDeleted byte = 255 // -1 as byte
 
-	defaultPollInterval      = 5 * time.Second
-	defaultHeartbeatInterval = 30 * time.Second
+	defaultPollInterval      = 2 * time.Second
+	defaultHeartbeatInterval = 10 * time.Second
 )
 
 // FileClient is a file-based ice client.
@@ -49,6 +58,7 @@ type FileClient struct {
 	lane              string
 	leafNodes         []dto.LeafNodeInfo
 	loadedVersion     atomic.Int64
+	startTime         int64
 	started           atomic.Bool
 	destroy           atomic.Bool
 	stopCh            chan struct{}
@@ -105,6 +115,7 @@ func (c *FileClient) Start() error {
 	}
 
 	ctx := context.Background()
+	c.startTime = time.Now().UnixMilli()
 	startTime := time.Now()
 
 	// Ensure directories exist
@@ -122,13 +133,9 @@ func (c *FileClient) Start() error {
 		log.Warn(ctx, "failed to register client", "error", err)
 	}
 
-	// Start version poller
+	// Start version poller (heartbeat is merged into poller via counter)
 	c.wg.Add(1)
 	go c.versionPoller()
-
-	// Start heartbeat
-	c.wg.Add(1)
-	go c.heartbeat()
 
 	c.started.Store(true)
 	log.Info(ctx, "ice file client started", "app", c.app, "address", c.address,
@@ -266,6 +273,12 @@ func (c *FileClient) versionPoller() {
 	ticker := time.NewTicker(c.pollInterval)
 	defer ticker.Stop()
 
+	heartbeatTicks := int(c.heartbeatInterval / c.pollInterval)
+	if heartbeatTicks < 1 {
+		heartbeatTicks = 1
+	}
+	tickCount := 0
+
 	for {
 		select {
 		case <-c.stopCh:
@@ -273,6 +286,12 @@ func (c *FileClient) versionPoller() {
 		case <-ticker.C:
 			if err := c.checkAndUpdateVersion(ctx); err != nil {
 				log.Error(ctx, "version poll error", "error", err)
+			}
+			c.checkMocks(ctx)
+			tickCount++
+			if tickCount >= heartbeatTicks {
+				tickCount = 0
+				c.updateHeartbeat()
 			}
 		}
 	}
@@ -359,120 +378,280 @@ func (c *FileClient) loadIncrementalUpdates(ctx context.Context, targetVersion i
 	return nil
 }
 
-func (c *FileClient) heartbeat() {
-	defer c.wg.Done()
-	ticker := time.NewTicker(c.heartbeatInterval)
-	defer ticker.Stop()
+func (c *FileClient) safeAddress() string {
+	s := strings.ReplaceAll(c.address, ":", "_")
+	return strings.ReplaceAll(s, "/", "_")
+}
 
-	for {
-		select {
-		case <-c.stopCh:
-			return
-		case <-ticker.C:
-			c.updateHeartbeat()
-		}
-	}
+func (c *FileClient) metaFilePath() string {
+	return filepath.Join(c.getClientsDir(), prefixMeta+c.safeAddress()+suffixJSON)
+}
+
+func (c *FileClient) beatFilePath() string {
+	return filepath.Join(c.getClientsDir(), prefixBeat+c.safeAddress()+suffixJSON)
 }
 
 func (c *FileClient) registerClient() error {
+	clientsDir := c.getClientsDir()
+	if err := os.MkdirAll(clientsDir, 0755); err != nil {
+		return err
+	}
+
 	clientInfo := &dto.ClientInfo{
 		Address:       c.address,
 		App:           c.app,
 		Lane:          c.lane,
 		LeafNodes:     c.leafNodes,
 		LastHeartbeat: time.Now().UnixMilli(),
-		StartTime:     time.Now().UnixMilli(),
+		StartTime:     c.startTime,
 		LoadedVersion: c.loadedVersion.Load(),
 	}
-	if err := c.writeClientInfo(clientInfo); err != nil {
+
+	// Write m_{addr}.json (full info with leafNodes)
+	if err := c.writeJsonFile(c.metaFilePath(), clientInfo); err != nil {
 		return err
 	}
-	// Overwrite _latest.json on each registration, server reads leaf node structure from here
+	// Write b_{addr}.json (heartbeat)
+	if err := c.writeBeatFile(); err != nil {
+		return err
+	}
+	// Overwrite _latest.json on each registration
 	if len(c.leafNodes) > 0 {
-		_ = c.writeLatestInfo(clientInfo)
+		_ = c.writeJsonFile(filepath.Join(clientsDir, "_latest.json"), clientInfo)
 	}
 	return nil
 }
 
-func (c *FileClient) writeLatestInfo(clientInfo *dto.ClientInfo) error {
-	latestPath := filepath.Join(c.getClientsDir(), "_latest.json")
-	data, err := json.Marshal(clientInfo)
-	if err != nil {
-		return err
-	}
-	tmpPath := latestPath + suffixTmp
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
-		return err
-	}
-	return os.Rename(tmpPath, latestPath)
-}
-
 func (c *FileClient) unregisterClient() {
-	clientPath := c.getClientFilePath()
-	_ = os.Remove(clientPath)
+	// Delete mock directory first, then m_, then b_ last
+	os.RemoveAll(c.getMockDir())
+	os.Remove(c.metaFilePath())
+	os.Remove(c.beatFilePath())
 	log.Info(context.Background(), "ice client unregistered", "address", c.address)
 }
 
-func (c *FileClient) writeClientInfo(clientInfo *dto.ClientInfo) error {
-	clientPath := c.getClientFilePath()
-	dir := filepath.Dir(clientPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	data, err := json.Marshal(clientInfo)
+func (c *FileClient) writeJsonFile(path string, v any) error {
+	data, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
-
-	tmpPath := clientPath + suffixTmp
+	tmpPath := path + suffixTmp
 	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
 		return err
 	}
-
-	return os.Rename(tmpPath, clientPath)
+	return os.Rename(tmpPath, path)
 }
 
-func (c *FileClient) getClientFilePath() string {
-	safeAddress := strings.ReplaceAll(c.address, ":", "_")
-	safeAddress = strings.ReplaceAll(safeAddress, "/", "_")
-	return filepath.Join(c.getClientsDir(), safeAddress+suffixJSON)
+func (c *FileClient) writeBeatFile() error {
+	hb := map[string]int64{
+		"lastHeartbeat": time.Now().UnixMilli(),
+		"loadedVersion": c.loadedVersion.Load(),
+	}
+	return c.writeJsonFile(c.beatFilePath(), hb)
 }
 
 func (c *FileClient) updateClientVersion() {
-	clientPath := c.getClientFilePath()
-	data, err := os.ReadFile(clientPath)
-	if err != nil {
-		return
-	}
-
-	var clientInfo dto.ClientInfo
-	if err := json.Unmarshal(data, &clientInfo); err != nil {
-		return
-	}
-
-	clientInfo.LoadedVersion = c.loadedVersion.Load()
-	clientInfo.LastHeartbeat = time.Now().UnixMilli()
-	_ = c.writeClientInfo(&clientInfo)
+	_ = c.writeBeatFile()
 }
 
 func (c *FileClient) updateHeartbeat() {
-	clientPath := c.getClientFilePath()
-	data, err := os.ReadFile(clientPath)
+	if _, err := os.Stat(c.metaFilePath()); os.IsNotExist(err) {
+		_ = c.registerClient()
+		return
+	}
+	_ = c.writeBeatFile()
+}
+
+func (c *FileClient) getMockDir() string {
+	safeAddr := strings.ReplaceAll(c.address, ":", "_")
+	safeAddr = strings.ReplaceAll(safeAddr, "/", "_")
+	return filepath.Join(c.storagePath, dirMock, strconv.Itoa(c.app), safeAddr)
+}
+
+func (c *FileClient) checkMocks(ctx context.Context) {
+	mockDir := c.getMockDir()
+	entries, err := os.ReadDir(mockDir)
 	if err != nil {
-		if os.IsNotExist(err) {
-			_ = c.registerClient()
+		return // directory doesn't exist or can't be read
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
 		}
-		return
+		name := entry.Name()
+		if !strings.HasSuffix(name, suffixJSON) || strings.HasSuffix(name, "_result"+suffixJSON) {
+			continue
+		}
+
+		filePath := filepath.Join(mockDir, name)
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			continue
+		}
+
+		var req dto.MockRequest
+		if err := json.Unmarshal(data, &req); err != nil {
+			log.Warn(ctx, "failed to parse mock request", "file", name, "error", err)
+			continue
+		}
+
+		// Delete request file first to prevent re-execution on crash
+		os.Remove(filePath)
+
+		result := c.executeMock(ctx, &req)
+
+		// Write result file
+		resultPath := filepath.Join(mockDir, req.MockId+"_result"+suffixJSON)
+		resultData, err := json.Marshal(result)
+		if err != nil {
+			log.Error(ctx, "failed to marshal mock result", "mockId", req.MockId, "error", err)
+			continue
+		}
+		tmpPath := resultPath + suffixTmp
+		if err := os.WriteFile(tmpPath, resultData, 0644); err != nil {
+			log.Error(ctx, "failed to write mock result", "mockId", req.MockId, "error", err)
+			continue
+		}
+		os.Rename(tmpPath, resultPath)
+
+		log.Info(ctx, "mock executed", "mockId", req.MockId, "success", result.Success)
+	}
+}
+
+func (c *FileClient) executeMock(ctx context.Context, req *dto.MockRequest) *dto.MockResult {
+	result := &dto.MockResult{
+		MockId:    req.MockId,
+		ExecuteAt: time.Now().UnixMilli(),
 	}
 
-	var clientInfo dto.ClientInfo
-	if err := json.Unmarshal(data, &clientInfo); err != nil {
-		return
+	// Build roam with meta
+	roam := icecontext.NewRoamWithMeta()
+
+	defer func() {
+		if r := recover(); r != nil {
+			result.Success = false
+			result.Error = fmt.Sprintf("panic: %v", r)
+			result.Trace = roam.GetIceTrace()
+			result.Ts = roam.GetIceTs()
+		}
+	}()
+	meta := roam.GetMeta()
+	meta.Id = req.IceId
+	meta.Nid = req.ConfId
+	meta.Scene = req.Scene
+	meta.Debug = req.Debug
+	if req.Ts > 0 {
+		meta.Ts = req.Ts
 	}
 
-	clientInfo.LastHeartbeat = time.Now().UnixMilli()
-	_ = c.writeClientInfo(&clientInfo)
+	// Put user roam data
+	roam.PutAll(req.Roam)
+
+	// Dispatch using cache directly (same logic as syncDispatcher)
+	var handled bool
+	if meta.Id > 0 && meta.Nid > 0 {
+		// Both iceId and confId: get handler by iceId, find confId subtree
+		h := cache.GetHandlerById(meta.Id)
+		if h != nil && h.Root != nil {
+			if meta.Debug == 0 {
+				meta.Debug = h.Debug
+			}
+			subtree := findNodeById(h.Root, meta.Nid)
+			if subtree != nil {
+				sub := &handler.Handler{
+					Debug:  meta.Debug,
+					Root:   subtree,
+					ConfId: meta.Nid,
+				}
+				sub.HandleWithNodeId(ctx, roam)
+				handled = true
+			}
+		}
+	} else if meta.Id > 0 {
+		h := cache.GetHandlerById(meta.Id)
+		if h != nil {
+			if meta.Debug == 0 {
+				meta.Debug = h.Debug
+			}
+			h.Handle(ctx, roam)
+			handled = true
+		}
+	} else if meta.Scene != "" {
+		handlerMap := cache.GetHandlersByScene(meta.Scene)
+		if len(handlerMap) > 0 {
+			for _, h := range handlerMap {
+				if meta.Debug == 0 {
+					meta.Debug = h.Debug
+				}
+				meta.Id = h.IceId
+				h.Handle(ctx, roam)
+				handled = true
+				break // mock only handles first matching handler
+			}
+		}
+	} else if meta.Nid > 0 {
+		root := cache.GetConfById(meta.Nid)
+		if root != nil {
+			h := &handler.Handler{
+				Debug:  meta.Debug,
+				Root:   root,
+				ConfId: meta.Nid,
+			}
+			h.HandleWithNodeId(ctx, roam)
+			handled = true
+		}
+	}
+
+	if !handled {
+		result.Success = false
+		result.Error = "no matching handler found"
+		result.Trace = roam.GetIceTrace()
+		result.Ts = roam.GetIceTs()
+		return result
+	}
+
+	result.Success = true
+	result.Trace = roam.GetIceTrace()
+	result.Ts = roam.GetIceTs()
+	roamData := roam.Data()
+	delete(roamData, "_ice")
+	result.Roam = roamData
+	if proc := roam.GetIceProcess(); proc != nil {
+		result.Process = proc.String()
+	}
+
+	return result
+}
+
+// findNodeById walks the tree to find a node by its ID.
+func findNodeById(n icenode.Node, id int64) icenode.Node {
+	if n == nil {
+		return nil
+	}
+	if n.GetNodeId() == id {
+		return n
+	}
+	// Check forward
+	if ba, ok := n.(icenode.BaseAccessor); ok {
+		if fw := ba.GetForward(); fw != nil {
+			if found := findNodeById(fw, id); found != nil {
+				return found
+			}
+		}
+	}
+	// Check children (relation nodes)
+	if rel, ok := n.(icenode.RelationNode); ok {
+		children := rel.GetChildren()
+		if children != nil {
+			for x := children.First(); x != nil; x = x.Next {
+				if found := findNodeById(x.Item, id); found != nil {
+					return found
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func getAddress(app int) string {

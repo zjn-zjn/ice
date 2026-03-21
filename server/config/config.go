@@ -21,7 +21,7 @@ func Load() *Config {
 	cfg := &Config{
 		Port:               8121,
 		StoragePath:        "./ice-data",
-		ClientTimeout:      60 * time.Second,
+		ClientTimeout:      30 * time.Second,
 		VersionRetention:   1000,
 		RecycleCron:        "0 3 * * *",
 		RecycleWay:         "hard",
@@ -36,7 +36,7 @@ func Load() *Config {
 	flag.IntVar(&cfg.RecycleProtectDays, "recycle-protect-days", cfg.RecycleProtectDays, "recycle protect days")
 
 	var clientTimeoutSec int
-	flag.IntVar(&clientTimeoutSec, "client-timeout", 60, "client timeout in seconds")
+	flag.IntVar(&clientTimeoutSec, "client-timeout", 30, "client timeout in seconds")
 	flag.Parse()
 
 	cfg.ClientTimeout = time.Duration(clientTimeoutSec) * time.Second

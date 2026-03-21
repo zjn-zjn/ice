@@ -5,7 +5,7 @@ import com.ice.core.base.BaseNode;
 
 /**
  * @author waitmoon
- * process info assemlby
+ * process info assembly
  */
 public final class ProcessUtils {
 
@@ -25,30 +25,28 @@ public final class ProcessUtils {
      * 1.-I inverse active
      */
     public static void collectInfo(StringBuilder sb, BaseNode node, long start, NodeRunStateEnum stateEnum) {
-        if (node.isIceNodeDebug()) {
-            char state;
-            switch (stateEnum) {
-                case FALSE:
-                    state = 'F';
-                    break;
-                case TRUE:
-                    state = 'T';
-                    break;
-                case NONE:
-                    state = 'N';
-                    break;
-                case SHUT_DOWN:
-                    state = 'S';
-                    break;
-                default:
-                    state = '?';
-                    break;
-            }
-            synchronized (sb) {
-                sb.append('[').append(node.findIceNodeId()).append(':').append(node.getIceLogName()).append(':')
-                        .append(state).append(node.isIceInverse() ? "-I:" : ':').append(System.currentTimeMillis() - start)
-                        .append(']');
-            }
+        char state;
+        switch (stateEnum) {
+            case FALSE:
+                state = 'F';
+                break;
+            case TRUE:
+                state = 'T';
+                break;
+            case NONE:
+                state = 'N';
+                break;
+            case SHUT_DOWN:
+                state = 'S';
+                break;
+            default:
+                state = '?';
+                break;
+        }
+        synchronized (sb) {
+            sb.append('[').append(node.findIceNodeId()).append(':').append(node.getIceLogName()).append(':')
+                    .append(state).append(node.isIceInverse() ? "-I:" : ':').append(System.currentTimeMillis() - start)
+                    .append(']');
         }
     }
 
@@ -56,11 +54,9 @@ public final class ProcessUtils {
      * [iceNodeId:process class name:process return]
      */
     public static void collectInfo(StringBuilder sb, BaseNode node, char state) {
-        if (node.isIceNodeDebug()) {
-            synchronized (sb) {
-                sb.append('[').append(node.findIceNodeId()).append(':').append(node.getIceLogName()).append(':')
-                        .append(state).append(']');
-            }
+        synchronized (sb) {
+            sb.append('[').append(node.findIceNodeId()).append(':').append(node.getIceLogName()).append(':')
+                    .append(state).append(']');
         }
     }
 
@@ -68,12 +64,9 @@ public final class ProcessUtils {
      * reject info
      */
     public static void collectRejectInfo(StringBuilder sb, BaseNode node) {
-        if (node.isIceNodeDebug()) {
-            synchronized (sb) {
-                sb.append('[').append(node.findIceNodeId()).append(':').append(node.getIceLogName()).append(':')
-                        .append("R-F").append(']');
-            }
+        synchronized (sb) {
+            sb.append('[').append(node.findIceNodeId()).append(':').append(node.getIceLogName()).append(':')
+                    .append("R-F").append(']');
         }
     }
 }
-

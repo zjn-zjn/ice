@@ -78,8 +78,6 @@ def insert_or_update_handlers(bases: list[BaseDto]) -> list[str]:
             handler.start = base_dto.start
             handler.end = base_dto.end
             handler.debug = base_dto.debug
-            handler.priority = base_dto.priority
-            
             conf_id = base_dto.confId
             if conf_id != 0:
                 root = get_conf(conf_id)

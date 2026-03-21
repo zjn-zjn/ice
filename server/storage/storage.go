@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/waitmoon/ice-server/model"
 )
@@ -665,12 +666,43 @@ func safeAddress(address string) string {
 	return r.Replace(address)
 }
 
+const (
+	prefixMeta = "m_"
+	prefixBeat = "b_"
+)
+
+func clientMetaFile(address string) string {
+	return prefixMeta + safeAddress(address) + SuffixJson
+}
+
+func clientBeatFile(address string) string {
+	return prefixBeat + safeAddress(address) + SuffixJson
+}
+
+// addressFromMetaFile extracts address from "m_{safeAddr}.json".
+func addressFromMetaFile(name string) string {
+	return name[len(prefixMeta) : len(name)-len(SuffixJson)]
+}
+
+// addressFromBeatFile extracts address from "b_{safeAddr}.json".
+func addressFromBeatFile(name string) string {
+	return name[len(prefixBeat) : len(name)-len(SuffixJson)]
+}
+
 func (s *Storage) SaveClient(client *model.IceClientInfo) error {
 	clientsDir := s.resolveClientsDir(client.App, client.Lane)
 	os.MkdirAll(clientsDir, 0755)
 
-	path := filepath.Join(clientsDir, safeAddress(client.Address)+SuffixJson)
-	if err := writeJsonFile(path, client); err != nil {
+	// Write m_{addr}.json (full info with leafNodes)
+	if err := writeJsonFile(filepath.Join(clientsDir, clientMetaFile(client.Address)), client); err != nil {
+		return err
+	}
+	// Write b_{addr}.json (heartbeat)
+	hb := &model.ClientHeartbeat{
+		LastHeartbeat: client.LastHeartbeat,
+		LoadedVersion: client.LoadedVersion,
+	}
+	if err := writeJsonFile(filepath.Join(clientsDir, clientBeatFile(client.Address)), hb); err != nil {
 		return err
 	}
 
@@ -688,16 +720,21 @@ func (s *Storage) GetLatestClient(app int, lane string) (*model.IceClientInfo, e
 	return ReadJsonFileTyped[model.IceClientInfo](path)
 }
 
-func (s *Storage) UpdateLatestClient(app int, lane string, client *model.IceClientInfo) error {
-	if client == nil {
-		return nil
-	}
+func (s *Storage) UpdateLatestClient(app int, lane string, activeAddress string) error {
 	clientsDir := s.resolveClientsDir(app, lane)
 	os.MkdirAll(clientsDir, 0755)
 	path := filepath.Join(clientsDir, latestClient)
-	return writeJsonFile(path, client)
+
+	// Read m_ file from the active client to get leafNodes
+	meta, _ := ReadJsonFileTyped[model.IceClientInfo](filepath.Join(clientsDir, clientMetaFile(activeAddress)))
+	if meta != nil && len(meta.LeafNodes) > 0 {
+		return writeJsonFile(path, meta)
+	}
+	// No leafNodes in active client's meta, preserve existing _latest.json
+	return nil
 }
 
+// ListClients reads all m_ files (no heartbeat merge needed for list view).
 func (s *Storage) ListClients(app int, lane string) ([]*model.IceClientInfo, error) {
 	clientsDir := s.resolveClientsDir(app, lane)
 	if _, err := os.Stat(clientsDir); os.IsNotExist(err) {
@@ -711,14 +748,11 @@ func (s *Storage) ListClients(app int, lane string) ([]*model.IceClientInfo, err
 
 	var result []*model.IceClientInfo
 	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), SuffixJson) || e.Name() == latestClient {
+		name := e.Name()
+		if e.IsDir() || !strings.HasPrefix(name, prefixMeta) {
 			continue
 		}
-		client, err := ReadJsonFileTyped[model.IceClientInfo](filepath.Join(clientsDir, e.Name()))
-		if err != nil {
-			log.Printf("failed to read client file: %s: %v", e.Name(), err)
-			continue
-		}
+		client, _ := ReadJsonFileTyped[model.IceClientInfo](filepath.Join(clientsDir, name))
 		if client != nil {
 			result = append(result, client)
 		}
@@ -737,7 +771,7 @@ func (s *Storage) CountClients(app int, lane string) (int, error) {
 	}
 	count := 0
 	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), SuffixJson) && e.Name() != latestClient {
+		if !e.IsDir() && strings.HasPrefix(e.Name(), prefixMeta) {
 			count++
 		}
 	}
@@ -745,44 +779,83 @@ func (s *Storage) CountClients(app int, lane string) (int, error) {
 }
 
 func (s *Storage) GetClient(app int, lane, address string) (*model.IceClientInfo, error) {
-	path := filepath.Join(s.resolveClientsDir(app, lane), safeAddress(address)+SuffixJson)
-	return ReadJsonFileTyped[model.IceClientInfo](path)
+	clientsDir := s.resolveClientsDir(app, lane)
+	meta, err := ReadJsonFileTyped[model.IceClientInfo](filepath.Join(clientsDir, clientMetaFile(address)))
+	if err != nil || meta == nil {
+		return nil, err
+	}
+	// Merge heartbeat data
+	hb, _ := ReadJsonFileTyped[model.ClientHeartbeat](filepath.Join(clientsDir, clientBeatFile(address)))
+	if hb != nil {
+		meta.LastHeartbeat = hb.LastHeartbeat
+		meta.LoadedVersion = hb.LoadedVersion
+	}
+	return meta, nil
 }
 
-func (s *Storage) FindFirstActiveClientWithLeafNodes(app int, lane string, timeoutMs int64) (*model.IceClientInfo, error) {
+// FindFirstActiveClient scans b_ files for an active client, returns its address.
+func (s *Storage) FindFirstActiveClient(app int, lane string, timeoutMs int64) (string, error) {
 	clientsDir := s.resolveClientsDir(app, lane)
 	if _, err := os.Stat(clientsDir); os.IsNotExist(err) {
-		return nil, nil
+		return "", nil
 	}
 
 	now := model.TimeNowMs()
 	entries, err := os.ReadDir(clientsDir)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), SuffixJson) || e.Name() == latestClient {
+		name := e.Name()
+		if e.IsDir() || !strings.HasPrefix(name, prefixBeat) {
 			continue
 		}
-		client, err := ReadJsonFileTyped[model.IceClientInfo](filepath.Join(clientsDir, e.Name()))
-		if err != nil || client == nil {
+		hb, _ := ReadJsonFileTyped[model.ClientHeartbeat](filepath.Join(clientsDir, name))
+		if hb == nil || hb.LastHeartbeat == nil {
 			continue
 		}
-		if client.LastHeartbeat != nil && (now-*client.LastHeartbeat) < timeoutMs && len(client.LeafNodes) > 0 {
-			return client, nil
+		if (now - *hb.LastHeartbeat) < timeoutMs {
+			return addressFromBeatFile(name), nil
 		}
 	}
-	return nil, nil
+	return "", nil
 }
 
 func (s *Storage) DeleteClient(app int, lane, address string) error {
-	path := filepath.Join(s.resolveClientsDir(app, lane), safeAddress(address)+SuffixJson)
-	err := os.Remove(path)
-	if err != nil && os.IsNotExist(err) {
-		return nil
+	// Delete mock directory first (prevent new mock requests to this address)
+	mockDir := s.MockDir(app, address)
+	os.RemoveAll(mockDir)
+	// Delete m_ before b_ (b_ is what server uses to determine active status)
+	clientsDir := s.resolveClientsDir(app, lane)
+	os.Remove(filepath.Join(clientsDir, clientMetaFile(address)))
+	os.Remove(filepath.Join(clientsDir, clientBeatFile(address)))
+	return nil
+}
+
+// ListClientBeats scans b_ files and returns address→heartbeat map (for cleanup).
+func (s *Storage) ListClientBeats(app int, lane string) (map[string]*model.ClientHeartbeat, error) {
+	clientsDir := s.resolveClientsDir(app, lane)
+	if _, err := os.Stat(clientsDir); os.IsNotExist(err) {
+		return nil, nil
 	}
-	return err
+	entries, err := os.ReadDir(clientsDir)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]*model.ClientHeartbeat)
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() || !strings.HasPrefix(name, prefixBeat) {
+			continue
+		}
+		addr := addressFromBeatFile(name)
+		hb, _ := ReadJsonFileTyped[model.ClientHeartbeat](filepath.Join(clientsDir, name))
+		if hb != nil {
+			result[addr] = hb
+		}
+	}
+	return result, nil
 }
 
 // ==================== Lane Operations ====================
@@ -847,7 +920,7 @@ func (s *Storage) EnsureAppDirectories(app int) {
 	}
 }
 
-func writeJsonFile(path string, data interface{}) error {
+func writeJsonFile(path string, data any) error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -873,6 +946,140 @@ func ReadJsonFileTyped[T any](path string) (*T, error) {
 		return nil, err
 	}
 	return &result, nil
+}
+
+// ==================== Mock Operations ====================
+
+const dirMock = "mock"
+
+// MockDir returns the directory for mock files of a specific app and client address.
+func (s *Storage) MockDir(app int, address string) string {
+	return filepath.Join(s.basePath, dirMock, strconv.Itoa(app), safeAddress(address))
+}
+
+// WriteMockRequest atomically writes a mock request file.
+func (s *Storage) WriteMockRequest(app int, address string, req *model.MockRequest) error {
+	dir := s.MockDir(app, address)
+	os.MkdirAll(dir, 0755)
+	path := filepath.Join(dir, req.MockId+SuffixJson)
+	return writeJsonFile(path, req)
+}
+
+// ReadMockResult reads a mock result file.
+func (s *Storage) ReadMockResult(app int, address string, mockId string) (*model.MockResult, error) {
+	path := filepath.Join(s.MockDir(app, address), mockId+"_result"+SuffixJson)
+	return ReadJsonFileTyped[model.MockResult](path)
+}
+
+// DeleteMockFile deletes a mock file by path.
+func (s *Storage) DeleteMockFile(path string) error {
+	err := os.Remove(path)
+	if err != nil && os.IsNotExist(err) {
+		return nil
+	}
+	return err
+}
+
+// CleanStaleMocks removes mock request and result files older than maxAge.
+func (s *Storage) CleanStaleMocks(maxAge time.Duration) error {
+	mockRoot := filepath.Join(s.basePath, dirMock)
+	if _, err := os.Stat(mockRoot); os.IsNotExist(err) {
+		return nil
+	}
+
+	now := time.Now().UnixMilli()
+	maxAgeMs := maxAge.Milliseconds()
+
+	if err := filepath.WalkDir(mockRoot, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return nil
+		}
+		if !strings.HasSuffix(d.Name(), SuffixJson) {
+			return nil
+		}
+
+		data, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return nil
+		}
+
+		// Try to extract createAt from the file
+		var raw struct {
+			CreateAt int64 `json:"createAt"`
+		}
+		if json.Unmarshal(data, &raw) != nil {
+			return nil
+		}
+
+		// For result files, use executeAt as fallback
+		if raw.CreateAt == 0 {
+			var rawResult struct {
+				ExecuteAt int64 `json:"executeAt"`
+			}
+			if json.Unmarshal(data, &rawResult) == nil && rawResult.ExecuteAt > 0 {
+				raw.CreateAt = rawResult.ExecuteAt
+			}
+		}
+
+		if raw.CreateAt > 0 && (now-raw.CreateAt) > maxAgeMs {
+			os.Remove(path)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	// Clean up mock address directories: remove if empty or client offline
+	appDirs, _ := os.ReadDir(mockRoot)
+	for _, appDir := range appDirs {
+		if !appDir.IsDir() {
+			continue
+		}
+		appPath := filepath.Join(mockRoot, appDir.Name())
+		addrDirs, _ := os.ReadDir(appPath)
+		for _, addrDir := range addrDirs {
+			if !addrDir.IsDir() {
+				continue
+			}
+			addrPath := filepath.Join(appPath, addrDir.Name())
+			safeAddr := addrDir.Name()
+			beatFile := prefixBeat + safeAddr + SuffixJson
+
+			entries, _ := os.ReadDir(addrPath)
+			if len(entries) == 0 {
+				os.Remove(addrPath)
+				continue
+			}
+
+			// If no b_ file exists for this address, client is gone — remove entire mock dir
+			if !s.clientBeatExists(appDir.Name(), beatFile) {
+				os.RemoveAll(addrPath)
+			}
+		}
+	}
+	return nil
+}
+
+// clientBeatExists checks if b_{safeAddr}.json exists in trunk or any lane.
+func (s *Storage) clientBeatExists(appStr, beatFile string) bool {
+	// Check trunk
+	trunkBeat := filepath.Join(s.basePath, dirClients, appStr, beatFile)
+	if _, err := os.Stat(trunkBeat); err == nil {
+		return true
+	}
+	// Check lanes
+	laneDir := filepath.Join(s.basePath, dirClients, appStr, dirLane)
+	lanes, _ := os.ReadDir(laneDir)
+	for _, lane := range lanes {
+		if !lane.IsDir() {
+			continue
+		}
+		laneBeat := filepath.Join(laneDir, lane.Name(), beatFile)
+		if _, err := os.Stat(laneBeat); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func listJsonFiles[T any](dir string) ([]*T, error) {

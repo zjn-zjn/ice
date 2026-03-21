@@ -5,7 +5,7 @@ import com.ice.common.exception.NodeException;
 import com.ice.common.model.Pair;
 import com.ice.core.base.BaseNode;
 import com.ice.core.base.BaseRelation;
-import com.ice.core.context.IceContext;
+import com.ice.core.context.IceRoam;
 import com.ice.core.utils.IceExecutor;
 import com.ice.core.utils.IceLinkedList;
 
@@ -24,7 +24,7 @@ public final class ParallelTrue extends BaseRelation {
      * process relation true
      */
     @Override
-    protected NodeRunStateEnum processNode(IceContext ctx) {
+    protected NodeRunStateEnum processNode(IceRoam roam) {
         IceLinkedList<BaseNode> children = this.getIceChildren();
         if (children == null || children.isEmpty()) {
             return NodeRunStateEnum.TRUE;
@@ -34,13 +34,13 @@ public final class ParallelTrue extends BaseRelation {
             if (node == null) {
                 return NodeRunStateEnum.TRUE;
             }
-            return node.process(ctx);
+            return node.process(roam);
         }
         List<Pair<Long, Future<?>>> futurePairs = new LinkedList<>();
         for (IceLinkedList.Node<BaseNode> listNode = children.getFirst(); listNode != null; listNode = listNode.next) {
             BaseNode node = listNode.item;
             if (node != null) {
-                futurePairs.add(new Pair<>(node.findIceNodeId(), IceExecutor.submitNodeRunnable(node, ctx)));
+                futurePairs.add(new Pair<>(node.findIceNodeId(), IceExecutor.submitNodeRunnable(node, roam)));
             }
         }
         long nodeId = 0;
