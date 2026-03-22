@@ -173,13 +173,7 @@ func autoScanRoamKeys(sample any) []dto.RoamKeyMeta {
 		return nil
 	}
 
-	var results []scan.ScanResult
-	var err error
-	if strings.HasSuffix(file, "_test.go") {
-		results, err = scan.ScanFile(file)
-	} else {
-		results, err = scan.ScanPackage(filepath.Dir(file))
-	}
+	results, err := scan.ScanPackage(filepath.Dir(file))
 	if err != nil {
 		return nil
 	}

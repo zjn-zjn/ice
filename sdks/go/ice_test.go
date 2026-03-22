@@ -117,23 +117,6 @@ func TestLeafRegistration(t *testing.T) {
 	}
 }
 
-func TestAutoScanRoamKeys(t *testing.T) {
-	nodes := leaf.GetLeafNodes()
-	roamKeysMap := map[string]int{} // className -> roamKeys count
-	for _, n := range nodes {
-		roamKeysMap[n.Clazz] = len(n.RoamKeys)
-	}
-
-	// ScoreCheck reads roam.Value("score") -> 1 roam key
-	if roamKeysMap["com.example.ScoreCheck"] != 1 {
-		t.Errorf("ScoreCheck: expected 1 roam key, got %d", roamKeysMap["com.example.ScoreCheck"])
-	}
-	// SetResult writes roam.Put(s.Key, s.Value) -> 1 roam key
-	if roamKeysMap["com.example.SetResult"] != 1 {
-		t.Errorf("SetResult: expected 1 roam key, got %d", roamKeysMap["com.example.SetResult"])
-	}
-}
-
 func TestLeafNode(t *testing.T) {
 	ctx := stdctx.Background()
 
