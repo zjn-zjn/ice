@@ -161,13 +161,13 @@ func Register(className string, meta *LeafMeta, factory func() any) {
 	}
 }
 
-// autoScanRoamKeys attempts to scan the caller's source file to extract roam key metadata.
-// It uses runtime.Caller to locate the source file, then AST-scans it.
+// autoScanRoamKeys locates the source file where the leaf's business method
+// (DoFlow/DoResult/DoNone) is defined via runtime reflection, then AST-scans it.
 // Returns nil silently if source is unavailable (e.g., production deployment).
 func autoScanRoamKeys(sample any) []dto.RoamKeyMeta {
-	// frame 0: autoScanRoamKeys, frame 1: Register, frame 2: caller (user's init)
-	_, file, _, ok := runtime.Caller(2)
-	if !ok {
+	t := reflect.TypeOf(sample)
+	file := findMethodSourceFile(t, "DoFlow", "DoResult", "DoNone")
+	if file == "" {
 		return nil
 	}
 
@@ -176,8 +176,6 @@ func autoScanRoamKeys(sample any) []dto.RoamKeyMeta {
 		return nil
 	}
 
-	// Match by struct type name
-	t := reflect.TypeOf(sample)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
@@ -189,6 +187,24 @@ func autoScanRoamKeys(sample any) []dto.RoamKeyMeta {
 		}
 	}
 	return nil
+}
+
+// findMethodSourceFile returns the source file path where one of the named methods is defined.
+func findMethodSourceFile(t reflect.Type, methodNames ...string) string {
+	for _, name := range methodNames {
+		m, ok := t.MethodByName(name)
+		if !ok {
+			continue
+		}
+		pc := m.Func.Pointer()
+		fn := runtime.FuncForPC(pc)
+		if fn == nil {
+			continue
+		}
+		file, _ := fn.FileLine(pc)
+		return file
+	}
+	return ""
 }
 
 // ResolveClassName resolves a config name to the actual class name.

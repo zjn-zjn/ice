@@ -13,11 +13,6 @@ import (
 
 	ice "github.com/zjn-zjn/ice/sdks/go"
 	"github.com/zjn-zjn/ice/tests/go/ice-test/config"
-
-	// Import leaf packages to trigger init() registration
-	_ "github.com/zjn-zjn/ice/tests/go/ice-test/flow"
-	_ "github.com/zjn-zjn/ice/tests/go/ice-test/none"
-	_ "github.com/zjn-zjn/ice/tests/go/ice-test/result"
 )
 
 var (
@@ -52,6 +47,9 @@ func main() {
 	if *app > 0 {
 		cfg.Ice.App = *app
 	}
+
+	// Register leaf nodes
+	registerLeafNodes()
 
 	// Create and start file client
 	client, err := ice.NewClientWithOptions(
