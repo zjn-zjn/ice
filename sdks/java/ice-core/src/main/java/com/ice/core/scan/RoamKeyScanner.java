@@ -22,7 +22,7 @@ public final class RoamKeyScanner {
 
     private static final String ROAM_INTERNAL_NAME = "com/ice/core/context/IceRoam";
     private static final Set<String> TARGET_METHODS = new HashSet<>(Arrays.asList("doFlow", "doResult", "doNone"));
-    private static final int MAX_DEPTH = 3;
+    private static final int MAX_DEPTH = 10;
 
     // Roam method name -> (direction, accessMode, accessMethod)
     private static final Map<String, String[]> ROAM_READ_METHODS = new HashMap<>();
@@ -399,11 +399,13 @@ public final class RoamKeyScanner {
                         break;
                     }
                 }
-                if (passesRoam && owner.equals(ownerInternalName)) {
-                    // Cross-method call within same class that passes roam
+                if (passesRoam) {
                     try {
                         boolean isStaticCall = (opcode == Opcodes.INVOKESTATIC);
-                        List<RoamKeyMeta> subResults = scanMethod(leafClass, owner, name, descriptor, isStaticCall, visited, depth + 1);
+                        Class<?> targetClass = owner.equals(ownerInternalName)
+                                ? leafClass
+                                : Class.forName(owner.replace('/', '.'), false, leafClass.getClassLoader());
+                        List<RoamKeyMeta> subResults = scanMethod(targetClass, owner, name, descriptor, isStaticCall, visited, depth + 1);
                         results.addAll(subResults);
                     } catch (Exception e) {
                         log.debug("failed to scan cross-method {}.{}: {}", owner, name, e.getMessage());
@@ -567,6 +569,11 @@ public final class RoamKeyScanner {
                                                   String methodName, String methodDesc,
                                                   boolean isStatic,
                                                   Set<String> visited, int depth) throws IOException {
+        String visitKey = classInternalName + "." + methodName + methodDesc;
+        if (!visited.add(visitKey) || depth > MAX_DEPTH) {
+            return Collections.emptyList();
+        }
+
         ClassReader cr = readClass(clazz);
         if (cr == null) {
             return Collections.emptyList();

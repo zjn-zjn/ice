@@ -26,7 +26,7 @@ _WRITE_METHODS = {
 }
 
 _TARGET_METHODS = {"do_flow", "do_result", "do_none"}
-_MAX_DEPTH = 3
+_MAX_DEPTH = 10
 
 
 def scan_roam_keys(cls: Type) -> list[RoamKeyMeta]:
@@ -105,6 +105,13 @@ def _scan_node(
             continue
 
         func = child.func
+
+        # Handle bare function calls: some_func(roam)
+        if isinstance(func, ast.Name):
+            if depth < _MAX_DEPTH:
+                _check_cross_method(child, cls, results, assignments, visited, depth, roam_param)
+            continue
+
         if not isinstance(func, ast.Attribute):
             continue
 
@@ -254,46 +261,59 @@ def _check_cross_method(
     depth: int,
     roam_param: str,
 ) -> None:
-    """Check if a call passes roam to another method and scan that method too."""
-    # Check if any arg is the roam reference (including aliases)
-    passes_roam = False
-    for arg in call.args:
+    """Check if a call passes roam to another method/function and scan it too."""
+    # Find which arg index passes roam
+    roam_arg_idx = -1
+    for i, arg in enumerate(call.args):
         if isinstance(arg, ast.Name) and _is_roam_ref(arg, roam_param, assignments):
-            passes_roam = True
+            roam_arg_idx = i
             break
-    if not passes_roam:
+    if roam_arg_idx < 0:
         return
 
-    # Resolve target method
     func = call.func
+    target_method = None
+    is_method = False  # whether first param is 'self'
+
     if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name) and func.value.id == "self":
+        # self.some_method(roam)
         target_method = getattr(cls, func.attr, None)
-        if target_method:
-            try:
-                source = inspect.getsource(target_method)
-                source = textwrap.dedent(source)
-                tree = ast.parse(source)
-                # Figure out roam parameter name in the target method
-                for node in ast.walk(tree):
-                    if isinstance(node, ast.FunctionDef):
-                        # Find which parameter receives roam (skip self)
-                        args_list = node.args.args
-                        call_args = call.args
-                        for i, arg in enumerate(call_args):
-                            if isinstance(arg, ast.Name) and _is_roam_ref(arg, roam_param, assignments):
-                                # This is the i-th positional arg (0-indexed from call side)
-                                # In the method, skip self (index 0), so param index is i+1
-                                param_idx = i + 1
-                                if param_idx < len(args_list):
-                                    target_roam_param = args_list[param_idx].arg
-                                    sub_assignments: dict[str, ast.expr] = {}
-                                    sub_results: list[RoamKeyMeta] = []
-                                    _scan_node(tree, sub_results, cls, sub_assignments,
-                                              visited, depth + 1, target_roam_param)
-                                    results.extend(sub_results)
-                        break
-            except (OSError, TypeError, SyntaxError):
-                pass
+        is_method = True
+    elif isinstance(func, ast.Name):
+        # some_func(roam) — resolve from the module where the class is defined
+        import sys
+        module = sys.modules.get(cls.__module__)
+        if module:
+            target_method = getattr(module, func.id, None)
+
+    if target_method is None:
+        return
+
+    visit_key = f"{getattr(target_method, '__module__', '')}.{getattr(target_method, '__qualname__', '')}"
+    if visit_key in visited:
+        return
+    visited.add(visit_key)
+
+    try:
+        source = inspect.getsource(target_method)
+        source = textwrap.dedent(source)
+        tree = ast.parse(source)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                args_list = node.args.args
+                # For methods, skip 'self' (param_idx = roam_arg_idx + 1)
+                # For functions, param_idx = roam_arg_idx
+                param_idx = roam_arg_idx + 1 if is_method else roam_arg_idx
+                if param_idx < len(args_list):
+                    target_roam_param = args_list[param_idx].arg
+                    sub_assignments: dict[str, ast.expr] = {}
+                    sub_results: list[RoamKeyMeta] = []
+                    _scan_node(tree, sub_results, cls, sub_assignments,
+                              visited, depth + 1, target_roam_param)
+                    results.extend(sub_results)
+                break
+    except (OSError, TypeError, SyntaxError):
+        pass
 
 
 def _merge_directions(metas: list[RoamKeyMeta]) -> list[RoamKeyMeta]:
