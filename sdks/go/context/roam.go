@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/spf13/cast"
 )
 
 const iceMetaKey = "_ice"
@@ -341,20 +343,28 @@ func (rv *RoamValue) To(dest any) bool {
 	return assignTo(rv.value, dest)
 }
 
-// String returns the value as string, or empty string if not a string.
-func (rv *RoamValue) String() string {
-	if s, ok := rv.value.(string); ok {
-		return s
-	}
-	return ""
+// StringE returns the value as string with error.
+func (rv *RoamValue) StringE() (string, error) {
+	return cast.ToStringE(rv.value)
 }
 
-// StringOr returns the value as string, or defaultVal if not a string.
+// String returns the value as string, or empty string if conversion fails.
+func (rv *RoamValue) String() string {
+	return rv.StringOr("")
+}
+
+// StringOr returns the value as string, or defaultVal if conversion fails.
 func (rv *RoamValue) StringOr(defaultVal string) string {
-	if s, ok := rv.value.(string); ok {
-		return s
+	v, err := rv.StringE()
+	if rv.value == nil || err != nil {
+		return defaultVal
 	}
-	return defaultVal
+	return v
+}
+
+// IntE returns the value as int with error.
+func (rv *RoamValue) IntE() (int, error) {
+	return cast.ToIntE(rv.value)
 }
 
 // Int returns the value as int, or 0 if conversion fails.
@@ -364,16 +374,16 @@ func (rv *RoamValue) Int() int {
 
 // IntOr returns the value as int, or defaultVal if conversion fails.
 func (rv *RoamValue) IntOr(defaultVal int) int {
-	switch n := rv.value.(type) {
-	case int:
-		return n
-	case int64:
-		return int(n)
-	case float64:
-		return int(n)
-	default:
+	v, err := rv.IntE()
+	if rv.value == nil || err != nil {
 		return defaultVal
 	}
+	return v
+}
+
+// Int64E returns the value as int64 with error.
+func (rv *RoamValue) Int64E() (int64, error) {
+	return cast.ToInt64E(rv.value)
 }
 
 // Int64 returns the value as int64, or 0 if conversion fails.
@@ -383,16 +393,16 @@ func (rv *RoamValue) Int64() int64 {
 
 // Int64Or returns the value as int64, or defaultVal if conversion fails.
 func (rv *RoamValue) Int64Or(defaultVal int64) int64 {
-	switch n := rv.value.(type) {
-	case int64:
-		return n
-	case int:
-		return int64(n)
-	case float64:
-		return int64(n)
-	default:
+	v, err := rv.Int64E()
+	if rv.value == nil || err != nil {
 		return defaultVal
 	}
+	return v
+}
+
+// Float64E returns the value as float64 with error.
+func (rv *RoamValue) Float64E() (float64, error) {
+	return cast.ToFloat64E(rv.value)
 }
 
 // Float64 returns the value as float64, or 0 if conversion fails.
@@ -402,32 +412,30 @@ func (rv *RoamValue) Float64() float64 {
 
 // Float64Or returns the value as float64, or defaultVal if conversion fails.
 func (rv *RoamValue) Float64Or(defaultVal float64) float64 {
-	switch n := rv.value.(type) {
-	case float64:
-		return n
-	case int:
-		return float64(n)
-	case int64:
-		return float64(n)
-	default:
+	v, err := rv.Float64E()
+	if rv.value == nil || err != nil {
 		return defaultVal
 	}
+	return v
 }
 
-// Bool returns the value as bool, or false if not a bool.
+// BoolE returns the value as bool with error.
+func (rv *RoamValue) BoolE() (bool, error) {
+	return cast.ToBoolE(rv.value)
+}
+
+// Bool returns the value as bool, or false if conversion fails.
 func (rv *RoamValue) Bool() bool {
-	if b, ok := rv.value.(bool); ok {
-		return b
-	}
-	return false
+	return rv.BoolOr(false)
 }
 
-// BoolOr returns the value as bool, or defaultVal if not a bool.
+// BoolOr returns the value as bool, or defaultVal if conversion fails.
 func (rv *RoamValue) BoolOr(defaultVal bool) bool {
-	if b, ok := rv.value.(bool); ok {
-		return b
+	v, err := rv.BoolE()
+	if rv.value == nil || err != nil {
+		return defaultVal
 	}
-	return defaultVal
+	return v
 }
 
 // Data returns a copy of the underlying map.
