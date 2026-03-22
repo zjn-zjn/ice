@@ -74,7 +74,7 @@ docker run -d --name ice-server -p 8121:8121 \
 <dependency>
   <groupId>com.waitmoon.ice</groupId>
   <artifactId>ice-core</artifactId>
-  <version>3.0.2</version>
+  <version>4.0.0</version>
 </dependency>
 ```
 
