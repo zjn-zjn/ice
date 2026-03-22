@@ -35,6 +35,16 @@ type ScanResult struct {
 	RoamKeys  []dto.RoamKeyMeta
 }
 
+// ScanFile scans a single Go source file for leaf structs and their roam key accesses.
+func ScanFile(filePath string) ([]ScanResult, error) {
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, filePath, nil, 0)
+	if err != nil {
+		return nil, fmt.Errorf("parse file %s: %w", filePath, err)
+	}
+	return scanFile(f), nil
+}
+
 // ScanPackage scans all Go files in the given directory for leaf structs and their roam key accesses.
 // It returns a map of struct name -> []RoamKeyMeta.
 func ScanPackage(dir string) ([]ScanResult, error) {

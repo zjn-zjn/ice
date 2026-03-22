@@ -4,8 +4,27 @@ package flow
 import (
 	"context"
 
+	ice "github.com/zjn-zjn/ice/sdks/go"
 	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
 )
+
+func init() {
+	ice.RegisterLeaf("com.ice.test.flow.ScoreFlow",
+		&ice.LeafMeta{
+			Name:  "分数判断节点",
+			Desc:  "取出roam中的值比较大小",
+			Alias: []string{"score_flow"},
+		},
+		func() any { return &ScoreFlow{} })
+
+	ice.RegisterLeaf("com.ice.test.flow.ScoreFlow2",
+		&ice.LeafMeta{
+			Name:  "分数判断节点2",
+			Desc:  "另一个分数判断",
+			Alias: []string{"score_flow_2"},
+		},
+		func() any { return &ScoreFlow2{} })
+}
 
 // ScoreFlow checks if roam[key] >= score.
 type ScoreFlow struct {

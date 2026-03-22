@@ -3,8 +3,35 @@ package result
 import (
 	"context"
 
+	ice "github.com/zjn-zjn/ice/sdks/go"
 	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
 )
+
+func init() {
+	ice.RegisterLeaf("com.ice.test.result.PointResult",
+		&ice.LeafMeta{
+			Name:  "发放积分节点",
+			Desc:  "用于发放积分奖励",
+			Alias: []string{"point_result"},
+		},
+		func() any { return &PointResult{} })
+
+	ice.RegisterLeaf("com.ice.test.result.PointResult2",
+		&ice.LeafMeta{
+			Name:  "发放积分节点2",
+			Desc:  "另一个积分发放",
+			Alias: []string{"point_result_2"},
+		},
+		func() any { return &PointResult2{} })
+
+	ice.RegisterLeaf("com.ice.test.result.InitConfigResult",
+		&ice.LeafMeta{
+			Name:  "初始化配置节点",
+			Desc:  "初始化roam中的配置",
+			Alias: []string{"init_config_result"},
+		},
+		func() any { return &InitConfigResult{} })
+}
 
 // PointResult grants points to a user.
 type PointResult struct {

@@ -5,8 +5,27 @@ import (
 	"context"
 	"log/slog"
 
+	ice "github.com/zjn-zjn/ice/sdks/go"
 	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
 )
+
+func init() {
+	ice.RegisterLeaf("com.ice.test.none.RoamProbeLogNone",
+		&ice.LeafMeta{
+			Name:  "Roam探针日志",
+			Desc:  "输出roam内容用于调试",
+			Alias: []string{"roam_probe_log_none"},
+		},
+		func() any { return &RoamProbeLogNone{} })
+
+	ice.RegisterLeaf("com.ice.test.none.TimeChangeNone",
+		&ice.LeafMeta{
+			Name:  "时间修改节点",
+			Desc:  "用于测试时修改请求时间",
+			Alias: []string{"time_change_none"},
+		},
+		func() any { return &TimeChangeNone{} })
+}
 
 // RoamProbeLogNone logs roam content for debugging.
 type RoamProbeLogNone struct {

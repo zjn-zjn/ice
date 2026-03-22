@@ -4,9 +4,28 @@ package result
 import (
 	"context"
 
+	ice "github.com/zjn-zjn/ice/sdks/go"
 	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
 	"github.com/zjn-zjn/ice/tests/go/ice-test/service"
 )
+
+func init() {
+	ice.RegisterLeaf("com.ice.test.result.AmountResult",
+		&ice.LeafMeta{
+			Name:  "发放余额节点",
+			Desc:  "用于发放余额",
+			Alias: []string{"amount_result"},
+		},
+		func() any { return &AmountResult{} })
+
+	ice.RegisterLeaf("com.ice.test.result.AmountResult2",
+		&ice.LeafMeta{
+			Name:  "发放余额节点2",
+			Desc:  "另一个发放余额",
+			Alias: []string{"amount_result_2"},
+		},
+		func() any { return &AmountResult2{} })
+}
 
 var sendService = service.NewSendService()
 

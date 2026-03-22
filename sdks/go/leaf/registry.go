@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/zjn-zjn/ice/sdks/go/dto"
 	"github.com/zjn-zjn/ice/sdks/go/enum"
 	"github.com/zjn-zjn/ice/sdks/go/node"
+	"github.com/zjn-zjn/ice/sdks/go/scan"
 )
 
 // LeafMeta contains metadata about a leaf node.
@@ -132,6 +134,12 @@ func Register(className string, meta *LeafMeta, factory func() any) {
 	nodeType := detectNodeType(sample)
 	iceFields, hideFields := extractFields(sample)
 
+	// Use pre-registered roam keys (from generated code), or auto-scan from source
+	roamKeys := roamKeysStore[className]
+	if len(roamKeys) == 0 {
+		roamKeys = autoScanRoamKeys(sample)
+	}
+
 	mu.Lock()
 	defer mu.Unlock()
 	registry[className] = &leafEntry{
@@ -140,7 +148,7 @@ func Register(className string, meta *LeafMeta, factory func() any) {
 		nodeType:   nodeType,
 		iceFields:  iceFields,
 		hideFields: hideFields,
-		roamKeys:   roamKeysStore[className],
+		roamKeys:   roamKeys,
 	}
 
 	// Register aliases
@@ -151,6 +159,36 @@ func Register(className string, meta *LeafMeta, factory func() any) {
 			}
 		}
 	}
+}
+
+// autoScanRoamKeys attempts to scan the caller's source file to extract roam key metadata.
+// It uses runtime.Caller to locate the source file, then AST-scans it.
+// Returns nil silently if source is unavailable (e.g., production deployment).
+func autoScanRoamKeys(sample any) []dto.RoamKeyMeta {
+	// frame 0: autoScanRoamKeys, frame 1: Register, frame 2: caller (user's init)
+	_, file, _, ok := runtime.Caller(2)
+	if !ok {
+		return nil
+	}
+
+	results, err := scan.ScanFile(file)
+	if err != nil {
+		return nil
+	}
+
+	// Match by struct type name
+	t := reflect.TypeOf(sample)
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	structName := t.Name()
+
+	for _, r := range results {
+		if r.ClassName == structName {
+			return r.RoamKeys
+		}
+	}
+	return nil
 }
 
 // ResolveClassName resolves a config name to the actual class name.
