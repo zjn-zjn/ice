@@ -45,4 +45,9 @@ func TestAutoScanRoamKeysFromSeparateRegister(t *testing.T) {
 	if roamKeysMap["com.ice.test.none.TimeChangeNone"] != 0 {
 		t.Errorf("TimeChangeNone: expected 0 roam keys, got %d", roamKeysMap["com.ice.test.none.TimeChangeNone"])
 	}
+
+	// PkgFuncNone: DoNone calls logRoamField(roam, "a_b") which reads roam.ValueDeep("x_y") -> 1 roam key
+	if roamKeysMap["com.ice.test.none.PkgFuncNone"] != 1 {
+		t.Errorf("PkgFuncNone: expected 1 roam key (x_y via pkg func), got %d", roamKeysMap["com.ice.test.none.PkgFuncNone"])
+	}
 }

@@ -5,6 +5,7 @@ import (
 	stdctx "context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
@@ -162,7 +163,8 @@ func Register(className string, meta *LeafMeta, factory func() any) {
 }
 
 // autoScanRoamKeys locates the source file where the leaf's business method
-// (DoFlow/DoResult/DoNone) is defined via runtime reflection, then AST-scans it.
+// (DoFlow/DoResult/DoNone) is defined via runtime reflection, then scans the
+// whole package directory to support cross-file and cross-function tracking.
 // Returns nil silently if source is unavailable (e.g., production deployment).
 func autoScanRoamKeys(sample any) []dto.RoamKeyMeta {
 	t := reflect.TypeOf(sample)
@@ -171,7 +173,13 @@ func autoScanRoamKeys(sample any) []dto.RoamKeyMeta {
 		return nil
 	}
 
-	results, err := scan.ScanFile(file)
+	var results []scan.ScanResult
+	var err error
+	if strings.HasSuffix(file, "_test.go") {
+		results, err = scan.ScanFile(file)
+	} else {
+		results, err = scan.ScanPackage(filepath.Dir(file))
+	}
 	if err != nil {
 		return nil
 	}

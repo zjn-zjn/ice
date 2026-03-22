@@ -83,4 +83,11 @@ func registerLeafNodes() {
 			Alias: []string{"time_change_none"},
 		},
 		func() any { return &none.TimeChangeNone{} })
+
+	ice.RegisterLeaf("com.ice.test.none.PkgFuncNone",
+		&ice.LeafMeta{
+			Name:  "包级函数测试节点",
+			Desc:  "测试跨函数roam key扫描",
+		},
+		func() any { return &none.PkgFuncNone{} })
 }

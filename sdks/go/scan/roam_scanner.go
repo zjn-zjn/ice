@@ -13,19 +13,19 @@ import (
 	"github.com/zjn-zjn/ice/sdks/go/dto"
 )
 
-const maxDepth = 3
+const maxDepth = 10
 
 // roam method -> (direction, accessMode, accessMethod)
 var readMethods = map[string][3]string{
-	"Get":        {"read", "direct", "get"},
-	"GetDeep":   {"read", "direct", "getDeep"},
-	"Resolve":   {"read", "union", "get"},
-	"Value":     {"read", "direct", "get"},
+	"Get":      {"read", "direct", "get"},
+	"GetDeep":  {"read", "direct", "getDeep"},
+	"Resolve":  {"read", "union", "get"},
+	"Value":    {"read", "direct", "get"},
 	"ValueDeep": {"read", "direct", "getDeep"},
 }
 
 var writeMethods = map[string][3]string{
-	"Put":      {"write", "direct", "put"},
+	"Put":     {"write", "direct", "put"},
 	"PutDeep": {"write", "direct", "putDeep"},
 }
 
@@ -35,6 +35,107 @@ type ScanResult struct {
 	RoamKeys  []dto.RoamKeyMeta
 }
 
+// scanContext holds all declarations collected from a package for scanning.
+type scanContext struct {
+	structFields  map[string]map[string]bool          // structName -> field names
+	structMethods map[string]map[string]*ast.FuncDecl // structName -> methodName -> funcDecl
+	pkgFunctions  map[string]*ast.FuncDecl            // funcName -> funcDecl
+}
+
+func newScanContext() *scanContext {
+	return &scanContext{
+		structFields:  map[string]map[string]bool{},
+		structMethods: map[string]map[string]*ast.FuncDecl{},
+		pkgFunctions:  map[string]*ast.FuncDecl{},
+	}
+}
+
+// collectDecls collects struct definitions, methods, and package-level functions from an AST file.
+func collectDecls(file *ast.File, ctx *scanContext) {
+	for _, decl := range file.Decls {
+		switch d := decl.(type) {
+		case *ast.FuncDecl:
+			if d.Recv != nil && len(d.Recv.List) > 0 {
+				recvType := resolveRecvType(d.Recv.List[0].Type)
+				if recvType != "" {
+					if ctx.structMethods[recvType] == nil {
+						ctx.structMethods[recvType] = map[string]*ast.FuncDecl{}
+					}
+					ctx.structMethods[recvType][d.Name.Name] = d
+				}
+			} else {
+				// Package-level function
+				ctx.pkgFunctions[d.Name.Name] = d
+			}
+		case *ast.GenDecl:
+			if d.Tok == token.TYPE {
+				for _, spec := range d.Specs {
+					ts, ok := spec.(*ast.TypeSpec)
+					if !ok {
+						continue
+					}
+					st, ok := ts.Type.(*ast.StructType)
+					if !ok {
+						continue
+					}
+					fields := map[string]bool{}
+					for _, f := range st.Fields.List {
+						for _, name := range f.Names {
+							fields[name.Name] = true
+						}
+					}
+					ctx.structFields[ts.Name.Name] = fields
+				}
+			}
+		}
+	}
+}
+
+// scanLeafs scans all collected declarations for leaf node roam key accesses.
+func scanLeafs(ctx *scanContext) []ScanResult {
+	targetMethodNames := map[string]bool{"DoFlow": true, "DoResult": true, "DoNone": true}
+
+	var results []ScanResult
+	for structName, methods := range ctx.structMethods {
+		var targetFuncs []*ast.FuncDecl
+		for name, fn := range methods {
+			if targetMethodNames[name] {
+				targetFuncs = append(targetFuncs, fn)
+			}
+		}
+		if len(targetFuncs) == 0 {
+			continue
+		}
+
+		var metas []dto.RoamKeyMeta
+		fields := ctx.structFields[structName]
+
+		for _, fn := range targetFuncs {
+			roamParam := findRoamParam(fn)
+			if roamParam == "" {
+				continue
+			}
+			recvName := ""
+			if fn.Recv != nil && len(fn.Recv.List) > 0 && len(fn.Recv.List[0].Names) > 0 {
+				recvName = fn.Recv.List[0].Names[0].Name
+			}
+
+			visited := map[string]bool{}
+			scanFuncBody(fn.Body, roamParam, recvName, fields, methods, ctx.pkgFunctions, &metas, visited, 0)
+		}
+
+		if len(metas) > 0 {
+			metas = mergeDirections(metas)
+			results = append(results, ScanResult{
+				ClassName: structName,
+				RoamKeys:  metas,
+			})
+		}
+	}
+
+	return results
+}
+
 // ScanFile scans a single Go source file for leaf structs and their roam key accesses.
 func ScanFile(filePath string) ([]ScanResult, error) {
 	fset := token.NewFileSet()
@@ -42,11 +143,13 @@ func ScanFile(filePath string) ([]ScanResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse file %s: %w", filePath, err)
 	}
-	return scanFile(f), nil
+	ctx := newScanContext()
+	collectDecls(f, ctx)
+	return scanLeafs(ctx), nil
 }
 
 // ScanPackage scans all Go files in the given directory for leaf structs and their roam key accesses.
-// It returns a map of struct name -> []RoamKeyMeta.
+// It collects struct methods and package-level functions across all files, enabling cross-file tracking.
 func ScanPackage(dir string) ([]ScanResult, error) {
 	fset := token.NewFileSet()
 	pkgs, err := parser.ParseDir(fset, dir, func(info os.FileInfo) bool {
@@ -57,12 +160,12 @@ func ScanPackage(dir string) ([]ScanResult, error) {
 	}
 
 	var results []ScanResult
-
 	for _, pkg := range pkgs {
+		ctx := newScanContext()
 		for _, file := range pkg.Files {
-			fileResults := scanFile(file)
-			results = append(results, fileResults...)
+			collectDecls(file, ctx)
 		}
+		results = append(results, scanLeafs(ctx)...)
 	}
 
 	return results, nil
@@ -112,97 +215,6 @@ func ScanDir(root string) ([]ScanResult, error) {
 	return allResults, err
 }
 
-// scanFile scans a single AST file for structs that have DoFlow/DoResult/DoNone methods.
-func scanFile(file *ast.File) []ScanResult {
-	// Collect all struct method declarations
-	type methodInfo struct {
-		recv     string // receiver type name
-		funcDecl *ast.FuncDecl
-	}
-
-	var methods []methodInfo
-	structFields := map[string]map[string]bool{} // structName -> set of field names
-
-	for _, decl := range file.Decls {
-		switch d := decl.(type) {
-		case *ast.FuncDecl:
-			if d.Recv != nil && len(d.Recv.List) > 0 {
-				recvType := resolveRecvType(d.Recv.List[0].Type)
-				if recvType != "" {
-					methods = append(methods, methodInfo{recv: recvType, funcDecl: d})
-				}
-			}
-		case *ast.GenDecl:
-			if d.Tok == token.TYPE {
-				for _, spec := range d.Specs {
-					ts, ok := spec.(*ast.TypeSpec)
-					if !ok {
-						continue
-					}
-					st, ok := ts.Type.(*ast.StructType)
-					if !ok {
-						continue
-					}
-					fields := map[string]bool{}
-					for _, f := range st.Fields.List {
-						for _, name := range f.Names {
-							fields[name.Name] = true
-						}
-					}
-					structFields[ts.Name.Name] = fields
-				}
-			}
-		}
-	}
-
-	// Group methods by receiver type
-	targetMethods := map[string]string{"DoFlow": "", "DoResult": "", "DoNone": ""}
-	structMethods := map[string][]*ast.FuncDecl{} // structName -> target methods
-	allStructMethods := map[string]map[string]*ast.FuncDecl{} // structName -> methodName -> funcDecl
-
-	for _, m := range methods {
-		if _, isTarget := targetMethods[m.funcDecl.Name.Name]; isTarget {
-			structMethods[m.recv] = append(structMethods[m.recv], m.funcDecl)
-		}
-		if allStructMethods[m.recv] == nil {
-			allStructMethods[m.recv] = map[string]*ast.FuncDecl{}
-		}
-		allStructMethods[m.recv][m.funcDecl.Name.Name] = m.funcDecl
-	}
-
-	var results []ScanResult
-	for structName, funcs := range structMethods {
-		var metas []dto.RoamKeyMeta
-		fields := structFields[structName]
-		otherMethods := allStructMethods[structName]
-
-		for _, fn := range funcs {
-			// Determine roam parameter name
-			roamParam := findRoamParam(fn)
-			if roamParam == "" {
-				continue
-			}
-			recvName := ""
-			if fn.Recv != nil && len(fn.Recv.List) > 0 && len(fn.Recv.List[0].Names) > 0 {
-				recvName = fn.Recv.List[0].Names[0].Name
-			}
-
-			visited := map[string]bool{}
-			scanFuncBody(fn.Body, roamParam, recvName, fields, otherMethods, &metas, visited, 0)
-		}
-
-		if len(metas) > 0 {
-			metas = mergeDirections(metas)
-			results = append(results, ScanResult{
-				ClassName: structName,
-				RoamKeys:  metas,
-			})
-		}
-	}
-
-	return results
-}
-
 func resolveRecvType(expr ast.Expr) string {
 	switch t := expr.(type) {
 	case *ast.StarExpr:
@@ -245,7 +257,8 @@ func scanFuncBody(
 	body *ast.BlockStmt,
 	roamParam, recvName string,
 	fields map[string]bool,
-	otherMethods map[string]*ast.FuncDecl,
+	structMethods map[string]*ast.FuncDecl,
+	pkgFunctions map[string]*ast.FuncDecl,
 	metas *[]dto.RoamKeyMeta,
 	visited map[string]bool,
 	depth int,
@@ -268,6 +281,14 @@ func scanFuncBody(
 			}
 
 		case *ast.CallExpr:
+			// Handle direct function calls: someFunc(roam)
+			if ident, ok := node.Fun.(*ast.Ident); ok {
+				if depth < maxDepth {
+					checkPkgFunction(node, ident.Name, roamParam, recvName, fields, structMethods, pkgFunctions, metas, assignments, visited, depth)
+				}
+				return true
+			}
+
 			sel, ok := node.Fun.(*ast.SelectorExpr)
 			if !ok {
 				return true
@@ -323,8 +344,8 @@ func scanFuncBody(
 					}
 				}
 			} else if depth < maxDepth {
-				// Check for cross-method calls that pass roam
-				checkCrossMethod(node, sel, roamParam, recvName, fields, otherMethods, metas, assignments, visited, depth)
+				// Check for cross-method calls on self: p.helper(roam)
+				checkCrossMethod(node, sel, roamParam, recvName, fields, structMethods, pkgFunctions, metas, assignments, visited, depth)
 			}
 		}
 		return true
@@ -418,12 +439,14 @@ func resolveKeySeen(expr ast.Expr, recvName string, fields map[string]bool, assi
 	return nil
 }
 
+// checkCrossMethod handles calls like p.helper(roam) where p is the receiver.
 func checkCrossMethod(
 	call *ast.CallExpr,
 	sel *ast.SelectorExpr,
 	roamParam, recvName string,
 	fields map[string]bool,
-	otherMethods map[string]*ast.FuncDecl,
+	structMethods map[string]*ast.FuncDecl,
+	pkgFunctions map[string]*ast.FuncDecl,
 	metas *[]dto.RoamKeyMeta,
 	assignments map[string]ast.Expr,
 	visited map[string]bool,
@@ -436,43 +459,25 @@ func checkCrossMethod(
 	}
 
 	// Check if any arg passes roam (including aliases)
-	passesRoam := false
-	roamArgIdx := -1
-	for i, arg := range call.Args {
-		if isRoamRef(arg, roamParam, assignments) {
-			passesRoam = true
-			roamArgIdx = i
-			break
-		}
-	}
-	if !passesRoam {
+	roamArgIdx := findRoamArgIndex(call.Args, roamParam, assignments)
+	if roamArgIdx < 0 {
 		return
 	}
 
 	methodName := sel.Sel.Name
-	if visited[methodName] {
+	visitKey := recvName + "." + methodName
+	if visited[visitKey] {
 		return
 	}
-	visited[methodName] = true
+	visited[visitKey] = true
 
-	fn, ok := otherMethods[methodName]
+	fn, ok := structMethods[methodName]
 	if !ok || fn.Body == nil {
 		return
 	}
 
 	// Find roam param name in target method
-	targetRoamParam := ""
-	if fn.Type.Params != nil {
-		paramIdx := 0
-		for _, param := range fn.Type.Params.List {
-			for _, name := range param.Names {
-				if paramIdx == roamArgIdx {
-					targetRoamParam = name.Name
-				}
-				paramIdx++
-			}
-		}
-	}
+	targetRoamParam := findParamNameByIndex(fn, roamArgIdx)
 	if targetRoamParam == "" {
 		return
 	}
@@ -482,7 +487,70 @@ func checkCrossMethod(
 		targetRecvName = fn.Recv.List[0].Names[0].Name
 	}
 
-	scanFuncBody(fn.Body, targetRoamParam, targetRecvName, fields, otherMethods, metas, visited, depth+1)
+	scanFuncBody(fn.Body, targetRoamParam, targetRecvName, fields, structMethods, pkgFunctions, metas, visited, depth+1)
+}
+
+// checkPkgFunction handles calls like someFunc(roam) to package-level functions.
+func checkPkgFunction(
+	call *ast.CallExpr,
+	funcName, roamParam, recvName string,
+	fields map[string]bool,
+	structMethods map[string]*ast.FuncDecl,
+	pkgFunctions map[string]*ast.FuncDecl,
+	metas *[]dto.RoamKeyMeta,
+	assignments map[string]ast.Expr,
+	visited map[string]bool,
+	depth int,
+) {
+	roamArgIdx := findRoamArgIndex(call.Args, roamParam, assignments)
+	if roamArgIdx < 0 {
+		return
+	}
+
+	visitKey := "pkg:" + funcName
+	if visited[visitKey] {
+		return
+	}
+	visited[visitKey] = true
+
+	fn, ok := pkgFunctions[funcName]
+	if !ok || fn.Body == nil {
+		return
+	}
+
+	targetRoamParam := findParamNameByIndex(fn, roamArgIdx)
+	if targetRoamParam == "" {
+		return
+	}
+
+	scanFuncBody(fn.Body, targetRoamParam, recvName, fields, structMethods, pkgFunctions, metas, visited, depth+1)
+}
+
+// findRoamArgIndex returns the index of the first argument that references roam, or -1.
+func findRoamArgIndex(args []ast.Expr, roamParam string, assignments map[string]ast.Expr) int {
+	for i, arg := range args {
+		if isRoamRef(arg, roamParam, assignments) {
+			return i
+		}
+	}
+	return -1
+}
+
+// findParamNameByIndex returns the parameter name at the given positional index.
+func findParamNameByIndex(fn *ast.FuncDecl, idx int) string {
+	if fn.Type.Params == nil {
+		return ""
+	}
+	paramIdx := 0
+	for _, param := range fn.Type.Params.List {
+		for _, name := range param.Names {
+			if paramIdx == idx {
+				return name.Name
+			}
+			paramIdx++
+		}
+	}
+	return ""
 }
 
 func keyPartsToFromKey(parts []dto.KeyPart) string {
