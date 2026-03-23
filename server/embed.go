@@ -1,10 +1,13 @@
 package main
 
 import (
+	"compress/gzip"
 	"embed"
+	"io"
 	"io/fs"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 //go:embed web/*
@@ -33,6 +36,31 @@ func NewSPAFileServer() http.Handler {
 	}
 }
 
+var gzipPool = sync.Pool{
+	New: func() any {
+		gz, _ := gzip.NewWriterLevel(io.Discard, gzip.BestSpeed)
+		return gz
+	},
+}
+
+type gzipResponseWriter struct {
+	http.ResponseWriter
+	gz *gzip.Writer
+}
+
+func (g *gzipResponseWriter) Write(b []byte) (int, error) {
+	return g.gz.Write(b)
+}
+
+func shouldGzip(path string) bool {
+	for _, ext := range []string{".js", ".css", ".html", ".svg", ".json"} {
+		if strings.HasSuffix(path, ext) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *spaFileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
@@ -53,10 +81,25 @@ func (s *spaFileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// File not found: SPA fallback to index.html
 		r.URL.Path = "/"
-		s.handler.ServeHTTP(w, r)
+		fsPath = "index.html"
+	} else {
+		f.Close()
+	}
+
+	// Gzip compress text resources
+	if shouldGzip(fsPath) && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		gz := gzipPool.Get().(*gzip.Writer)
+		gz.Reset(w)
+		defer func() {
+			gz.Close()
+			gzipPool.Put(gz)
+		}()
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Vary", "Accept-Encoding")
+		w.Header().Del("Content-Length")
+		s.handler.ServeHTTP(&gzipResponseWriter{ResponseWriter: w, gz: gz}, r)
 		return
 	}
-	f.Close()
 
 	s.handler.ServeHTTP(w, r)
 }
