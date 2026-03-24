@@ -132,12 +132,12 @@ ice.InitExecutor(100)
 ### _ice 元信息
 
 执行元信息（存储在 Roam 的 `_ice` key 中，是一个普通 map）：
-- `GetIceId()` / `SetIceId()` - Handler ID
-- `GetIceScene()` / `SetIceScene()` - 场景名
-- `GetIceNid()` / `SetIceNid()` - 配置节点 ID
-- `GetIceTs()` / `SetIceTs()` - 请求时间戳
-- `GetIceDebug()` / `SetIceDebug()` - 调试标志
-- `GetIceTrace()` / `SetIceTrace()` - 追踪 ID
+- `GetId()` / `SetId()` - Handler ID
+- `GetScene()` / `SetScene()` - 场景名
+- `GetNid()` / `SetNid()` - 配置节点 ID
+- `GetTs()` / `SetTs()` - 请求时间戳
+- `GetDebug()` / `SetDebug()` - 调试标志
+- `GetTrace()` / `SetTrace()` - 追踪 ID
 
 ## 与 Java 兼容性
 
