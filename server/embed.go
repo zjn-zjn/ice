@@ -16,8 +16,7 @@ var webFS embed.FS
 // with SPA fallback (returns index.html for non-API 404s)
 // Pre-compressed .br files are served when available and client supports brotli
 type spaFileServer struct {
-	fsys       fs.FS
-	fileServer http.Handler
+	fsys fs.FS
 }
 
 func NewSPAFileServer() http.Handler {
@@ -27,7 +26,7 @@ func NewSPAFileServer() http.Handler {
 			http.Error(w, "frontend not embedded", http.StatusNotFound)
 		})
 	}
-	return &spaFileServer{fsys: subFS, fileServer: http.FileServer(http.FS(subFS))}
+	return &spaFileServer{fsys: subFS}
 }
 
 func isCompressible(path string) bool {
@@ -76,14 +75,19 @@ func (s *spaFileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Fallback: serve original file
-	fallbackURL := *r.URL
-	fallbackURL.Path = "/" + fsPath
-	s.fileServer.ServeHTTP(w, &http.Request{
-		Method:     r.Method,
-		URL:        &fallbackURL,
-		Header:     r.Header,
-		Host:       r.Host,
-		RequestURI: "/" + fsPath,
-	})
+	// Fallback: serve original file directly (avoid http.FileServer 301 redirect on index.html)
+	data, err := fs.ReadFile(s.fsys, fsPath)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	ct := mime.TypeByExtension(filepath.Ext(fsPath))
+	if ct == "" {
+		ct = "application/octet-stream"
+	}
+	w.Header().Set("Content-Type", ct)
+	if fsPath != "index.html" {
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	}
+	w.Write(data)
 }
