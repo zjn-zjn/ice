@@ -74,15 +74,15 @@ async def async_process(roam: Roam) -> list[Roam]:
 def _check_roam(roam: Roam) -> bool:
     """Validate the roam before processing."""
     if roam is None:
-        log.error("roam is None")
+        log.error("invalid roam: nil")
         return False
 
     if roam.get_meta() is None:
-        log.error("roam has no _ice (use Roam.create() to create)")
+        log.error("invalid roam: missing _ice")
         return False
 
     if roam.get_id() <= 0 and not roam.get_scene() and roam.get_nid() <= 0:
-        log.error("roam _ice must have id, scene, or nid", roam=roam.to_dict())
+        log.error("invalid roam: no routing key", extra={"roam": roam.to_dict()})
         return False
 
     return True

@@ -1,7 +1,7 @@
 package service
 
 import (
-	"log"
+	"log/slog"
 	"sort"
 
 	"github.com/waitmoon/ice-server/config"
@@ -41,7 +41,7 @@ func (cm *ClientManager) GetActiveClients(app int, lane string) ([]*model.IceCli
 func (cm *ClientManager) GetRegisterClients(app int) map[string]bool {
 	clients, err := cm.GetActiveClients(app, "")
 	if err != nil {
-		log.Printf("failed to get register clients for app:%d: %v", app, err)
+		slog.Error("register clients query failed", "app", app, "error", err)
 		return nil
 	}
 	if len(clients) == 0 {
@@ -68,8 +68,7 @@ func (cm *ClientManager) getValidLatestClient(app int, lane string) *model.IceCl
 	activeAddr, _ := cm.storage.FindFirstActiveClient(app, lane, cm.config.ClientTimeout.Milliseconds())
 	if activeAddr != "" {
 		cm.storage.UpdateLatestClient(app, lane, activeAddr)
-		log.Printf("updated _latest.json for app:%d lane:%s from inactive %s to active %s",
-			app, lane, latestClient.Address, activeAddr)
+		slog.Info("latest client switched", "app", app, "lane", lane, "from", latestClient.Address, "to", activeAddr)
 		// Re-read updated _latest.json
 		updated, _ := cm.storage.GetLatestClient(app, lane)
 		if updated != nil {
@@ -175,7 +174,7 @@ func (cm *ClientManager) findNodeInfoInClient(app int, lane, clazz string, nodeT
 func (cm *ClientManager) ListLanes(app int) []string {
 	lanes, err := cm.storage.ListLanes(app)
 	if err != nil {
-		log.Printf("failed to list lanes for app:%d: %v", app, err)
+		slog.Error("lanes list failed", "app", app, "error", err)
 		return nil
 	}
 	return lanes
@@ -255,7 +254,7 @@ func (cm *ClientManager) GetClientLeafClasses(app int, lane string) map[int8][]*
 func (cm *ClientManager) CleanInactiveClients() {
 	apps, err := cm.storage.ListApps()
 	if err != nil {
-		log.Printf("failed to list apps for cleanup: %v", err)
+		slog.Error("apps list failed", "error", err)
 		return
 	}
 	for _, app := range apps {
@@ -273,7 +272,7 @@ func (cm *ClientManager) CleanInactiveClients() {
 func (cm *ClientManager) cleanInactiveClientsForApp(app int, lane string) {
 	beats, err := cm.storage.ListClientBeats(app, lane)
 	if err != nil {
-		log.Printf("failed to list client beats for app:%d lane:%s: %v", app, lane, err)
+		slog.Error("client beats list failed", "app", app, "lane", lane, "error", err)
 		return
 	}
 	if len(beats) == 0 {
@@ -317,7 +316,7 @@ func (cm *ClientManager) cleanInactiveClientsForApp(app int, lane string) {
 				cm.storage.DeleteClient(app, lane, addr)
 				deleteCount++
 			} else {
-				log.Printf("preserved last inactive client for app:%d, address:%s", app, addr)
+				slog.Warn("preserved last inactive client", "app", app, "address", addr)
 			}
 			continue
 		}
@@ -326,7 +325,7 @@ func (cm *ClientManager) cleanInactiveClientsForApp(app int, lane string) {
 	}
 
 	if deleteCount > 0 {
-		log.Printf("cleaned %d inactive clients for app:%d lane:%s", deleteCount, app, lane)
+		slog.Info("inactive clients cleaned", "count", deleteCount, "app", app, "lane", lane)
 	}
 
 	if lane != "" {

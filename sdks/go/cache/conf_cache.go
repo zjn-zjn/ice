@@ -53,7 +53,7 @@ func InsertOrUpdateConfs(confDtos []dto.ConfDto) []string {
 		n, err := convertNode(&confDto)
 		if err != nil {
 			errors = append(errors, err.Error())
-			log.Error(context.Background(), "failed to convert node", "error", err, "confId", confDto.Id)
+			log.Error(context.Background(), "node conversion failed", "confId", confDto.Id, "error", err)
 			continue
 		}
 		tmpConfMap[confDto.Id] = n
@@ -102,7 +102,7 @@ func InsertOrUpdateConfs(confDtos []dto.ConfDto) []string {
 						}
 						if child == nil {
 							errors = append(errors, "sonId not exist: "+strconv.FormatInt(sonId, 10))
-							log.Error(context.Background(), "sonId not exist", "sonId", sonId)
+							log.Error(context.Background(), "child node not found", "sonId", sonId)
 						} else {
 							children.Add(child)
 						}
@@ -179,7 +179,7 @@ func InsertOrUpdateConfs(confDtos []dto.ConfDto) []string {
 			}
 			if forwardNode == nil {
 				errors = append(errors, "forwardId not exist: "+strconv.FormatInt(confDto.ForwardId, 10))
-				log.Error(context.Background(), "forwardId not exist", "forwardId", confDto.ForwardId)
+				log.Error(context.Background(), "forward node not found", "forwardId", confDto.ForwardId)
 			} else {
 				setForward(tmpConfMap[confDto.Id], forwardNode)
 			}
@@ -200,7 +200,7 @@ func InsertOrUpdateConfs(confDtos []dto.ConfDto) []string {
 			parentNode := confMap[parentId]
 			if parentNode == nil {
 				errors = append(errors, "parentId not exist: "+strconv.FormatInt(parentId, 10))
-				log.Error(context.Background(), "parentId not exist", "parentId", parentId)
+				log.Error(context.Background(), "parent node not found", "parentId", parentId)
 				continue
 			}
 			if rn, ok := parentNode.(node.RelationNode); ok {
@@ -231,7 +231,7 @@ func InsertOrUpdateConfs(confDtos []dto.ConfDto) []string {
 			useNode := confMap[forwardUseId]
 			if useNode == nil {
 				errors = append(errors, "forwardUseId not exist: "+strconv.FormatInt(forwardUseId, 10))
-				log.Error(context.Background(), "forwardUseId not exist", "forwardUseId", forwardUseId)
+				log.Error(context.Background(), "forward-use node not found", "forwardUseId", forwardUseId)
 				continue
 			}
 			forwardNode := confMap[confDto.Id]

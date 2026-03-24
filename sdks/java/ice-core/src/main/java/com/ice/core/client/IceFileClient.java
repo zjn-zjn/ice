@@ -156,7 +156,7 @@ public final class IceFileClient {
 
         started = true;
         startedLock.set(true);
-        log.info("ice file client init app:{} address:{} lane:{} success:{}ms storagePath:{}",
+        log.info("client started app:{} address:{} lane:{} success:{}ms storagePath:{}",
                 app, iceAddress, lane, System.currentTimeMillis() - startTime, storagePath);
     }
 
@@ -195,7 +195,7 @@ public final class IceFileClient {
 
         // Clean up client file
         unregisterClient();
-        log.info("ice file client destroyed app:{} address:{}", app, iceAddress);
+        log.info("client stopped app:{} address:{}", app, iceAddress);
     }
 
     public boolean isDestroy() {
@@ -227,11 +227,11 @@ public final class IceFileClient {
         if (initData != null) {
             List<String> errors = IceUpdate.update(initData);
             if (!errors.isEmpty()) {
-                log.warn("ice init config has errors: {}", errors);
+                log.warn("initial config loaded with errors: {}", errors);
             }
             loadedVersion = initData.getVersion();
         }
-        log.info("ice file client loaded initial config, version:{}", loadedVersion);
+        log.info("initial config loaded version:{}", loadedVersion);
     }
 
     /**
@@ -265,7 +265,7 @@ public final class IceFileClient {
                                 bases.add(base);
                             }
                         } catch (Exception e) {
-                            log.error("failed to read base file: {}", p, e);
+                            log.error("base file read failed file:{}", p, e);
                         }
                     });
         }
@@ -286,7 +286,7 @@ public final class IceFileClient {
                                 confs.add(conf);
                             }
                         } catch (Exception e) {
-                            log.error("failed to read conf file: {}", p, e);
+                            log.error("conf file read failed file:{}", p, e);
                         }
                     });
         }
@@ -330,7 +330,7 @@ public final class IceFileClient {
         if (leafNodes != null && !leafNodes.isEmpty()) {
             writeJsonFile(getClientsDir().resolve("_latest.json"), JacksonUtils.toJsonString(clientInfo));
         }
-        log.info("ice client registered: {}", iceAddress);
+        log.info("client registered address:{}", iceAddress);
     }
 
     /**
@@ -342,9 +342,9 @@ public final class IceFileClient {
             deleteDirectory(getMockDir());
             Files.deleteIfExists(metaFilePath());
             Files.deleteIfExists(beatFilePath());
-            log.info("ice client unregistered: {}", iceAddress);
+            log.info("client unregistered address:{}", iceAddress);
         } catch (IOException e) {
-            log.error("failed to unregister client", e);
+            log.error("client unregister failed", e);
         }
     }
 
@@ -388,12 +388,12 @@ public final class IceFileClient {
             try {
                 checkAndUpdateVersion();
             } catch (Exception e) {
-                log.error("version poll error", e);
+                log.error("version poll failed", e);
             }
             try {
                 checkMocks();
             } catch (Exception e) {
-                log.error("mock check error", e);
+                log.error("mock check failed", e);
             }
             heartbeatTickCounter++;
             if (heartbeatTickCounter >= heartbeatTicks) {
@@ -401,7 +401,7 @@ public final class IceFileClient {
                 try {
                     updateHeartbeat();
                 } catch (Exception e) {
-                    log.error("heartbeat error", e);
+                    log.error("heartbeat update failed", e);
                 }
             }
         }, pollIntervalSeconds, pollIntervalSeconds, TimeUnit.SECONDS);
@@ -420,7 +420,7 @@ public final class IceFileClient {
         long currentVersion = Long.parseLong(versionStr);
 
         if (currentVersion > loadedVersion) {
-            log.info("detected version change: {} -> {}", loadedVersion, currentVersion);
+            log.info("version changed {} -> {}", loadedVersion, currentVersion);
             loadIncrementalUpdates(currentVersion);
         }
     }
@@ -438,10 +438,10 @@ public final class IceFileClient {
             if (!Files.exists(updatePath)) {
                 if (v == targetVersion) {
                     // Only the last version file is missing - normal case, wait for next poll
-                    log.info("latest update file not ready, will retry: v{}", v);
+                    log.info("update file not ready, retrying version:{}", v);
                 } else {
                     // Middle version file is missing - abnormal, need full load
-                    log.warn("middle update file missing, will do full load: v{}", v);
+                    log.warn("incremental file missing, falling back to full load version:{}", v);
                     needFullLoad = true;
                 }
                 break;
@@ -452,13 +452,13 @@ public final class IceFileClient {
                 if (updateDto != null) {
                     List<String> errors = IceUpdate.update(updateDto);
                     if (!errors.isEmpty()) {
-                        log.warn("incremental update v{} has errors: {}", v, errors);
+                        log.warn("incremental update loaded with errors version:{} errors:{}", v, errors);
                     }
                     loadedVersion = v;
-                    log.info("loaded incremental update version: {}", v);
+                    log.info("incremental update loaded version:{}", v);
                 }
             } catch (Exception e) {
-                log.error("failed to load incremental update v{}", v, e);
+                log.error("incremental update load failed version:{}", v, e);
                 needFullLoad = true;
                 break;
             }
@@ -466,15 +466,15 @@ public final class IceFileClient {
 
         // If incremental load fails, perform full load
         if (needFullLoad) {
-            log.info("performing full config reload");
+            log.info("full reload started");
             IceTransferDto fullDto = loadAllConfig();
             if (fullDto != null) {
                 List<String> errors = IceUpdate.update(fullDto);
                 if (!errors.isEmpty()) {
-                    log.warn("full reload has errors: {}", errors);
+                    log.warn("full reload completed with errors: {}", errors);
                 }
                 loadedVersion = fullDto.getVersion();
-                log.info("full config reload completed, version: {}", loadedVersion);
+                log.info("full reload completed version:{}", loadedVersion);
             }
         }
 
@@ -489,7 +489,7 @@ public final class IceFileClient {
         try {
             writeBeatFile();
         } catch (Exception e) {
-            log.error("failed to update client version info", e);
+            log.error("client version update failed", e);
         }
     }
 
@@ -504,7 +504,7 @@ public final class IceFileClient {
             }
             writeBeatFile();
         } catch (Exception e) {
-            log.error("failed to update heartbeat", e);
+            log.error("heartbeat update failed", e);
         }
     }
 
@@ -522,7 +522,7 @@ public final class IceFileClient {
                 leafClasses.addAll(IceLeafScanner.scanPackage(packageName));
             }
         }
-        log.info("ice scan leaf node, packages:{} {}ms cnt:{}", scanPackages, System.currentTimeMillis() - start, leafClasses.size());
+        log.info("leaf node scan completed packages:{} durationMs:{} count:{}", scanPackages, System.currentTimeMillis() - start, leafClasses.size());
         if (leafClasses.isEmpty()) {
             return;
         }
@@ -640,11 +640,11 @@ public final class IceFileClient {
 
                     log.info("mock executed mockId:{} success:{}", req.getMockId(), result.isSuccess());
                 } catch (Exception e) {
-                    log.error("failed to process mock file: {}", p, e);
+                    log.error("mock file process failed file:{}", p, e);
                 }
             }
         } catch (IOException e) {
-            log.error("failed to list mock directory", e);
+            log.error("mock directory list failed", e);
         }
     }
 

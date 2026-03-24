@@ -1,7 +1,7 @@
 package service
 
 import (
-	"log"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -30,12 +30,12 @@ func (s *Scheduler) Start() {
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						log.Printf("cleanup panic: %v", r)
+						slog.Error("cleanup panicked", "recover", r)
 					}
 				}()
 				s.clientManager.CleanInactiveClients()
 				if err := s.storage.CleanStaleMocks(2 * time.Minute); err != nil {
-					log.Printf("mock cleanup error: %v", err)
+					slog.Error("mock cleanup failed", "error", err)
 				}
 			}()
 		}
@@ -56,7 +56,7 @@ func (s *Scheduler) Start() {
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						log.Printf("recycle panic: %v", r)
+						slog.Error("recycle panicked", "recover", r)
 					}
 				}()
 				s.serverService.Recycle(nil)
@@ -67,7 +67,7 @@ func (s *Scheduler) Start() {
 		}
 	}()
 
-	log.Printf("scheduler started: cleanup every %v, recycle cron: %s", s.config.ClientTimeout, s.config.RecycleCron)
+	slog.Info("scheduler started", "cleanupInterval", s.config.ClientTimeout, "recycleCron", s.config.RecycleCron)
 }
 
 // parseCronTime extracts hour and minute from a simple cron expression

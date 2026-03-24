@@ -83,7 +83,7 @@ def insert_or_update_handlers(bases: list[BaseDto]) -> list[str]:
                 root = get_conf(conf_id)
                 if root is None:
                     errors.append(f"confId not exist: {conf_id}")
-                    log.error("confId not exist", confId=conf_id)
+                    log.error("conf node not found", extra={"confId": conf_id})
                     continue
                 
                 # Track in confIdHandlersMap

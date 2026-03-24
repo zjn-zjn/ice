@@ -60,7 +60,7 @@ public final class IceHandlerCache {
                 if (root == null) {
                     String errorModeStr = JacksonUtils.toJsonString(base);
                     errors.add("confId:" + confId + " not exist conf:" + errorModeStr);
-                    log.error("confId:{} not exist please check! conf:{}", confId, errorModeStr);
+                    log.error("conf node not found confId:{}", confId);
                     continue;
                 }
                 Map<Long, IceHandler> handlerMap = confIdHandlersMap.get(confId);

@@ -72,18 +72,18 @@ class Handler:
         token = set_trace_id(roam.get_trace())
         try:
             if self.has_debug(DebugFlag.IN_ROAM):
-                log.info("handle in", roam=self._roam_without_ice(roam), **self._meta_suffix(roam))
+                log.info("handle input", extra={"roam": self._roam_without_ice(roam), **self._meta_suffix(roam)})
 
             self.root.process(roam)
 
             if self.has_debug(DebugFlag.PROCESS):
-                log.info("handle process", process=roam.get_process_info(), **self._meta_suffix(roam))
+                log.info("handle process", extra={"process": roam.get_process_info(), **self._meta_suffix(roam)})
 
             if self.has_debug(DebugFlag.OUT_ROAM):
-                log.info("handle out", roam=self._roam_without_ice(roam), **self._meta_suffix(roam))
+                log.info("handle output", extra={"roam": self._roam_without_ice(roam), **self._meta_suffix(roam)})
 
         except Exception as e:
-            log.error("error in handler", error=str(e), **self._meta_suffix(roam))
+            log.error("handler error", extra={"error": str(e), **self._meta_suffix(roam)})
             raise
         finally:
             reset_trace_id(token)
@@ -96,18 +96,18 @@ class Handler:
         token = set_trace_id(roam.get_trace())
         try:
             if self.has_debug(DebugFlag.IN_ROAM):
-                log.info("handle in", roam=self._roam_without_ice(roam), **self._meta_suffix(roam))
+                log.info("handle input", extra={"roam": self._roam_without_ice(roam), **self._meta_suffix(roam)})
 
             self.root.process(roam)
 
             if self.has_debug(DebugFlag.PROCESS):
-                log.info("handle process", process=roam.get_process_info(), **self._meta_suffix(roam))
+                log.info("handle process", extra={"process": roam.get_process_info(), **self._meta_suffix(roam)})
 
             if self.has_debug(DebugFlag.OUT_ROAM):
-                log.info("handle out", roam=self._roam_without_ice(roam), **self._meta_suffix(roam))
+                log.info("handle output", extra={"roam": self._roam_without_ice(roam), **self._meta_suffix(roam)})
 
         except Exception as e:
-            log.error("error in handler", error=str(e), **self._meta_suffix(roam))
+            log.error("handler error", extra={"error": str(e), **self._meta_suffix(roam)})
             raise
         finally:
             reset_trace_id(token)

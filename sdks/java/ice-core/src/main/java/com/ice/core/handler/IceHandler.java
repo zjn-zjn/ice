@@ -57,7 +57,6 @@ public final class IceHandler {
 
     public void handle(IceRoam roam) {
         String trace = roam.getTrace();
-        String tp = trace != null ? "[" + trace + "] " : "";
         if (trace != null) {
             MDC.put("traceId", trace);
         }
@@ -66,18 +65,18 @@ public final class IceHandler {
                 return;
             }
             if (DebugEnum.filter(DebugEnum.IN_ROAM, debug)) {
-                log.info("{}handle in roam:{}{}", tp, roamWithoutIce(roam), metaSuffix(roam));
+                log.info("handle input roam:{}{}", roamWithoutIce(roam), metaSuffix(roam));
             }
             if (root != null) {
                 root.process(roam);
                 if (DebugEnum.filter(DebugEnum.PROCESS, debug)) {
-                    log.info("{}handle process:{}{}", tp, roam.getProcess().toString(), metaSuffix(roam));
+                    log.info("handle process:{}{}", roam.getProcess().toString(), metaSuffix(roam));
                 }
                 if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
-                    log.info("{}handle out roam:{}{}", tp, roamWithoutIce(roam), metaSuffix(roam));
+                    log.info("handle output roam:{}{}", roamWithoutIce(roam), metaSuffix(roam));
                 }
             } else {
-                log.error("{}root not exist{}", tp, metaSuffix(roam));
+                log.error("handler root node missing{}", metaSuffix(roam));
             }
         } catch (Throwable t) {
             IceErrorHandle.errorHandle(this, roam, t);
@@ -89,24 +88,23 @@ public final class IceHandler {
 
     public void handleWithNodeId(IceRoam roam) {
         String trace = roam.getTrace();
-        String tp = trace != null ? "[" + trace + "] " : "";
         if (trace != null) {
             MDC.put("traceId", trace);
         }
         try {
             if (DebugEnum.filter(DebugEnum.IN_ROAM, debug)) {
-                log.info("{}handle in roam:{}{}", tp, roamWithoutIce(roam), metaSuffix(roam));
+                log.info("handle input roam:{}{}", roamWithoutIce(roam), metaSuffix(roam));
             }
             if (root != null) {
                 root.process(roam);
                 if (DebugEnum.filter(DebugEnum.PROCESS, debug)) {
-                    log.info("{}handle process:{}{}", tp, roam.getProcess().toString(), metaSuffix(roam));
+                    log.info("handle process:{}{}", roam.getProcess().toString(), metaSuffix(roam));
                 }
                 if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
-                    log.info("{}handle out roam:{}{}", tp, roamWithoutIce(roam), metaSuffix(roam));
+                    log.info("handle output roam:{}{}", roamWithoutIce(roam), metaSuffix(roam));
                 }
             } else {
-                log.error("{}root not exist{}", tp, metaSuffix(roam));
+                log.error("handler root node missing{}", metaSuffix(roam));
             }
         } catch (Throwable t) {
             IceErrorHandle.errorHandle(this, roam, t);

@@ -96,7 +96,7 @@ func InsertOrUpdateHandlers(baseDtos []dto.BaseDto) []string {
 
 			if root == nil {
 				errors = append(errors, "confId not exist: "+strconv.FormatInt(confId, 10))
-				log.Error(context.Background(), "confId not exist", "confId", confId)
+				log.Error(context.Background(), "conf node not found", "confId", confId)
 				continue
 			}
 

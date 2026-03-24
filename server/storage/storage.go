@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -66,7 +66,7 @@ func NewStorage(basePath string) (*Storage, error) {
 	}
 
 	s.appIdGenerator = NewIceIdGenerator(filepath.Join(basePath, dirApps, fileAppId))
-	log.Printf("ice file storage initialized at: %s", basePath)
+	slog.Info("storage initialized", "path", basePath)
 	return s, nil
 }
 
@@ -104,7 +104,7 @@ func (s *Storage) ListApps() ([]*model.IceApp, error) {
 		}
 		app, err := ReadJsonFileTyped[model.IceApp](filepath.Join(dir, e.Name()))
 		if err != nil {
-			log.Printf("failed to read app file: %s: %v", e.Name(), err)
+			slog.Error("app file read failed", "file", e.Name(), "error", err)
 			continue
 		}
 		if app != nil && app.Status != nil && *app.Status != model.StatusDeleted {
@@ -271,7 +271,7 @@ func (s *Storage) ListBases(app int) ([]*model.IceBase, error) {
 		}
 		base, err := ReadJsonFileTyped[model.IceBase](path)
 		if err != nil {
-			log.Printf("failed to read base file: %s: %v", path, err)
+			slog.Error("base file read failed", "file", path, "error", err)
 			return nil
 		}
 		if base != nil {
@@ -1124,7 +1124,7 @@ func listJsonFiles[T any](dir string) ([]*T, error) {
 		}
 		item, err := ReadJsonFileTyped[T](filepath.Join(dir, e.Name()))
 		if err != nil {
-			log.Printf("failed to read file: %s: %v", e.Name(), err)
+			slog.Error("file read failed", "file", e.Name(), "error", err)
 			continue
 		}
 		if item != nil {

@@ -129,7 +129,7 @@ func (c *FileClient) Start() error {
 
 	// Register client
 	if err := c.registerClient(); err != nil {
-		log.Warn(ctx, "failed to register client", "error", err)
+		log.Warn(ctx, "client register failed", "error", err)
 	}
 
 	// Start version poller (heartbeat is merged into poller via counter)
@@ -137,7 +137,7 @@ func (c *FileClient) Start() error {
 	go c.versionPoller()
 
 	c.started.Store(true)
-	log.Info(ctx, "ice file client started", "app", c.app, "address", c.address,
+	log.Info(ctx, "client started", "app", c.app, "address", c.address,
 		"lane", c.lane, "durationMs", time.Since(startTime).Milliseconds(), "storagePath", c.storagePath)
 
 	return nil
@@ -156,7 +156,7 @@ func (c *FileClient) Destroy() {
 	// Unregister client
 	c.unregisterClient()
 	executor.Shutdown()
-	log.Info(context.Background(), "ice file client destroyed", "app", c.app, "address", c.address)
+	log.Info(context.Background(), "client stopped", "app", c.app, "address", c.address)
 }
 
 // IsStarted returns true if the client is started.
@@ -205,12 +205,12 @@ func (c *FileClient) loadInitialConfig(ctx context.Context) error {
 	if initData != nil {
 		errors := Update(initData)
 		if len(errors) > 0 {
-			log.Warn(ctx, "ice init config has errors", "errors", errors)
+			log.Warn(ctx, "initial config loaded with errors", "errors", errors)
 		}
 		c.loadedVersion.Store(initData.Version)
 	}
 
-	log.Info(ctx, "ice file client loaded initial config", "version", c.loadedVersion.Load())
+	log.Info(ctx, "initial config loaded", "version", c.loadedVersion.Load())
 	return nil
 }
 
@@ -284,7 +284,7 @@ func (c *FileClient) versionPoller() {
 			return
 		case <-ticker.C:
 			if err := c.checkAndUpdateVersion(ctx); err != nil {
-				log.Error(ctx, "version poll error", "error", err)
+				log.Error(ctx, "version poll failed", "error", err)
 			}
 			c.checkMocks(ctx)
 			tickCount++
@@ -313,7 +313,7 @@ func (c *FileClient) checkAndUpdateVersion(ctx context.Context) error {
 	}
 
 	if currentVersion > c.loadedVersion.Load() {
-		log.Info(ctx, "detected version change", "from", c.loadedVersion.Load(), "to", currentVersion)
+		log.Info(ctx, "version changed", "from", c.loadedVersion.Load(), "to", currentVersion)
 		return c.loadIncrementalUpdates(ctx, currentVersion)
 	}
 	return nil
@@ -330,10 +330,10 @@ func (c *FileClient) loadIncrementalUpdates(ctx context.Context, targetVersion i
 			if os.IsNotExist(err) {
 				if v == targetVersion {
 					// Only the last version file is missing - normal case, wait for next poll
-					log.Info(ctx, "latest update file not ready, will retry", "version", v)
+					log.Info(ctx, "update file not ready, retrying", "version", v)
 				} else {
 					// Middle version file is missing - abnormal, need full load
-					log.Warn(ctx, "middle update file missing, will do full load", "version", v)
+					log.Warn(ctx, "incremental file missing, falling back to full load", "version", v)
 					needFullLoad = true
 				}
 				break
@@ -343,21 +343,21 @@ func (c *FileClient) loadIncrementalUpdates(ctx context.Context, targetVersion i
 
 		var updateDto dto.TransferDto
 		if err := json.Unmarshal(data, &updateDto); err != nil {
-			log.Error(ctx, "failed to parse incremental update", "version", v, "error", err)
+			log.Error(ctx, "incremental update parse failed", "version", v, "error", err)
 			needFullLoad = true
 			break
 		}
 
 		errors := Update(&updateDto)
 		if len(errors) > 0 {
-			log.Warn(ctx, "incremental update has errors", "version", v, "errors", errors)
+			log.Warn(ctx, "incremental update loaded with errors", "version", v, "errors", errors)
 		}
 		c.loadedVersion.Store(v)
-		log.Info(ctx, "loaded incremental update", "version", v)
+		log.Info(ctx, "incremental update loaded", "version", v)
 	}
 
 	if needFullLoad {
-		log.Info(ctx, "performing full config reload")
+		log.Info(ctx, "full reload started")
 		fullDto, err := c.loadAllConfig()
 		if err != nil {
 			return err
@@ -365,10 +365,10 @@ func (c *FileClient) loadIncrementalUpdates(ctx context.Context, targetVersion i
 		if fullDto != nil {
 			errors := Update(fullDto)
 			if len(errors) > 0 {
-				log.Warn(ctx, "full reload has errors", "errors", errors)
+				log.Warn(ctx, "full reload completed with errors", "errors", errors)
 			}
 			c.loadedVersion.Store(fullDto.Version)
-			log.Info(ctx, "full config reload completed", "version", c.loadedVersion.Load())
+			log.Info(ctx, "full reload completed", "version", c.loadedVersion.Load())
 		}
 	}
 
@@ -426,7 +426,7 @@ func (c *FileClient) unregisterClient() {
 	os.RemoveAll(c.getMockDir())
 	os.Remove(c.metaFilePath())
 	os.Remove(c.beatFilePath())
-	log.Info(context.Background(), "ice client unregistered", "address", c.address)
+	log.Info(context.Background(), "client unregistered", "address", c.address)
 }
 
 func (c *FileClient) writeJsonFile(path string, v any) error {
@@ -491,7 +491,7 @@ func (c *FileClient) checkMocks(ctx context.Context) {
 
 		var req dto.MockRequest
 		if err := json.Unmarshal(data, &req); err != nil {
-			log.Warn(ctx, "failed to parse mock request", "file", name, "error", err)
+			log.Warn(ctx, "mock request parse failed", "file", name, "error", err)
 			continue
 		}
 
@@ -504,12 +504,12 @@ func (c *FileClient) checkMocks(ctx context.Context) {
 		resultPath := filepath.Join(mockDir, req.MockId+"_result"+suffixJSON)
 		resultData, err := json.Marshal(result)
 		if err != nil {
-			log.Error(ctx, "failed to marshal mock result", "mockId", req.MockId, "error", err)
+			log.Error(ctx, "mock result marshal failed", "mockId", req.MockId, "error", err)
 			continue
 		}
 		tmpPath := resultPath + suffixTmp
 		if err := os.WriteFile(tmpPath, resultData, 0644); err != nil {
-			log.Error(ctx, "failed to write mock result", "mockId", req.MockId, "error", err)
+			log.Error(ctx, "mock result write failed", "mockId", req.MockId, "error", err)
 			continue
 		}
 		os.Rename(tmpPath, resultPath)

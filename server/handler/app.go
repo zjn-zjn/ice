@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/waitmoon/ice-server/model"
@@ -47,7 +47,7 @@ func (h *AppHandler) recycle(w http.ResponseWriter, r *http.Request) (any, error
 	go func() {
 		defer func() {
 			if rv := recover(); rv != nil {
-				log.Printf("recycle panic: %v", rv)
+				slog.Error("recycle panicked", "recover", rv)
 			}
 		}()
 		h.serverService.Recycle(app)

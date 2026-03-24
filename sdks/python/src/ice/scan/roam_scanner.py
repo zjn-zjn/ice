@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import ast
 import inspect
-import logging
 import textwrap
 from typing import Any, Type
 
 from ice.dto import KeyPart, RoamKeyMeta
-
-logger = logging.getLogger(__name__)
+from ice import log
 
 # Roam method -> (direction, accessMode, accessMethod)
 _READ_METHODS = {
@@ -34,7 +32,7 @@ def scan_roam_keys(cls: Type) -> list[RoamKeyMeta]:
     try:
         return _do_scan(cls, set(), 0)
     except Exception as e:
-        logger.debug("failed to scan roam keys for %s: %s", cls.__name__, e)
+        log.debug("roam key scan failed: %s: %s", cls.__name__, e)
         return []
 
 

@@ -35,6 +35,9 @@ go.work.sum
 # Go test binaries (in tests directory)
 tests/go/ice-test/ice-test
 
+# Server binary
+server/ice-server
+
 # ==================== Python ====================
 # Byte-compiled / optimized / DLL files
 __pycache__/

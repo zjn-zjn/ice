@@ -60,17 +60,14 @@ public abstract class IceErrorHandle {
 
         @Override
         protected void handle(IceHandler iceHandler, IceRoam roam, Throwable t) {
-            String tp = "";
             String meta = "";
             if (roam != null) {
-                String trace = roam.getTrace();
-                tp = trace != null ? "[" + trace + "] " : "";
                 meta = metaSuffix(roam);
             }
             if (t instanceof NodeException) {
-                log.error("{}error in node:{}{}", tp, ((NodeException) t).getNodeId(), meta, t);
+                log.error("node error nodeId:{}{}", ((NodeException) t).getNodeId(), meta, t);
             } else {
-                log.error("{}error{}", tp, meta, t);
+                log.error("handler error{}", meta, t);
             }
         }
 
