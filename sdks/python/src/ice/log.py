@@ -50,19 +50,19 @@ _logger.addFilter(_TraceFilter())
 
 def debug(msg: str, *args, **kwargs) -> None:
     """Log debug message."""
-    _logger.debug(msg, *args, **kwargs)
+    _logger.debug(msg, *args, stacklevel=2, **kwargs)
 
 
 def info(msg: str, *args, **kwargs) -> None:
     """Log info message."""
-    _logger.info(msg, *args, **kwargs)
+    _logger.info(msg, *args, stacklevel=2, **kwargs)
 
 
 def warn(msg: str, *args, **kwargs) -> None:
     """Log warning message."""
-    _logger.warning(msg, *args, **kwargs)
+    _logger.warning(msg, *args, stacklevel=2, **kwargs)
 
 
 def error(msg: str, *args, **kwargs) -> None:
     """Log error message."""
-    _logger.error(msg, *args, **kwargs)
+    _logger.error(msg, *args, stacklevel=2, **kwargs)

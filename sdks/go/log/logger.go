@@ -9,6 +9,8 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"runtime"
+	"time"
 )
 
 // TraceKey is the context key for trace ID.
@@ -40,24 +42,35 @@ func traceArgs(ctx context.Context, args []any) []any {
 	return args
 }
 
+func log(ctx context.Context, level slog.Level, msg string, args ...any) {
+	if !defaultLogger.Enabled(ctx, level) {
+		return
+	}
+	var pcs [1]uintptr
+	runtime.Callers(3, pcs[:]) // skip runtime.Callers, log, Debug/Info/Warn/Error
+	r := slog.NewRecord(time.Now(), level, msg, pcs[0])
+	r.Add(traceArgs(ctx, args)...)
+	_ = defaultLogger.Handler().Handle(ctx, r)
+}
+
 // Debug logs a debug message.
 func Debug(ctx context.Context, msg string, args ...any) {
-	defaultLogger.DebugContext(ctx, msg, traceArgs(ctx, args)...)
+	log(ctx, slog.LevelDebug, msg, args...)
 }
 
 // Info logs an info message.
 func Info(ctx context.Context, msg string, args ...any) {
-	defaultLogger.InfoContext(ctx, msg, traceArgs(ctx, args)...)
+	log(ctx, slog.LevelInfo, msg, args...)
 }
 
 // Warn logs a warning message.
 func Warn(ctx context.Context, msg string, args ...any) {
-	defaultLogger.WarnContext(ctx, msg, traceArgs(ctx, args)...)
+	log(ctx, slog.LevelWarn, msg, args...)
 }
 
 // Error logs an error message.
 func Error(ctx context.Context, msg string, args ...any) {
-	defaultLogger.ErrorContext(ctx, msg, traceArgs(ctx, args)...)
+	log(ctx, slog.LevelError, msg, args...)
 }
 
 // WithTraceId returns a new context with the given trace ID.
