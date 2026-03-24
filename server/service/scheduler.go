@@ -67,7 +67,7 @@ func (s *Scheduler) Start() {
 		}
 	}()
 
-	slog.Info("scheduler started", "cleanupInterval", s.config.ClientTimeout, "recycleCron", s.config.RecycleCron)
+	slog.Info("scheduler started", "cleanupInterval", s.config.ClientTimeout.String(), "recycleCron", s.config.RecycleCron)
 }
 
 // parseCronTime extracts hour and minute from a simple cron expression

@@ -309,23 +309,23 @@ func (cm *ClientManager) cleanInactiveClientsForApp(app int, lane string) {
 		}
 	}
 
-	deleteCount := 0
+	var deletedAddrs []string
 	for i, addr := range inactiveAddrs {
 		if len(activeAddrs) == 0 && i == len(inactiveAddrs)-1 {
 			if lane != "" {
 				cm.storage.DeleteClient(app, lane, addr)
-				deleteCount++
+				deletedAddrs = append(deletedAddrs, addr)
 			} else {
 				slog.Warn("preserved last inactive client", "app", app, "address", addr)
 			}
 			continue
 		}
 		cm.storage.DeleteClient(app, lane, addr)
-		deleteCount++
+		deletedAddrs = append(deletedAddrs, addr)
 	}
 
-	if deleteCount > 0 {
-		slog.Info("inactive clients cleaned", "count", deleteCount, "app", app, "lane", lane)
+	if len(deletedAddrs) > 0 {
+		slog.Info("inactive clients cleaned", "count", len(deletedAddrs), "app", app, "lane", lane, "addresses", deletedAddrs)
 	}
 
 	if lane != "" {
