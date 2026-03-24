@@ -62,7 +62,7 @@ def insert_or_update_confs(confs: list[ConfDto]) -> list[str]:
                     tmp_conf_map[conf_dto.id] = node
             except Exception as e:
                 errors.append(f"failed to convert node: {e}, confId: {conf_dto.id}")
-                log.error("failed to convert node", error=str(e), confId=conf_dto.id)
+                log.error("node conversion failed", extra={"confId": conf_dto.id, "error": str(e)})
         
         # Set up relationships and handle cleanup of old relationships
         for conf_dto in confs:
@@ -93,7 +93,7 @@ def insert_or_update_confs(confs: list[ConfDto]) -> list[str]:
                         child = tmp_conf_map.get(son_id) or _conf_map.get(son_id)
                         if child is None:
                             errors.append(f"sonId not exist: {son_id}")
-                            log.error("sonId not exist", sonId=son_id)
+                            log.error("child node not found", extra={"sonId": son_id})
                         else:
                             children.append(child)
                     node.set_children(children)
@@ -144,7 +144,7 @@ def insert_or_update_confs(confs: list[ConfDto]) -> list[str]:
                 forward = tmp_conf_map.get(conf_dto.forwardId) or _conf_map.get(conf_dto.forwardId)
                 if forward is None:
                     errors.append(f"forwardId not exist: {conf_dto.forwardId}")
-                    log.error("forwardId not exist", forwardId=conf_dto.forwardId)
+                    log.error("forward node not found", extra={"forwardId": conf_dto.forwardId})
                 else:
                     _set_forward(node, forward)
         
@@ -163,7 +163,7 @@ def insert_or_update_confs(confs: list[ConfDto]) -> list[str]:
                     parent = _conf_map.get(parent_id)
                     if parent is None:
                         errors.append(f"parentId not exist: {parent_id}")
-                        log.error("parentId not exist", parentId=parent_id)
+                        log.error("parent node not found", extra={"parentId": parent_id})
                         continue
                     if isinstance(parent, Relation):
                         son_ids = parent.get_son_ids()
@@ -188,7 +188,7 @@ def insert_or_update_confs(confs: list[ConfDto]) -> list[str]:
                     user = _conf_map.get(forward_use_id)
                     if user is None:
                         errors.append(f"forwardUseId not exist: {forward_use_id}")
-                        log.error("forwardUseId not exist", forwardUseId=forward_use_id)
+                        log.error("forward-use node not found", extra={"forwardUseId": forward_use_id})
                         continue
                     forward_node = _conf_map.get(conf_id)
                     if forward_node:

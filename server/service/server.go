@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"strconv"
 	"strings"
 	"sync"
@@ -73,7 +73,7 @@ func (s *ServerService) getActiveOnlineConfs(app int) ([]*model.IceConf, error) 
 func (s *ServerService) GetActiveConfById(app int, confId int64) *model.IceConf {
 	conf, err := s.storage.GetConf(app, confId)
 	if err != nil {
-		log.Printf("failed to get active conf by id:%d: %v", confId, err)
+		slog.Error("active conf get failed", "confId", confId, "error", err)
 		return nil
 	}
 	return conf
@@ -82,7 +82,7 @@ func (s *ServerService) GetActiveConfById(app int, confId int64) *model.IceConf 
 func (s *ServerService) GetUpdateConfById(app int, confId, iceId int64) *model.IceConf {
 	conf, err := s.storage.GetConfUpdate(app, iceId, confId)
 	if err != nil {
-		log.Printf("failed to get update conf by id:%d: %v", confId, err)
+		slog.Error("update conf get failed", "confId", confId, "error", err)
 		return nil
 	}
 	return conf
@@ -114,7 +114,7 @@ func (s *ServerService) GetMixConfListByIds(app int, confIds map[int64]bool, ice
 func (s *ServerService) GetActiveBaseById(app int, iceId int64) *model.IceBase {
 	base, err := s.storage.GetBase(app, iceId)
 	if err != nil {
-		log.Printf("failed to get active base by id:%d: %v", iceId, err)
+		slog.Error("active base get failed", "iceId", iceId, "error", err)
 		return nil
 	}
 	return base
@@ -183,7 +183,7 @@ func fillFieldValues(nodeInfo *model.LeafNodeInfo, confField string) {
 	}
 	var fieldValues map[string]any
 	if err := json.Unmarshal([]byte(confField), &fieldValues); err != nil {
-		log.Printf("failed to parse confField: %s: %v", confField, err)
+		slog.Error("confField parse failed", "confField", confField, "error", err)
 		return
 	}
 	if len(fieldValues) == 0 {
@@ -433,7 +433,7 @@ func (s *ServerService) GetAllUpdateConfList(app int, iceId int64) []*model.IceC
 
 	confs, err := s.storage.ListConfUpdates(app, iceId)
 	if err != nil {
-		log.Printf("failed to get all update conf list for app:%d iceId:%d: %v", app, iceId, err)
+		slog.Error("update conf list failed", "app", app, "iceId", iceId, "error", err)
 		return nil
 	}
 	return confs
@@ -471,7 +471,7 @@ func (s *ServerService) assembleActiveConf(app int, confList *[]*model.IceConf, 
 }
 
 func (s *ServerService) Recycle(recycleApp *int) {
-	log.Println("ice recycle start")
+	slog.Info("recycle started")
 	start := model.TimeNowMs()
 
 	if recycleApp != nil {
@@ -479,7 +479,7 @@ func (s *ServerService) Recycle(recycleApp *int) {
 	} else {
 		apps, err := s.storage.ListApps()
 		if err != nil {
-			log.Printf("ice recycle error: %v", err)
+			slog.Error("recycle failed", "error", err)
 			return
 		}
 		for _, app := range apps {
@@ -488,13 +488,13 @@ func (s *ServerService) Recycle(recycleApp *int) {
 			}
 		}
 	}
-	log.Printf("ice recycle end %dms", model.TimeNowMs()-start)
+	slog.Info("recycle completed", "durationMs", model.TimeNowMs()-start)
 }
 
 func (s *ServerService) recycleByApp(app int) {
 	reachableIds, err := s.getReachableIds(app)
 	if err != nil {
-		log.Printf("failed to get reachable ids for app:%d: %v", app, err)
+		slog.Error("reachable ids failed", "app", app, "error", err)
 		return
 	}
 
@@ -503,7 +503,7 @@ func (s *ServerService) recycleByApp(app int) {
 
 	allConfs, err := s.storage.ListConfs(app)
 	if err != nil {
-		log.Printf("failed to list confs for app:%d: %v", app, err)
+		slog.Error("confs list failed", "app", app, "error", err)
 	} else {
 		for _, conf := range allConfs {
 			if conf.Status != nil && *conf.Status != model.StatusDeleted && !reachableIds[conf.ID] {
@@ -511,9 +511,9 @@ func (s *ServerService) recycleByApp(app int) {
 					continue
 				}
 				if err := s.storage.DeleteConf(app, conf.ID, hard); err != nil {
-					log.Printf("failed to delete conf:%d for app:%d: %v", conf.ID, app, err)
+					slog.Error("conf delete failed", "confId", conf.ID, "app", app, "error", err)
 				} else {
-					log.Printf("recycled unreachable conf:%d for app:%d", conf.ID, app)
+					slog.Info("unreachable conf recycled", "confId", conf.ID, "app", app)
 				}
 			}
 		}
@@ -521,7 +521,7 @@ func (s *ServerService) recycleByApp(app int) {
 
 	allBases, err := s.storage.ListBases(app)
 	if err != nil {
-		log.Printf("failed to list bases for app:%d: %v", app, err)
+		slog.Error("bases list failed", "app", app, "error", err)
 	} else {
 		for _, base := range allBases {
 			if base.ID == nil || base.Status == nil {
@@ -532,9 +532,9 @@ func (s *ServerService) recycleByApp(app int) {
 					continue
 				}
 				if err := s.storage.DeleteBase(app, *base.ID, hard); err != nil {
-					log.Printf("failed to delete base:%d for app:%d: %v", *base.ID, app, err)
+					slog.Error("base delete failed", "baseId", *base.ID, "app", app, "error", err)
 				} else {
-					log.Printf("recycled offline base:%d for app:%d", *base.ID, app)
+					slog.Info("offline base recycled", "baseId", *base.ID, "app", app)
 				}
 			}
 		}

@@ -97,19 +97,16 @@ Go SDK 支持 3 种叶子节点接口，自动检测类型：
 
 ### 自定义日志
 
+ice 使用 Go 标准库 `log/slog` 作为日志门面，可直接传入 `*slog.Logger`：
+
 ```go
-import "github.com/zjn-zjn/ice/sdks/go/log"
+import "log/slog"
 
-// 实现 Logger 接口
-type MyLogger struct{}
+// 使用 JSON 格式输出
+ice.SetLogger(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 
-func (l *MyLogger) Debug(msg string, args ...any) { /* ... */ }
-func (l *MyLogger) Info(msg string, args ...any)  { /* ... */ }
-func (l *MyLogger) Warn(msg string, args ...any)  { /* ... */ }
-func (l *MyLogger) Error(msg string, args ...any) { /* ... */ }
-
-// 设置日志
-ice.SetLogger(&MyLogger{})
+// 或接入第三方日志库（zap、zerolog 等均提供 slog.Handler 适配）
+ice.SetLogger(slog.New(zapSlogHandler))
 ```
 
 ### 初始化执行器池

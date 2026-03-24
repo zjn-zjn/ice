@@ -28,8 +28,6 @@ type (
 	FileClient = client.FileClient
 	// LeafMeta contains metadata for leaf nodes.
 	LeafMeta = leaf.LeafMeta
-	// Logger is the logging interface.
-	Logger = icelog.Logger
 	// AfterPropertiesSet is an optional interface for leaf node initialization.
 	// Implement this interface to perform initialization after config is applied.
 	AfterPropertiesSet = leaf.AfterPropertiesSet

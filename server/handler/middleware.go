@@ -4,7 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"runtime/debug"
 	"strconv"
@@ -25,7 +25,7 @@ func WrapHandler(fn HandlerFunc) http.HandlerFunc {
 					writeJSON(w, r, &model.WebResult{Ret: ece.Code, Msg: ece.Msg})
 					return
 				}
-				log.Printf("panic: %v\n%s", rv, debug.Stack())
+				slog.Error("handler panicked", "recover", rv, "stack", string(debug.Stack()))
 				writeJSON(w, r, &model.WebResult{Ret: model.CodeInternalError, Msg: "内部错误"})
 			}
 		}()
@@ -36,7 +36,7 @@ func WrapHandler(fn HandlerFunc) http.HandlerFunc {
 				writeJSON(w, r, &model.WebResult{Ret: ece.Code, Msg: ece.Msg})
 				return
 			}
-			log.Printf("handler error: %v", err)
+			slog.Error("handler failed", "error", err)
 			writeJSON(w, r, &model.WebResult{Ret: model.CodeInternalError, Msg: err.Error()})
 			return
 		}
@@ -66,10 +66,10 @@ func writeJSON(w http.ResponseWriter, r *http.Request, data any) {
 		w.Header().Set("Content-Encoding", "gzip")
 		gz := gzip.NewWriter(w)
 		if _, err := gz.Write(jsonData); err != nil {
-			log.Printf("gzip write error: %v", err)
+			slog.Error("gzip write failed", "error", err)
 		}
 		if err := gz.Close(); err != nil {
-			log.Printf("gzip close error: %v", err)
+			slog.Error("gzip close failed", "error", err)
 		}
 		return
 	}

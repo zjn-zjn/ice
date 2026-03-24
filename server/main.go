@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,13 +17,18 @@ import (
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})))
+
 	// Load config
 	cfg := config.Load()
 
 	// Initialize storage
 	store, err := storage.NewStorage(cfg.StoragePath)
 	if err != nil {
-		log.Fatalf("failed to initialize storage: %v", err)
+		slog.Error("storage init failed", "error", err)
+		os.Exit(1)
 	}
 
 	// Initialize client manager
@@ -64,7 +69,7 @@ func main() {
 
 	// Start server with graceful shutdown
 	addr := fmt.Sprintf(":%d", cfg.Port)
-	log.Printf("ice-server starting on %s (storage: %s)", addr, cfg.StoragePath)
+	slog.Info("server starting", "addr", addr, "storagePath", cfg.StoragePath)
 
 	corsHandler := handler.CorsMiddleware(mux)
 	srv := &http.Server{
@@ -74,7 +79,8 @@ func main() {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server failed: %v", err)
+			slog.Error("server failed", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -82,12 +88,12 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("shutting down server...")
+	slog.Info("server shutting down")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Printf("server shutdown error: %v", err)
+		slog.Error("server shutdown failed", "error", err)
 	}
-	log.Println("server stopped")
+	slog.Info("server stopped")
 }

@@ -70,7 +70,7 @@ func (h *Handler) Handle(ctx stdctx.Context, roam *icecontext.Roam) {
 
 	if h.hasDebug(DebugInRoam) {
 		args := append([]any{"roam", roamWithoutIce(roam)}, metaSuffix(roam)...)
-		log.Info(ctx, "handle in", args...)
+		log.Info(ctx, "handle input", args...)
 	}
 
 	if h.Root != nil {
@@ -82,10 +82,10 @@ func (h *Handler) Handle(ctx stdctx.Context, roam *icecontext.Roam) {
 		}
 		if h.hasDebug(DebugOutRoam) {
 			args := append([]any{"roam", roamWithoutIce(roam)}, metaSuffix(roam)...)
-			log.Info(ctx, "handle out", args...)
+			log.Info(ctx, "handle output", args...)
 		}
 	} else {
-		log.Error(ctx, "root not exist", metaSuffix(roam)...)
+		log.Error(ctx, "handler root node missing", metaSuffix(roam)...)
 	}
 }
 
@@ -93,7 +93,7 @@ func (h *Handler) Handle(ctx stdctx.Context, roam *icecontext.Roam) {
 func (h *Handler) HandleWithNodeId(ctx stdctx.Context, roam *icecontext.Roam) {
 	if h.hasDebug(DebugInRoam) {
 		args := append([]any{"roam", roamWithoutIce(roam)}, metaSuffix(roam)...)
-		log.Info(ctx, "handle in", args...)
+		log.Info(ctx, "handle input", args...)
 	}
 
 	if h.Root != nil {
@@ -105,7 +105,7 @@ func (h *Handler) HandleWithNodeId(ctx stdctx.Context, roam *icecontext.Roam) {
 		}
 		if h.hasDebug(DebugOutRoam) {
 			args := append([]any{"roam", roamWithoutIce(roam)}, metaSuffix(roam)...)
-			log.Info(ctx, "handle out", args...)
+			log.Info(ctx, "handle output", args...)
 		}
 	}
 }

@@ -7,7 +7,7 @@ A Python implementation of the Ice rule engine, compatible with Java and Go SDKs
 from ice.context.roam import Roam
 from ice.enums import RunState, NodeType, TimeType
 from ice.leaf.registry import leaf, register_leaf, get_leaf_nodes, LeafMeta, IceField, IceIgnore, FieldMeta
-from ice.log import Logger, set_logger
+from ice.log import set_trace_id, get_trace_id, reset_trace_id
 from ice.client.file_client import FileClient
 from ice.client.async_file_client import AsyncFileClient
 from ice.node.base import set_global_error_handler, ErrorHandler
@@ -41,8 +41,9 @@ __all__ = [
     "IceIgnore",
     "LeafMeta",
     # Logging
-    "Logger",
-    "set_logger",
+    "set_trace_id",
+    "get_trace_id",
+    "reset_trace_id",
     # Clients
     "FileClient",
     "AsyncFileClient",

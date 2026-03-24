@@ -24,7 +24,7 @@ func syncDispatcher(ctx stdctx.Context, roam *Roam) []*Roam {
 	if roam.GetId() > 0 {
 		h := cache.GetHandlerById(roam.GetId())
 		if h == nil {
-			icelog.Debug(ctx, "handler maybe expired", "iceId", roam.GetId())
+			icelog.Debug(ctx, "handler not found", "iceId", roam.GetId())
 			return nil
 		}
 		h.Handle(ctx, roam)
@@ -36,7 +36,7 @@ func syncDispatcher(ctx stdctx.Context, roam *Roam) []*Roam {
 	if scene != "" {
 		handlerMap := cache.GetHandlersByScene(scene)
 		if len(handlerMap) == 0 {
-			icelog.Debug(ctx, "handlers maybe all expired", "scene", scene)
+			icelog.Debug(ctx, "no handlers found", "scene", scene)
 			return nil
 		}
 
@@ -169,11 +169,11 @@ func submitHandler(ctx stdctx.Context, h *handler.Handler, roam *Roam) <-chan *R
 
 func checkRoam(ctx stdctx.Context, roam *Roam) bool {
 	if roam == nil {
-		icelog.Error(ctx, "invalid roam null")
+		icelog.Error(ctx, "invalid roam: nil")
 		return false
 	}
 	if roam.GetMeta() == nil {
-		icelog.Error(ctx, "invalid roam no _ice")
+		icelog.Error(ctx, "invalid roam: missing _ice")
 		return false
 	}
 	if roam.GetId() > 0 {
@@ -185,7 +185,7 @@ func checkRoam(ctx stdctx.Context, roam *Roam) bool {
 	if roam.GetNid() > 0 {
 		return true
 	}
-	icelog.Error(ctx, "invalid roam none iceId none scene none confId", "roam", roam)
+	icelog.Error(ctx, "invalid roam: no routing key", "roam", roam)
 	return false
 }
 

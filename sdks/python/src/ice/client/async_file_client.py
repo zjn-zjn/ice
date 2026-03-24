@@ -95,7 +95,7 @@ class AsyncFileClient:
         self._poll_task = asyncio.create_task(self._version_poller())
 
         self._started = True
-        log.info("async ice client started", app=self.app, lane=self.lane, version=self._loaded_version)
+        log.info("client started", extra={"app": self.app, "lane": self.lane, "version": self._loaded_version})
 
     async def destroy(self) -> None:
         """Stop the client and release resources."""
@@ -118,7 +118,7 @@ class AsyncFileClient:
         # Shutdown executor
         shutdown_executor()
 
-        log.info("async ice client destroyed", app=self.app)
+        log.info("client stopped", extra={"app": self.app})
 
     async def wait_started(self, timeout: float = 30.0) -> bool:
         """
@@ -175,18 +175,18 @@ class AsyncFileClient:
             try:
                 await asyncio.to_thread(self._check_and_load_updates)
             except Exception as e:
-                log.warn("error polling version", error=str(e))
+                log.warn("version poll failed", extra={"error": str(e)})
             try:
                 await asyncio.to_thread(self._check_mocks)
             except Exception as e:
-                log.warn("error checking mocks", error=str(e))
+                log.warn("mock check failed", extra={"error": str(e)})
             tick_count += 1
             if tick_count >= heartbeat_ticks:
                 tick_count = 0
                 try:
                     await asyncio.to_thread(self._update_heartbeat)
                 except Exception as e:
-                    log.warn("error updating heartbeat", error=str(e))
+                    log.warn("heartbeat update failed", extra={"error": str(e)})
 
             await asyncio.sleep(self.poll_interval)
 
@@ -217,7 +217,7 @@ class AsyncFileClient:
                             data = json.load(f)
                             confs.append(self._dict_to_conf_dto(data))
                     except Exception as e:
-                        log.warn("failed to load conf", file=filepath, error=str(e))
+                        log.warn("conf file load failed", extra={"file": filepath, "error": str(e)})
 
             if confs:
                 conf_cache.insert_or_update_confs(confs)
@@ -235,7 +235,7 @@ class AsyncFileClient:
                                 data = json.load(f)
                                 bases.append(self._dict_to_base_dto(data))
                         except Exception as e:
-                            log.warn("failed to load base", file=filepath, error=str(e))
+                            log.warn("base file load failed", extra={"file": filepath, "error": str(e)})
 
             if bases:
                 handler_cache.insert_or_update_handlers(bases)
@@ -269,10 +269,10 @@ class AsyncFileClient:
             if not os.path.exists(update_file):
                 if v == current_version:
                     # Only the last version file is missing - normal case, wait for next poll
-                    log.info("latest update file not ready, will retry", version=v)
+                    log.info("update file not ready, retrying", extra={"version": v})
                 else:
                     # Middle version file is missing - abnormal, need full load
-                    log.warn("middle update file missing, will do full load", version=v)
+                    log.warn("incremental file missing, falling back to full load", extra={"version": v})
                     need_full_load = True
                 break
             try:
@@ -281,17 +281,17 @@ class AsyncFileClient:
                     transfer = self._dict_to_transfer_dto(data)
                     self._apply_transfer(transfer)
                 self._loaded_version = v
-                log.info("loaded incremental update", version=v)
+                log.info("incremental update loaded", extra={"version": v})
             except Exception as e:
-                log.error("failed to load incremental update", version=v, error=str(e))
+                log.error("incremental update load failed", extra={"version": v, "error": str(e)})
                 need_full_load = True
                 break
 
         # Fallback to full load if incremental updates failed
         if need_full_load:
-            log.info("performing full config reload")
+            log.info("full reload started")
             self._load_all_config()
-            log.info("full config reload completed", version=self._loaded_version)
+            log.info("full reload completed", extra={"version": self._loaded_version})
 
     def _apply_transfer(self, transfer: TransferDto) -> None:
         """Apply a transfer DTO to update caches."""
@@ -333,7 +333,7 @@ class AsyncFileClient:
                     asdict(client_info),
                 )
         except Exception as e:
-            log.warn("failed to register client", error=str(e))
+            log.warn("client register failed", extra={"error": str(e)})
 
     def _write_json_file(self, path: str, data: dict) -> None:
         """Atomic write JSON file via temp + rename."""
@@ -355,7 +355,7 @@ class AsyncFileClient:
                 return
             self._write_beat_file()
         except Exception as e:
-            log.warn("failed to update heartbeat", error=str(e))
+            log.warn("heartbeat update failed", extra={"error": str(e)})
 
     def _unregister_client(self) -> None:
         """Remove mock dir, then m_, then b_ last."""
@@ -368,7 +368,7 @@ class AsyncFileClient:
                 if os.path.exists(path):
                     os.remove(path)
         except Exception as e:
-            log.warn("failed to unregister client", error=str(e))
+            log.warn("client unregister failed", extra={"error": str(e)})
 
     def _get_mock_dir(self) -> str:
         """Get the mock directory for this client."""
@@ -402,9 +402,9 @@ class AsyncFileClient:
                     json.dump(result, f)
                 os.replace(tmp_path, result_path)
 
-                log.info("mock executed", mockId=req["mockId"], success=result["success"])
+                log.info("mock executed", extra={"mockId": req["mockId"], "success": result["success"]})
             except Exception as e:
-                log.warn("failed to process mock file", file=filename, error=str(e))
+                log.warn("mock file process failed", extra={"file": filename, "error": str(e)})
 
     def _execute_mock(self, req: dict) -> dict:
         """Execute a mock request and return the result dict."""

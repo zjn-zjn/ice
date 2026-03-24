@@ -36,7 +36,7 @@ public final class IceDispatcher {
         if (roam.getId() > 0) {
             IceHandler handler = IceHandlerCache.getHandlerById(roam.getId());
             if (handler == null) {
-                log.debug("handler maybe expired iceId:{}", roam.getId());
+                log.debug("handler not found iceId:{}", roam.getId());
                 return Collections.emptyList();
             }
             roam.setId(handler.findIceId());
@@ -48,7 +48,7 @@ public final class IceDispatcher {
         if (scene != null && !scene.isEmpty()) {
             Map<Long, IceHandler> handlerMap = IceHandlerCache.getHandlersByScene(scene);
             if (handlerMap == null || handlerMap.isEmpty()) {
-                log.debug("handlers maybe all expired scene:{}", scene);
+                log.debug("no handlers found scene:{}", scene);
                 return Collections.emptyList();
             }
             if (handlerMap.size() == 1) {
@@ -141,7 +141,7 @@ public final class IceDispatcher {
 
     private static boolean checkRoam(IceRoam roam) {
         if (roam == null || roam.getMeta() == null) {
-            log.error("invalid roam null or missing _ice");
+            log.error("invalid roam: nil or missing _ice");
             return false;
         }
         if (roam.getId() > 0) {
@@ -154,7 +154,7 @@ public final class IceDispatcher {
         if (roam.getNid() > 0) {
             return true;
         }
-        log.error("invalid roam none iceId none scene none confId:{}", JacksonUtils.toJsonString(roam));
+        log.error("invalid roam: no routing key roam:{}", JacksonUtils.toJsonString(roam));
         return false;
     }
 }

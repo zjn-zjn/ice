@@ -1,4 +1,8 @@
-// Package log provides logging interface and default implementation.
+// Package log provides logging utilities using Go's standard log/slog.
+//
+// Users can replace the default logger with their own *slog.Logger via SetLogger.
+// Since slog is Go's standard logging facade, any logging library (zap, zerolog,
+// logrus, etc.) can be integrated by providing a slog.Handler implementation.
 package log
 
 import (
@@ -10,82 +14,50 @@ import (
 // TraceKey is the context key for trace ID.
 type TraceKey struct{}
 
-// Logger is the interface for logging with context support.
-type Logger interface {
-	Debug(ctx context.Context, msg string, args ...any)
-	Info(ctx context.Context, msg string, args ...any)
-	Warn(ctx context.Context, msg string, args ...any)
-	Error(ctx context.Context, msg string, args ...any)
-}
-
-var defaultLogger Logger = &slogLogger{
-	logger: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})),
-}
+var defaultLogger *slog.Logger = slog.New(
+	slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
+)
 
 // SetLogger sets the default logger.
-func SetLogger(l Logger) {
+func SetLogger(l *slog.Logger) {
 	if l != nil {
 		defaultLogger = l
 	}
 }
 
 // GetLogger returns the default logger.
-func GetLogger() Logger {
+func GetLogger() *slog.Logger {
 	return defaultLogger
+}
+
+// traceArgs prepends traceId as a structured field if present in context.
+func traceArgs(ctx context.Context, args []any) []any {
+	if ctx != nil {
+		if v, ok := ctx.Value(TraceKey{}).(string); ok && v != "" {
+			return append([]any{"traceId", v}, args...)
+		}
+	}
+	return args
 }
 
 // Debug logs a debug message.
 func Debug(ctx context.Context, msg string, args ...any) {
-	defaultLogger.Debug(ctx, msg, args...)
+	defaultLogger.DebugContext(ctx, msg, traceArgs(ctx, args)...)
 }
 
 // Info logs an info message.
 func Info(ctx context.Context, msg string, args ...any) {
-	defaultLogger.Info(ctx, msg, args...)
+	defaultLogger.InfoContext(ctx, msg, traceArgs(ctx, args)...)
 }
 
 // Warn logs a warning message.
 func Warn(ctx context.Context, msg string, args ...any) {
-	defaultLogger.Warn(ctx, msg, args...)
+	defaultLogger.WarnContext(ctx, msg, traceArgs(ctx, args)...)
 }
 
 // Error logs an error message.
 func Error(ctx context.Context, msg string, args ...any) {
-	defaultLogger.Error(ctx, msg, args...)
-}
-
-// slogLogger is the default logger using slog.
-type slogLogger struct {
-	logger *slog.Logger
-}
-
-// tracePrefix returns "[traceId] " if trace ID exists in context, empty string otherwise.
-func tracePrefix(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	if v := ctx.Value(TraceKey{}); v != nil {
-		if s, ok := v.(string); ok && s != "" {
-			return "[" + s + "] "
-		}
-	}
-	return ""
-}
-
-func (l *slogLogger) Debug(ctx context.Context, msg string, args ...any) {
-	l.logger.DebugContext(ctx, tracePrefix(ctx)+msg, args...)
-}
-
-func (l *slogLogger) Info(ctx context.Context, msg string, args ...any) {
-	l.logger.InfoContext(ctx, tracePrefix(ctx)+msg, args...)
-}
-
-func (l *slogLogger) Warn(ctx context.Context, msg string, args ...any) {
-	l.logger.WarnContext(ctx, tracePrefix(ctx)+msg, args...)
-}
-
-func (l *slogLogger) Error(ctx context.Context, msg string, args ...any) {
-	l.logger.ErrorContext(ctx, tracePrefix(ctx)+msg, args...)
+	defaultLogger.ErrorContext(ctx, msg, traceArgs(ctx, args)...)
 }
 
 // WithTraceId returns a new context with the given trace ID.
@@ -98,10 +70,8 @@ func GetTraceId(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
-	if v := ctx.Value(TraceKey{}); v != nil {
-		if s, ok := v.(string); ok {
-			return s
-		}
+	if v, ok := ctx.Value(TraceKey{}).(string); ok {
+		return v
 	}
 	return ""
 }
