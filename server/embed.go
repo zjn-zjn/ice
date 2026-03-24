@@ -1,13 +1,12 @@
 package main
 
 import (
-	"compress/gzip"
 	"embed"
-	"io"
 	"io/fs"
+	"mime"
 	"net/http"
+	"path/filepath"
 	"strings"
-	"sync"
 )
 
 //go:embed web/*
@@ -15,48 +14,26 @@ var webFS embed.FS
 
 // spaFileServer serves static files from the embedded filesystem
 // with SPA fallback (returns index.html for non-API 404s)
+// Pre-compressed .br files are served when available and client supports brotli
 type spaFileServer struct {
-	handler http.Handler
-	fsys    fs.FS
+	fsys       fs.FS
+	fileServer http.Handler
 }
 
 func NewSPAFileServer() http.Handler {
 	subFS, err := fs.Sub(webFS, "web")
 	if err != nil {
-		// If web directory doesn't exist or is empty, return a noop handler
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "frontend not embedded", http.StatusNotFound)
 		})
 	}
-
-	fileServer := http.FileServer(http.FS(subFS))
-	return &spaFileServer{
-		handler: fileServer,
-		fsys:    subFS,
-	}
+	return &spaFileServer{fsys: subFS, fileServer: http.FileServer(http.FS(subFS))}
 }
 
-var gzipPool = sync.Pool{
-	New: func() any {
-		gz, _ := gzip.NewWriterLevel(io.Discard, gzip.BestSpeed)
-		return gz
-	},
-}
-
-type gzipResponseWriter struct {
-	http.ResponseWriter
-	gz *gzip.Writer
-}
-
-func (g *gzipResponseWriter) Write(b []byte) (int, error) {
-	return g.gz.Write(b)
-}
-
-func shouldGzip(path string) bool {
-	for _, ext := range []string{".js", ".css", ".html", ".svg", ".json"} {
-		if strings.HasSuffix(path, ext) {
-			return true
-		}
+func isCompressible(path string) bool {
+	switch filepath.Ext(path) {
+	case ".js", ".css", ".html", ".svg", ".json":
+		return true
 	}
 	return false
 }
@@ -64,42 +41,49 @@ func shouldGzip(path string) bool {
 func (s *spaFileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
-	// Skip API paths
 	if strings.HasPrefix(path, "/ice-server/") {
 		http.NotFound(w, r)
 		return
 	}
 
-	// Remove leading slash for fs.Open
 	fsPath := strings.TrimPrefix(path, "/")
 	if fsPath == "" {
 		fsPath = "index.html"
 	}
 
-	// Try to open the file
-	f, err := s.fsys.Open(fsPath)
-	if err != nil {
-		// File not found: SPA fallback to index.html
-		r.URL.Path = "/"
+	// Check if file exists, fallback to index.html for SPA
+	if _, err := fs.Stat(s.fsys, fsPath); err != nil {
 		fsPath = "index.html"
-	} else {
-		f.Close()
 	}
 
-	// Gzip compress text resources
-	if shouldGzip(fsPath) && strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-		gz := gzipPool.Get().(*gzip.Writer)
-		gz.Reset(w)
-		defer func() {
-			gz.Close()
-			gzipPool.Put(gz)
-		}()
-		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Vary", "Accept-Encoding")
-		w.Header().Del("Content-Length")
-		s.handler.ServeHTTP(&gzipResponseWriter{ResponseWriter: w, gz: gz}, r)
-		return
+	// Serve pre-compressed brotli if available and client supports it
+	if isCompressible(fsPath) && strings.Contains(r.Header.Get("Accept-Encoding"), "br") {
+		brPath := fsPath + ".br"
+		if data, err := fs.ReadFile(s.fsys, brPath); err == nil {
+			ct := mime.TypeByExtension(filepath.Ext(fsPath))
+			if ct == "" {
+				ct = "application/octet-stream"
+			}
+			w.Header().Set("Content-Type", ct)
+			w.Header().Set("Content-Encoding", "br")
+			w.Header().Set("Vary", "Accept-Encoding")
+			if fsPath != "index.html" {
+				// Hashed asset filenames are immutable
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			}
+			w.Write(data)
+			return
+		}
 	}
 
-	s.handler.ServeHTTP(w, r)
+	// Fallback: serve original file
+	fallbackURL := *r.URL
+	fallbackURL.Path = "/" + fsPath
+	s.fileServer.ServeHTTP(w, &http.Request{
+		Method:     r.Method,
+		URL:        &fallbackURL,
+		Header:     r.Header,
+		Host:       r.Host,
+		RequestURI: "/" + fsPath,
+	})
 }

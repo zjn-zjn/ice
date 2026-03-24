@@ -34,7 +34,7 @@ func main() {
 	baseService := service.NewBaseService(store, serverService)
 	confService := service.NewConfService(store, serverService, clientManager)
 	appService := service.NewAppService(store, clientManager)
-	folderService := service.NewFolderService(store, baseService)
+	folderService := service.NewFolderService(store, baseService, serverService)
 
 	// Initialize handlers
 	baseHandler := handler.NewBaseHandler(baseService, serverService)

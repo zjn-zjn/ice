@@ -27,16 +27,16 @@ const (
 	dirClients  = "clients"
 	dirLane     = "lane"
 
-	fileAppId  = "_id.txt"
-	fileBaseId = "_base_id.txt"
-	fileConfId = "_conf_id.txt"
-	filePushId = "_push_id.txt"
+	fileAppId   = "_id.txt"
+	fileBaseId  = "_base_id.txt"
+	fileConfId  = "_conf_id.txt"
+	filePushId  = "_push_id.txt"
 	fileVersion = "version.txt"
 
-	SuffixJson    = ".json"
-	suffixTmp     = ".tmp"
-	suffixUpd     = "_upd.json"
-	latestClient  = "_latest.json"
+	SuffixJson   = ".json"
+	suffixTmp    = ".tmp"
+	suffixUpd    = "_upd.json"
+	latestClient = "_latest.json"
 )
 
 type Storage struct {
@@ -330,7 +330,11 @@ func (s *Storage) MoveBaseFile(app int, baseId int64, targetRelDir string) error
 	if oldPath == newPath {
 		return nil
 	}
-	if err := os.Rename(oldPath, newPath); err != nil {
+	// Use copy+delete instead of rename for compatibility with ossfs and other FUSE mounts
+	if err := copyFile(oldPath, newPath); err != nil {
+		return err
+	}
+	if err := os.Remove(oldPath); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	s.setBaseIndexEntry(app, baseId, targetRelDir)
@@ -918,6 +922,29 @@ func (s *Storage) EnsureAppDirectories(app int) {
 	for _, dir := range []string{dirBases, dirConfs, dirUpdates, dirVersions, dirHistory} {
 		os.MkdirAll(filepath.Join(appPath, dir), 0755)
 	}
+}
+
+func copyFile(src, dst string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, data, 0644)
+}
+
+// CopyDir recursively copies a directory tree for compatibility with FUSE/ossfs mounts
+func CopyDir(src, dst string) error {
+	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(src, path)
+		target := filepath.Join(dst, rel)
+		if d.IsDir() {
+			return os.MkdirAll(target, 0755)
+		}
+		return copyFile(path, target)
+	})
 }
 
 func writeJsonFile(path string, data any) error {

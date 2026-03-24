@@ -85,27 +85,28 @@ func TimeNowMs() int64 {
 // ---- Data Models (matching Java DTOs, stored as JSON) ----
 
 type IceApp struct {
-	ID       *int    `json:"id,omitempty"`
-	Name     string  `json:"name,omitempty"`
-	Info     string  `json:"info,omitempty"`
-	Status   *int8   `json:"status,omitempty"`
-	CreateAt *int64  `json:"createAt,omitempty"`
-	UpdateAt *int64  `json:"updateAt,omitempty"`
+	ID       *int   `json:"id,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Info     string `json:"info,omitempty"`
+	Status   *int8  `json:"status,omitempty"`
+	CreateAt *int64 `json:"createAt,omitempty"`
+	UpdateAt *int64 `json:"updateAt,omitempty"`
 }
 
 type IceBase struct {
-	ID       *int64  `json:"id,omitempty"`
-	Name     string  `json:"name,omitempty"`
-	App      *int    `json:"app,omitempty"`
-	Scenes   string  `json:"scenes,omitempty"`
-	Status   *int8   `json:"status,omitempty"`
-	ConfID   *int64  `json:"confId,omitempty"`
-	TimeType *int8   `json:"timeType,omitempty"`
-	Start    *int64  `json:"start,omitempty"`
-	End      *int64  `json:"end,omitempty"`
-	Debug    *int8   `json:"debug,omitempty"`
-	CreateAt *int64  `json:"createAt,omitempty"`
-	UpdateAt *int64  `json:"updateAt,omitempty"`
+	ID       *int64 `json:"id,omitempty"`
+	Name     string `json:"name,omitempty"`
+	App      *int   `json:"app,omitempty"`
+	Scenes   string `json:"scenes,omitempty"`
+	Status   *int8  `json:"status,omitempty"`
+	ConfID   *int64 `json:"confId,omitempty"`
+	TimeType *int8  `json:"timeType,omitempty"`
+	Start    *int64 `json:"start,omitempty"`
+	End      *int64 `json:"end,omitempty"`
+	Debug    *int8  `json:"debug,omitempty"`
+	CreateAt *int64 `json:"createAt,omitempty"`
+	UpdateAt *int64 `json:"updateAt,omitempty"`
+	Path     string `json:"path,omitempty"`
 }
 
 type IceConf struct {
@@ -184,26 +185,26 @@ func (c *IceConf) GetTimeType() int8 {
 
 // IceEditNode represents an edit operation from the frontend
 type IceEditNode struct {
-	App            *int    `json:"app"`
-	EditType       *int    `json:"editType"`
-	IceId          *int64  `json:"iceId"`
-	SelectId       *int64  `json:"selectId"`
-	Name           string  `json:"name,omitempty"`
-	ConfField      string  `json:"confField,omitempty"`
-	NodeType       *int8   `json:"nodeType,omitempty"`
-	ConfName       string  `json:"confName,omitempty"`
-	MultiplexIds   string  `json:"multiplexIds,omitempty"`
-	TimeType       *int8   `json:"timeType,omitempty"`
-	Start          *int64  `json:"start,omitempty"`
-	End            *int64  `json:"end,omitempty"`
-	ParentId       *int64  `json:"parentId,omitempty"`
-	Index          *int    `json:"index,omitempty"`
-	MoveTo         *int    `json:"moveTo,omitempty"`
-	MoveToParentId *int64  `json:"moveToParentId,omitempty"`
-	MoveToNextId   *int64  `json:"moveToNextId,omitempty"`
-	NextId         *int64  `json:"nextId,omitempty"`
-	Inverse        *bool   `json:"inverse,omitempty"`
-	Lane           string  `json:"lane,omitempty"`
+	App            *int   `json:"app"`
+	EditType       *int   `json:"editType"`
+	IceId          *int64 `json:"iceId"`
+	SelectId       *int64 `json:"selectId"`
+	Name           string `json:"name,omitempty"`
+	ConfField      string `json:"confField,omitempty"`
+	NodeType       *int8  `json:"nodeType,omitempty"`
+	ConfName       string `json:"confName,omitempty"`
+	MultiplexIds   string `json:"multiplexIds,omitempty"`
+	TimeType       *int8  `json:"timeType,omitempty"`
+	Start          *int64 `json:"start,omitempty"`
+	End            *int64 `json:"end,omitempty"`
+	ParentId       *int64 `json:"parentId,omitempty"`
+	Index          *int   `json:"index,omitempty"`
+	MoveTo         *int   `json:"moveTo,omitempty"`
+	MoveToParentId *int64 `json:"moveToParentId,omitempty"`
+	MoveToNextId   *int64 `json:"moveToNextId,omitempty"`
+	NextId         *int64 `json:"nextId,omitempty"`
+	Inverse        *bool  `json:"inverse,omitempty"`
+	Lane           string `json:"lane,omitempty"`
 }
 
 // EditConfResponse is the response for editConf API
@@ -225,10 +226,12 @@ func (e *IceEditNode) IsInverse() bool {
 
 // PushData is the snapshot data for push/export/import
 type PushData struct {
-	App         int        `json:"app,omitempty"`
-	Base        *IceBase   `json:"base,omitempty"`
-	Confs       []*IceConf `json:"confs,omitempty"`
-	ConfUpdates []*IceConf `json:"confUpdates,omitempty"`
+	App   int        `json:"app,omitempty"`
+	Bases []*IceBase `json:"bases,omitempty"`
+	Confs []*IceConf `json:"confs,omitempty"`
+	// compatible with old format
+	Base *IceBase `json:"base,omitempty"`
+	Path string   `json:"path,omitempty"`
 }
 
 // IcePushHistory is a push history record
@@ -287,14 +290,14 @@ type IceClientInfo struct {
 
 // LeafNodeInfo describes a leaf node class from a client
 type LeafNodeInfo struct {
-	Type       int8             `json:"type"`
-	Clazz      string           `json:"clazz,omitempty"`
-	Name       string           `json:"name,omitempty"`
-	Desc       string           `json:"desc,omitempty"`
-	Order      *int             `json:"order,omitempty"`
-	IceFields  []*IceFieldInfo  `json:"iceFields,omitempty"`
-	HideFields []*IceFieldInfo  `json:"hideFields,omitempty"`
-	RoamKeys   []*RoamKeyMeta   `json:"roamKeys,omitempty"`
+	Type       int8            `json:"type"`
+	Clazz      string          `json:"clazz,omitempty"`
+	Name       string          `json:"name,omitempty"`
+	Desc       string          `json:"desc,omitempty"`
+	Order      *int            `json:"order,omitempty"`
+	IceFields  []*IceFieldInfo `json:"iceFields,omitempty"`
+	HideFields []*IceFieldInfo `json:"hideFields,omitempty"`
+	RoamKeys   []*RoamKeyMeta  `json:"roamKeys,omitempty"`
 }
 
 // RoamKeyMeta describes a roam key access found in a leaf node.
@@ -323,25 +326,25 @@ func (n *LeafNodeInfo) GetOrder() int {
 
 // IceFieldInfo describes a field of a leaf node
 type IceFieldInfo struct {
-	Field     string      `json:"field,omitempty"`
-	Name      string      `json:"name,omitempty"`
-	Desc      string      `json:"desc,omitempty"`
-	Type      string      `json:"type,omitempty"`
-	Value     any `json:"value"`
-	ValueNull *bool       `json:"valueNull,omitempty"`
+	Field     string `json:"field,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Desc      string `json:"desc,omitempty"`
+	Type      string `json:"type,omitempty"`
+	Value     any    `json:"value"`
+	ValueNull *bool  `json:"valueNull,omitempty"`
 }
 
 // ---- Display Models ----
 
 // IceShowConf is the top-level display model for conf detail
 type IceShowConf struct {
-	App            int                              `json:"app,omitempty"`
-	IceId          int64                            `json:"iceId,omitempty"`
-	Name           string                           `json:"name,omitempty"`
-	Root           *IceShowNode                     `json:"root,omitempty"`
-	UpdateCount    *int                             `json:"updateCount,omitempty"`
-	ClientRegistry *ClientRegistryInfo              `json:"clientRegistry,omitempty"`
-	LeafClassMap   map[int8][]*LeafNodeInfo          `json:"leafClassMap,omitempty"`
+	App            int                      `json:"app,omitempty"`
+	IceId          int64                    `json:"iceId,omitempty"`
+	Name           string                   `json:"name,omitempty"`
+	Root           *IceShowNode             `json:"root,omitempty"`
+	UpdateCount    *int                     `json:"updateCount,omitempty"`
+	ClientRegistry *ClientRegistryInfo      `json:"clientRegistry,omitempty"`
+	LeafClassMap   map[int8][]*LeafNodeInfo `json:"leafClassMap,omitempty"`
 }
 
 type ClientRegistryInfo struct {
@@ -386,10 +389,10 @@ type NodeShowConf struct {
 
 // ---- Helper functions for pointer creation ----
 
-func Int8Ptr(v int8) *int8     { return &v }
-func Int64Ptr(v int64) *int64  { return &v }
-func IntPtr(v int) *int        { return &v }
-func BoolPtr(v bool) *bool     { return &v }
+func Int8Ptr(v int8) *int8    { return &v }
+func Int64Ptr(v int64) *int64 { return &v }
+func IntPtr(v int) *int       { return &v }
+func BoolPtr(v bool) *bool    { return &v }
 
 // ClientHeartbeat is the lightweight heartbeat data written separately from meta.
 type ClientHeartbeat struct {
@@ -439,10 +442,10 @@ type MockExecuteRequest struct {
 
 // MockSchemaField describes a roam input field for mock execution.
 type MockSchemaField struct {
-	Key    string `json:"key"`
-	NodeId int64  `json:"nodeId"`
-	NodeName  string `json:"nodeName,omitempty"`
-	Dynamic   bool   `json:"dynamic,omitempty"`
+	Key      string `json:"key"`
+	NodeId   int64  `json:"nodeId"`
+	NodeName string `json:"nodeName,omitempty"`
+	Dynamic  bool   `json:"dynamic,omitempty"`
 }
 
 // MockSchemaResponse wraps schema fields with fallback info.

@@ -761,7 +761,6 @@ func (s *ServerService) collectMockSchema(app int, confId, iceId int64, lane, ad
 	}
 	visited[confId] = true
 
-	// Use active (published) conf only — mock executes on client which runs the active version
 	conf := s.GetActiveConfById(app, confId)
 	if conf == nil {
 		return

@@ -13,12 +13,13 @@ import (
 )
 
 type FolderService struct {
-	storage     *storage.Storage
-	baseService *BaseService
+	storage       *storage.Storage
+	baseService   *BaseService
+	serverService *ServerService
 }
 
-func NewFolderService(storage *storage.Storage, baseService *BaseService) *FolderService {
-	return &FolderService{storage: storage, baseService: baseService}
+func NewFolderService(storage *storage.Storage, baseService *BaseService, serverService *ServerService) *FolderService {
+	return &FolderService{storage: storage, baseService: baseService, serverService: serverService}
 }
 
 // ==================== Path Sanitization ====================
@@ -123,9 +124,12 @@ func (fs *FolderService) FolderRename(app int, folderPath, newName string) error
 		return model.AlreadyExist("文件夹 " + newName)
 	}
 
-	if err := os.Rename(oldDir, newDir); err != nil {
+	// Use copy+delete instead of rename for compatibility with ossfs/FUSE mounts
+	if err := storage.CopyDir(oldDir, newDir); err != nil {
+		os.RemoveAll(newDir) // clean up incomplete copy
 		return err
 	}
+	os.RemoveAll(oldDir)
 
 	// rebuild index for the new directory since paths changed
 	newRelDir, _ := filepath.Rel(basesDir, newDir)
@@ -144,7 +148,8 @@ type FolderDeleteResult struct {
 	BaseCount   int `json:"baseCount"`
 }
 
-// FolderDelete recursively deletes a folder and all its contents
+// FolderDelete recursively deletes a folder and all its contents.
+// Version update is published before physical deletion so clients are notified first.
 func (fs *FolderService) FolderDelete(app int, folderPath string) (*FolderDeleteResult, error) {
 	folderPath, err := sanitizePath(folderPath)
 	if err != nil {
@@ -160,8 +165,9 @@ func (fs *FolderService) FolderDelete(app int, folderPath string) (*FolderDelete
 		return nil, model.IDNotExist("文件夹", folderPath)
 	}
 
-	// count items before deleting
+	// collect base IDs and count items before deleting
 	result := &FolderDeleteResult{}
+	var baseIds []int64
 	filepath.WalkDir(targetDir, func(path string, d iofs.DirEntry, err error) error {
 		if err != nil {
 			return nil
@@ -170,12 +176,26 @@ func (fs *FolderService) FolderDelete(app int, folderPath string) (*FolderDelete
 			result.FolderCount++
 		} else if !d.IsDir() && strings.HasSuffix(d.Name(), storage.SuffixJson) {
 			name := strings.TrimSuffix(d.Name(), storage.SuffixJson)
-			if _, parseErr := strconv.ParseInt(name, 10, 64); parseErr == nil {
+			if id, parseErr := strconv.ParseInt(name, 10, 64); parseErr == nil {
 				result.BaseCount++
+				baseIds = append(baseIds, id)
 			}
 		}
 		return nil
 	})
+
+	// publish version update before physical deletion
+	if len(baseIds) > 0 {
+		transferDto := &model.IceTransferDto{DeleteBaseIds: baseIds}
+		newVersion, err := fs.serverService.GetAndIncrementVersion(app)
+		if err != nil {
+			return nil, err
+		}
+		transferDto.Version = newVersion
+		if err := fs.storage.SaveVersionUpdate(app, newVersion, transferDto); err != nil {
+			return nil, err
+		}
+	}
 
 	// remove index entries
 	fs.storage.RemoveBaseIndexEntriesUnderDir(app, folderPath)
@@ -233,9 +253,12 @@ func (fs *FolderService) FolderMove(app int, folderPath, targetPath string) erro
 		return model.AlreadyExist("文件夹 " + folderName)
 	}
 
-	if err := os.Rename(srcDir, destDir); err != nil {
+	// Use copy+delete instead of rename for compatibility with ossfs/FUSE mounts
+	if err := storage.CopyDir(srcDir, destDir); err != nil {
+		os.RemoveAll(destDir) // clean up incomplete copy
 		return err
 	}
+	os.RemoveAll(srcDir)
 
 	// rebuild index
 	newRelDir, _ := filepath.Rel(basesDir, destDir)
@@ -252,11 +275,11 @@ func (fs *FolderService) FolderMove(app int, folderPath, targetPath string) erro
 type FolderItem struct {
 	Type       string `json:"type"`                 // "folder" or "base"
 	Name       string `json:"name"`                 // folder name or base name
-	ID         *int64 `json:"id,omitempty"`          // base ID (only for type=base)
-	ConfID     *int64 `json:"confId,omitempty"`      // base confId (only for type=base)
-	Scenes     string `json:"scenes,omitempty"`      // base scenes
-	Debug      *int8  `json:"debug,omitempty"`       // base debug
-	ChildCount int    `json:"childCount,omitempty"`  // recursive base count (only for type=folder)
+	ID         *int64 `json:"id,omitempty"`         // base ID (only for type=base)
+	ConfID     *int64 `json:"confId,omitempty"`     // base confId (only for type=base)
+	Scenes     string `json:"scenes,omitempty"`     // base scenes
+	Debug      *int8  `json:"debug,omitempty"`      // base debug
+	ChildCount int    `json:"childCount,omitempty"` // recursive base count (only for type=folder)
 }
 
 // FolderListResult is the response for folder/list
@@ -511,7 +534,7 @@ func (fs *FolderService) buildFolderTree(dir, relativePath string) ([]*FolderTre
 
 // BatchItem represents an item in a batch operation
 type BatchItem struct {
-	Type string `json:"type"` // "folder" or "base"
+	Type string `json:"type"`           // "folder" or "base"
 	Name string `json:"name,omitempty"` // folder name (for type=folder)
 	ID   *int64 `json:"id,omitempty"`   // base ID (for type=base)
 	Path string `json:"path,omitempty"` // folder path (for type=folder, used in batch operations)
@@ -559,8 +582,19 @@ func (fs *FolderService) BatchMove(app int, items []BatchItem, targetPath string
 	return nil
 }
 
-// BatchDelete deletes multiple items
+// BatchDelete deletes multiple items.
+// Collects all base IDs (including those inside folders), publishes a single version
+// update, then performs physical deletion.
 func (fs *FolderService) BatchDelete(app int, items []BatchItem) error {
+	// Phase 1: collect all base IDs that will be deleted
+	var allBaseIds []int64
+	type folderEntry struct {
+		path      string
+		targetDir string
+	}
+	var folders []folderEntry
+	basesDir := fs.storage.BasesDir(app)
+
 	for _, item := range items {
 		switch item.Type {
 		case "folder":
@@ -571,16 +605,55 @@ func (fs *FolderService) BatchDelete(app int, items []BatchItem) error {
 			if folderPath == "" {
 				continue
 			}
-			if _, err := fs.FolderDelete(app, folderPath); err != nil {
-				return err
-			}
-		case "base":
-			if item.ID == nil {
+			cleanPath, err := sanitizePath(folderPath)
+			if err != nil || cleanPath == "" {
 				continue
 			}
-			if err := fs.storage.DeleteBase(app, *item.ID, true); err != nil {
-				return err
+			targetDir := filepath.Join(basesDir, cleanPath)
+			if info, statErr := os.Stat(targetDir); statErr != nil || !info.IsDir() {
+				continue
 			}
+			folders = append(folders, folderEntry{path: cleanPath, targetDir: targetDir})
+			filepath.WalkDir(targetDir, func(p string, d iofs.DirEntry, err error) error {
+				if err != nil || d.IsDir() {
+					return nil
+				}
+				if strings.HasSuffix(d.Name(), storage.SuffixJson) {
+					name := strings.TrimSuffix(d.Name(), storage.SuffixJson)
+					if id, parseErr := strconv.ParseInt(name, 10, 64); parseErr == nil {
+						allBaseIds = append(allBaseIds, id)
+					}
+				}
+				return nil
+			})
+		case "base":
+			if item.ID != nil {
+				allBaseIds = append(allBaseIds, *item.ID)
+			}
+		}
+	}
+
+	// Phase 2: publish version update before any physical deletion
+	if len(allBaseIds) > 0 {
+		transferDto := &model.IceTransferDto{DeleteBaseIds: allBaseIds}
+		newVersion, err := fs.serverService.GetAndIncrementVersion(app)
+		if err != nil {
+			return err
+		}
+		transferDto.Version = newVersion
+		if err := fs.storage.SaveVersionUpdate(app, newVersion, transferDto); err != nil {
+			return err
+		}
+	}
+
+	// Phase 3: physical deletion
+	for _, fe := range folders {
+		fs.storage.RemoveBaseIndexEntriesUnderDir(app, fe.path)
+		os.RemoveAll(fe.targetDir)
+	}
+	for _, item := range items {
+		if item.Type == "base" && item.ID != nil {
+			fs.storage.DeleteBase(app, *item.ID, true)
 		}
 	}
 	return nil
@@ -624,7 +697,7 @@ func (fs *FolderService) ExportFolder(app int, path string) (string, error) {
 	})
 
 	if len(baseIds) == 0 {
-		return "[]", nil
+		return `{"app":` + strconv.Itoa(app) + `,"bases":[],"confs":[]}`, nil
 	}
 
 	data, err := fs.baseService.ExportBatchData(app, baseIds)

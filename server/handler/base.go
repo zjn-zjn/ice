@@ -198,16 +198,32 @@ func (h *BaseHandler) importData(w http.ResponseWriter, r *http.Request) (any, e
 	}
 	trimmed := strings.TrimSpace(jsonStr)
 	if strings.HasPrefix(trimmed, "[") {
+		// Old format: array of PushData, merge into one
 		var pushDataList []*model.PushData
 		if err := json.Unmarshal([]byte(trimmed), &pushDataList); err != nil {
 			return nil, model.InputError("invalid json array")
 		}
-		for _, pushData := range pushDataList {
-			if err := h.baseService.ImportData(pushData); err != nil {
-				return nil, err
+		merged := &model.PushData{}
+		if len(pushDataList) > 0 {
+			merged.App = pushDataList[0].App
+		}
+		confMap := make(map[int64]*model.IceConf)
+		for _, pd := range pushDataList {
+			if pd.Base != nil {
+				if pd.Base.Path == "" && pd.Path != "" {
+					pd.Base.Path = pd.Path
+				}
+				merged.Bases = append(merged.Bases, pd.Base)
+			}
+			merged.Bases = append(merged.Bases, pd.Bases...)
+			for _, c := range pd.Confs {
+				confMap[c.ID] = c
 			}
 		}
-		return nil, nil
+		for _, c := range confMap {
+			merged.Confs = append(merged.Confs, c)
+		}
+		return nil, h.baseService.ImportData(merged)
 	}
 	var pushData model.PushData
 	if err := json.Unmarshal([]byte(trimmed), &pushData); err != nil {
