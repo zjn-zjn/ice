@@ -13,7 +13,7 @@
 
     <properties>
         <java.version>1.8</java.version>
-        <ice.version>4.0.2</ice.version>
+        <ice.version>4.0.5</ice.version>
         <spring-boot-2x.version>2.7.18</spring-boot-2x.version>
         <spring-boot-3x.version>3.4.2</spring-boot-3x.version>
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
