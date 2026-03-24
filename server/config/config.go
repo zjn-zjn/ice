@@ -4,8 +4,14 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
+
+type PublishTarget struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
 
 type Config struct {
 	Port               int
@@ -15,6 +21,8 @@ type Config struct {
 	RecycleCron        string
 	RecycleWay         string
 	RecycleProtectDays int
+	Mode               string
+	PublishTargets     []PublishTarget
 }
 
 func Load() *Config {
@@ -26,6 +34,7 @@ func Load() *Config {
 		RecycleCron:        "0 3 * * *",
 		RecycleWay:         "hard",
 		RecycleProtectDays: 1,
+		Mode:               "open",
 	}
 
 	flag.IntVar(&cfg.Port, "port", cfg.Port, "server port")
@@ -34,6 +43,10 @@ func Load() *Config {
 	flag.StringVar(&cfg.RecycleCron, "recycle-cron", cfg.RecycleCron, "recycle cron expression")
 	flag.StringVar(&cfg.RecycleWay, "recycle-way", cfg.RecycleWay, "recycle way: soft or hard")
 	flag.IntVar(&cfg.RecycleProtectDays, "recycle-protect-days", cfg.RecycleProtectDays, "recycle protect days")
+	flag.StringVar(&cfg.Mode, "mode", cfg.Mode, "server mode: open or controlled")
+
+	var publishTargetsStr string
+	flag.StringVar(&publishTargetsStr, "publish-targets", "", "publish targets: name1=url1,name2=url2")
 
 	var clientTimeoutSec int
 	flag.IntVar(&clientTimeoutSec, "client-timeout", 30, "client timeout in seconds")
@@ -71,6 +84,31 @@ func Load() *Config {
 			cfg.RecycleProtectDays = n
 		}
 	}
+	if v := os.Getenv("ICE_MODE"); v != "" {
+		cfg.Mode = v
+	}
+	if v := os.Getenv("ICE_PUBLISH_TARGETS"); v != "" {
+		publishTargetsStr = v
+	}
+
+	cfg.PublishTargets = parsePublishTargets(publishTargetsStr)
 
 	return cfg
+}
+
+func parsePublishTargets(s string) []PublishTarget {
+	if s == "" {
+		return nil
+	}
+	var targets []PublishTarget
+	for _, pair := range strings.Split(s, ",") {
+		pair = strings.TrimSpace(pair)
+		if idx := strings.Index(pair, "="); idx > 0 {
+			targets = append(targets, PublishTarget{
+				Name: strings.TrimSpace(pair[:idx]),
+				URL:  strings.TrimSpace(pair[idx+1:]),
+			})
+		}
+	}
+	return targets
 }

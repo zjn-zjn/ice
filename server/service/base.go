@@ -7,17 +7,19 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/waitmoon/ice-server/config"
 	"github.com/waitmoon/ice-server/model"
 	"github.com/waitmoon/ice-server/storage"
 )
 
 type BaseService struct {
+	config        *config.Config
 	storage       *storage.Storage
 	serverService *ServerService
 }
 
-func NewBaseService(storage *storage.Storage, serverService *ServerService) *BaseService {
-	return &BaseService{storage: storage, serverService: serverService}
+func NewBaseService(cfg *config.Config, storage *storage.Storage, serverService *ServerService) *BaseService {
+	return &BaseService{config: cfg, storage: storage, serverService: serverService}
 }
 
 func (bs *BaseService) BaseList(search *model.IceBaseSearch) (*model.PageResult, error) {
@@ -97,6 +99,9 @@ func (bs *BaseService) BaseCreate(base *model.IceBase) (int64, error) {
 
 // BaseCreateAtPath creates a base at a specific folder path (relative to bases/)
 func (bs *BaseService) BaseCreateAtPath(base *model.IceBase, path string) (int64, error) {
+	if bs.config.Mode == "controlled" {
+		return 0, model.ControlledModeError("新增Rule")
+	}
 	if base.App == nil {
 		return 0, model.InputError("app required")
 	}

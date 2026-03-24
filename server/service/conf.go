@@ -9,24 +9,34 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/waitmoon/ice-server/config"
 	"github.com/waitmoon/ice-server/model"
 	"github.com/waitmoon/ice-server/storage"
 )
 
 type ConfService struct {
+	config        *config.Config
 	storage       *storage.Storage
 	serverService *ServerService
 	clientManager *ClientManager
 	mu            sync.Mutex
 }
 
-func NewConfService(storage *storage.Storage, serverService *ServerService, clientManager *ClientManager) *ConfService {
-	return &ConfService{storage: storage, serverService: serverService, clientManager: clientManager}
+func NewConfService(cfg *config.Config, storage *storage.Storage, serverService *ServerService, clientManager *ClientManager) *ConfService {
+	return &ConfService{config: cfg, storage: storage, serverService: serverService, clientManager: clientManager}
 }
 
 func (cs *ConfService) ConfEdit(editNode *model.IceEditNode) (*model.EditConfResponse, error) {
 	if err := cs.paramHandle(editNode); err != nil {
 		return nil, err
+	}
+	if cs.config.Mode == "controlled" {
+		if *editNode.EditType == model.EditTypeAddSon && editNode.MultiplexIds == "" {
+			return nil, model.ControlledModeError("新增节点")
+		}
+		if *editNode.EditType == model.EditTypeAddForward && editNode.MultiplexIds == "" {
+			return nil, model.ControlledModeError("新增前置节点")
+		}
 	}
 	cs.mu.Lock()
 	defer cs.mu.Unlock()

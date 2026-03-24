@@ -61,3 +61,9 @@ func ConfigFieldIllegal(detail string) *ErrorCodeError {
 func CustomError(msg string) *ErrorCodeError {
 	return &ErrorCodeError{Code: CodeCustom, Msg: msg}
 }
+
+const CodeControlled = -100
+
+func ControlledModeError(action string) *ErrorCodeError {
+	return &ErrorCodeError{Code: CodeControlled, Msg: "受控模式下不允许" + action}
+}
