@@ -44,15 +44,15 @@ class Handler:
 
     def _meta_suffix(self, roam: Roam) -> dict:
         """Build log suffix from meta: id/scene/nid/ts, only include non-zero values."""
-        meta = roam.get_meta()
         s: dict = {}
-        if meta.id > 0:
-            s["id"] = meta.id
-        if meta.scene:
-            s["scene"] = meta.scene
-        if meta.nid > 0:
-            s["nid"] = meta.nid
-        s["ts"] = meta.ts
+        if roam.get_id() > 0:
+            s["id"] = roam.get_id()
+        scene = roam.get_scene()
+        if scene:
+            s["scene"] = scene
+        if roam.get_nid() > 0:
+            s["nid"] = roam.get_nid()
+        s["ts"] = roam.get_ts()
         return s
 
     @staticmethod
@@ -65,11 +65,11 @@ class Handler:
         if self.root is None:
             return
 
-        if time_disabled(self.time_type, roam.get_ice_ts(), self.start, self.end):
+        if time_disabled(self.time_type, roam.get_ts(), self.start, self.end):
             return
 
         from ice.log import set_trace_id, reset_trace_id
-        token = set_trace_id(roam.get_ice_trace())
+        token = set_trace_id(roam.get_trace())
         try:
             if self.has_debug(DebugFlag.IN_ROAM):
                 log.info("handle in", roam=self._roam_without_ice(roam), **self._meta_suffix(roam))
@@ -93,7 +93,7 @@ class Handler:
             return
 
         from ice.log import set_trace_id, reset_trace_id
-        token = set_trace_id(roam.get_ice_trace())
+        token = set_trace_id(roam.get_trace())
         try:
             if self.has_debug(DebugFlag.IN_ROAM):
                 log.info("handle in", roam=self._roam_without_ice(roam), **self._meta_suffix(roam))

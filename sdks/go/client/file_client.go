@@ -65,14 +65,13 @@ type FileClient struct {
 	wg                sync.WaitGroup
 }
 
-// New creates a new FileClient with minimal configuration.
-func New(app int, storagePath string) (*FileClient, error) {
-	return NewWithOptions(app, storagePath, -1, defaultPollInterval, defaultHeartbeatInterval, "")
-}
-
-// NewWithLane creates a new FileClient with a swimlane name.
-func NewWithLane(app int, storagePath string, lane string) (*FileClient, error) {
-	return NewWithOptions(app, storagePath, -1, defaultPollInterval, defaultHeartbeatInterval, lane)
+// New creates a new FileClient. Optional lane parameter for swimlane support.
+func New(app int, storagePath string, lane ...string) (*FileClient, error) {
+	l := ""
+	if len(lane) > 0 {
+		l = lane[0]
+	}
+	return NewWithOptions(app, storagePath, -1, defaultPollInterval, defaultHeartbeatInterval, l)
 }
 
 // NewWithOptions creates a new FileClient with custom options.
@@ -526,23 +525,22 @@ func (c *FileClient) executeMock(ctx context.Context, req *dto.MockRequest) *dto
 	}
 
 	// Build roam with meta
-	roam := icecontext.NewRoamWithMeta()
+	roam := icecontext.NewRoam()
 
 	defer func() {
 		if r := recover(); r != nil {
 			result.Success = false
 			result.Error = fmt.Sprintf("panic: %v", r)
-			result.Trace = roam.GetIceTrace()
-			result.Ts = roam.GetIceTs()
+			result.Trace = roam.GetTrace()
+			result.Ts = roam.GetTs()
 		}
 	}()
-	meta := roam.GetMeta()
-	meta.Id = req.IceId
-	meta.Nid = req.ConfId
-	meta.Scene = req.Scene
-	meta.Debug = req.Debug
+	roam.SetId(req.IceId)
+	roam.SetNid(req.ConfId)
+	roam.SetScene(req.Scene)
+	roam.SetDebug(req.Debug)
 	if req.Ts > 0 {
-		meta.Ts = req.Ts
+		roam.SetTs(req.Ts)
 	}
 
 	// Put user roam data
@@ -550,53 +548,53 @@ func (c *FileClient) executeMock(ctx context.Context, req *dto.MockRequest) *dto
 
 	// Dispatch using cache directly (same logic as syncDispatcher)
 	var handled bool
-	if meta.Id > 0 && meta.Nid > 0 {
+	if roam.GetId() > 0 && roam.GetNid() > 0 {
 		// Both iceId and confId: get handler by iceId, find confId subtree
-		h := cache.GetHandlerById(meta.Id)
+		h := cache.GetHandlerById(roam.GetId())
 		if h != nil && h.Root != nil {
-			if meta.Debug == 0 {
-				meta.Debug = h.Debug
+			if roam.GetDebug() == 0 {
+				roam.SetDebug(h.Debug)
 			}
-			subtree := findNodeById(h.Root, meta.Nid)
+			subtree := findNodeById(h.Root, roam.GetNid())
 			if subtree != nil {
 				sub := &handler.Handler{
-					Debug:  meta.Debug,
+					Debug:  roam.GetDebug(),
 					Root:   subtree,
-					ConfId: meta.Nid,
+					ConfId: roam.GetNid(),
 				}
 				sub.HandleWithNodeId(ctx, roam)
 				handled = true
 			}
 		}
-	} else if meta.Id > 0 {
-		h := cache.GetHandlerById(meta.Id)
+	} else if roam.GetId() > 0 {
+		h := cache.GetHandlerById(roam.GetId())
 		if h != nil {
-			if meta.Debug == 0 {
-				meta.Debug = h.Debug
+			if roam.GetDebug() == 0 {
+				roam.SetDebug(h.Debug)
 			}
 			h.Handle(ctx, roam)
 			handled = true
 		}
-	} else if meta.Scene != "" {
-		handlerMap := cache.GetHandlersByScene(meta.Scene)
+	} else if roam.GetScene() != "" {
+		handlerMap := cache.GetHandlersByScene(roam.GetScene())
 		if len(handlerMap) > 0 {
 			for _, h := range handlerMap {
-				if meta.Debug == 0 {
-					meta.Debug = h.Debug
+				if roam.GetDebug() == 0 {
+					roam.SetDebug(h.Debug)
 				}
-				meta.Id = h.IceId
+				roam.SetId(h.IceId)
 				h.Handle(ctx, roam)
 				handled = true
 				break // mock only handles first matching handler
 			}
 		}
-	} else if meta.Nid > 0 {
-		root := cache.GetConfById(meta.Nid)
+	} else if roam.GetNid() > 0 {
+		root := cache.GetConfById(roam.GetNid())
 		if root != nil {
 			h := &handler.Handler{
-				Debug:  meta.Debug,
+				Debug:  roam.GetDebug(),
 				Root:   root,
-				ConfId: meta.Nid,
+				ConfId: roam.GetNid(),
 			}
 			h.HandleWithNodeId(ctx, roam)
 			handled = true
@@ -606,18 +604,18 @@ func (c *FileClient) executeMock(ctx context.Context, req *dto.MockRequest) *dto
 	if !handled {
 		result.Success = false
 		result.Error = "no matching handler found"
-		result.Trace = roam.GetIceTrace()
-		result.Ts = roam.GetIceTs()
+		result.Trace = roam.GetTrace()
+		result.Ts = roam.GetTs()
 		return result
 	}
 
 	result.Success = true
-	result.Trace = roam.GetIceTrace()
-	result.Ts = roam.GetIceTs()
+	result.Trace = roam.GetTrace()
+	result.Ts = roam.GetTs()
 	roamData := roam.Data()
 	delete(roamData, "_ice")
 	result.Roam = roamData
-	if proc := roam.GetIceProcess(); proc != nil {
+	if proc := roam.GetProcess(); proc != nil {
 		result.Process = proc.String()
 	}
 

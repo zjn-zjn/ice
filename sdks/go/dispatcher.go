@@ -15,16 +15,16 @@ func syncDispatcher(ctx stdctx.Context, roam *Roam) []*Roam {
 		return nil
 	}
 
-	meta := roam.GetMeta()
-	if meta.Trace != "" {
-		ctx = icelog.WithTraceId(ctx, meta.Trace)
+	trace := roam.GetTrace()
+	if trace != "" {
+		ctx = icelog.WithTraceId(ctx, trace)
 	}
 
 	// First: iceId
-	if meta.Id > 0 {
-		h := cache.GetHandlerById(meta.Id)
+	if roam.GetId() > 0 {
+		h := cache.GetHandlerById(roam.GetId())
 		if h == nil {
-			icelog.Debug(ctx, "handler maybe expired", "iceId", meta.Id)
+			icelog.Debug(ctx, "handler maybe expired", "iceId", roam.GetId())
 			return nil
 		}
 		h.Handle(ctx, roam)
@@ -32,16 +32,17 @@ func syncDispatcher(ctx stdctx.Context, roam *Roam) []*Roam {
 	}
 
 	// Second: scene
-	if meta.Scene != "" {
-		handlerMap := cache.GetHandlersByScene(meta.Scene)
+	scene := roam.GetScene()
+	if scene != "" {
+		handlerMap := cache.GetHandlersByScene(scene)
 		if len(handlerMap) == 0 {
-			icelog.Debug(ctx, "handlers maybe all expired", "scene", meta.Scene)
+			icelog.Debug(ctx, "handlers maybe all expired", "scene", scene)
 			return nil
 		}
 
 		if len(handlerMap) == 1 {
 			for _, h := range handlerMap {
-				meta.Id = h.IceId
+				roam.SetId(h.IceId)
 				h.Handle(ctx, roam)
 				return []*Roam{roam}
 			}
@@ -53,7 +54,7 @@ func syncDispatcher(ctx stdctx.Context, roam *Roam) []*Roam {
 
 		for _, h := range handlerMap {
 			clonedRoam := roam.Clone()
-			clonedRoam.GetMeta().Id = h.IceId
+			clonedRoam.SetId(h.IceId)
 			roamList = append(roamList, clonedRoam)
 
 			wg.Add(1)
@@ -69,7 +70,7 @@ func syncDispatcher(ctx stdctx.Context, roam *Roam) []*Roam {
 	}
 
 	// Third: confId
-	confId := meta.Nid
+	confId := roam.GetNid()
 	if confId <= 0 {
 		return nil
 	}
@@ -77,7 +78,7 @@ func syncDispatcher(ctx stdctx.Context, roam *Roam) []*Roam {
 	root := cache.GetConfById(confId)
 	if root != nil {
 		h := &handler.Handler{
-			Debug:  meta.Debug,
+			Debug:  roam.GetDebug(),
 			Root:   root,
 			ConfId: confId,
 		}
@@ -93,14 +94,14 @@ func asyncDispatcher(ctx stdctx.Context, roam *Roam) []<-chan *Roam {
 		return nil
 	}
 
-	meta := roam.GetMeta()
-	if meta.Trace != "" {
-		ctx = icelog.WithTraceId(ctx, meta.Trace)
+	trace := roam.GetTrace()
+	if trace != "" {
+		ctx = icelog.WithTraceId(ctx, trace)
 	}
 
 	// First: iceId
-	if meta.Id > 0 {
-		h := cache.GetHandlerById(meta.Id)
+	if roam.GetId() > 0 {
+		h := cache.GetHandlerById(roam.GetId())
 		if h == nil {
 			return nil
 		}
@@ -109,15 +110,16 @@ func asyncDispatcher(ctx stdctx.Context, roam *Roam) []<-chan *Roam {
 	}
 
 	// Second: scene
-	if meta.Scene != "" {
-		handlerMap := cache.GetHandlersByScene(meta.Scene)
+	scene := roam.GetScene()
+	if scene != "" {
+		handlerMap := cache.GetHandlersByScene(scene)
 		if len(handlerMap) == 0 {
 			return nil
 		}
 
 		if len(handlerMap) == 1 {
 			for _, h := range handlerMap {
-				meta.Id = h.IceId
+				roam.SetId(h.IceId)
 				ch := submitHandler(ctx, h, roam)
 				return []<-chan *Roam{ch}
 			}
@@ -126,7 +128,7 @@ func asyncDispatcher(ctx stdctx.Context, roam *Roam) []<-chan *Roam {
 		chs := make([]<-chan *Roam, 0, len(handlerMap))
 		for _, h := range handlerMap {
 			clonedRoam := roam.Clone()
-			clonedRoam.GetMeta().Id = h.IceId
+			clonedRoam.SetId(h.IceId)
 			ch := submitHandler(ctx, h, clonedRoam)
 			chs = append(chs, ch)
 		}
@@ -134,7 +136,7 @@ func asyncDispatcher(ctx stdctx.Context, roam *Roam) []<-chan *Roam {
 	}
 
 	// Third: confId
-	confId := meta.Nid
+	confId := roam.GetNid()
 	if confId <= 0 {
 		return nil
 	}
@@ -142,7 +144,7 @@ func asyncDispatcher(ctx stdctx.Context, roam *Roam) []<-chan *Roam {
 	root := cache.GetConfById(confId)
 	if root != nil {
 		h := &handler.Handler{
-			Debug:  meta.Debug,
+			Debug:  roam.GetDebug(),
 			Root:   root,
 			ConfId: confId,
 		}
@@ -170,18 +172,17 @@ func checkRoam(ctx stdctx.Context, roam *Roam) bool {
 		icelog.Error(ctx, "invalid roam null")
 		return false
 	}
-	meta := roam.GetMeta()
-	if meta == nil {
-		icelog.Error(ctx, "invalid roam no meta")
+	if roam.GetMeta() == nil {
+		icelog.Error(ctx, "invalid roam no _ice")
 		return false
 	}
-	if meta.Id > 0 {
+	if roam.GetId() > 0 {
 		return true
 	}
-	if meta.Scene != "" {
+	if roam.GetScene() != "" {
 		return true
 	}
-	if meta.Nid > 0 {
+	if roam.GetNid() > 0 {
 		return true
 	}
 	icelog.Error(ctx, "invalid roam none iceId none scene none confId", "roam", roam)
@@ -191,6 +192,6 @@ func checkRoam(ctx stdctx.Context, roam *Roam) bool {
 // newRoamForDispatch creates a Roam with meta initialized from the handler for dispatch.
 func newRoamForDispatch(h *handler.Handler, sourceRoam *icecontext.Roam) *icecontext.Roam {
 	cloned := sourceRoam.Clone()
-	cloned.GetMeta().Id = h.IceId
+	cloned.SetId(h.IceId)
 	return cloned
 }

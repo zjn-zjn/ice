@@ -58,11 +58,11 @@ func main() {
     client.WaitStarted()
     
     // 执行规则
-    roam := ice.NewRoamWithMeta()
-    roam.GetMeta().Id = 1
+    roam := ice.NewRoam()
+    roam.SetId(1)
     roam.Put("score", 85)
 
-    results := ice.SyncProcess(roam)
+    results := ice.SyncProcess(context.Background(), roam)
     // 处理结果...
 }
 ```
@@ -129,13 +129,15 @@ ice.InitExecutor(100)
 - `GetDeep("a.b.c")` - 多级 key 访问
 - `Resolve("@key")` - 引用其他 key 的值
 
-### IceMeta
+### _ice 元信息
 
-执行元信息（嵌入在 Roam 中）：
-- `Id` - Handler ID
-- `Scene` - 场景名
-- `Nid` - 配置节点 ID
-- `Debug` - 调试标志
+执行元信息（存储在 Roam 的 `_ice` key 中，是一个普通 map）：
+- `GetIceId()` / `SetIceId()` - Handler ID
+- `GetIceScene()` / `SetIceScene()` - 场景名
+- `GetIceNid()` / `SetIceNid()` - 配置节点 ID
+- `GetIceTs()` / `SetIceTs()` - 请求时间戳
+- `GetIceDebug()` / `SetIceDebug()` - 调试标志
+- `GetIceTrace()` / `SetIceTrace()` - 追踪 ID
 
 ## 与 Java 兼容性
 

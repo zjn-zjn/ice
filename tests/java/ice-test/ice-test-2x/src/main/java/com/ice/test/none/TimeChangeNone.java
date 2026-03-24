@@ -35,9 +35,9 @@ public final class TimeChangeNone extends BaseLeafNone {
     protected void doNone(IceRoam roam) {
         if (!"prod".equals(environment)) {
             if (time != null) {
-                roam.getIceMeta().setTs(time.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+                roam.setTs(time.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
             } else {
-                roam.getIceMeta().setTs(roam.getIceTs() + cursorMills);
+                roam.setTs(roam.getTs() + cursorMills);
             }
         }
     }

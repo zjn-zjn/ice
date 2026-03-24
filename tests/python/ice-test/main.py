@@ -57,7 +57,7 @@ def handle_test():
     """Handle POST /test with a JSON body."""
     data = request.get_json() or {}
 
-    # Build roam with IceMeta
+    # Build roam
     ice_id = int(data.get('iceId', 0))
     scene = str(data.get('scene', ''))
     conf_id = int(data.get('confId', 0))
@@ -75,7 +75,7 @@ def handle_test():
     # Return result
     result_list = []
     for r in result_list_roam:
-        item = {'iceId': r.get_ice_id()}
+        item = {'iceId': r.get_id()}
         item['roam'] = r.to_dict()
         item['processInfo'] = r.get_process_info()
         result_list.append(item)

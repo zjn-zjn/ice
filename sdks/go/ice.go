@@ -20,8 +20,6 @@ import (
 type (
 	// Roam is the data container and execution context.
 	Roam = icecontext.Roam
-	// IceMeta contains ice execution metadata.
-	IceMeta = icecontext.IceMeta
 	// RunState represents the execution result.
 	RunState = enum.RunState
 	// Handler is the ice handler.
@@ -52,13 +50,9 @@ const (
 
 // Re-export constructors
 var (
-	// NewRoam creates a new Roam (without meta).
+	// NewRoam creates a new Roam with default _ice metadata. Optional scene parameter.
 	NewRoam = icecontext.NewRoam
-	// NewRoamWithMeta creates a new Roam with default IceMeta.
-	NewRoamWithMeta = icecontext.NewRoamWithMeta
-	// NewMeta creates a new IceMeta with default values.
-	NewMeta = icecontext.NewMeta
-	// NewClient creates a new FileClient with minimal configuration (app, storagePath).
+	// NewClient creates a new FileClient. Optional lane parameter for swimlane support.
 	NewClient = client.New
 	// NewClientWithOptions creates a new FileClient with custom options.
 	NewClientWithOptions = client.NewWithOptions

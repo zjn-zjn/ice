@@ -2,6 +2,7 @@ package com.ice.core.context;
 
 import com.ice.common.utils.UUIDUtils;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author waitmoon
  * based on ConcurrentHashMap extend
  * put null value will remove the key (ConcurrentHashMap does not support null values)
- * "_ice" key is reserved for IceMeta
+ * "_ice" key stores ice metadata as a plain Map
  */
 public class IceRoam extends ConcurrentHashMap<String, Object> {
 
@@ -33,97 +34,152 @@ public class IceRoam extends ConcurrentHashMap<String, Object> {
 
     public static IceRoam create() {
         IceRoam roam = new IceRoam();
-        roam.putDirect(ICE_META_KEY, new IceMeta());
+        roam.put(ICE_META_KEY, newMetaMap(null, 0, null));
+        return roam;
+    }
+
+    public static IceRoam create(String scene) {
+        IceRoam roam = new IceRoam();
+        roam.put(ICE_META_KEY, newMetaMap(scene, 0, null));
         return roam;
     }
 
     public static IceRoam create(String trace, long ts) {
         IceRoam roam = new IceRoam();
-        IceMeta meta = new IceMeta();
-        if (trace != null && !trace.isEmpty()) {
-            meta.setTrace(trace);
-        }
-        if (ts > 0) {
-            meta.setTs(ts);
-        }
-        roam.putDirect(ICE_META_KEY, meta);
+        roam.put(ICE_META_KEY, newMetaMap(null, ts, trace));
         return roam;
     }
 
-    public IceMeta getIceMeta() {
-        return (IceMeta) super.get(ICE_META_KEY);
+    private static Map<String, Object> newMetaMap(String scene, long ts, String trace) {
+        Map<String, Object> ice = new HashMap<>();
+        if (scene != null && !scene.isEmpty()) {
+            ice.put("scene", scene);
+        }
+        ice.put("ts", ts > 0 ? ts : System.currentTimeMillis());
+        ice.put("trace", (trace != null && !trace.isEmpty()) ? trace : UUIDUtils.generateAlphanumId(11));
+        ice.put("process", new StringBuilder());
+        return ice;
     }
 
-    public long getIceId() {
-        IceMeta meta = getIceMeta();
-        return meta != null ? meta.getId() : 0;
+    // ============ _ice convenience getters ============
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getMeta() {
+        Object ice = super.get(ICE_META_KEY);
+        return ice instanceof Map ? (Map<String, Object>) ice : null;
     }
 
-    public String getIceScene() {
-        IceMeta meta = getIceMeta();
-        return meta != null ? meta.getScene() : null;
+    public long getId() {
+        return getMetaLong("id");
     }
 
-    public long getIceTs() {
-        IceMeta meta = getIceMeta();
-        return meta != null ? meta.getTs() : 0;
+    public String getScene() {
+        return getMetaString("scene");
     }
 
-    public String getIceTrace() {
-        IceMeta meta = getIceMeta();
-        return meta != null ? meta.getTrace() : null;
+    public long getTs() {
+        return getMetaLong("ts");
     }
 
-    public StringBuilder getIceProcess() {
-        IceMeta meta = getIceMeta();
-        return meta != null ? meta.getProcess() : null;
+    public String getTrace() {
+        return getMetaString("trace");
     }
 
-    public byte getIceDebug() {
-        IceMeta meta = getIceMeta();
-        return meta != null ? meta.getDebug() : 0;
+    public StringBuilder getProcess() {
+        Map<String, Object> ice = getMeta();
+        if (ice == null) return null;
+        Object p = ice.get("process");
+        return p instanceof StringBuilder ? (StringBuilder) p : null;
     }
 
-    public long getIceNid() {
-        IceMeta meta = getIceMeta();
-        return meta != null ? meta.getNid() : 0;
+    public byte getDebug() {
+        Map<String, Object> ice = getMeta();
+        if (ice == null) return 0;
+        Object d = ice.get("debug");
+        if (d instanceof Number) return ((Number) d).byteValue();
+        return 0;
+    }
+
+    public long getNid() {
+        return getMetaLong("nid");
+    }
+
+    // ============ _ice convenience setters ============
+
+    public void setId(long id) {
+        putMeta("id", id);
+    }
+
+    public void setScene(String scene) {
+        putMeta("scene", scene);
+    }
+
+    public void setTs(long ts) {
+        putMeta("ts", ts);
+    }
+
+    public void setTrace(String trace) {
+        putMeta("trace", trace);
+    }
+
+    public void setDebug(byte debug) {
+        putMeta("debug", debug);
+    }
+
+    public void setNid(long nid) {
+        putMeta("nid", nid);
+    }
+
+    // ============ _ice internal helpers ============
+
+    private long getMetaLong(String field) {
+        Map<String, Object> ice = getMeta();
+        if (ice == null) return 0;
+        Object v = ice.get(field);
+        if (v instanceof Number) return ((Number) v).longValue();
+        return 0;
+    }
+
+    private String getMetaString(String field) {
+        Map<String, Object> ice = getMeta();
+        if (ice == null) return null;
+        Object v = ice.get(field);
+        return v instanceof String ? (String) v : null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void putMeta(String field, Object value) {
+        Object ice = super.get(ICE_META_KEY);
+        if (ice instanceof Map) {
+            ((Map<String, Object>) ice).put(field, value);
+        }
     }
 
     /**
-     * Bypass "_ice" key protection for internal use
+     * Shallow copy business data + deep copy _ice map with fresh process StringBuilder
      */
-    public Object putDirect(String key, Object value) {
-        if (key == null) {
-            return null;
-        }
-        if (value == null) {
-            return super.remove(key);
-        }
-        return super.put(key, value);
-    }
-
-    /**
-     * Shallow copy business data + copy IceMeta with fresh process StringBuilder
-     */
+    @SuppressWarnings("unchecked")
     public IceRoam cloneRoam() {
         IceRoam clone = new IceRoam();
         for (Entry<String, Object> entry : this.entrySet()) {
-            if (!ICE_META_KEY.equals(entry.getKey())) {
-                clone.putDirect(entry.getKey(), entry.getValue());
+            if (ICE_META_KEY.equals(entry.getKey())) {
+                Object ice = entry.getValue();
+                if (ice instanceof Map) {
+                    Map<String, Object> iceCopy = new HashMap<>((Map<String, Object>) ice);
+                    iceCopy.put("process", new StringBuilder());
+                    clone.put(ICE_META_KEY, iceCopy);
+                }
+            } else {
+                clone.put(entry.getKey(), entry.getValue());
             }
-        }
-        IceMeta meta = getIceMeta();
-        if (meta != null) {
-            clone.putDirect(ICE_META_KEY, new IceMeta(meta));
         }
         return clone;
     }
 
+    // ============ deep key operations ============
+
     /*
      * use '.' split key achieve arrangement
-     *
-     * @param deepKey deepKey
-     * @param value value
      */
     @SuppressWarnings("unchecked")
     public <T> T putDeep(String deepKey, Object value) {
@@ -132,14 +188,13 @@ public class IceRoam extends ConcurrentHashMap<String, Object> {
         }
         String[] keys = deepKey.split("\\.");
         if (keys.length == 1) {
-            /*just one*/
             return (T) put(keys[0], value);
         }
         Object end = this;
         for (int i = 0; i < keys.length - 1; i++) {
             if (end instanceof Map) {
                 Map<String, Object> map = (Map<String, Object>) end;
-                end = map.computeIfAbsent(keys[i], k -> new IceRoam());
+                end = map.computeIfAbsent(keys[i], k -> new HashMap<>());
             } else if (end instanceof List) {
                 try {
                     end = ((List<Object>) end).get(Integer.parseInt(keys[i]));
@@ -173,9 +228,6 @@ public class IceRoam extends ConcurrentHashMap<String, Object> {
 
     /*
      * use '.' split key to find arrangement value
-     *
-     * @param deepKey deepKey
-     * @return value
      */
     @SuppressWarnings("unchecked")
     public <T> T getDeep(String deepKey) {
@@ -184,7 +236,6 @@ public class IceRoam extends ConcurrentHashMap<String, Object> {
         }
         String[] keys = deepKey.split("\\.");
         if (keys.length == 1) {
-            /*only one key*/
             return (T) get(keys[0]);
         }
         Object end = this;
@@ -207,12 +258,55 @@ public class IceRoam extends ConcurrentHashMap<String, Object> {
         return (T) end;
     }
 
+    /**
+     * Delete a top-level key from roam.
+     */
+    public Object del(String key) {
+        if (key == null) {
+            return null;
+        }
+        return super.remove(key);
+    }
+
+    /**
+     * Delete a value using a dot-separated key path (e.g., "a.b.c").
+     */
+    @SuppressWarnings("unchecked")
+    public Object delDeep(String deepKey) {
+        if (deepKey == null) {
+            return null;
+        }
+        String[] keys = deepKey.split("\\.");
+        if (keys.length == 1) {
+            return del(keys[0]);
+        }
+        Object end = this;
+        for (int i = 0; i < keys.length - 1; i++) {
+            if (end instanceof Map) {
+                end = ((Map<String, Object>) end).get(keys[i]);
+            } else if (end instanceof List) {
+                try {
+                    end = ((List<Object>) end).get(Integer.parseInt(keys[i]));
+                } catch (NumberFormatException | IndexOutOfBoundsException e) {
+                    return null;
+                }
+            } else {
+                return null;
+            }
+            if (end == null) {
+                return null;
+            }
+        }
+        String lastKey = keys[keys.length - 1];
+        if (end instanceof Map) {
+            return ((Map<String, Object>) end).remove(lastKey);
+        }
+        return null;
+    }
+
     /*
-     * Multi source find value value
+     * Multi source find value
      * prefix with '@' string directing to roam value
-     *
-     * @param union unionObj
-     * @return value
      */
     @SuppressWarnings("unchecked")
     public <T> T resolve(Object union) {
@@ -264,9 +358,6 @@ public class IceRoam extends ConcurrentHashMap<String, Object> {
     public Object put(String key, Object value) {
         if (key == null) {
             return null;
-        }
-        if (ICE_META_KEY.equals(key)) {
-            return super.get(ICE_META_KEY);
         }
         if (value == null) {
             return super.remove(key);

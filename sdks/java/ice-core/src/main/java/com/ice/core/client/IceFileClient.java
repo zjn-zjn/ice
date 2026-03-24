@@ -17,7 +17,6 @@ import com.ice.core.cache.IceConfCache;
 import com.ice.core.cache.IceHandlerCache;
 import com.ice.core.handler.IceHandler;
 import com.ice.core.annotation.IceField;
-import com.ice.core.context.IceMeta;
 import com.ice.core.context.IceRoam;
 import com.ice.core.annotation.IceIgnore;
 import com.ice.core.annotation.IceNode;
@@ -656,13 +655,12 @@ public final class IceFileClient {
         IceRoam roam = IceRoam.create();
 
         try {
-            IceMeta meta = roam.getIceMeta();
-            meta.setId(req.getIceId());
-            meta.setNid(req.getConfId());
-            meta.setScene(req.getScene());
-            meta.setDebug(req.getDebug());
+            roam.setId(req.getIceId());
+            roam.setNid(req.getConfId());
+            roam.setScene(req.getScene());
+            roam.setDebug(req.getDebug());
             if (req.getTs() > 0) {
-                meta.setTs(req.getTs());
+                roam.setTs(req.getTs());
             }
 
             // Put user roam data
@@ -674,52 +672,52 @@ public final class IceFileClient {
 
             // Dispatch using cache directly (same logic as Go executeMock)
             boolean handled = false;
-            if (meta.getId() > 0 && meta.getNid() > 0) {
+            if (roam.getId() > 0 && roam.getNid() > 0) {
                 // Both iceId and confId: get handler by iceId, find confId subtree
-                IceHandler handler = IceHandlerCache.getHandlerById(meta.getId());
+                IceHandler handler = IceHandlerCache.getHandlerById(roam.getId());
                 if (handler != null && handler.getRoot() != null) {
-                    if (meta.getDebug() == 0) {
-                        meta.setDebug(handler.getDebug());
+                    if (roam.getDebug() == 0) {
+                        roam.setDebug(handler.getDebug());
                     }
-                    BaseNode subtree = findNodeById(handler.getRoot(), meta.getNid());
+                    BaseNode subtree = findNodeById(handler.getRoot(), roam.getNid());
                     if (subtree != null) {
                         IceHandler sub = new IceHandler();
-                        sub.setDebug(meta.getDebug());
+                        sub.setDebug(roam.getDebug());
                         sub.setRoot(subtree);
-                        sub.setConfId(meta.getNid());
+                        sub.setConfId(roam.getNid());
                         sub.handleWithNodeId(roam);
                         handled = true;
                     }
                 }
-            } else if (meta.getId() > 0) {
-                IceHandler handler = IceHandlerCache.getHandlerById(meta.getId());
+            } else if (roam.getId() > 0) {
+                IceHandler handler = IceHandlerCache.getHandlerById(roam.getId());
                 if (handler != null) {
-                    if (meta.getDebug() == 0) {
-                        meta.setDebug(handler.getDebug());
+                    if (roam.getDebug() == 0) {
+                        roam.setDebug(handler.getDebug());
                     }
                     handler.handle(roam);
                     handled = true;
                 }
-            } else if (meta.getScene() != null && !meta.getScene().isEmpty()) {
-                Map<Long, IceHandler> handlerMap = IceHandlerCache.getHandlersByScene(meta.getScene());
+            } else if (roam.getScene() != null && !roam.getScene().isEmpty()) {
+                Map<Long, IceHandler> handlerMap = IceHandlerCache.getHandlersByScene(roam.getScene());
                 if (handlerMap != null && !handlerMap.isEmpty()) {
                     for (IceHandler handler : handlerMap.values()) {
-                        if (meta.getDebug() == 0) {
-                            meta.setDebug(handler.getDebug());
+                        if (roam.getDebug() == 0) {
+                            roam.setDebug(handler.getDebug());
                         }
-                        meta.setId(handler.findIceId());
+                        roam.setId(handler.findIceId());
                         handler.handle(roam);
                         handled = true;
                         break; // mock only handles first matching handler
                     }
                 }
-            } else if (meta.getNid() > 0) {
-                BaseNode root = IceConfCache.getConfById(meta.getNid());
+            } else if (roam.getNid() > 0) {
+                BaseNode root = IceConfCache.getConfById(roam.getNid());
                 if (root != null) {
                     IceHandler handler = new IceHandler();
-                    handler.setDebug(meta.getDebug());
+                    handler.setDebug(roam.getDebug());
                     handler.setRoot(root);
-                    handler.setConfId(meta.getNid());
+                    handler.setConfId(roam.getNid());
                     handler.handleWithNodeId(roam);
                     handled = true;
                 }
@@ -728,27 +726,27 @@ public final class IceFileClient {
             if (!handled) {
                 result.setSuccess(false);
                 result.setError("no matching handler found");
-                result.setTrace(roam.getIceTrace());
-                result.setTs(roam.getIceTs());
+                result.setTrace(roam.getTrace());
+                result.setTs(roam.getTs());
                 return result;
             }
 
             result.setSuccess(true);
-            result.setTrace(roam.getIceTrace());
-            result.setTs(roam.getIceTs());
+            result.setTrace(roam.getTrace());
+            result.setTs(roam.getTs());
             HashMap<String, Object> roamData = new HashMap<>(roam);
             roamData.remove("_ice");
             result.setRoam(roamData);
 
-            StringBuilder process = roam.getIceProcess();
+            StringBuilder process = roam.getProcess();
             if (process != null) {
                 result.setProcess(process.toString());
             }
         } catch (Exception e) {
             result.setSuccess(false);
             result.setError(e.getMessage());
-            result.setTrace(roam.getIceTrace());
-            result.setTs(roam.getIceTs());
+            result.setTrace(roam.getTrace());
+            result.setTs(roam.getTs());
         }
 
         return result;

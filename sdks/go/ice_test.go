@@ -66,26 +66,26 @@ func TestRoam(t *testing.T) {
 }
 
 func TestRoamWithMeta(t *testing.T) {
-	roam := NewRoamWithMeta()
-	meta := roam.GetMeta()
-	if meta == nil {
-		t.Fatal("expected meta to be non-nil")
+	roam := NewRoam()
+	ice := roam.GetMeta()
+	if ice == nil {
+		t.Fatal("expected _ice to be non-nil")
 	}
-	meta.Id = 1
-	meta.Scene = "test"
-	meta.Debug = 1
+	roam.SetId(1)
+	roam.SetScene("test")
+	roam.SetDebug(1)
 
-	if roam.GetIceId() != 1 {
+	if roam.GetId() != 1 {
 		t.Error("expected iceId=1")
 	}
-	if roam.GetIceScene() != "test" {
+	if roam.GetScene() != "test" {
 		t.Error("expected scene=test")
 	}
 
 	// Test clone
 	clone := roam.Clone()
-	clone.GetMeta().Id = 2
-	if roam.GetIceId() != 1 {
+	clone.SetId(2)
+	if roam.GetId() != 1 {
 		t.Error("clone should not affect original")
 	}
 }
@@ -96,7 +96,7 @@ func TestAndRelation(t *testing.T) {
 	and.IceLogName = "TestAnd"
 
 	ctx := stdctx.Background()
-	roam := NewRoamWithMeta()
+	roam := NewRoam()
 
 	// Empty children -> NONE
 	result := and.Process(ctx, roam)
@@ -127,7 +127,7 @@ func TestLeafNode(t *testing.T) {
 	}
 
 	// Test with score >= threshold
-	roam := NewRoamWithMeta()
+	roam := NewRoam()
 	roam.Put("score", 85)
 
 	result := leafNode.Process(ctx, roam)
@@ -136,7 +136,7 @@ func TestLeafNode(t *testing.T) {
 	}
 
 	// Test with score < threshold
-	roam2 := NewRoamWithMeta()
+	roam2 := NewRoam()
 	roam2.Put("score", 70)
 
 	result2 := leafNode.Process(ctx, roam2)
@@ -187,7 +187,7 @@ func TestProcessWithBase(t *testing.T) {
 		IceLogName: "Test",
 	}
 
-	roam := NewRoamWithMeta()
+	roam := NewRoam()
 
 	called := false
 	result := node.ProcessWithBase(ctx, base, roam, func(c stdctx.Context, r *icecontext.Roam) enum.RunState {
@@ -203,7 +203,7 @@ func TestProcessWithBase(t *testing.T) {
 	}
 
 	// Check debug info was collected
-	if roam.GetIceProcess().Len() == 0 {
+	if roam.GetProcess().Len() == 0 {
 		t.Error("expected debug info to be collected")
 	}
 }

@@ -99,8 +99,8 @@ func (b *Base) GetForward() Node {
 // pass it here for custom error handling.
 func ProcessWithBase(ctx stdctx.Context, base *Base, roam *icecontext.Roam, processNode func(stdctx.Context, *icecontext.Roam) enum.RunState, errorHandler ErrorHandler) (result enum.RunState) {
 	// Time check
-	if timeutil.TimeDisabled(base.IceTimeType, roam.GetIceTs(), base.IceStart, base.IceEnd) {
-		CollectInfo(roam.GetIceProcess(), base, 'O', 0)
+	if timeutil.TimeDisabled(base.IceTimeType, roam.GetTs(), base.IceStart, base.IceEnd) {
+		CollectInfo(roam.GetProcess(), base, 'O', 0)
 		return enum.NONE
 	}
 
@@ -136,7 +136,7 @@ func ProcessWithBase(ctx stdctx.Context, base *Base, roam *icecontext.Roam, proc
 
 			if errorState != enum.SHUT_DOWN {
 				result = errorState
-				CollectInfo(roam.GetIceProcess(), base, stateToChar(result), elapsed)
+				CollectInfo(roam.GetProcess(), base, stateToChar(result), elapsed)
 				// Apply inverse even on error
 				if base.IceInverse {
 					result = inverse(result)
@@ -145,7 +145,7 @@ func ProcessWithBase(ctx stdctx.Context, base *Base, roam *icecontext.Roam, proc
 			}
 
 			// SHUT_DOWN - re-panic
-			CollectInfo(roam.GetIceProcess(), base, 'S', elapsed)
+			CollectInfo(roam.GetProcess(), base, 'S', elapsed)
 			panic(r)
 		}
 	}()
@@ -154,7 +154,7 @@ func ProcessWithBase(ctx stdctx.Context, base *Base, roam *icecontext.Roam, proc
 	if base.IceForward != nil {
 		forwardRes := base.IceForward.Process(ctx, roam)
 		if forwardRes == enum.FALSE {
-			CollectRejectInfo(roam.GetIceProcess(), base)
+			CollectRejectInfo(roam.GetProcess(), base)
 			return enum.FALSE
 		}
 		result = processNode(ctx, roam)
@@ -168,7 +168,7 @@ func ProcessWithBase(ctx stdctx.Context, base *Base, roam *icecontext.Roam, proc
 		result = processNode(ctx, roam)
 	}
 
-	CollectInfo(roam.GetIceProcess(), base, stateToChar(result), currentTimeMillis()-start)
+	CollectInfo(roam.GetProcess(), base, stateToChar(result), currentTimeMillis()-start)
 
 	// Inverse
 	if base.IceInverse {

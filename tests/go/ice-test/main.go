@@ -110,21 +110,20 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roam := ice.NewRoamWithMeta()
-	meta := roam.GetMeta()
+	roam := ice.NewRoam()
 
 	// Parse meta fields
 	if iceId, ok := reqData["iceId"].(float64); ok {
-		meta.Id = int64(iceId)
+		roam.SetId(int64(iceId))
 	}
 	if scene, ok := reqData["scene"].(string); ok {
-		meta.Scene = scene
+		roam.SetScene(scene)
 	}
 	if confId, ok := reqData["confId"].(float64); ok {
-		meta.Nid = int64(confId)
+		roam.SetNid(int64(confId))
 	}
 	if debug, ok := reqData["debug"].(float64); ok {
-		meta.Debug = byte(debug)
+		roam.SetDebug(byte(debug))
 	}
 	if roamData, ok := reqData["roam"].(map[string]any); ok {
 		for k, v := range roamData {
@@ -133,7 +132,7 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create context with trace ID
-	ctx := ice.WithTraceId(r.Context(), meta.Trace)
+	ctx := ice.WithTraceId(r.Context(), roam.GetTrace())
 
 	// Process
 	roamList := ice.SyncProcess(ctx, roam)
@@ -142,11 +141,11 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 	result := make([]map[string]any, 0, len(roamList))
 	for _, r := range roamList {
 		item := map[string]any{
-			"iceId": r.GetIceId(),
+			"iceId": r.GetId(),
 			"roam":  r.Data(),
 		}
-		if r.GetIceProcess() != nil {
-			item["processInfo"] = r.GetIceProcess().String()
+		if r.GetProcess() != nil {
+			item["processInfo"] = r.GetProcess().String()
 		}
 		result = append(result, item)
 	}
@@ -160,12 +159,12 @@ func handleRecharge(w http.ResponseWriter, r *http.Request) {
 	cost, _ := strconv.Atoi(r.URL.Query().Get("cost"))
 	uid, _ := strconv.Atoi(r.URL.Query().Get("uid"))
 
-	roam := ice.NewRoamWithMeta()
-	roam.GetMeta().Scene = "recharge"
+	roam := ice.NewRoam()
+	roam.SetScene("recharge")
 	roam.Put("cost", cost)
 	roam.Put("uid", uid)
 
-	ctx := ice.WithTraceId(r.Context(), roam.GetIceTrace())
+	ctx := ice.WithTraceId(r.Context(), roam.GetTrace())
 	ice.SyncProcess(ctx, roam)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -177,12 +176,12 @@ func handleConsume(w http.ResponseWriter, r *http.Request) {
 	cost, _ := strconv.Atoi(r.URL.Query().Get("cost"))
 	uid, _ := strconv.Atoi(r.URL.Query().Get("uid"))
 
-	roam := ice.NewRoamWithMeta()
-	roam.GetMeta().Scene = "consume"
+	roam := ice.NewRoam()
+	roam.SetScene("consume")
 	roam.Put("cost", cost)
 	roam.Put("uid", uid)
 
-	ctx := ice.WithTraceId(r.Context(), roam.GetIceTrace())
+	ctx := ice.WithTraceId(r.Context(), roam.GetTrace())
 	ice.SyncProcess(ctx, roam)
 
 	w.Header().Set("Content-Type", "application/json")

@@ -68,8 +68,8 @@ public abstract class BaseNode {
      * @return NodeRunStateEnum
      */
     public NodeRunStateEnum process(IceRoam roam) {
-        if (IceTimeUtils.timeDisable(iceTimeTypeEnum, roam.getIceTs(), iceStart, iceEnd)) {
-            ProcessUtils.collectInfo(roam.getIceProcess(), this, 'O');
+        if (IceTimeUtils.timeDisable(iceTimeTypeEnum, roam.getTs(), iceStart, iceEnd)) {
+            ProcessUtils.collectInfo(roam.getProcess(), this, 'O');
             return NodeRunStateEnum.NONE;
         }
         long start = System.currentTimeMillis();
@@ -83,14 +83,14 @@ public abstract class BaseNode {
                     res = processNode(roam);
                     //forward just like node with and relation, return like and also
                     res = forwardRes == NodeRunStateEnum.NONE ? res : (res == NodeRunStateEnum.NONE ? NodeRunStateEnum.TRUE : res);
-                    ProcessUtils.collectInfo(roam.getIceProcess(), this, start, res);
+                    ProcessUtils.collectInfo(roam.getProcess(), this, start, res);
                     return iceInverse ?
                             res == NodeRunStateEnum.TRUE ?
                                     NodeRunStateEnum.FALSE :
                                     res == NodeRunStateEnum.FALSE ? NodeRunStateEnum.TRUE : res :
                             res;
                 }
-                ProcessUtils.collectRejectInfo(roam.getIceProcess(), this);
+                ProcessUtils.collectRejectInfo(roam.getProcess(), this);
                 return NodeRunStateEnum.FALSE;
             }
             res = processNode(roam);
@@ -103,14 +103,14 @@ public abstract class BaseNode {
             }
             if (errorRunState == null || errorRunState == NodeRunStateEnum.SHUT_DOWN) {
                 /*shutdown process and throw e*/
-                ProcessUtils.collectInfo(roam.getIceProcess(), this, start, NodeRunStateEnum.SHUT_DOWN);
+                ProcessUtils.collectInfo(roam.getProcess(), this, start, NodeRunStateEnum.SHUT_DOWN);
                 throw t;
             } else {
                 /*error but continue*/
                 res = errorRunState;
             }
         }
-        ProcessUtils.collectInfo(roam.getIceProcess(), this, start, res);
+        ProcessUtils.collectInfo(roam.getProcess(), this, start, res);
         return iceInverse ?
                 res == NodeRunStateEnum.TRUE ?
                         NodeRunStateEnum.FALSE :

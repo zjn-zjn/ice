@@ -4,7 +4,6 @@ package com.ice.core;
 import com.ice.core.base.BaseNode;
 import com.ice.core.cache.IceConfCache;
 import com.ice.core.cache.IceHandlerCache;
-import com.ice.core.context.IceMeta;
 import com.ice.core.context.IceRoam;
 import com.ice.core.handler.IceHandler;
 import com.ice.core.utils.IceExecutor;
@@ -33,29 +32,29 @@ public final class IceDispatcher {
         if (!checkRoam(roam)) {
             return Collections.emptyList();
         }
-        IceMeta meta = roam.getIceMeta();
         /*first iceId*/
-        if (meta.getId() > 0) {
-            IceHandler handler = IceHandlerCache.getHandlerById(meta.getId());
+        if (roam.getId() > 0) {
+            IceHandler handler = IceHandlerCache.getHandlerById(roam.getId());
             if (handler == null) {
-                log.debug("handler maybe expired iceId:{}", meta.getId());
+                log.debug("handler maybe expired iceId:{}", roam.getId());
                 return Collections.emptyList();
             }
-            meta.setId(handler.findIceId());
+            roam.setId(handler.findIceId());
             handler.handle(roam);
             return Collections.singletonList(roam);
         }
         /*next scene*/
-        if (meta.getScene() != null && !meta.getScene().isEmpty()) {
-            Map<Long, IceHandler> handlerMap = IceHandlerCache.getHandlersByScene(meta.getScene());
+        String scene = roam.getScene();
+        if (scene != null && !scene.isEmpty()) {
+            Map<Long, IceHandler> handlerMap = IceHandlerCache.getHandlersByScene(scene);
             if (handlerMap == null || handlerMap.isEmpty()) {
-                log.debug("handlers maybe all expired scene:{}", meta.getScene());
+                log.debug("handlers maybe all expired scene:{}", scene);
                 return Collections.emptyList();
             }
             if (handlerMap.size() == 1) {
                 /*one handler*/
                 IceHandler handler = handlerMap.values().iterator().next();
-                meta.setId(handler.findIceId());
+                roam.setId(handler.findIceId());
                 handler.handle(roam);
                 return Collections.singletonList(roam);
             }
@@ -64,7 +63,7 @@ public final class IceDispatcher {
             List<Future<?>> futures = new ArrayList<>(handlerMap.size());
             for (IceHandler handler : handlerMap.values()) {
                 IceRoam cloneRoam = roam.cloneRoam();
-                cloneRoam.getIceMeta().setId(handler.findIceId());
+                cloneRoam.setId(handler.findIceId());
                 futures.add(IceExecutor.submitHandler(handler, cloneRoam));
                 roamList.add(cloneRoam);
             }
@@ -75,15 +74,15 @@ public final class IceDispatcher {
         }
 
         /*last node*/
-        long confId = meta.getNid();
+        long confId = roam.getNid();
         if (confId <= 0) {
             return Collections.emptyList();
         }
         BaseNode root = IceConfCache.getConfById(confId);
         if (root != null) {
-            meta.setId(confId);
+            roam.setId(confId);
             IceHandler handler = new IceHandler();
-            handler.setDebug(meta.getDebug());
+            handler.setDebug(roam.getDebug());
             handler.setRoot(root);
             handler.setConfId(confId);
             handler.handle(roam);
@@ -96,43 +95,43 @@ public final class IceDispatcher {
         if (!checkRoam(roam)) {
             return Collections.emptyList();
         }
-        IceMeta meta = roam.getIceMeta();
-        if (meta.getId() > 0) {
-            IceHandler handler = IceHandlerCache.getHandlerById(meta.getId());
+        if (roam.getId() > 0) {
+            IceHandler handler = IceHandlerCache.getHandlerById(roam.getId());
             if (handler == null) {
                 return Collections.emptyList();
             }
-            meta.setId(handler.findIceId());
+            roam.setId(handler.findIceId());
             return Collections.singletonList(IceExecutor.submitHandler(handler, roam));
         }
-        if (meta.getScene() != null && !meta.getScene().isEmpty()) {
-            Map<Long, IceHandler> handlerMap = IceHandlerCache.getHandlersByScene(meta.getScene());
+        String scene = roam.getScene();
+        if (scene != null && !scene.isEmpty()) {
+            Map<Long, IceHandler> handlerMap = IceHandlerCache.getHandlersByScene(scene);
             if (handlerMap == null || handlerMap.isEmpty()) {
                 return Collections.emptyList();
             }
             if (handlerMap.size() == 1) {
                 IceHandler handler = handlerMap.values().iterator().next();
-                meta.setId(handler.findIceId());
+                roam.setId(handler.findIceId());
                 return Collections.singletonList(IceExecutor.submitHandler(handler, roam));
             }
             List<Future<IceRoam>> futures = new ArrayList<>(handlerMap.size());
             for (IceHandler handler : handlerMap.values()) {
                 IceRoam cloneRoam = roam.cloneRoam();
-                cloneRoam.getIceMeta().setId(handler.findIceId());
+                cloneRoam.setId(handler.findIceId());
                 futures.add(IceExecutor.submitHandler(handler, cloneRoam));
             }
             return futures;
         }
-        long confId = meta.getNid();
+        long confId = roam.getNid();
         if (confId <= 0) {
             return Collections.emptyList();
         }
 
         BaseNode root = IceConfCache.getConfById(confId);
         if (root != null) {
-            meta.setId(confId);
+            roam.setId(confId);
             IceHandler handler = new IceHandler();
-            handler.setDebug(meta.getDebug());
+            handler.setDebug(roam.getDebug());
             handler.setRoot(root);
             handler.setConfId(confId);
             return Collections.singletonList(IceExecutor.submitHandler(handler, roam));
@@ -141,18 +140,18 @@ public final class IceDispatcher {
     }
 
     private static boolean checkRoam(IceRoam roam) {
-        if (roam == null || roam.getIceMeta() == null) {
-            log.error("invalid roam null or missing IceMeta");
+        if (roam == null || roam.getMeta() == null) {
+            log.error("invalid roam null or missing _ice");
             return false;
         }
-        IceMeta meta = roam.getIceMeta();
-        if (meta.getId() > 0) {
+        if (roam.getId() > 0) {
             return true;
         }
-        if (meta.getScene() != null && !meta.getScene().isEmpty()) {
+        String scene = roam.getScene();
+        if (scene != null && !scene.isEmpty()) {
             return true;
         }
-        if (meta.getNid() > 0) {
+        if (roam.getNid() > 0) {
             return true;
         }
         log.error("invalid roam none iceId none scene none confId:{}", JacksonUtils.toJsonString(roam));

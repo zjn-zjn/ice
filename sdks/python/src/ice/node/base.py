@@ -143,7 +143,7 @@ def collect_info(roam: Roam, base: Base, state: str, time_ms: int) -> None:
     if base is None:
         return
     inverse_str = "-I" if base.ice_inverse else ""
-    roam.get_ice_process().write(
+    roam.get_process().write(
         f"[{base.ice_node_id}:{base.ice_log_name}:{state}{inverse_str}:{time_ms}]"
     )
 
@@ -152,7 +152,7 @@ def collect_reject_info(roam: Roam, base: Base) -> None:
     """Collect process information for a rejected node (forward returned false)."""
     if base is None:
         return
-    roam.get_ice_process().write(f"[{base.ice_node_id}:{base.ice_log_name}:R-F]")
+    roam.get_process().write(f"[{base.ice_node_id}:{base.ice_log_name}:R-F]")
 
 
 def process_with_base(
@@ -176,7 +176,7 @@ def process_with_base(
         The final RunState after processing
     """
     # Time check
-    if time_disabled(base.ice_time_type, roam.get_ice_ts(), base.ice_start, base.ice_end):
+    if time_disabled(base.ice_time_type, roam.get_ts(), base.ice_start, base.ice_end):
         collect_info(roam, base, "O", 0)
         return RunState.NONE
 

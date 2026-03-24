@@ -83,7 +83,7 @@ IceFileClient client = new IceFileClient(1, "./ice-data", "com.your.package");
 client.start();
 
 IceRoam roam = IceRoam.create();
-roam.getIceMeta().setId(1L);
+roam.setId(1L);
 roam.put("uid", 12345);
 Ice.syncProcess(roam);
 ```
@@ -107,8 +107,8 @@ func main() {
     client.Start()
     defer client.Destroy()
 
-    roam := ice.NewRoamWithMeta()
-    roam.GetMeta().Id = 1
+    roam := ice.NewRoam()
+    roam.SetId(1)
     roam.Put("uid", 12345)
     ice.SyncProcess(context.Background(), roam)
 }
@@ -132,7 +132,7 @@ client = ice.FileClient(app=1, storage_path="./ice-data")
 client.start()
 
 roam = ice.Roam.create()
-roam.get_meta().id = 1
+roam.set_id(1)
 roam.put("uid", 12345)
 ice.sync_process(roam)
 ```

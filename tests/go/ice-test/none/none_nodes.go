@@ -31,9 +31,6 @@ type TimeChangeNone struct {
 // DoNone implements the LeafNone interface.
 func (t *TimeChangeNone) DoNone(ctx context.Context, roam *icecontext.Roam) {
 	if t.Environment != "prod" {
-		meta := roam.GetMeta()
-		if meta != nil {
-			meta.Ts = meta.Ts + t.CursorMills
-		}
+		roam.SetTs(roam.GetTs() + t.CursorMills)
 	}
 }

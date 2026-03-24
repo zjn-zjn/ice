@@ -5,7 +5,6 @@ A Python implementation of the Ice rule engine, compatible with Java and Go SDKs
 """
 
 from ice.context.roam import Roam
-from ice.context.meta import IceMeta
 from ice.enums import RunState, NodeType, TimeType
 from ice.leaf.registry import leaf, register_leaf, get_leaf_nodes, LeafMeta, IceField, IceIgnore, FieldMeta
 from ice.log import Logger, set_logger
@@ -30,7 +29,6 @@ except Exception:
 __all__ = [
     # Context
     "Roam",
-    "IceMeta",
     # Enums
     "RunState",
     "NodeType",

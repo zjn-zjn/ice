@@ -40,9 +40,7 @@ class TimeChangeNone:
 
     def do_none(self, roam: Roam) -> None:
         if self.environment != "prod":
-            meta = roam.get_meta()
-            if meta is not None:
-                if self.time > 0:
-                    meta.ts = self.time
-                else:
-                    meta.ts = meta.ts + self.cursorMills
+            if self.time > 0:
+                roam.set_ts(self.time)
+            else:
+                roam.set_ts(roam.get_ts() + self.cursorMills)

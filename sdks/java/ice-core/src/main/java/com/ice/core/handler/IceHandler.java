@@ -4,7 +4,6 @@ package com.ice.core.handler;
 import com.ice.common.enums.TimeTypeEnum;
 import com.ice.common.exception.NodeException;
 import com.ice.core.base.BaseNode;
-import com.ice.core.context.IceMeta;
 import com.ice.core.context.IceRoam;
 import com.ice.core.utils.IceErrorHandle;
 import com.ice.core.utils.IceTimeUtils;
@@ -57,13 +56,13 @@ public final class IceHandler {
     private BaseNode root;
 
     public void handle(IceRoam roam) {
-        String trace = roam.getIceTrace();
+        String trace = roam.getTrace();
         String tp = trace != null ? "[" + trace + "] " : "";
         if (trace != null) {
             MDC.put("traceId", trace);
         }
         try {
-            if (IceTimeUtils.timeDisable(timeTypeEnum, roam.getIceTs(), start, end)) {
+            if (IceTimeUtils.timeDisable(timeTypeEnum, roam.getTs(), start, end)) {
                 return;
             }
             if (DebugEnum.filter(DebugEnum.IN_ROAM, debug)) {
@@ -72,7 +71,7 @@ public final class IceHandler {
             if (root != null) {
                 root.process(roam);
                 if (DebugEnum.filter(DebugEnum.PROCESS, debug)) {
-                    log.info("{}handle process:{}{}", tp, roam.getIceProcess().toString(), metaSuffix(roam));
+                    log.info("{}handle process:{}{}", tp, roam.getProcess().toString(), metaSuffix(roam));
                 }
                 if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
                     log.info("{}handle out roam:{}{}", tp, roamWithoutIce(roam), metaSuffix(roam));
@@ -89,7 +88,7 @@ public final class IceHandler {
     }
 
     public void handleWithNodeId(IceRoam roam) {
-        String trace = roam.getIceTrace();
+        String trace = roam.getTrace();
         String tp = trace != null ? "[" + trace + "] " : "";
         if (trace != null) {
             MDC.put("traceId", trace);
@@ -101,7 +100,7 @@ public final class IceHandler {
             if (root != null) {
                 root.process(roam);
                 if (DebugEnum.filter(DebugEnum.PROCESS, debug)) {
-                    log.info("{}handle process:{}{}", tp, roam.getIceProcess().toString(), metaSuffix(roam));
+                    log.info("{}handle process:{}{}", tp, roam.getProcess().toString(), metaSuffix(roam));
                 }
                 if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
                     log.info("{}handle out roam:{}{}", tp, roamWithoutIce(roam), metaSuffix(roam));
@@ -118,18 +117,18 @@ public final class IceHandler {
     }
 
     private static String metaSuffix(IceRoam roam) {
-        IceMeta meta = roam.getIceMeta();
         StringBuilder sb = new StringBuilder();
-        if (meta.getId() > 0) {
-            sb.append(" id=").append(meta.getId());
+        if (roam.getId() > 0) {
+            sb.append(" id=").append(roam.getId());
         }
-        if (meta.getScene() != null && !meta.getScene().isEmpty()) {
-            sb.append(" scene=").append(meta.getScene());
+        String scene = roam.getScene();
+        if (scene != null && !scene.isEmpty()) {
+            sb.append(" scene=").append(scene);
         }
-        if (meta.getNid() > 0) {
-            sb.append(" nid=").append(meta.getNid());
+        if (roam.getNid() > 0) {
+            sb.append(" nid=").append(roam.getNid());
         }
-        sb.append(" ts=").append(meta.getTs());
+        sb.append(" ts=").append(roam.getTs());
         return sb.toString();
     }
 

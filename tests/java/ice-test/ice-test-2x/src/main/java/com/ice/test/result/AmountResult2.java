@@ -34,7 +34,7 @@ public class AmountResult2 extends BaseLeafResult {
         }
         boolean res = sendService.sendAmount(uid, value);
         roam.putDeep("result." + "sendAmount", value);
-        roam.putDeep("result." + "scene", roam.getIceScene());
+        roam.putDeep("result." + "scene", roam.getScene());
         return res;
     }
 }

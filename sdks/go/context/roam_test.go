@@ -60,7 +60,7 @@ func TestRoam_Delete(t *testing.T) {
 		t.Error("value should be stored")
 	}
 
-	roam.Delete("key")
+	roam.Del("key")
 	if roam.Get("key") != nil {
 		t.Error("key should be deleted")
 	}
@@ -70,10 +70,10 @@ func TestRoam_Delete(t *testing.T) {
 	}
 
 	// Delete non-existent key should not panic
-	roam.Delete("nonexistent")
+	roam.Del("nonexistent")
 
 	// Empty key should be ignored
-	roam.Delete("")
+	roam.Del("")
 }
 
 func TestRoam_deepKey(t *testing.T) {
@@ -177,7 +177,7 @@ func TestRoam_ShallowCopy(t *testing.T) {
 	roam.Put("key1", "value1")
 	roam.Put("key2", 100)
 
-	copied := roam.ShallowCopy()
+	copied := roam.Clone()
 
 	// Verify copy has same values
 	if copied.Value("key1").String() != "value1" {
@@ -200,8 +200,8 @@ func TestRoam_Data(t *testing.T) {
 	roam.Put("b", 2)
 
 	data := roam.Data()
-	if len(data) != 2 {
-		t.Errorf("expected 2 entries, got %d", len(data))
+	if len(data) != 3 { // a, b, _ice
+		t.Errorf("expected 3 entries, got %d", len(data))
 	}
 	if data["a"] != 1 || data["b"] != 2 {
 		t.Error("data values mismatch")

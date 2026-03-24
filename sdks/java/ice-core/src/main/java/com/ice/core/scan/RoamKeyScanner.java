@@ -381,7 +381,7 @@ public final class RoamKeyScanner {
                     return;
                 }
 
-                // Other roam methods (getIceMeta, etc.) - just consume and produce
+                // Other roam methods (getMeta, etc.) - just consume and produce
                 popArgs(argTypes.length);
                 stack.poll(); // objectref
                 if (returnType.getSort() != Type.VOID) {

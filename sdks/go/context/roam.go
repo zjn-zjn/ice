@@ -7,33 +7,28 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/spf13/cast"
+	"github.com/zjn-zjn/ice/sdks/go/internal/uuid"
 )
 
 const iceMetaKey = "_ice"
 
 // Roam is a thread-safe map for storing business data during execution.
 // It supports deep-key access (e.g., "a.b.c") and resolve references (e.g., "@key").
-// Ice metadata is stored under the reserved "_ice" key.
+// Ice metadata is stored under the "_ice" key as a plain map[string]any.
 type Roam struct {
 	mu   sync.RWMutex
 	data map[string]any
 }
 
-// NewRoam creates a new Roam instance.
+// NewRoam creates a new Roam instance with default _ice metadata.
 func NewRoam() *Roam {
-	return &Roam{
-		data: make(map[string]any),
-	}
-}
-
-// NewRoamWithMeta creates a new Roam instance with default IceMeta.
-func NewRoamWithMeta() *Roam {
 	r := &Roam{
 		data: make(map[string]any),
 	}
-	r.data[iceMetaKey] = NewMeta()
+	r.data[iceMetaKey] = newMetaMap()
 	return r
 }
 
@@ -48,80 +43,141 @@ func NewRoamFrom(m map[string]any) *Roam {
 	return r
 }
 
-// GetMeta returns the IceMeta stored in this Roam.
-func (r *Roam) GetMeta() *IceMeta {
+func newMetaMap() map[string]any {
+	return map[string]any{
+		"ts":      time.Now().UnixMilli(),
+		"trace":   uuid.GenerateAlphanumId(11),
+		"process": &strings.Builder{},
+	}
+}
+
+// ============ _ice convenience getters ============
+
+// GetMeta returns the _ice metadata map.
+func (r *Roam) GetMeta() map[string]any {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	if m, ok := r.data[iceMetaKey].(*IceMeta); ok {
+	if m, ok := r.data[iceMetaKey].(map[string]any); ok {
 		return m
 	}
 	return nil
 }
 
-// GetIceId returns the ice handler ID from metadata.
-func (r *Roam) GetIceId() int64 {
-	if m := r.GetMeta(); m != nil {
-		return m.Id
-	}
-	return 0
+// GetId returns the handler ID from metadata.
+func (r *Roam) GetId() int64 {
+	return r.getMetaInt64("id")
 }
 
-// GetIceScene returns the scene from metadata.
-func (r *Roam) GetIceScene() string {
-	if m := r.GetMeta(); m != nil {
-		return m.Scene
-	}
-	return ""
+// GetScene returns the scene from metadata.
+func (r *Roam) GetScene() string {
+	return r.getMetaString("scene")
 }
 
-// GetIceTs returns the request timestamp from metadata.
-func (r *Roam) GetIceTs() int64 {
-	if m := r.GetMeta(); m != nil {
-		return m.Ts
-	}
-	return 0
+// GetTs returns the request timestamp from metadata.
+func (r *Roam) GetTs() int64 {
+	return r.getMetaInt64("ts")
 }
 
-// GetIceTrace returns the trace ID from metadata.
-func (r *Roam) GetIceTrace() string {
-	if m := r.GetMeta(); m != nil {
-		return m.Trace
-	}
-	return ""
+// GetTrace returns the trace ID from metadata.
+func (r *Roam) GetTrace() string {
+	return r.getMetaString("trace")
 }
 
-// GetIceProcess returns the process info builder from metadata.
-func (r *Roam) GetIceProcess() *strings.Builder {
-	if m := r.GetMeta(); m != nil {
-		return m.Process
+// GetProcess returns the process info builder from metadata.
+func (r *Roam) GetProcess() *strings.Builder {
+	ice := r.GetMeta()
+	if ice == nil {
+		return nil
+	}
+	if p, ok := ice["process"].(*strings.Builder); ok {
+		return p
 	}
 	return nil
 }
 
-// GetIceDebug returns the debug flag from metadata.
-func (r *Roam) GetIceDebug() byte {
-	if m := r.GetMeta(); m != nil {
-		return m.Debug
+// GetDebug returns the debug flag from metadata.
+func (r *Roam) GetDebug() byte {
+	ice := r.GetMeta()
+	if ice == nil {
+		return 0
 	}
-	return 0
+	v, err := cast.ToUint8E(ice["debug"])
+	if err != nil {
+		return 0
+	}
+	return v
 }
 
-// Put stores a value with the given key. Returns the Roam for chaining.
-// The "_ice" key is reserved for internal metadata and cannot be overwritten.
-// Supports storing nil values.
-func (r *Roam) Put(key string, value any) *Roam {
-	if key == "" || key == iceMetaKey {
-		return r
+// GetNid returns the node ID from metadata.
+func (r *Roam) GetNid() int64 {
+	return r.getMetaInt64("nid")
+}
+
+func (r *Roam) getMetaInt64(field string) int64 {
+	ice := r.GetMeta()
+	if ice == nil {
+		return 0
 	}
+	v, err := cast.ToInt64E(ice[field])
+	if err != nil {
+		return 0
+	}
+	return v
+}
+
+func (r *Roam) getMetaString(field string) string {
+	ice := r.GetMeta()
+	if ice == nil {
+		return ""
+	}
+	v, _ := ice[field].(string)
+	return v
+}
+
+// ============ _ice convenience setters ============
+
+// SetId sets the handler ID.
+func (r *Roam) SetId(id int64) {
+	r.putMeta("id", id)
+}
+
+// SetScene sets the scene.
+func (r *Roam) SetScene(scene string) {
+	r.putMeta("scene", scene)
+}
+
+// SetTs sets the request timestamp.
+func (r *Roam) SetTs(ts int64) {
+	r.putMeta("ts", ts)
+}
+
+// SetTrace sets the trace ID.
+func (r *Roam) SetTrace(trace string) {
+	r.putMeta("trace", trace)
+}
+
+// SetDebug sets the debug flag.
+func (r *Roam) SetDebug(debug byte) {
+	r.putMeta("debug", debug)
+}
+
+// SetNid sets the node ID.
+func (r *Roam) SetNid(nid int64) {
+	r.putMeta("nid", nid)
+}
+
+func (r *Roam) putMeta(field string, value any) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.data[key] = value
-	return r
+	if ice, ok := r.data[iceMetaKey].(map[string]any); ok {
+		ice[field] = value
+	}
 }
 
-// PutDirect stores a value with the given key without any key restrictions.
-// This is for internal use only.
-func (r *Roam) PutDirect(key string, value any) *Roam {
+// ============ basic operations ============
+
+// Put stores a value with the given key. Returns the Roam for chaining.
+func (r *Roam) Put(key string, value any) *Roam {
 	if key == "" {
 		return r
 	}
@@ -131,7 +187,7 @@ func (r *Roam) PutDirect(key string, value any) *Roam {
 	return r
 }
 
-// PutAll stores all entries from the given map. The "_ice" key is skipped.
+// PutAll stores all entries from the given map.
 func (r *Roam) PutAll(data map[string]any) *Roam {
 	if len(data) == 0 {
 		return r
@@ -139,23 +195,8 @@ func (r *Roam) PutAll(data map[string]any) *Roam {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for k, v := range data {
-		if k == iceMetaKey {
-			continue
-		}
 		r.data[k] = v
 	}
-	return r
-}
-
-// Delete removes a key from the Roam. Returns the Roam for chaining.
-// The "_ice" key cannot be deleted.
-func (r *Roam) Delete(key string) *Roam {
-	if key == "" || key == iceMetaKey {
-		return r
-	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	delete(r.data, key)
 	return r
 }
 
@@ -169,17 +210,23 @@ func (r *Roam) Get(key string) any {
 	return r.data[key]
 }
 
+// Del removes a key from the Roam. Returns the Roam for chaining.
+func (r *Roam) Del(key string) *Roam {
+	if key == "" {
+		return r
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.data, key)
+	return r
+}
+
 // PutDeep stores a value using a dot-separated key path (e.g., "a.b.c").
-// The "_ice" key is reserved and cannot be overwritten via this method.
-// Supports storing nil values.
 func (r *Roam) PutDeep(deepKey string, value any) any {
 	if deepKey == "" {
 		return nil
 	}
 	keys := strings.Split(deepKey, ".")
-	if keys[0] == iceMetaKey {
-		return nil
-	}
 	if len(keys) == 1 {
 		r.mu.Lock()
 		defer r.mu.Unlock()
@@ -271,6 +318,50 @@ func (r *Roam) GetDeep(deepKey string) any {
 	return end
 }
 
+// DelDeep removes a value using a dot-separated key path (e.g., "a.b.c").
+func (r *Roam) DelDeep(deepKey string) any {
+	if deepKey == "" {
+		return nil
+	}
+	keys := strings.Split(deepKey, ".")
+	if len(keys) == 1 {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		old := r.data[keys[0]]
+		delete(r.data, keys[0])
+		return old
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var end any = r.data
+	for i := 0; i < len(keys)-1; i++ {
+		switch v := end.(type) {
+		case map[string]any:
+			end = v[keys[i]]
+			if end == nil {
+				return nil
+			}
+		case []any:
+			idx, err := strconv.Atoi(keys[i])
+			if err != nil || idx < 0 || idx >= len(v) {
+				return nil
+			}
+			end = v[idx]
+		default:
+			return nil
+		}
+	}
+	lastKey := keys[len(keys)-1]
+	if container, ok := end.(map[string]any); ok {
+		old := container[lastKey]
+		delete(container, lastKey)
+		return old
+	}
+	return nil
+}
+
 // Resolve retrieves a value, supporting "@key" syntax to reference another key.
 func (r *Roam) Resolve(union any) any {
 	if union == nil {
@@ -306,13 +397,6 @@ func assignTo(src, dest any) bool {
 }
 
 // Value returns a RoamValue for fluent API access.
-//
-// Example:
-//
-//	name := roam.Value("name").String()
-//	age := roam.Value("age").IntOr(18)
-//	var user *UserInfo
-//	roam.Value("user").To(&user)
 func (r *Roam) Value(key string) *RoamValue {
 	return &RoamValue{value: r.Get(key)}
 }
@@ -449,7 +533,7 @@ func (r *Roam) Data() map[string]any {
 	return result
 }
 
-// Clone creates a shallow copy of the Roam data with a cloned IceMeta (fresh Process builder).
+// Clone creates a shallow copy of the Roam data with a cloned _ice map (fresh Process builder).
 func (r *Roam) Clone() *Roam {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -458,20 +542,19 @@ func (r *Roam) Clone() *Roam {
 	}
 	for k, v := range r.data {
 		if k == iceMetaKey {
-			if meta, ok := v.(*IceMeta); ok {
-				newRoam.data[k] = meta.Clone()
+			if ice, ok := v.(map[string]any); ok {
+				iceCopy := make(map[string]any, len(ice))
+				for ik, iv := range ice {
+					iceCopy[ik] = iv
+				}
+				iceCopy["process"] = &strings.Builder{}
+				newRoam.data[k] = iceCopy
 			}
 			continue
 		}
 		newRoam.data[k] = v
 	}
 	return newRoam
-}
-
-// ShallowCopy creates a shallow copy of the Roam.
-// Deprecated: Use Clone() instead for proper IceMeta handling.
-func (r *Roam) ShallowCopy() *Roam {
-	return r.Clone()
 }
 
 // String returns the JSON representation of the Roam data.

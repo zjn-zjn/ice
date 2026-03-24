@@ -36,7 +36,7 @@ public class PointResult2 extends BaseLeafResult {
         }
         boolean res = sendService.sendPoint(uid.intValue(), value.intValue());
         roam.putDeep("result." + "sendPoint", value);
-        roam.putDeep("result." + "scene", roam.getIceScene());
+        roam.putDeep("result." + "scene", roam.getScene());
         return res;
     }
 }

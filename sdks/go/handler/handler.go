@@ -40,18 +40,17 @@ func NewHandler() *Handler {
 
 // metaSuffix builds log args from meta: id/scene/nid/ts, only non-zero values.
 func metaSuffix(roam *icecontext.Roam) []any {
-	meta := roam.GetMeta()
 	var args []any
-	if meta.Id > 0 {
-		args = append(args, "id", meta.Id)
+	if roam.GetId() > 0 {
+		args = append(args, "id", roam.GetId())
 	}
-	if meta.Scene != "" {
-		args = append(args, "scene", meta.Scene)
+	if roam.GetScene() != "" {
+		args = append(args, "scene", roam.GetScene())
 	}
-	if meta.Nid > 0 {
-		args = append(args, "nid", meta.Nid)
+	if roam.GetNid() > 0 {
+		args = append(args, "nid", roam.GetNid())
 	}
-	args = append(args, "ts", meta.Ts)
+	args = append(args, "ts", roam.GetTs())
 	return args
 }
 
@@ -65,7 +64,7 @@ func roamWithoutIce(roam *icecontext.Roam) string {
 
 // Handle processes a roam.
 func (h *Handler) Handle(ctx stdctx.Context, roam *icecontext.Roam) {
-	if timeutil.TimeDisabled(h.TimeType, roam.GetIceTs(), h.Start, h.End) {
+	if timeutil.TimeDisabled(h.TimeType, roam.GetTs(), h.Start, h.End) {
 		return
 	}
 
@@ -78,7 +77,7 @@ func (h *Handler) Handle(ctx stdctx.Context, roam *icecontext.Roam) {
 		h.Root.Process(ctx, roam)
 
 		if h.hasDebug(DebugProcess) {
-			args := append([]any{"process", roam.GetIceProcess().String()}, metaSuffix(roam)...)
+			args := append([]any{"process", roam.GetProcess().String()}, metaSuffix(roam)...)
 			log.Info(ctx, "handle process", args...)
 		}
 		if h.hasDebug(DebugOutRoam) {
@@ -101,7 +100,7 @@ func (h *Handler) HandleWithNodeId(ctx stdctx.Context, roam *icecontext.Roam) {
 		h.Root.Process(ctx, roam)
 
 		if h.hasDebug(DebugProcess) {
-			args := append([]any{"process", roam.GetIceProcess().String()}, metaSuffix(roam)...)
+			args := append([]any{"process", roam.GetProcess().String()}, metaSuffix(roam)...)
 			log.Info(ctx, "handle process", args...)
 		}
 		if h.hasDebug(DebugOutRoam) {

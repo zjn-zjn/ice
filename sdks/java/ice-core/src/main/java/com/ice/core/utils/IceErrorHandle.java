@@ -3,7 +3,6 @@ package com.ice.core.utils;
 import com.ice.common.enums.NodeRunStateEnum;
 import com.ice.common.exception.NodeException;
 import com.ice.core.base.BaseNode;
-import com.ice.core.context.IceMeta;
 import com.ice.core.context.IceRoam;
 import com.ice.core.handler.IceHandler;
 import lombok.Data;
@@ -64,10 +63,9 @@ public abstract class IceErrorHandle {
             String tp = "";
             String meta = "";
             if (roam != null) {
-                IceMeta m = roam.getIceMeta();
-                String trace = m.getTrace();
+                String trace = roam.getTrace();
                 tp = trace != null ? "[" + trace + "] " : "";
-                meta = metaSuffix(m);
+                meta = metaSuffix(roam);
             }
             if (t instanceof NodeException) {
                 log.error("{}error in node:{}{}", tp, ((NodeException) t).getNodeId(), meta, t);
@@ -76,18 +74,19 @@ public abstract class IceErrorHandle {
             }
         }
 
-        private static String metaSuffix(IceMeta meta) {
+        private static String metaSuffix(IceRoam roam) {
             StringBuilder sb = new StringBuilder();
-            if (meta.getId() > 0) {
-                sb.append(" id=").append(meta.getId());
+            if (roam.getId() > 0) {
+                sb.append(" id=").append(roam.getId());
             }
-            if (meta.getScene() != null && !meta.getScene().isEmpty()) {
-                sb.append(" scene=").append(meta.getScene());
+            String scene = roam.getScene();
+            if (scene != null && !scene.isEmpty()) {
+                sb.append(" scene=").append(scene);
             }
-            if (meta.getNid() > 0) {
-                sb.append(" nid=").append(meta.getNid());
+            if (roam.getNid() > 0) {
+                sb.append(" nid=").append(roam.getNid());
             }
-            sb.append(" ts=").append(meta.getTs());
+            sb.append(" ts=").append(roam.getTs());
             return sb.toString();
         }
     }

@@ -41,7 +41,7 @@ func TestAutoScanRoamKeysFromSeparateRegister(t *testing.T) {
 		t.Errorf("RoamProbeLogNone: expected 1 roam key, got %d", roamKeysMap["com.ice.test.none.RoamProbeLogNone"])
 	}
 
-	// TimeChangeNone accesses roam.GetMeta() only (no roam key access) -> 0
+	// TimeChangeNone accesses roam.GetTs()/SetTs() only (no roam key access) -> 0
 	if roamKeysMap["com.ice.test.none.TimeChangeNone"] != 0 {
 		t.Errorf("TimeChangeNone: expected 0 roam keys, got %d", roamKeysMap["com.ice.test.none.TimeChangeNone"])
 	}

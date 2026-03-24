@@ -5,10 +5,10 @@ from __future__ import annotations
 import io
 import json
 import threading
-from typing import Any, TYPE_CHECKING
+import time
+from typing import Any
 
-if TYPE_CHECKING:
-    from ice.context.meta import IceMeta
+from ice._internal.uuid import generate_alphanum_id
 
 # Reserved key for ice metadata
 _ICE_KEY = "_ice"
@@ -19,133 +19,163 @@ class Roam:
     Thread-safe dictionary for business data in ice processing.
 
     Supports:
-    - Basic put/get operations
+    - Basic put/get/del operations
     - Deep key access (a.b.c)
     - Resolve reference (@key)
-    - Type-specific getters
-    - IceMeta stored under reserved "_ice" key
+    - _ice metadata stored as a plain dict under "_ice" key
     """
 
     def __init__(self) -> None:
         self._data: dict[str, Any] = {}
         self._lock = threading.RLock()
 
-    # ============ IceMeta access ============
+    # ============ _ice convenience getters ============
 
-    def get_meta(self) -> IceMeta:
-        """Get the IceMeta object."""
-        return self._data.get(_ICE_KEY)
+    def get_meta(self) -> dict[str, Any] | None:
+        """Get the _ice metadata dict."""
+        ice = self._data.get(_ICE_KEY)
+        return ice if isinstance(ice, dict) else None
 
-    def get_ice_id(self) -> int:
-        """Get ice handler ID."""
-        meta = self.get_meta()
-        return meta.id if meta else 0
+    def get_id(self) -> int:
+        """Get handler ID."""
+        ice = self.get_meta()
+        return int(ice.get("id", 0)) if ice else 0
 
-    def get_ice_scene(self) -> str:
-        """Get ice scene."""
-        meta = self.get_meta()
-        return meta.scene if meta else ""
+    def get_scene(self) -> str:
+        """Get scene."""
+        ice = self.get_meta()
+        return str(ice.get("scene", "")) if ice else ""
 
-    def get_ice_ts(self) -> int:
-        """Get ice request timestamp."""
-        meta = self.get_meta()
-        return meta.ts if meta else 0
+    def get_ts(self) -> int:
+        """Get request timestamp."""
+        ice = self.get_meta()
+        return int(ice.get("ts", 0)) if ice else 0
 
-    def get_ice_trace(self) -> str:
-        """Get ice trace ID."""
-        meta = self.get_meta()
-        return meta.trace if meta else ""
+    def get_trace(self) -> str:
+        """Get trace ID."""
+        ice = self.get_meta()
+        return str(ice.get("trace", "")) if ice else ""
 
-    def get_ice_process(self) -> io.StringIO:
-        """Get ice process StringIO for debug info."""
-        meta = self.get_meta()
-        return meta.process if meta else io.StringIO()
+    def get_process(self) -> io.StringIO:
+        """Get process StringIO for debug info."""
+        ice = self.get_meta()
+        if ice:
+            p = ice.get("process")
+            if isinstance(p, io.StringIO):
+                return p
+        return io.StringIO()
 
-    def get_ice_debug(self) -> int:
-        """Get ice debug flag."""
-        meta = self.get_meta()
-        return meta.debug if meta else 0
+    def get_debug(self) -> int:
+        """Get debug flag."""
+        ice = self.get_meta()
+        return int(ice.get("debug", 0)) if ice else 0
+
+    def get_nid(self) -> int:
+        """Get node ID."""
+        ice = self.get_meta()
+        return int(ice.get("nid", 0)) if ice else 0
 
     def get_process_info(self) -> str:
         """Get collected process information string."""
-        meta = self.get_meta()
-        return meta.get_process_info() if meta else ""
+        return self.get_process().getvalue()
+
+    # ============ _ice convenience setters ============
+
+    def set_id(self, id: int) -> None:
+        """Set handler ID."""
+        self._put_meta("id", id)
+
+    def set_scene(self, scene: str) -> None:
+        """Set scene."""
+        self._put_meta("scene", scene)
+
+    def set_ts(self, ts: int) -> None:
+        """Set request timestamp."""
+        self._put_meta("ts", ts)
+
+    def set_trace(self, trace: str) -> None:
+        """Set trace ID."""
+        self._put_meta("trace", trace)
+
+    def set_debug(self, debug: int) -> None:
+        """Set debug flag."""
+        self._put_meta("debug", debug)
+
+    def set_nid(self, nid: int) -> None:
+        """Set node ID."""
+        self._put_meta("nid", nid)
+
+    def _put_meta(self, field: str, value: Any) -> None:
+        """Set a field in the _ice metadata dict."""
+        with self._lock:
+            ice = self._data.get(_ICE_KEY)
+            if isinstance(ice, dict):
+                ice[field] = value
 
     # ============ Factory / Clone ============
 
     @classmethod
     def create(cls, **kwargs) -> Roam:
-        """Create a Roam with a default IceMeta.
+        """Create a Roam with default _ice metadata.
 
-        Keyword args are forwarded to IceMeta constructor.
+        Keyword args: id, scene, nid, ts, trace, debug.
         """
-        from ice.context.meta import IceMeta
         roam = cls()
-        roam._data[_ICE_KEY] = IceMeta(**kwargs)
+        ice: dict[str, Any] = {
+            "ts": kwargs.get("ts") or int(time.time() * 1000),
+            "trace": kwargs.get("trace") or generate_alphanum_id(11),
+            "process": io.StringIO(),
+        }
+        if "id" in kwargs and kwargs["id"]:
+            ice["id"] = kwargs["id"]
+        if "scene" in kwargs and kwargs["scene"]:
+            ice["scene"] = kwargs["scene"]
+        if "nid" in kwargs and kwargs["nid"]:
+            ice["nid"] = kwargs["nid"]
+        if "debug" in kwargs and kwargs["debug"]:
+            ice["debug"] = kwargs["debug"]
+        roam._data[_ICE_KEY] = ice
         return roam
 
     def clone(self) -> Roam:
-        """Shallow-copy data and clone IceMeta with a fresh process."""
+        """Shallow-copy data and deep-copy _ice map with a fresh process."""
         new_roam = Roam()
         with self._lock:
-            new_roam._data = self._data.copy()
-        meta = new_roam._data.get(_ICE_KEY)
-        if meta is not None:
-            new_roam._data[_ICE_KEY] = meta.clone()
+            for k, v in self._data.items():
+                if k == _ICE_KEY and isinstance(v, dict):
+                    ice_copy = v.copy()
+                    ice_copy["process"] = io.StringIO()
+                    new_roam._data[k] = ice_copy
+                else:
+                    new_roam._data[k] = v
         return new_roam
-
-    # Keep shallow_copy as alias for backward compatibility
-    def shallow_copy(self) -> Roam:
-        """Create a shallow copy for parallel execution (alias for clone)."""
-        return self.clone()
 
     # ============ Put operations ============
 
     def put(self, key: str, value: Any) -> Roam:
-        """Put a value into roam. Silently ignores writes to '_ice' key."""
-        if key == _ICE_KEY:
-            return self
-        with self._lock:
-            self._data[key] = value
-        return self
-
-    def put_direct(self, key: str, value: Any) -> Roam:
-        """Put a value including reserved keys (internal use only)."""
+        """Put a value into roam."""
         with self._lock:
             self._data[key] = value
         return self
 
     def put_all(self, data: dict[str, Any]) -> Roam:
-        """Put multiple key-value pairs at once. Skips '_ice' key."""
+        """Put multiple key-value pairs at once."""
         with self._lock:
             for k, v in data.items():
-                if k != _ICE_KEY:
-                    self._data[k] = v
+                self._data[k] = v
         return self
 
     def put_deep(self, multi_key: str, value: Any) -> Any:
-        """
-        Put value using deep key (e.g., 'a.b.c').
-        Supports storing None values.
-
-        Example:
-            roam.put_deep("user.profile.age", 25)
-            # Creates nested structure: {"user": {"profile": {"age": 25}}}
-        """
+        """Put value using deep key (e.g., 'a.b.c')."""
         if multi_key is None:
             return None
 
         keys = multi_key.split(".")
         if len(keys) == 1:
-            if keys[0] == _ICE_KEY:
-                return None
             with self._lock:
                 old = self._data.get(keys[0])
                 self._data[keys[0]] = value
                 return old
-
-        if keys[0] == _ICE_KEY:
-            return None
 
         with self._lock:
             end = self._data
@@ -192,13 +222,7 @@ class Roam:
             return self._data.get(key, default)
 
     def get_deep(self, key: str, default: Any = None) -> Any:
-        """
-        Get value using deep key (e.g., 'a.b.c').
-
-        Example:
-            roam.put("user", {"name": "test", "age": 18})
-            roam.get_deep("user.name")  # "test"
-        """
+        """Get value using deep key (e.g., 'a.b.c')."""
         with self._lock:
             keys = key.split(".")
             value = self._data
@@ -217,15 +241,7 @@ class Roam:
             return value
 
     def resolve(self, value: Any) -> Any:
-        """
-        Resolve reference.
-
-        If value starts with '@', treat it as a reference to another key.
-        Example:
-            roam.put("score", 100)
-            roam.put("ref", "@score")
-            roam.resolve(roam.get("ref"))  # 100
-        """
+        """Resolve reference. '@key' -> get(key), '@a.b' -> get_deep('a.b')."""
         if isinstance(value, str) and value.startswith("@"):
             ref_key = value[1:]
             if "." in ref_key:
@@ -233,19 +249,47 @@ class Roam:
             return self.get(ref_key)
         return value
 
+    # ============ Delete operations ============
+
+    def delete(self, key: str) -> Any:
+        """Delete a key and return its value."""
+        with self._lock:
+            return self._data.pop(key, None)
+
+    def delete_deep(self, deep_key: str) -> Any:
+        """Delete a value using a dot-separated key path (e.g., 'a.b.c')."""
+        if deep_key is None:
+            return None
+        keys = deep_key.split(".")
+        if len(keys) == 1:
+            return self.delete(keys[0])
+
+        with self._lock:
+            end = self._data
+            for i in range(len(keys) - 1):
+                k = keys[i]
+                if isinstance(end, dict):
+                    end = end.get(k)
+                    if end is None:
+                        return None
+                elif isinstance(end, list):
+                    try:
+                        end = end[int(k)]
+                    except (ValueError, IndexError):
+                        return None
+                else:
+                    return None
+            last = keys[-1]
+            if isinstance(end, dict):
+                return end.pop(last, None)
+            return None
+
     # ============ Utility operations ============
 
     def contains(self, key: str) -> bool:
         """Check if key exists."""
         with self._lock:
             return key in self._data
-
-    def remove(self, key: str) -> Any:
-        """Remove a key and return its value."""
-        if key == _ICE_KEY:
-            return None
-        with self._lock:
-            return self._data.pop(key, None)
 
     def clear(self) -> None:
         """Clear all data (preserves _ice meta)."""
@@ -265,8 +309,17 @@ class Roam:
         with self._lock:
             result = {}
             for k, v in self._data.items():
-                if k == _ICE_KEY and hasattr(v, 'to_dict'):
-                    result[k] = v.to_dict()
+                if k == _ICE_KEY and isinstance(v, dict):
+                    # Exclude non-serializable process from output
+                    d = {}
+                    for ik, iv in v.items():
+                        if ik == "process" and isinstance(iv, io.StringIO):
+                            pv = iv.getvalue()
+                            if pv:
+                                d[ik] = pv
+                        else:
+                            d[ik] = iv
+                    result[k] = d
                 else:
                     result[k] = v
             return result

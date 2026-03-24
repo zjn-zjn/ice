@@ -59,7 +59,6 @@ func setupTestStorage(t *testing.T) string {
 		Name:     "test-root",
 		Type:     byte(enum.TypeTrue),
 		TimeType: byte(enum.TimeNone),
-		Debug:    1,
 		Inverse:  false,
 	}
 	confData, _ := json.Marshal(conf)
@@ -172,7 +171,6 @@ func TestFileClient_IncrementalUpdate(t *testing.T) {
 		Name:     "new-conf",
 		Type:     byte(enum.TypeTrue),
 		TimeType: byte(enum.TimeNone),
-		Debug:    1,
 	}
 	confData, _ := json.Marshal(newConf)
 	os.WriteFile(filepath.Join(appDir, "confs", "2.json"), confData, 0644)

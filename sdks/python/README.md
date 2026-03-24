@@ -32,7 +32,7 @@ client = ice.FileClient(app=1, storage_path="./ice-data")
 client.start()
 
 roam = ice.Roam.create()
-roam.get_meta().id = 1
+roam.set_id(1)
 roam.put("score", 85)
 results = ice.sync_process(roam)
 
@@ -49,7 +49,7 @@ async def main():
     await client.start()
 
     roam = ice.Roam.create()
-    roam.get_meta().id = 1
+    roam.set_id(1)
     roam.put("score", 85)
     results = await ice.async_process(roam)
 

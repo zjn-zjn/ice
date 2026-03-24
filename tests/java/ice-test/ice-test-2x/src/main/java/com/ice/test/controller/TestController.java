@@ -25,7 +25,7 @@ public class TestController {
     @RequestMapping(value = "/recharge", method = RequestMethod.GET)
     public String recharge(@RequestParam Integer cost, @RequestParam Integer uid) {
         IceRoam roam = IceRoam.create();
-        roam.getIceMeta().setScene("recharge");
+        roam.setScene("recharge");
         roam.put("cost", cost);
         roam.put("uid", uid);
         Ice.syncProcess(roam);
@@ -35,7 +35,7 @@ public class TestController {
     @RequestMapping(value = "/consume", method = RequestMethod.GET)
     public String consume(@RequestParam Integer cost, @RequestParam Integer uid) {
         IceRoam roam = IceRoam.create();
-        roam.getIceMeta().setScene("consume");
+        roam.setScene("consume");
         roam.put("cost", cost);
         roam.put("uid", uid);
         Ice.syncProcess(roam);

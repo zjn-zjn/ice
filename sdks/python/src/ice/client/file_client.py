@@ -464,14 +464,13 @@ class FileClient:
             from ice.node.relation import Relation
 
             roam = Roam.create()
-            meta = roam.get_meta()
-            meta.id = req.get("iceId", 0)
-            meta.nid = req.get("confId", 0)
-            meta.scene = req.get("scene", "")
-            meta.debug = req.get("debug", 0)
+            roam.set_id(req.get("iceId", 0))
+            roam.set_nid(req.get("confId", 0))
+            roam.set_scene(req.get("scene", ""))
+            roam.set_debug(req.get("debug", 0))
             ts = req.get("ts", 0)
             if ts > 0:
-                meta.ts = ts
+                roam.set_ts(ts)
 
             # Put user roam data
             user_roam = req.get("roam")
@@ -480,69 +479,69 @@ class FileClient:
 
             # Dispatch using cache directly (same logic as Go executeMock)
             handled = False
-            if meta.id > 0 and meta.nid > 0:
+            if roam.get_id() > 0 and roam.get_nid() > 0:
                 # Both iceId and confId: get handler by iceId, find confId subtree
-                h = handler_cache.get_handler_by_id(meta.id)
+                h = handler_cache.get_handler_by_id(roam.get_id())
                 if h is not None and h.root is not None:
-                    if meta.debug == 0:
-                        meta.debug = h.debug
-                    subtree = _find_node_by_id(h.root, meta.nid)
+                    if roam.get_debug() == 0:
+                        roam.set_debug(h.debug)
+                    subtree = _find_node_by_id(h.root, roam.get_nid())
                     if subtree is not None:
                         sub = Handler()
-                        sub.debug = meta.debug
+                        sub.debug = roam.get_debug()
                         sub.root = subtree
-                        sub.conf_id = meta.nid
+                        sub.conf_id = roam.get_nid()
                         sub.handle_with_node_id(roam)
                         handled = True
-            elif meta.id > 0:
-                h = handler_cache.get_handler_by_id(meta.id)
+            elif roam.get_id() > 0:
+                h = handler_cache.get_handler_by_id(roam.get_id())
                 if h is not None:
-                    if meta.debug == 0:
-                        meta.debug = h.debug
+                    if roam.get_debug() == 0:
+                        roam.set_debug(h.debug)
                     h.handle(roam)
                     handled = True
-            elif meta.scene:
-                handlers_map = handler_cache.get_handlers_by_scene(meta.scene)
+            elif roam.get_scene():
+                handlers_map = handler_cache.get_handlers_by_scene(roam.get_scene())
                 if handlers_map:
                     for h in handlers_map.values():
-                        if meta.debug == 0:
-                            meta.debug = h.debug
-                        meta.id = h.ice_id
+                        if roam.get_debug() == 0:
+                            roam.set_debug(h.debug)
+                        roam.set_id(h.ice_id)
                         h.handle(roam)
                         handled = True
                         break  # mock only handles first matching handler
-            elif meta.nid > 0:
-                root = conf_cache.get_conf(meta.nid)
+            elif roam.get_nid() > 0:
+                root = conf_cache.get_conf(roam.get_nid())
                 if root is not None:
                     sub = Handler()
-                    sub.debug = meta.debug
+                    sub.debug = roam.get_debug()
                     sub.root = root
-                    sub.conf_id = meta.nid
+                    sub.conf_id = roam.get_nid()
                     sub.handle_with_node_id(roam)
                     handled = True
 
             if not handled:
                 result["success"] = False
                 result["error"] = "no matching handler found"
-                result["trace"] = roam.get_ice_trace()
-                result["ts"] = roam.get_ice_ts()
+                result["trace"] = roam.get_trace()
+                result["ts"] = roam.get_ts()
                 return result
 
             result["success"] = True
-            result["trace"] = roam.get_ice_trace()
-            result["ts"] = roam.get_ice_ts()
+            result["trace"] = roam.get_trace()
+            result["ts"] = roam.get_ts()
             roam_data = roam.to_dict()
             roam_data.pop("_ice", None)
             result["roam"] = roam_data
 
-            process_info = roam.get_meta().get_process_info()
+            process_info = roam.get_process_info()
             if process_info:
                 result["process"] = process_info
         except Exception as e:
             result["success"] = False
             result["error"] = str(e)
-            result["trace"] = roam.get_ice_trace()
-            result["ts"] = roam.get_ice_ts()
+            result["trace"] = roam.get_trace()
+            result["ts"] = roam.get_ts()
 
         return result
 

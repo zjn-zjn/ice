@@ -2,7 +2,6 @@
 
 import unittest
 from ice.context.roam import Roam
-from ice.context.meta import IceMeta
 
 
 class TestRoam(unittest.TestCase):
@@ -82,7 +81,7 @@ class TestRoam(unittest.TestCase):
         roam = Roam()
         roam.put("key", "value")
 
-        copy = roam.shallow_copy()
+        copy = roam.clone()
         copy.put("key", "modified")
         copy.put("new_key", "new_value")
 
@@ -104,66 +103,62 @@ class TestRoam(unittest.TestCase):
         self.assertIn("name", s)
         self.assertIn("test", s)
 
-    def test_ice_key_protection(self):
-        """Test that _ice key is protected from external writes."""
+    def test_meta_is_dict(self):
+        """Test that _ice is a plain dict."""
         roam = Roam.create()
-        meta = roam.get_meta()
-        self.assertIsNotNone(meta)
-
-        # put("_ice", ...) should be silently ignored
-        roam.put("_ice", "should_be_ignored")
-        self.assertIsInstance(roam.get_meta(), IceMeta)
+        ice = roam.get_meta()
+        self.assertIsNotNone(ice)
+        self.assertIsInstance(ice, dict)
 
 
 class TestIceMeta(unittest.TestCase):
-    """Tests for IceMeta via Roam."""
+    """Tests for _ice metadata via Roam."""
 
     def test_create_with_defaults(self):
-        """Test Roam.create() with default IceMeta."""
+        """Test Roam.create() with default _ice metadata."""
         roam = Roam.create()
 
-        self.assertEqual(roam.get_ice_id(), 0)
-        self.assertEqual(roam.get_ice_scene(), "")
-        self.assertGreater(roam.get_ice_ts(), 0)
-        self.assertNotEqual(roam.get_ice_trace(), "")
+        self.assertEqual(roam.get_id(), 0)
+        self.assertEqual(roam.get_scene(), "")
+        self.assertGreater(roam.get_ts(), 0)
+        self.assertNotEqual(roam.get_trace(), "")
 
     def test_meta_access(self):
-        """Test IceMeta access via convenience methods."""
+        """Test _ice access via convenience methods."""
         roam = Roam.create()
-        meta = roam.get_meta()
-        meta.id = 42
-        meta.scene = "checkout"
+        roam.set_id(42)
+        roam.set_scene("checkout")
 
-        self.assertEqual(roam.get_ice_id(), 42)
-        self.assertEqual(roam.get_ice_scene(), "checkout")
+        self.assertEqual(roam.get_id(), 42)
+        self.assertEqual(roam.get_scene(), "checkout")
 
     def test_process_info(self):
         """Test process info collection."""
         roam = Roam.create()
 
-        roam.get_ice_process().write("[test]")
+        roam.get_process().write("[test]")
         self.assertEqual(roam.get_process_info(), "[test]")
 
     def test_clone(self):
         """Test roam clone with independent process."""
         roam = Roam.create()
         roam.put("key", "value")
-        roam.get_meta().id = 1
-        roam.get_ice_process().write("[original]")
+        roam.set_id(1)
+        roam.get_process().write("[original]")
 
         cloned = roam.clone()
         cloned.put("key", "modified")
-        cloned.get_meta().id = 2
-        cloned.get_ice_process().write("[cloned]")
+        cloned.set_id(2)
+        cloned.get_process().write("[cloned]")
 
         # Original unchanged
         self.assertEqual(roam.get("key"), "value")
-        self.assertEqual(roam.get_ice_id(), 1)
+        self.assertEqual(roam.get_id(), 1)
         self.assertEqual(roam.get_process_info(), "[original]")
 
         # Clone has its own state
         self.assertEqual(cloned.get("key"), "modified")
-        self.assertEqual(cloned.get_ice_id(), 2)
+        self.assertEqual(cloned.get_id(), 2)
         self.assertEqual(cloned.get_process_info(), "[cloned]")
 
 
