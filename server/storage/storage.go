@@ -431,6 +431,10 @@ func (s *Storage) NextConfId(app int) (int64, error) {
 	return s.getConfIdGenerator(app).NextId()
 }
 
+func (s *Storage) EnsureConfIdNotLessThan(app int, minId int64) error {
+	return s.getConfIdGenerator(app).EnsureNotLessThan(minId)
+}
+
 func (s *Storage) SaveConf(conf *model.IceConf) error {
 	s.EnsureAppDirectories(conf.App)
 	path := filepath.Join(s.appPath(conf.App), dirConfs, fmt.Sprintf("%d%s", conf.ID, SuffixJson))

@@ -418,6 +418,7 @@ func (bs *BaseService) ImportData(data *model.PushData) error {
 	}
 
 	// Import confs
+	var maxConfId int64
 	for _, conf := range data.Confs {
 		oldConf, _ := bs.storage.GetConf(data.App, conf.ID)
 		conf.App = data.App
@@ -433,9 +434,18 @@ func (bs *BaseService) ImportData(data *model.PushData) error {
 		if err := bs.storage.SaveConf(conf); err != nil {
 			return err
 		}
+		if conf.ID > maxConfId {
+			maxConfId = conf.ID
+		}
+	}
+	if maxConfId > 0 {
+		if err := bs.storage.EnsureConfIdNotLessThan(data.App, maxConfId); err != nil {
+			return err
+		}
 	}
 
 	// Import bases
+	var maxBaseId int64
 	transferDto := &model.IceTransferDto{}
 	if len(data.Confs) > 0 {
 		transferDto.InsertOrUpdateConfs = data.Confs
@@ -469,10 +479,18 @@ func (bs *BaseService) ImportData(data *model.PushData) error {
 				return err
 			}
 		}
+		if *base.ID > maxBaseId {
+			maxBaseId = *base.ID
+		}
 		if base.Status != nil && *base.Status == model.StatusOnline {
 			transferDto.InsertOrUpdateBases = append(transferDto.InsertOrUpdateBases, base)
 		} else {
 			transferDto.DeleteBaseIds = append(transferDto.DeleteBaseIds, *base.ID)
+		}
+	}
+	if maxBaseId > 0 {
+		if err := bs.storage.EnsureBaseIdNotLessThan(data.App, maxBaseId); err != nil {
+			return err
 		}
 	}
 
