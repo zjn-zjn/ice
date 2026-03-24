@@ -37,6 +37,7 @@ tests/go/ice-test/ice-test
 
 # Server binary
 server/ice-server
+server/ice-server-*
 
 # ==================== Python ====================
 # Byte-compiled / optimized / DLL files

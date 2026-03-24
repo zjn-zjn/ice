@@ -36,8 +36,8 @@ func main() {
 
 	// Initialize services
 	serverService := service.NewServerService(store, clientManager, cfg)
-	baseService := service.NewBaseService(store, serverService)
-	confService := service.NewConfService(store, serverService, clientManager)
+	baseService := service.NewBaseService(cfg, store, serverService)
+	confService := service.NewConfService(cfg, store, serverService, clientManager)
 	appService := service.NewAppService(store, clientManager)
 	folderService := service.NewFolderService(store, baseService, serverService)
 
@@ -50,6 +50,8 @@ func main() {
 	// Initialize mock service and handler
 	mockService := service.NewMockService(store, clientManager)
 	mockHandler := handler.NewMockHandler(mockService, serverService)
+	configHandler := handler.NewConfigHandler(cfg)
+	publishHandler := handler.NewPublishHandler(cfg)
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -58,6 +60,8 @@ func main() {
 	appHandler.Register(mux)
 	folderHandler.Register(mux)
 	mockHandler.Register(mux)
+	configHandler.Register(mux)
+	publishHandler.Register(mux)
 
 	// SPA file server (catch-all for frontend)
 	spaHandler := NewSPAFileServer()
