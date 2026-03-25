@@ -55,12 +55,6 @@ class Handler:
         s["ts"] = roam.get_ts()
         return s
 
-    @staticmethod
-    def _roam_without_ice(roam: Roam) -> dict:
-        d = roam.to_dict()
-        d.pop("_ice", None)
-        return d
-
     def handle(self, roam: Roam) -> None:
         if self.root is None:
             return
@@ -72,7 +66,7 @@ class Handler:
         token = set_trace_id(roam.get_trace())
         try:
             if self.has_debug(DebugFlag.IN_ROAM):
-                log.info("handle input", extra={"roam": self._roam_without_ice(roam), **self._meta_suffix(roam)})
+                log.info("handle input", extra={"roam": roam, **self._meta_suffix(roam)})
 
             self.root.process(roam)
 
@@ -80,7 +74,7 @@ class Handler:
                 log.info("handle process", extra={"process": roam.get_process_info(), **self._meta_suffix(roam)})
 
             if self.has_debug(DebugFlag.OUT_ROAM):
-                log.info("handle output", extra={"roam": self._roam_without_ice(roam), **self._meta_suffix(roam)})
+                log.info("handle output", extra={"roam": roam, **self._meta_suffix(roam)})
 
         except Exception as e:
             log.error("handler error", extra={"error": str(e), **self._meta_suffix(roam)})
@@ -96,7 +90,7 @@ class Handler:
         token = set_trace_id(roam.get_trace())
         try:
             if self.has_debug(DebugFlag.IN_ROAM):
-                log.info("handle input", extra={"roam": self._roam_without_ice(roam), **self._meta_suffix(roam)})
+                log.info("handle input", extra={"roam": roam, **self._meta_suffix(roam)})
 
             self.root.process(roam)
 
@@ -104,7 +98,7 @@ class Handler:
                 log.info("handle process", extra={"process": roam.get_process_info(), **self._meta_suffix(roam)})
 
             if self.has_debug(DebugFlag.OUT_ROAM):
-                log.info("handle output", extra={"roam": self._roam_without_ice(roam), **self._meta_suffix(roam)})
+                log.info("handle output", extra={"roam": roam, **self._meta_suffix(roam)})
 
         except Exception as e:
             log.error("handler error", extra={"error": str(e), **self._meta_suffix(roam)})

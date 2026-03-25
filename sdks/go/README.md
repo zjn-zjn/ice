@@ -126,9 +126,9 @@ ice.InitExecutor(100)
 - `GetDeep("a.b.c")` - 多级 key 访问
 - `Resolve("@key")` - 引用其他 key 的值
 
-### _ice 元信息
+### Meta 元信息
 
-执行元信息（存储在 Roam 的 `_ice` key 中，是一个普通 map）：
+执行元信息（存储在 Roam 的独立 Meta 结构体中）：
 - `GetId()` / `SetId()` - Handler ID
 - `GetScene()` / `SetScene()` - 场景名
 - `GetNid()` / `SetNid()` - 配置节点 ID

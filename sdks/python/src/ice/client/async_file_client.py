@@ -486,9 +486,7 @@ class AsyncFileClient:
             result["success"] = True
             result["trace"] = roam.get_trace()
             result["ts"] = roam.get_ts()
-            roam_data = roam.to_dict()
-            roam_data.pop("_ice", None)
-            result["roam"] = roam_data
+            result["roam"] = roam.to_dict()
 
             process_info = roam.get_process_info()
             if process_info:

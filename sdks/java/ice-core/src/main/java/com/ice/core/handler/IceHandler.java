@@ -7,13 +7,10 @@ import com.ice.core.base.BaseNode;
 import com.ice.core.context.IceRoam;
 import com.ice.core.utils.IceErrorHandle;
 import com.ice.core.utils.IceTimeUtils;
-import com.ice.core.utils.JacksonUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -65,15 +62,16 @@ public final class IceHandler {
                 return;
             }
             if (DebugEnum.filter(DebugEnum.IN_ROAM, debug)) {
-                log.info("handle input roam:{}{}", roamWithoutIce(roam), metaSuffix(roam));
+                log.info("handle input roam:{}{}", roam, metaSuffix(roam));
             }
             if (root != null) {
                 root.process(roam);
                 if (DebugEnum.filter(DebugEnum.PROCESS, debug)) {
-                    log.info("handle process:{}{}", roam.getProcess().toString(), metaSuffix(roam));
+                    StringBuilder proc = roam.getProcess();
+                    log.info("handle process:{}{}", proc != null ? proc : "", metaSuffix(roam));
                 }
                 if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
-                    log.info("handle output roam:{}{}", roamWithoutIce(roam), metaSuffix(roam));
+                    log.info("handle output roam:{}{}", roam, metaSuffix(roam));
                 }
             } else {
                 log.error("handler root node missing{}", metaSuffix(roam));
@@ -93,15 +91,16 @@ public final class IceHandler {
         }
         try {
             if (DebugEnum.filter(DebugEnum.IN_ROAM, debug)) {
-                log.info("handle input roam:{}{}", roamWithoutIce(roam), metaSuffix(roam));
+                log.info("handle input roam:{}{}", roam, metaSuffix(roam));
             }
             if (root != null) {
                 root.process(roam);
                 if (DebugEnum.filter(DebugEnum.PROCESS, debug)) {
-                    log.info("handle process:{}{}", roam.getProcess().toString(), metaSuffix(roam));
+                    StringBuilder proc = roam.getProcess();
+                    log.info("handle process:{}{}", proc != null ? proc : "", metaSuffix(roam));
                 }
                 if (DebugEnum.filter(DebugEnum.OUT_ROAM, debug)) {
-                    log.info("handle output roam:{}{}", roamWithoutIce(roam), metaSuffix(roam));
+                    log.info("handle output roam:{}{}", roam, metaSuffix(roam));
                 }
             } else {
                 log.error("handler root node missing{}", metaSuffix(roam));
@@ -128,12 +127,6 @@ public final class IceHandler {
         }
         sb.append(" ts=").append(roam.getTs());
         return sb.toString();
-    }
-
-    private static String roamWithoutIce(IceRoam roam) {
-        Map<String, Object> data = new LinkedHashMap<>(roam);
-        data.remove("_ice");
-        return JacksonUtils.toJsonString(data);
     }
 
     public Long getIceId() {

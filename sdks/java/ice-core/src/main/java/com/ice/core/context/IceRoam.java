@@ -1,7 +1,5 @@
 package com.ice.core.context;
 
-import com.ice.common.utils.UUIDUtils;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,11 +9,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author waitmoon
  * based on ConcurrentHashMap extend
  * put null value will remove the key (ConcurrentHashMap does not support null values)
- * "_ice" key stores ice metadata as a plain Map
  */
 public class IceRoam extends ConcurrentHashMap<String, Object> {
 
-    private static final String ICE_META_KEY = "_ice";
+    private IceMeta meta;
 
     public IceRoam(int initialCapacity, float loadFactor) {
         super(initialCapacity, loadFactor);
@@ -34,144 +31,92 @@ public class IceRoam extends ConcurrentHashMap<String, Object> {
 
     public static IceRoam create() {
         IceRoam roam = new IceRoam();
-        roam.put(ICE_META_KEY, newMetaMap(null, 0, null));
+        roam.meta = new IceMeta();
         return roam;
     }
 
     public static IceRoam create(String scene) {
         IceRoam roam = new IceRoam();
-        roam.put(ICE_META_KEY, newMetaMap(scene, 0, null));
+        roam.meta = new IceMeta(scene, 0, null);
         return roam;
     }
 
     public static IceRoam create(String trace, long ts) {
         IceRoam roam = new IceRoam();
-        roam.put(ICE_META_KEY, newMetaMap(null, ts, trace));
+        roam.meta = new IceMeta(null, ts, trace);
         return roam;
     }
 
-    private static Map<String, Object> newMetaMap(String scene, long ts, String trace) {
-        Map<String, Object> ice = new HashMap<>();
-        if (scene != null && !scene.isEmpty()) {
-            ice.put("scene", scene);
-        }
-        ice.put("ts", ts > 0 ? ts : System.currentTimeMillis());
-        ice.put("trace", (trace != null && !trace.isEmpty()) ? trace : UUIDUtils.generateAlphanumId(11));
-        ice.put("process", new StringBuilder());
-        return ice;
-    }
+    // ============ meta getters ============
 
-    // ============ _ice convenience getters ============
-
-    @SuppressWarnings("unchecked")
-    public Map<String, Object> getMeta() {
-        Object ice = super.get(ICE_META_KEY);
-        return ice instanceof Map ? (Map<String, Object>) ice : null;
+    public IceMeta getMeta() {
+        return meta;
     }
 
     public long getId() {
-        return getMetaLong("id");
+        return meta != null ? meta.getId() : 0;
     }
 
     public String getScene() {
-        return getMetaString("scene");
+        return meta != null ? meta.getScene() : null;
     }
 
     public long getTs() {
-        return getMetaLong("ts");
+        return meta != null ? meta.getTs() : 0;
     }
 
     public String getTrace() {
-        return getMetaString("trace");
+        return meta != null ? meta.getTrace() : null;
     }
 
     public StringBuilder getProcess() {
-        Map<String, Object> ice = getMeta();
-        if (ice == null) return null;
-        Object p = ice.get("process");
-        return p instanceof StringBuilder ? (StringBuilder) p : null;
+        return meta != null ? meta.getProcess() : null;
     }
 
     public byte getDebug() {
-        Map<String, Object> ice = getMeta();
-        if (ice == null) return 0;
-        Object d = ice.get("debug");
-        if (d instanceof Number) return ((Number) d).byteValue();
-        return 0;
+        return meta != null ? meta.getDebug() : 0;
     }
 
     public long getNid() {
-        return getMetaLong("nid");
+        return meta != null ? meta.getNid() : 0;
     }
 
-    // ============ _ice convenience setters ============
+    // ============ meta setters ============
 
     public void setId(long id) {
-        putMeta("id", id);
+        if (meta != null) meta.setId(id);
     }
 
     public void setScene(String scene) {
-        putMeta("scene", scene);
+        if (meta != null) meta.setScene(scene);
     }
 
     public void setTs(long ts) {
-        putMeta("ts", ts);
+        if (meta != null) meta.setTs(ts);
     }
 
     public void setTrace(String trace) {
-        putMeta("trace", trace);
+        if (meta != null) meta.setTrace(trace);
     }
 
     public void setDebug(byte debug) {
-        putMeta("debug", debug);
+        if (meta != null) meta.setDebug(debug);
     }
 
     public void setNid(long nid) {
-        putMeta("nid", nid);
-    }
-
-    // ============ _ice internal helpers ============
-
-    private long getMetaLong(String field) {
-        Map<String, Object> ice = getMeta();
-        if (ice == null) return 0;
-        Object v = ice.get(field);
-        if (v instanceof Number) return ((Number) v).longValue();
-        return 0;
-    }
-
-    private String getMetaString(String field) {
-        Map<String, Object> ice = getMeta();
-        if (ice == null) return null;
-        Object v = ice.get(field);
-        return v instanceof String ? (String) v : null;
-    }
-
-    @SuppressWarnings("unchecked")
-    private void putMeta(String field, Object value) {
-        Object ice = super.get(ICE_META_KEY);
-        if (ice instanceof Map) {
-            ((Map<String, Object>) ice).put(field, value);
-        }
+        if (meta != null) meta.setNid(nid);
     }
 
     /**
-     * Shallow copy business data + deep copy _ice map with fresh process StringBuilder
+     * Shallow copy business data + clone meta with fresh process StringBuilder
      */
-    @SuppressWarnings("unchecked")
     public IceRoam cloneRoam() {
         IceRoam clone = new IceRoam();
         for (Entry<String, Object> entry : this.entrySet()) {
-            if (ICE_META_KEY.equals(entry.getKey())) {
-                Object ice = entry.getValue();
-                if (ice instanceof Map) {
-                    Map<String, Object> iceCopy = new HashMap<>((Map<String, Object>) ice);
-                    iceCopy.put("process", new StringBuilder());
-                    clone.put(ICE_META_KEY, iceCopy);
-                }
-            } else {
-                clone.put(entry.getKey(), entry.getValue());
-            }
+            clone.put(entry.getKey(), entry.getValue());
+        }
+        if (this.meta != null) {
+            clone.meta = this.meta.cloneMeta();
         }
         return clone;
     }

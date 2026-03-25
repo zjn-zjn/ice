@@ -36,7 +36,7 @@ const (
 	fileVersion = "version.txt"
 	suffixJSON  = ".json"
 	suffixUpd   = "_upd.json"
-	suffixTmp = ".tmp"
+	suffixTmp   = ".tmp"
 
 	prefixMeta = "m_"
 	prefixBeat = "b_"
@@ -612,9 +612,7 @@ func (c *FileClient) executeMock(ctx context.Context, req *dto.MockRequest) *dto
 	result.Success = true
 	result.Trace = roam.GetTrace()
 	result.Ts = roam.GetTs()
-	roamData := roam.Data()
-	delete(roamData, "_ice")
-	result.Roam = roamData
+	result.Roam = roam.Data()
 	if proc := roam.GetProcess(); proc != nil {
 		result.Process = proc.String()
 	}

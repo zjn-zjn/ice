@@ -734,9 +734,7 @@ public final class IceFileClient {
             result.setSuccess(true);
             result.setTrace(roam.getTrace());
             result.setTs(roam.getTs());
-            HashMap<String, Object> roamData = new HashMap<>(roam);
-            roamData.remove("_ice");
-            result.setRoam(roamData);
+            result.setRoam(new HashMap<>(roam));
 
             StringBuilder process = roam.getProcess();
             if (process != null) {

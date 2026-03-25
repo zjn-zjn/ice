@@ -200,8 +200,8 @@ func TestRoam_Data(t *testing.T) {
 	roam.Put("b", 2)
 
 	data := roam.Data()
-	if len(data) != 3 { // a, b, _ice
-		t.Errorf("expected 3 entries, got %d", len(data))
+	if len(data) != 2 { // a, b
+		t.Errorf("expected 2 entries, got %d", len(data))
 	}
 	if data["a"] != 1 || data["b"] != 2 {
 		t.Error("data values mismatch")

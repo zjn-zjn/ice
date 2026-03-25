@@ -173,7 +173,7 @@ func checkRoam(ctx stdctx.Context, roam *Roam) bool {
 		return false
 	}
 	if roam.GetMeta() == nil {
-		icelog.Error(ctx, "invalid roam: missing _ice")
+		icelog.Error(ctx, "invalid roam: missing meta")
 		return false
 	}
 	if roam.GetId() > 0 {

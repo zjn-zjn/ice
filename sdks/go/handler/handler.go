@@ -2,7 +2,6 @@
 package handler
 
 import (
-	"encoding/json"
 	stdctx "context"
 
 	icecontext "github.com/zjn-zjn/ice/sdks/go/context"
@@ -54,14 +53,6 @@ func metaSuffix(roam *icecontext.Roam) []any {
 	return args
 }
 
-// roamWithoutIce returns JSON string of roam data excluding _ice.
-func roamWithoutIce(roam *icecontext.Roam) string {
-	data := roam.Data()
-	delete(data, "_ice")
-	b, _ := json.Marshal(data)
-	return string(b)
-}
-
 // Handle processes a roam.
 func (h *Handler) Handle(ctx stdctx.Context, roam *icecontext.Roam) {
 	if timeutil.TimeDisabled(h.TimeType, roam.GetTs(), h.Start, h.End) {
@@ -69,7 +60,7 @@ func (h *Handler) Handle(ctx stdctx.Context, roam *icecontext.Roam) {
 	}
 
 	if h.hasDebug(DebugInRoam) {
-		args := append([]any{"roam", roamWithoutIce(roam)}, metaSuffix(roam)...)
+		args := append([]any{"roam", roam}, metaSuffix(roam)...)
 		log.Info(ctx, "handle input", args...)
 	}
 
@@ -77,11 +68,15 @@ func (h *Handler) Handle(ctx stdctx.Context, roam *icecontext.Roam) {
 		h.Root.Process(ctx, roam)
 
 		if h.hasDebug(DebugProcess) {
-			args := append([]any{"process", roam.GetProcess().String()}, metaSuffix(roam)...)
+			process := ""
+			if proc := roam.GetProcess(); proc != nil {
+				process = proc.String()
+			}
+			args := append([]any{"process", process}, metaSuffix(roam)...)
 			log.Info(ctx, "handle process", args...)
 		}
 		if h.hasDebug(DebugOutRoam) {
-			args := append([]any{"roam", roamWithoutIce(roam)}, metaSuffix(roam)...)
+			args := append([]any{"roam", roam}, metaSuffix(roam)...)
 			log.Info(ctx, "handle output", args...)
 		}
 	} else {
@@ -92,7 +87,7 @@ func (h *Handler) Handle(ctx stdctx.Context, roam *icecontext.Roam) {
 // HandleWithNodeId processes a roam using node ID.
 func (h *Handler) HandleWithNodeId(ctx stdctx.Context, roam *icecontext.Roam) {
 	if h.hasDebug(DebugInRoam) {
-		args := append([]any{"roam", roamWithoutIce(roam)}, metaSuffix(roam)...)
+		args := append([]any{"roam", roam}, metaSuffix(roam)...)
 		log.Info(ctx, "handle input", args...)
 	}
 
@@ -100,11 +95,15 @@ func (h *Handler) HandleWithNodeId(ctx stdctx.Context, roam *icecontext.Roam) {
 		h.Root.Process(ctx, roam)
 
 		if h.hasDebug(DebugProcess) {
-			args := append([]any{"process", roam.GetProcess().String()}, metaSuffix(roam)...)
+			process := ""
+			if proc := roam.GetProcess(); proc != nil {
+				process = proc.String()
+			}
+			args := append([]any{"process", process}, metaSuffix(roam)...)
 			log.Info(ctx, "handle process", args...)
 		}
 		if h.hasDebug(DebugOutRoam) {
-			args := append([]any{"roam", roamWithoutIce(roam)}, metaSuffix(roam)...)
+			args := append([]any{"roam", roam}, metaSuffix(roam)...)
 			log.Info(ctx, "handle output", args...)
 		}
 	}

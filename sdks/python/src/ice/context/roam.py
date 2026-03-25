@@ -5,13 +5,9 @@ from __future__ import annotations
 import io
 import json
 import threading
-import time
 from typing import Any
 
-from ice._internal.uuid import generate_alphanum_id
-
-# Reserved key for ice metadata
-_ICE_KEY = "_ice"
+from ice.context.meta import Meta
 
 
 class Roam:
@@ -22,132 +18,113 @@ class Roam:
     - Basic put/get/del operations
     - Deep key access (a.b.c)
     - Resolve reference (@key)
-    - _ice metadata stored as a plain dict under "_ice" key
+    - Structured metadata via Meta
     """
 
     def __init__(self) -> None:
         self._data: dict[str, Any] = {}
         self._lock = threading.RLock()
+        self._meta: Meta | None = None
 
-    # ============ _ice convenience getters ============
+    # ============ meta getters ============
 
-    def get_meta(self) -> dict[str, Any] | None:
-        """Get the _ice metadata dict."""
-        ice = self._data.get(_ICE_KEY)
-        return ice if isinstance(ice, dict) else None
+    def get_meta(self) -> Meta | None:
+        """Get the metadata."""
+        return self._meta
 
     def get_id(self) -> int:
         """Get handler ID."""
-        ice = self.get_meta()
-        return int(ice.get("id", 0)) if ice else 0
+        return self._meta.id if self._meta else 0
 
     def get_scene(self) -> str:
         """Get scene."""
-        ice = self.get_meta()
-        return str(ice.get("scene", "")) if ice else ""
+        return self._meta.scene if self._meta else ""
 
     def get_ts(self) -> int:
         """Get request timestamp."""
-        ice = self.get_meta()
-        return int(ice.get("ts", 0)) if ice else 0
+        return self._meta.ts if self._meta else 0
 
     def get_trace(self) -> str:
         """Get trace ID."""
-        ice = self.get_meta()
-        return str(ice.get("trace", "")) if ice else ""
+        return self._meta.trace if self._meta else ""
 
     def get_process(self) -> io.StringIO:
         """Get process StringIO for debug info."""
-        ice = self.get_meta()
-        if ice:
-            p = ice.get("process")
-            if isinstance(p, io.StringIO):
-                return p
+        if self._meta and self._meta.process:
+            return self._meta.process
         return io.StringIO()
 
     def get_debug(self) -> int:
         """Get debug flag."""
-        ice = self.get_meta()
-        return int(ice.get("debug", 0)) if ice else 0
+        return self._meta.debug if self._meta else 0
 
     def get_nid(self) -> int:
         """Get node ID."""
-        ice = self.get_meta()
-        return int(ice.get("nid", 0)) if ice else 0
+        return self._meta.nid if self._meta else 0
 
     def get_process_info(self) -> str:
         """Get collected process information string."""
         return self.get_process().getvalue()
 
-    # ============ _ice convenience setters ============
+    # ============ meta setters ============
 
     def set_id(self, id: int) -> None:
         """Set handler ID."""
-        self._put_meta("id", id)
+        if self._meta:
+            self._meta.id = id
 
     def set_scene(self, scene: str) -> None:
         """Set scene."""
-        self._put_meta("scene", scene)
+        if self._meta:
+            self._meta.scene = scene
 
     def set_ts(self, ts: int) -> None:
         """Set request timestamp."""
-        self._put_meta("ts", ts)
+        if self._meta:
+            self._meta.ts = ts
 
     def set_trace(self, trace: str) -> None:
         """Set trace ID."""
-        self._put_meta("trace", trace)
+        if self._meta:
+            self._meta.trace = trace
 
     def set_debug(self, debug: int) -> None:
         """Set debug flag."""
-        self._put_meta("debug", debug)
+        if self._meta:
+            self._meta.debug = debug
 
     def set_nid(self, nid: int) -> None:
         """Set node ID."""
-        self._put_meta("nid", nid)
-
-    def _put_meta(self, field: str, value: Any) -> None:
-        """Set a field in the _ice metadata dict."""
-        with self._lock:
-            ice = self._data.get(_ICE_KEY)
-            if isinstance(ice, dict):
-                ice[field] = value
+        if self._meta:
+            self._meta.nid = nid
 
     # ============ Factory / Clone ============
 
     @classmethod
     def create(cls, **kwargs) -> Roam:
-        """Create a Roam with default _ice metadata.
+        """Create a Roam with default metadata.
 
         Keyword args: id, scene, nid, ts, trace, debug.
         """
         roam = cls()
-        ice: dict[str, Any] = {
-            "ts": kwargs.get("ts") or int(time.time() * 1000),
-            "trace": kwargs.get("trace") or generate_alphanum_id(11),
-            "process": io.StringIO(),
-        }
-        if "id" in kwargs and kwargs["id"]:
-            ice["id"] = kwargs["id"]
-        if "scene" in kwargs and kwargs["scene"]:
-            ice["scene"] = kwargs["scene"]
-        if "nid" in kwargs and kwargs["nid"]:
-            ice["nid"] = kwargs["nid"]
-        if "debug" in kwargs and kwargs["debug"]:
-            ice["debug"] = kwargs["debug"]
-        roam._data[_ICE_KEY] = ice
+        roam._meta = Meta(
+            id=kwargs.get("id", 0),
+            scene=kwargs.get("scene", ""),
+            nid=kwargs.get("nid", 0),
+            ts=kwargs.get("ts", 0),
+            trace=kwargs.get("trace", ""),
+            debug=kwargs.get("debug", 0),
+        )
         return roam
 
     def clone(self) -> Roam:
-        """Shallow-copy data and deep-copy _ice map with a fresh process."""
+        """Shallow-copy data and clone meta with a fresh process."""
         new_roam = Roam()
         with self._lock:
             for k, v in self._data.items():
-                if k == _ICE_KEY and isinstance(v, dict):
-                    ice_copy = v.copy()
-                    ice_copy["process"] = io.StringIO()
-                    new_roam._data[k] = ice_copy
-                else:
-                    new_roam._data[k] = v
+                new_roam._data[k] = v
+        if self._meta:
+            new_roam._meta = self._meta.clone()
         return new_roam
 
     # ============ Put operations ============
@@ -292,12 +269,9 @@ class Roam:
             return key in self._data
 
     def clear(self) -> None:
-        """Clear all data (preserves _ice meta)."""
+        """Clear all data (preserves meta)."""
         with self._lock:
-            meta = self._data.get(_ICE_KEY)
             self._data.clear()
-            if meta is not None:
-                self._data[_ICE_KEY] = meta
 
     def keys(self) -> list[str]:
         """Get all keys."""
@@ -305,32 +279,17 @@ class Roam:
             return list(self._data.keys())
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary."""
+        """Convert to dictionary (without metadata)."""
         with self._lock:
-            result = {}
-            for k, v in self._data.items():
-                if k == _ICE_KEY and isinstance(v, dict):
-                    # Exclude non-serializable process from output
-                    d = {}
-                    for ik, iv in v.items():
-                        if ik == "process" and isinstance(iv, io.StringIO):
-                            pv = iv.getvalue()
-                            if pv:
-                                d[ik] = pv
-                        else:
-                            d[ik] = iv
-                    result[k] = d
-                else:
-                    result[k] = v
-            return result
+            return dict(self._data)
 
     def __str__(self) -> str:
         """Return JSON representation."""
         with self._lock:
             try:
-                return json.dumps(self.to_dict(), ensure_ascii=False, default=str)
+                return json.dumps(self._data, ensure_ascii=False, default=str)
             except Exception as e:
                 return f'{{"error": "{e}"}}'
 
     def __repr__(self) -> str:
-        return f"Roam({self.to_dict()})"
+        return f"Roam({self._data})"

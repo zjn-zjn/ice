@@ -141,7 +141,7 @@ public final class IceDispatcher {
 
     private static boolean checkRoam(IceRoam roam) {
         if (roam == null || roam.getMeta() == null) {
-            log.error("invalid roam: nil or missing _ice");
+            log.error("invalid roam: nil or missing meta");
             return false;
         }
         if (roam.getId() > 0) {

@@ -48,7 +48,7 @@ const (
 
 // Re-export constructors
 var (
-	// NewRoam creates a new Roam with default _ice metadata. Optional scene parameter.
+	// NewRoam creates a new Roam with default metadata.
 	NewRoam = icecontext.NewRoam
 	// NewClient creates a new FileClient. Optional lane parameter for swimlane support.
 	NewClient = client.New

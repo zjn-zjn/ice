@@ -1,6 +1,7 @@
 """Tests for context module."""
 
 import unittest
+from ice.context.meta import Meta
 from ice.context.roam import Roam
 
 
@@ -103,19 +104,19 @@ class TestRoam(unittest.TestCase):
         self.assertIn("name", s)
         self.assertIn("test", s)
 
-    def test_meta_is_dict(self):
-        """Test that _ice is a plain dict."""
+    def test_meta_is_meta(self):
+        """Test that get_meta() returns a Meta instance."""
         roam = Roam.create()
-        ice = roam.get_meta()
-        self.assertIsNotNone(ice)
-        self.assertIsInstance(ice, dict)
+        meta = roam.get_meta()
+        self.assertIsNotNone(meta)
+        self.assertIsInstance(meta, Meta)
 
 
 class TestIceMeta(unittest.TestCase):
-    """Tests for _ice metadata via Roam."""
+    """Tests for metadata via Roam."""
 
     def test_create_with_defaults(self):
-        """Test Roam.create() with default _ice metadata."""
+        """Test Roam.create() with default metadata."""
         roam = Roam.create()
 
         self.assertEqual(roam.get_id(), 0)
@@ -124,7 +125,7 @@ class TestIceMeta(unittest.TestCase):
         self.assertNotEqual(roam.get_trace(), "")
 
     def test_meta_access(self):
-        """Test _ice access via convenience methods."""
+        """Test meta access via convenience methods."""
         roam = Roam.create()
         roam.set_id(42)
         roam.set_scene("checkout")

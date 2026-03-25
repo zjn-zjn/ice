@@ -69,7 +69,7 @@ func TestRoamWithMeta(t *testing.T) {
 	roam := NewRoam()
 	ice := roam.GetMeta()
 	if ice == nil {
-		t.Fatal("expected _ice to be non-nil")
+		t.Fatal("expected meta to be non-nil")
 	}
 	roam.SetId(1)
 	roam.SetScene("test")

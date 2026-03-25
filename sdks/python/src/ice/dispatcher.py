@@ -21,7 +21,7 @@ def sync_process(roam: Roam) -> list[Roam]:
     """
     Synchronously process a roam.
 
-    Dispatches to handler based on _ice metadata:
+    Dispatches to handler based on metadata:
     1. id - Direct handler lookup
     2. scene - Scene-based handler lookup
     3. nid - Direct conf node execution
@@ -78,7 +78,7 @@ def _check_roam(roam: Roam) -> bool:
         return False
 
     if roam.get_meta() is None:
-        log.error("invalid roam: missing _ice")
+        log.error("invalid roam: missing meta")
         return False
 
     if roam.get_id() <= 0 and not roam.get_scene() and roam.get_nid() <= 0:

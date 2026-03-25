@@ -7,35 +7,31 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/spf13/cast"
-	"github.com/zjn-zjn/ice/sdks/go/internal/uuid"
 )
-
-const iceMetaKey = "_ice"
 
 // Roam is a thread-safe map for storing business data during execution.
 // It supports deep-key access (e.g., "a.b.c") and resolve references (e.g., "@key").
-// Ice metadata is stored under the "_ice" key as a plain map[string]any.
 type Roam struct {
 	mu   sync.RWMutex
 	data map[string]any
+	meta *Meta
 }
 
-// NewRoam creates a new Roam instance with default _ice metadata.
+// NewRoam creates a new Roam instance with default metadata.
 func NewRoam() *Roam {
-	r := &Roam{
+	return &Roam{
 		data: make(map[string]any),
+		meta: NewMeta(),
 	}
-	r.data[iceMetaKey] = newMetaMap()
-	return r
 }
 
 // NewRoamFrom creates a new Roam from an existing map (shallow copy).
 func NewRoamFrom(m map[string]any) *Roam {
 	r := &Roam{
 		data: make(map[string]any, len(m)),
+		meta: NewMeta(),
 	}
 	for k, v := range m {
 		r.data[k] = v
@@ -43,134 +39,110 @@ func NewRoamFrom(m map[string]any) *Roam {
 	return r
 }
 
-func newMetaMap() map[string]any {
-	return map[string]any{
-		"ts":      time.Now().UnixMilli(),
-		"trace":   uuid.GenerateAlphanumId(11),
-		"process": &strings.Builder{},
-	}
-}
+// ============ meta getters ============
 
-// ============ _ice convenience getters ============
-
-// GetMeta returns the _ice metadata map.
-func (r *Roam) GetMeta() map[string]any {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	if m, ok := r.data[iceMetaKey].(map[string]any); ok {
-		return m
-	}
-	return nil
+// GetMeta returns the metadata.
+func (r *Roam) GetMeta() *Meta {
+	return r.meta
 }
 
 // GetId returns the handler ID from metadata.
 func (r *Roam) GetId() int64 {
-	return r.getMetaInt64("id")
+	if r.meta == nil {
+		return 0
+	}
+	return r.meta.Id
 }
 
 // GetScene returns the scene from metadata.
 func (r *Roam) GetScene() string {
-	return r.getMetaString("scene")
+	if r.meta == nil {
+		return ""
+	}
+	return r.meta.Scene
 }
 
 // GetTs returns the request timestamp from metadata.
 func (r *Roam) GetTs() int64 {
-	return r.getMetaInt64("ts")
+	if r.meta == nil {
+		return 0
+	}
+	return r.meta.Ts
 }
 
 // GetTrace returns the trace ID from metadata.
 func (r *Roam) GetTrace() string {
-	return r.getMetaString("trace")
+	if r.meta == nil {
+		return ""
+	}
+	return r.meta.Trace
 }
 
 // GetProcess returns the process info builder from metadata.
 func (r *Roam) GetProcess() *strings.Builder {
-	ice := r.GetMeta()
-	if ice == nil {
+	if r.meta == nil {
 		return nil
 	}
-	if p, ok := ice["process"].(*strings.Builder); ok {
-		return p
-	}
-	return nil
+	return r.meta.Process
 }
 
 // GetDebug returns the debug flag from metadata.
 func (r *Roam) GetDebug() byte {
-	ice := r.GetMeta()
-	if ice == nil {
+	if r.meta == nil {
 		return 0
 	}
-	v, err := cast.ToUint8E(ice["debug"])
-	if err != nil {
-		return 0
-	}
-	return v
+	return r.meta.Debug
 }
 
 // GetNid returns the node ID from metadata.
 func (r *Roam) GetNid() int64 {
-	return r.getMetaInt64("nid")
-}
-
-func (r *Roam) getMetaInt64(field string) int64 {
-	ice := r.GetMeta()
-	if ice == nil {
+	if r.meta == nil {
 		return 0
 	}
-	v, err := cast.ToInt64E(ice[field])
-	if err != nil {
-		return 0
-	}
-	return v
+	return r.meta.Nid
 }
 
-func (r *Roam) getMetaString(field string) string {
-	ice := r.GetMeta()
-	if ice == nil {
-		return ""
-	}
-	v, _ := ice[field].(string)
-	return v
-}
-
-// ============ _ice convenience setters ============
+// ============ meta setters ============
 
 // SetId sets the handler ID.
 func (r *Roam) SetId(id int64) {
-	r.putMeta("id", id)
+	if r.meta != nil {
+		r.meta.Id = id
+	}
 }
 
 // SetScene sets the scene.
 func (r *Roam) SetScene(scene string) {
-	r.putMeta("scene", scene)
+	if r.meta != nil {
+		r.meta.Scene = scene
+	}
 }
 
 // SetTs sets the request timestamp.
 func (r *Roam) SetTs(ts int64) {
-	r.putMeta("ts", ts)
+	if r.meta != nil {
+		r.meta.Ts = ts
+	}
 }
 
 // SetTrace sets the trace ID.
 func (r *Roam) SetTrace(trace string) {
-	r.putMeta("trace", trace)
+	if r.meta != nil {
+		r.meta.Trace = trace
+	}
 }
 
 // SetDebug sets the debug flag.
 func (r *Roam) SetDebug(debug byte) {
-	r.putMeta("debug", debug)
+	if r.meta != nil {
+		r.meta.Debug = debug
+	}
 }
 
 // SetNid sets the node ID.
 func (r *Roam) SetNid(nid int64) {
-	r.putMeta("nid", nid)
-}
-
-func (r *Roam) putMeta(field string, value any) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if ice, ok := r.data[iceMetaKey].(map[string]any); ok {
-		ice[field] = value
+	if r.meta != nil {
+		r.meta.Nid = nid
 	}
 }
 
@@ -522,7 +494,7 @@ func (rv *RoamValue) BoolOr(defaultVal bool) bool {
 	return v
 }
 
-// Data returns a copy of the underlying map.
+// Data returns a copy of the underlying map (without metadata).
 func (r *Roam) Data() map[string]any {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -533,7 +505,7 @@ func (r *Roam) Data() map[string]any {
 	return result
 }
 
-// Clone creates a shallow copy of the Roam data with a cloned _ice map (fresh Process builder).
+// Clone creates a shallow copy of the Roam data with a cloned Meta (fresh Process builder).
 func (r *Roam) Clone() *Roam {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -541,18 +513,18 @@ func (r *Roam) Clone() *Roam {
 		data: make(map[string]any, len(r.data)),
 	}
 	for k, v := range r.data {
-		if k == iceMetaKey {
-			if ice, ok := v.(map[string]any); ok {
-				iceCopy := make(map[string]any, len(ice))
-				for ik, iv := range ice {
-					iceCopy[ik] = iv
-				}
-				iceCopy["process"] = &strings.Builder{}
-				newRoam.data[k] = iceCopy
-			}
-			continue
-		}
 		newRoam.data[k] = v
+	}
+	if r.meta != nil {
+		newRoam.meta = &Meta{
+			Id:      r.meta.Id,
+			Scene:   r.meta.Scene,
+			Nid:     r.meta.Nid,
+			Ts:      r.meta.Ts,
+			Trace:   r.meta.Trace,
+			Debug:   r.meta.Debug,
+			Process: &strings.Builder{},
+		}
 	}
 	return newRoam
 }
