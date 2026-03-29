@@ -774,8 +774,13 @@ func (cs *ConfService) LeafClassCheckAPI(app int, clazz string, nodeType int8) e
 	return nil
 }
 
-func (cs *ConfService) ConfDetail(app int, confId int64, address string, iceId int64, lane string) (*model.IceShowConf, error) {
-	root := cs.serverService.GetConfMixById(app, confId, iceId, lane)
+func (cs *ConfService) ConfDetail(app int, confId int64, address string, iceId int64, lane string, activeOnly bool) (*model.IceShowConf, error) {
+	var root *model.IceShowNode
+	if activeOnly {
+		root = cs.serverService.GetConfActiveTreeById(app, confId, lane)
+	} else {
+		root = cs.serverService.GetConfMixById(app, confId, iceId, lane)
+	}
 	if root == nil {
 		return nil, model.ConfNotFound(app, "confId", confId)
 	}

@@ -30,6 +30,7 @@ func (h *ConfHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("/ice-server/conf/lane/list", WrapHandler(h.laneList))
 	mux.HandleFunc("/ice-server/conf/detail", WrapHandler(h.confDetail))
 	mux.HandleFunc("/ice-server/conf/node-meta", WrapHandler(h.nodeMeta))
+	mux.HandleFunc("/ice-server/conf/changes", WrapHandler(h.changes))
 	mux.HandleFunc("/ice-server/conf/release", WrapHandler(h.release))
 	mux.HandleFunc("/ice-server/conf/update_clean", WrapHandler(h.updateClean))
 }
@@ -104,7 +105,8 @@ func (h *ConfHandler) confDetail(w http.ResponseWriter, r *http.Request) (any, e
 	}
 
 	address := QueryStr(r, "address", "server")
-	showConf, err := h.confService.ConfDetail(app, actualConfId, address, iceId, lane)
+	activeOnly := QueryStr(r, "activeOnly", "") == "true"
+	showConf, err := h.confService.ConfDetail(app, actualConfId, address, iceId, lane, activeOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -185,6 +187,23 @@ func (h *ConfHandler) nodeMeta(w http.ResponseWriter, r *http.Request) (any, err
 	}
 
 	return result, nil
+}
+
+func (h *ConfHandler) changes(w http.ResponseWriter, r *http.Request) (any, error) {
+	app, err := QueryIntRequired(r, "app")
+	if err != nil {
+		return nil, err
+	}
+	iceId, err := QueryInt64Required(r, "iceId")
+	if err != nil {
+		return nil, err
+	}
+	confId := QueryInt64(r, "confId")
+	items, err := h.serverService.GetChanges(app, iceId, confId)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"changes": items}, nil
 }
 
 func (h *ConfHandler) release(w http.ResponseWriter, r *http.Request) (any, error) {

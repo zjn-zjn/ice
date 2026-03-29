@@ -224,6 +224,13 @@ func (e *IceEditNode) IsInverse() bool {
 	return e.Inverse != nil && *e.Inverse
 }
 
+// ConfChangeItem represents a single node's change (active vs update)
+type ConfChangeItem struct {
+	ConfId int64    `json:"confId"`
+	Active *IceConf `json:"active"` // nil if new node
+	Update *IceConf `json:"update"`
+}
+
 // PushData is the snapshot data for push/export/import
 type PushData struct {
 	App   int        `json:"app,omitempty"`

@@ -122,10 +122,15 @@ func (s *ServerService) GetActiveBaseById(app int, iceId int64) *model.IceBase {
 
 func (s *ServerService) GetConfMixById(app int, confId, iceId int64, lane string) *model.IceShowNode {
 	root := s.GetMixConfById(app, confId, iceId)
-	return s.assembleShowNode(root, app, iceId, lane)
+	return s.assembleShowNode(root, app, iceId, lane, false)
 }
 
-func (s *ServerService) assembleShowNode(node *model.IceConf, app int, iceId int64, lane string) *model.IceShowNode {
+func (s *ServerService) GetConfActiveTreeById(app int, confId int64, lane string) *model.IceShowNode {
+	root := s.GetActiveConfById(app, confId)
+	return s.assembleShowNode(root, app, 0, lane, true)
+}
+
+func (s *ServerService) assembleShowNode(node *model.IceConf, app int, iceId int64, lane string, activeOnly bool) *model.IceShowNode {
 	if node == nil {
 		return nil
 	}
@@ -144,9 +149,14 @@ func (s *ServerService) assembleShowNode(node *model.IceConf, app int, iceId int
 				if err != nil {
 					continue
 				}
-				child := s.GetMixConfById(app, sonId, iceId)
+				var child *model.IceConf
+				if activeOnly {
+					child = s.GetActiveConfById(app, sonId)
+				} else {
+					child = s.GetMixConfById(app, sonId, iceId)
+				}
 				if child != nil {
-					showChild := s.assembleShowNode(child, app, iceId, lane)
+					showChild := s.assembleShowNode(child, app, iceId, lane, activeOnly)
 					showChild.ParentId = model.Int64Ptr(node.GetMixId())
 					idx := i
 					showChild.Index = &idx
@@ -167,8 +177,13 @@ func (s *ServerService) assembleShowNode(node *model.IceConf, app int, iceId int
 	}
 
 	if showNode.ForwardId != nil {
-		forwardConf := s.GetMixConfById(app, *showNode.ForwardId, iceId)
-		forwardNode := s.assembleShowNode(forwardConf, app, iceId, lane)
+		var forwardConf *model.IceConf
+		if activeOnly {
+			forwardConf = s.GetActiveConfById(app, *showNode.ForwardId)
+		} else {
+			forwardConf = s.GetMixConfById(app, *showNode.ForwardId, iceId)
+		}
+		forwardNode := s.assembleShowNode(forwardConf, app, iceId, lane, activeOnly)
 		if forwardNode != nil {
 			forwardNode.NextId = model.Int64Ptr(node.GetMixId())
 			showNode.Forward = forwardNode
@@ -425,6 +440,32 @@ func (s *ServerService) UpdateClean(app int, iceId int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.storage.DeleteAllConfUpdates(app, iceId)
+}
+
+func (s *ServerService) GetChanges(app int, iceId int64, confId *int64) ([]*model.ConfChangeItem, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if confId != nil {
+		update, err := s.storage.GetConfUpdate(app, iceId, *confId)
+		if err != nil || update == nil {
+			return nil, err
+		}
+		active, _ := s.storage.GetConf(app, *confId)
+		return []*model.ConfChangeItem{{ConfId: *confId, Active: active, Update: update}}, nil
+	}
+
+	updates, err := s.storage.ListConfUpdates(app, iceId)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]*model.ConfChangeItem, 0, len(updates))
+	for _, u := range updates {
+		cid := u.GetMixId()
+		active, _ := s.storage.GetConf(app, cid)
+		items = append(items, &model.ConfChangeItem{ConfId: cid, Active: active, Update: u})
+	}
+	return items, nil
 }
 
 func (s *ServerService) GetAllUpdateConfList(app int, iceId int64) []*model.IceConf {
