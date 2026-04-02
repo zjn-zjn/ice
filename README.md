@@ -37,26 +37,20 @@ Ice is a rule engine that takes a fundamentally different approach: **rules are 
 
 The result is a system where business rules can be visually configured, hot-reloaded in seconds, and executed in-memory with sub-millisecond latency — all without requiring any database or middleware.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://waitmoon.com/images/introduction/2-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="https://waitmoon.com/images/introduction/2-light.png">
-  <img alt="Ice Rule Example" src="https://waitmoon.com/images/introduction/2-light.png" width="600">
-</picture>
-
 ## Key Features
 
-|  | Feature | Description |
-|---|---|---|
-| **🌲** | **Tree-Based Orchestration** | Rules organized as trees — nodes are independent, changes to one node never cascade to others |
-| **🎨** | **Visual Web Editor** | Configure rules through an intuitive web UI with a tree editor, no DSL to learn |
-| **📦** | **Zero Dependencies** | No database, no message queue, no service registry — just files on disk |
-| **🌍** | **Multi-Language SDKs** | Java, Go, and Python with full feature parity |
-| **⚡** | **Hot Reload** | Changes take effect in seconds via automatic version polling — no restart needed |
-| **🚀** | **High Performance** | Pure in-memory execution with sub-millisecond latency, zero network overhead |
-| **♻️** | **Node Reuse** | Same node can be shared across multiple rule trees |
-| **⚙️** | **Parallel Execution** | Built-in parallel relation nodes for concurrent child execution |
-| **🔍** | **Mock Debugging** | Trigger rule execution remotely from the Web UI for real-time debugging |
-| **🔀** | **Lane / Traffic Isolation** | Branch-based rule isolation for A/B testing, canary releases, and gradual rollouts |
+| Feature | Description |
+|---|---|
+| **Tree-Based Orchestration** | Rules organized as trees — nodes are independent, changes to one node never cascade to others |
+| **Visual Web Editor** | Configure rules through an intuitive web UI with a tree editor, no DSL to learn |
+| **Zero Dependencies** | No database, no message queue, no service registry — just files on disk |
+| **Multi-Language SDKs** | Java, Go, and Python with full feature parity |
+| **Hot Reload** | Changes take effect in seconds via automatic version polling — no restart needed |
+| **High Performance** | Pure in-memory execution with sub-millisecond latency, zero network overhead |
+| **Node Reuse** | Same node can be shared across multiple rule trees |
+| **Parallel Execution** | Built-in parallel relation nodes for concurrent child execution |
+| **Mock Debugging** | Trigger rule execution remotely from the Web UI for real-time debugging |
+| **Lane / Traffic Isolation** | Branch-based rule isolation for A/B testing, canary releases, and gradual rollouts |
 
 ## How It Works
 
@@ -66,12 +60,6 @@ Every rule in Ice is a **tree** composed of two types of nodes:
 
 - **Relation Nodes** — control the execution flow (similar to logical operators)
 - **Leaf Nodes** — contain your actual business logic
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://waitmoon.com/images/introduction/10-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="https://waitmoon.com/images/introduction/10-light.png">
-  <img alt="Ice Rule Tree Structure" src="https://waitmoon.com/images/introduction/10-light.png" width="520">
-</picture>
 
 ### Relation Nodes (Control Flow)
 
@@ -91,7 +79,7 @@ Each type has a **parallel** variant (`P_AND`, `P_ANY`, `P_ALL`, `P_NONE`, `P_TR
 |------|--------|---------|
 | **Flow** | `boolean` | Conditional checks — "Is the user eligible?" |
 | **Result** | `boolean` | Business operations — "Issue the coupon" |
-| **None** | `void` | Side effects — logging, metrics, notifications |
+| **None** | `void` | Side effects — queries, logging, metrics, notifications |
 
 ### Roam (Data Context)
 
@@ -127,7 +115,8 @@ Roam
 │  • Web UI          │                │  • Version polling    │
 │  • Tree editor     │                │  • Hot reload         │
 │  • Apply & publish │                │  • In-memory exec     │
-│  • Mock debugging  │                │  • Fault tolerant     │
+│  • Mock debugging  │                │  • Mock execution     │
+│                    │                │  • Fault tolerant     │
 └────────────────────┘                └───────────────────────┘
 ```
 
